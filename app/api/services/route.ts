@@ -1,5 +1,6 @@
 import { getServices } from '@/lib/services';
+import { unauthorized } from '@/lib/session';
 
 export async function GET() {
-  return Response.json(await getServices());
+  return (await unauthorized()) ?? Response.json(await getServices());
 }

@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { groupServices } from '@/lib/groups';
 import type { Service } from '@/lib/types';
 
+import { AccountMenu } from '@/components/account-menu';
 import { ServiceSheet } from '@/components/service-sheet';
 import { ThemeButton } from '@/components/theme-button';
 import { TilesView } from '@/components/tiles-view';
@@ -19,7 +20,13 @@ const fetcher = (url: string) =>
     return res.json();
   });
 
-export function Dashboard({ initial }: { initial: Service[] }) {
+export function Dashboard({
+  initial,
+  email,
+}: {
+  initial: Service[];
+  email: string;
+}) {
   const { data: services = initial, mutate } = useSWR<Service[]>(
     '/api/services',
     fetcher,
@@ -35,6 +42,7 @@ export function Dashboard({ initial }: { initial: Service[] }) {
       <header className='flex items-center gap-3'>
         <h1 className='mr-auto text-base font-semibold tracking-tight'>dash</h1>
         <ThemeButton />
+        <AccountMenu email={email} />
       </header>
       <TilesView groups={groups} onOpen={(s) => setOpenKey(s.key)} />
       <ServiceSheet

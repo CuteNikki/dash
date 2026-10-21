@@ -1,4 +1,5 @@
 import { containerLogs, DockerError, logLines } from '@/lib/docker';
+import { unauthorized } from '@/lib/session';
 
 /** How many earlier lines come first, before following new ones. */
 const TAIL = 500;
@@ -11,6 +12,8 @@ export async function GET(
   request: Request,
   { params }: RouteContext<'/api/containers/[id]/logs'>
 ) {
+  const denied = await unauthorized();
+  if (denied) return denied;
   const { id } = await params;
   try {
     const { res, tty } = await containerLogs(id, {

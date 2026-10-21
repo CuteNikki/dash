@@ -5,6 +5,7 @@ import {
   listContainers,
   type ContainerAction,
 } from '@/lib/docker';
+import { requireUser } from '@/lib/session';
 
 const ACTIONS: ContainerAction[] = ['start', 'stop', 'restart'];
 
@@ -15,6 +16,7 @@ export async function runContainerAction(
   id: string,
   action: ContainerAction
 ): Promise<ActionResult> {
+  await requireUser();
   if (!ACTIONS.includes(action)) return { ok: false, error: 'Unknown action' };
   const containers = await listContainers();
   if (!containers.some((c) => c.id === id)) {
