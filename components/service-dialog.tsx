@@ -262,6 +262,14 @@ function UsagePanel({ service }: { service: Service }) {
   ];
   return (
     <div className='flex flex-col gap-6'>
+      <dl className='grid grid-cols-[auto_1fr] gap-x-6 gap-y-2'>
+        {details.map(([label, value]) => (
+          <div key={label} className='contents'>
+            <dt className='text-muted-foreground'>{label}</dt>
+            <dd className='font-mono break-all'>{value}</dd>
+          </div>
+        ))}
+      </dl>
       <div className='flex flex-col gap-6'>
         <UsageChart
           label='CPU'
@@ -278,14 +286,6 @@ function UsagePanel({ service }: { service: Service }) {
           format={formatBytes}
         />
       </div>
-      <dl className='grid grid-cols-[auto_1fr] gap-x-6 gap-y-2'>
-        {details.map(([label, value]) => (
-          <div key={label} className='contents'>
-            <dt className='text-muted-foreground'>{label}</dt>
-            <dd className='font-mono break-all'>{value}</dd>
-          </div>
-        ))}
-      </dl>
     </div>
   );
 }
