@@ -7,15 +7,17 @@ import { ListEndIcon, SearchIcon } from 'lucide-react';
 import { hasAnsi, parseAnsi, type Segment, type Tone } from '@/lib/ansi';
 import { cn } from '@/lib/utils';
 
+import { Button } from '@/components/ui/button';
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
 } from '@/components/ui/input-group';
-import { Toggle } from '@/components/ui/toggle';
 
 /** Lines kept in the viewer; older ones drop off the top. */
 const MAX_LINES = 2_000;
+/** How close to the end counts as the end, as zoom and rounding can leave a pixel or two. */
+const BOTTOM_SLACK_PX = 4;
 
 type Line = {
   id: number;
@@ -121,19 +123,24 @@ export function LogViewer({ containerId }: { containerId: string }) {
             onChange={(e) => setFilter(e.target.value)}
           />
         </InputGroup>
-        <Toggle
-          variant='active'
-          pressed={follow}
-          onPressedChange={setFollow}
-          aria-label='Follow new lines'
+        <Button
+          variant={follow ? 'default' : 'outline'}
+          aria-pressed={follow}
+          onClick={() => setFollow(!follow)}
         >
           <ListEndIcon />
           Follow
-        </Toggle>
+        </Button>
       </div>
       <div
         ref={scroller}
-        onWheel={(e) => e.deltaY < 0 && setFollow(false)}
+        // Scrolling up stops following; scrolling back to the end resumes it
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          setFollow(
+            el.scrollHeight - el.scrollTop - el.clientHeight <= BOTTOM_SLACK_PX
+          );
+        }}
         className='min-h-0 flex-1 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs/relaxed'
       >
         {error ? (
