@@ -20,6 +20,9 @@ const FILES = {
   memory: '/proc/meminfo',
   network: '/proc/1/net/dev',
   routes: '/proc/1/net/route',
+  cpuinfo: '/proc/cpuinfo',
+  uptime: '/proc/uptime',
+  load: '/proc/loadavg',
 } as const;
 
 type Raw = Record<keyof typeof FILES, string> & { disk: string };
@@ -60,6 +63,14 @@ export type HostReading = {
   disk: { used: number; total: number };
   /** Bytes received and sent since boot, on the interface to the internet */
   network: { received: number; sent: number; interface: string };
+  /** Bytes; a total of 0 is a server without swap */
+  swap: { used: number; total: number };
+  /** As the processor names itself; a virtual server's is often generic */
+  cpuModel: string;
+  /** Seconds since the server started */
+  uptime: number;
+  /** Processes waiting for the CPU, averaged over 1, 5 and 15 minutes */
+  load: [number, number, number];
 };
 
 function parseCpu(stat: string) {
@@ -76,8 +87,12 @@ function parseMemory(meminfo: string) {
     Number(meminfo.match(new RegExp(`^${key}:\\s+(\\d+)`, 'm'))?.[1] ?? 0) *
     1024;
   const total = kb('MemTotal');
-  // Used as the kernel counts it: what isn't available to programs
-  return { used: total - kb('MemAvailable'), total };
+  const swap = kb('SwapTotal');
+  return {
+    // Used as the kernel counts it: what isn't available to programs
+    memory: { used: total - kb('MemAvailable'), total },
+    swap: { used: swap - kb('SwapFree'), total: swap },
+  };
 }
 
 function parseDisk(df: string) {
@@ -106,7 +121,15 @@ export async function readHost(): Promise<HostReading> {
   return {
     at: Date.now(),
     ...parseCpu(raw.cpu),
-    memory: parseMemory(raw.memory),
+    ...parseMemory(raw.memory),
+    cpuModel:
+      raw.cpuinfo.match(/^model name\s*:\s*(.+)$/m)?.[1].trim() ?? 'Unknown',
+    uptime: Number(raw.uptime.split(/\s+/)[0]),
+    load: raw.load.split(/\s+/).slice(0, 3).map(Number) as [
+      number,
+      number,
+      number,
+    ],
     disk: parseDisk(raw.disk),
     network: parseNetwork(raw.network, raw.routes),
   };

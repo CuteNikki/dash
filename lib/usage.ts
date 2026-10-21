@@ -1,6 +1,11 @@
 import 'server-only';
 
-import { containerUsage, listContainers, type Usage } from '@/lib/docker';
+import {
+  containerUsage,
+  dockerInfo,
+  listContainers,
+  type Usage,
+} from '@/lib/docker';
 import { readHost, type HostReading } from '@/lib/host';
 import type { HostStats } from '@/lib/types';
 
@@ -61,7 +66,7 @@ async function sampleContainers() {
 
 /** CPU and network are rates, so the first reading only sets a starting point. */
 async function sampleHost() {
-  const now = await readHost();
+  const [now, info] = await Promise.all([readHost(), dockerInfo()]);
   const last = sampler.lastHost;
   sampler.lastHost = now;
   if (!last) return;
@@ -78,6 +83,13 @@ async function sampleHost() {
     memory: now.memory,
     disk: now.disk,
     network: { received, sent },
+    system: {
+      ...info,
+      cpuModel: now.cpuModel,
+      uptime: now.uptime,
+      load: now.load,
+      swap: now.swap,
+    },
     history: {
       cpu: recent(history?.cpu, cpu),
       memory: recent(history?.memory, now.memory.used),

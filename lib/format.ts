@@ -12,6 +12,20 @@ export function formatBytes(bytes: number) {
   return `${value.toFixed(digits)} ${BYTE_UNITS[unit]}`;
 }
 
+const MINUTE = 60;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+
+/** A length of time in its two largest units, e.g. 231946 s → "2 days 16 h". */
+export function formatDuration(seconds: number) {
+  const days = Math.floor(seconds / DAY);
+  const hours = Math.floor((seconds % DAY) / HOUR);
+  const minutes = Math.floor((seconds % HOUR) / MINUTE);
+  if (days > 0) return `${days} ${days === 1 ? 'day' : 'days'} ${hours} h`;
+  if (hours > 0) return `${hours} h ${minutes} min`;
+  return `${minutes} min`;
+}
+
 /** Bytes per second, e.g. 31232 → "30 KB/s". */
 export function formatRate(bytesPerSecond: number) {
   return `${formatBytes(bytesPerSecond)}/s`;

@@ -1,4 +1,4 @@
-import type { ContainerState } from '@/lib/docker';
+import type { ContainerState, DockerInfo } from '@/lib/docker';
 import type { IconVariants } from '@/lib/icon-sets';
 
 /** A container as the dashboard shows it, safe to send to the browser. */
@@ -58,6 +58,16 @@ export type HostStats = {
   disk: { used: number; total: number };
   /** Bytes per second, on the interface to the internet */
   network: { received: number; sent: number };
+  /** What it is: its name, system, processor, how long it's been up */
+  system: DockerInfo & {
+    cpuModel: string;
+    /** Seconds */
+    uptime: number;
+    /** Over 1, 5 and 15 minutes */
+    load: [number, number, number];
+    /** Bytes; a total of 0 is no swap */
+    swap: { used: number; total: number };
+  };
   /** Recent readings, oldest first */
   history: {
     cpu: number[];

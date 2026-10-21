@@ -207,6 +207,36 @@ export async function containerUsage(id: string): Promise<Usage> {
   };
 }
 
+/** What Docker knows about the server it runs on, and its own state. */
+export async function dockerInfo() {
+  const info = await dockerJson<{
+    Name: string;
+    OperatingSystem: string;
+    KernelVersion: string;
+    Architecture: string;
+    ServerVersion: string;
+    ContainersRunning: number;
+    ContainersStopped: number;
+    ContainersPaused: number;
+    Images: number;
+  }>('GET', '/info');
+  return {
+    hostname: info.Name,
+    // The server's own, not the container's: Docker reads it on the server
+    os: info.OperatingSystem,
+    kernel: info.KernelVersion,
+    architecture: info.Architecture,
+    docker: info.ServerVersion,
+    containers: {
+      running: info.ContainersRunning,
+      stopped: info.ContainersStopped + info.ContainersPaused,
+    },
+    images: info.Images,
+  };
+}
+
+export type DockerInfo = Awaited<ReturnType<typeof dockerInfo>>;
+
 /** Runs a command in a running container and returns what it printed. */
 export async function execOutput(container: string, cmd: string[]) {
   const { Id } = await dockerJson<{ Id: string }>(
