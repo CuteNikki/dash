@@ -1,0 +1,20 @@
+import { gitDiff, gitStatus } from '@/lib/git';
+import { unauthorized } from '@/lib/session';
+import { stackOf } from '@/lib/stack-files';
+
+/** What changed in one of the repository's changed files, ?path= relative to it. */
+export async function GET(
+  request: Request,
+  { params }: RouteContext<'/api/containers/[id]/git/diff'>
+) {
+  const denied = await unauthorized();
+  if (denied) return denied;
+  const stack = await stackOf((await params).id);
+  const status = stack && (await gitStatus(stack.dir));
+  const path = new URL(request.url).searchParams.get('path') ?? '';
+  // Only a file git says changed, so no other path gets through
+  if (!status?.changes.some((c) => c.path === path)) {
+    return Response.json({ error: 'Not a changed file' }, { status: 404 });
+  }
+  return Response.json({ diff: await gitDiff(status.root, path) });
+}

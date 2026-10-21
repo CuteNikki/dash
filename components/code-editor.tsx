@@ -7,11 +7,12 @@ import {
   StreamLanguage,
   syntaxHighlighting,
 } from '@codemirror/language';
+import { diff } from '@codemirror/legacy-modes/mode/diff';
 import { dockerFile } from '@codemirror/legacy-modes/mode/dockerfile';
 import { properties } from '@codemirror/legacy-modes/mode/properties';
 import { shell } from '@codemirror/legacy-modes/mode/shell';
 import { toml } from '@codemirror/legacy-modes/mode/toml';
-import type { Extension } from '@codemirror/state';
+import { EditorState, type Extension } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { tags } from '@lezer/highlight';
 import CodeMirror from '@uiw/react-codemirror';
@@ -61,6 +62,10 @@ const highlight = HighlightStyle.define([
   { tag: tags.comment, color: 'var(--muted-foreground)', fontStyle: 'italic' },
   // Dockerfile instructions and shell words: the text color, a little bolder
   { tag: tags.keyword, color: 'var(--foreground)', fontWeight: '600' },
+  // Diffs: what was added and taken away, in the colors that mean it
+  { tag: tags.inserted, color: 'var(--success)' },
+  { tag: tags.deleted, color: 'var(--destructive)' },
+  { tag: tags.meta, color: 'var(--muted-foreground)' },
 ]);
 
 /** How a file is read, from its name; anything else is plain text. */
@@ -73,6 +78,7 @@ function languageFor(name: string): Extension[] {
   }
   if (/\.(sh|bash)$/.test(lower)) return [StreamLanguage.define(shell)];
   if (/\.toml$/.test(lower)) return [StreamLanguage.define(toml)];
+  if (/\.(diff|patch)$/.test(lower)) return [StreamLanguage.define(diff)];
   if (/^\.env|\.(env|properties|conf|ini)$/.test(lower)) {
     return [StreamLanguage.define(properties)];
   }
@@ -84,13 +90,16 @@ export function CodeEditor({
   onChange,
   fileName,
   label,
+  readOnly,
 }: {
   value: string;
-  onChange: (value: string) => void;
-  /** Picks how it's highlighted: YAML, JSON, Dockerfile, shell, TOML, .env */
+  onChange?: (value: string) => void;
+  /** Picks how it's highlighted: YAML, JSON, Dockerfile, shell, TOML, .env, diff */
   fileName: string;
   /** What's being edited, for screen readers */
   label: string;
+  /** For showing text, such as a diff, rather than editing it */
+  readOnly?: boolean;
 }) {
   return (
     <CodeMirror
@@ -100,8 +109,13 @@ export function CodeEditor({
       height='100%'
       className='h-full overflow-hidden rounded-lg font-mono text-xs/relaxed'
       aria-label={label}
-      basicSetup={{ foldGutter: false, highlightActiveLine: true }}
-      extensions={[syntaxHighlighting(highlight), ...languageFor(fileName)]}
+      editable={!readOnly}
+      basicSetup={{ foldGutter: false, highlightActiveLine: !readOnly }}
+      extensions={[
+        syntaxHighlighting(highlight),
+        ...languageFor(fileName),
+        ...(readOnly ? [EditorState.readOnly.of(true)] : []),
+      ]}
     />
   );
 }

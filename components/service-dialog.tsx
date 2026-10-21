@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
+import useSWR from 'swr';
 
 import {
   ExternalLinkIcon,
@@ -13,12 +14,15 @@ import {
 
 import { runContainerAction } from '@/actions/containers';
 import type { ContainerAction } from '@/lib/docker';
+import { fetcher } from '@/lib/fetcher';
 import { formatBytes, formatCpu } from '@/lib/format';
+import type { GitStatus } from '@/lib/git';
 import { isRunning, stateLabel } from '@/lib/status';
 import type { Service } from '@/lib/types';
 
 import { AddressList } from '@/components/address-list';
 import { FilesPanel } from '@/components/files-panel';
+import { GitPanel } from '@/components/git-panel';
 import { HistoryChart } from '@/components/history-chart';
 import { LogViewer } from '@/components/log-viewer';
 import { ServiceIcon } from '@/components/service-icon';
@@ -98,6 +102,12 @@ function ServiceBody({
   const [pending, startTransition] = useTransition();
   const [confirmStop, setConfirmStop] = useState(false);
   const running = isRunning(service.state);
+  // The repository its stack is in, if any: a Git tab shows once it's known
+  const { data: git, mutate: rereadGit } = useSWR<GitStatus | null>(
+    service.stack ? `/api/containers/${service.containerId}/git` : null,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
 
   function run(action: ContainerAction) {
     startTransition(async () => {
@@ -185,6 +195,16 @@ function ServiceBody({
         <TabsList>
           <TabsTrigger value='logs'>Logs</TabsTrigger>
           {service.stack && <TabsTrigger value='files'>Files</TabsTrigger>}
+          {git && (
+            <TabsTrigger value='git'>
+              Git
+              {git.changes.length > 0 && (
+                <span className='font-mono text-muted-foreground tabular-nums'>
+                  {git.changes.length}
+                </span>
+              )}
+            </TabsTrigger>
+          )}
           <TabsTrigger value='usage'>Usage</TabsTrigger>
         </TabsList>
         <TabsContent value='logs' className='flex min-h-0 flex-col'>
@@ -200,6 +220,16 @@ function ServiceBody({
               key={service.stack.dir}
               containerId={service.containerId}
               onDeployed={onChanged}
+            />
+          </TabsContent>
+        )}
+        {git && (
+          <TabsContent value='git' className='flex min-h-0 flex-col'>
+            <GitPanel
+              key={git.root}
+              containerId={service.containerId}
+              status={git}
+              onChanged={rereadGit}
             />
           </TabsContent>
         )}
