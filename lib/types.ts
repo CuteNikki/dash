@@ -136,8 +136,8 @@ export type MeasuredSize = { size?: number; before?: number };
 /** A folder on the server: its size, and what's in it, biggest first. */
 export type FolderUsage = MeasuredSize & {
   path: string;
-  /** Those on this disk, as only they take up any of it */
-  folders: (MeasuredSize & { name: string })[];
+  /** Elsewhere: another disk's, or the kernel's or memory's, so not measured here */
+  folders: (MeasuredSize & { name: string; elsewhere?: boolean })[];
   files: { name: string; size: number }[];
 };
 
