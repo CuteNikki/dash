@@ -7,10 +7,16 @@ export type Service = {
   containerName: string;
   name: string;
   group: string;
-  /** A dashboard-icons name, e.g. "jellyfin" */
+  /** A dashboard-icons name, "mdi-…", "si-…" or an https:// address */
   icon: string;
   url?: string;
   description?: string;
+  /** Order within its group, when it's been placed; otherwise by name */
+  position?: number;
+  /** Left off the dashboard, except while editing it */
+  hidden: boolean;
+  /** Whether its tile has been edited here, rather than from labels */
+  edited: boolean;
   image: string;
   state: ContainerState;
   status: string;
@@ -23,4 +29,10 @@ export type Service = {
     /** Recent CPU readings, oldest first */
     history: number[];
   };
+};
+
+export type Dashboard = {
+  services: Service[];
+  /** Groups in the order they've been placed; others follow by name */
+  groupOrder: string[];
 };

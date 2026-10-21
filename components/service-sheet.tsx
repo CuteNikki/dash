@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 
 import {
   ExternalLinkIcon,
+  PencilIcon,
   PlayIcon,
   RotateCwIcon,
   SquareIcon,
@@ -51,16 +52,20 @@ export function ServiceSheet({
   service,
   onClose,
   onChanged,
+  onEdit,
 }: {
   service?: Service;
   onClose: () => void;
   /** Called after an action, so the dashboard refreshes right away */
   onChanged: () => void;
+  onEdit: (service: Service) => void;
 }) {
   return (
     <Sheet open={!!service} onOpenChange={(open) => !open && onClose()}>
       <SheetContent className='gap-0 data-[side=right]:w-full data-[side=right]:sm:max-w-2xl'>
-        {service && <SheetBody service={service} onChanged={onChanged} />}
+        {service && (
+          <SheetBody service={service} onChanged={onChanged} onEdit={onEdit} />
+        )}
       </SheetContent>
     </Sheet>
   );
@@ -69,9 +74,11 @@ export function ServiceSheet({
 function SheetBody({
   service,
   onChanged,
+  onEdit,
 }: {
   service: Service;
   onChanged: () => void;
+  onEdit: (service: Service) => void;
 }) {
   const [pending, startTransition] = useTransition();
   const [confirmStop, setConfirmStop] = useState(false);
@@ -138,6 +145,10 @@ function SheetBody({
           >
             <RotateCwIcon />
             Restart
+          </Button>
+          <Button variant='outline' onClick={() => onEdit(service)}>
+            <PencilIcon />
+            Edit tile
           </Button>
           {service.url && (
             <Button variant='outline' className='ml-auto' asChild>

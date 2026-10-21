@@ -1,4 +1,4 @@
-import { getServices } from '@/lib/services';
+import { getDashboard } from '@/lib/services';
 import { requireUser } from '@/lib/session';
 
 import { Dashboard } from '@/components/dashboard';
@@ -9,5 +9,5 @@ export const instant = false;
 
 export default async function Home() {
   const user = await requireUser();
-  return <Dashboard initial={await getServices()} email={user.email} />;
+  return <Dashboard initial={await getDashboard()} email={user.email} />;
 }

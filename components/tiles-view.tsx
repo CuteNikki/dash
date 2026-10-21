@@ -5,9 +5,11 @@ import { ServiceTile } from '@/components/service-tile';
 
 export function TilesView({
   groups,
+  editing,
   onOpen,
 }: {
   groups: ServiceGroup[];
+  editing: boolean;
   onOpen: (service: Service) => void;
 }) {
   return (
@@ -25,6 +27,7 @@ export function TilesView({
               <ServiceTile
                 key={service.key}
                 service={service}
+                editing={editing}
                 onOpen={onOpen}
               />
             ))}

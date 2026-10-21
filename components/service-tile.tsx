@@ -1,3 +1,5 @@
+import { EyeOffIcon, PencilIcon } from 'lucide-react';
+
 import { formatBytes, formatCpu, formatHost } from '@/lib/format';
 import { isRunning, stateLabel } from '@/lib/status';
 import type { Service } from '@/lib/types';
@@ -9,9 +11,12 @@ import { Card } from '@/components/ui/card';
 
 export function ServiceTile({
   service,
+  editing,
   onOpen,
 }: {
   service: Service;
+  /** While editing the dashboard, a tile opens its editor */
+  editing: boolean;
   onOpen: (service: Service) => void;
 }) {
   const running = isRunning(service.state);
@@ -19,12 +24,13 @@ export function ServiceTile({
     <button
       type='button'
       onClick={() => onOpen(service)}
-      className='rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-ring'
+      aria-label={editing ? `Edit ${service.name}` : undefined}
+      className='group/tile rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-ring'
     >
       <Card
         size='sm'
-        className='h-full px-3 transition-shadow hover:ring-foreground/25 data-[running=false]:opacity-60'
-        data-running={running}
+        data-dimmed={!running || service.hidden}
+        className='h-full px-3 transition-shadow group-hover/tile:ring-foreground/25 data-[dimmed=true]:opacity-60'
       >
         <div className='flex items-center gap-3'>
           <ServiceIcon icon={service.icon} name={service.name} />
@@ -34,7 +40,16 @@ export function ServiceTile({
               {service.url ? formatHost(service.url) : service.containerName}
             </div>
           </div>
-          <StatusDot state={service.state} />
+          {editing ? (
+            <span className='flex items-center gap-2 text-muted-foreground'>
+              {service.hidden && (
+                <EyeOffIcon aria-label='Hidden' className='size-4' />
+              )}
+              <PencilIcon className='size-4' />
+            </span>
+          ) : (
+            <StatusDot state={service.state} />
+          )}
         </div>
         <div className='flex items-center gap-3 font-mono text-muted-foreground tabular-nums'>
           {running && service.usage ? (

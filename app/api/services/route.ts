@@ -1,6 +1,6 @@
-import { getServices } from '@/lib/services';
+import { getDashboard } from '@/lib/services';
 import { unauthorized } from '@/lib/session';
 
 export async function GET() {
-  return (await unauthorized()) ?? Response.json(await getServices());
+  return (await unauthorized()) ?? Response.json(await getDashboard());
 }

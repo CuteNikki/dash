@@ -1,8 +1,9 @@
 import 'server-only';
 
+import { db } from '@/lib/db';
 import { listContainers, type Container } from '@/lib/docker';
 import { DEFAULT_GROUP } from '@/lib/groups';
-import type { Service } from '@/lib/types';
+import type { Dashboard, Service } from '@/lib/types';
 import { currentUsage } from '@/lib/usage';
 
 /**
@@ -29,27 +30,42 @@ function iconName(label?: string) {
 }
 
 /**
- * Every container as a tile. Until a tile is edited here, its name, group,
- * icon and link come from its Homepage labels, so the dashboard starts out
- * looking like Homepage did.
+ * Every container as a tile. What's been edited here comes first; the rest
+ * comes from the container's Homepage labels, so the dashboard starts out
+ * looking like Homepage did, then from its name.
  */
-export async function getServices(): Promise<Service[]> {
-  const [containers, usage] = await Promise.all([
+export async function getDashboard(): Promise<Dashboard> {
+  const [containers, usage, tiles, groups] = await Promise.all([
     listContainers(),
     currentUsage(),
+    db.tile.findMany(),
+    db.group.findMany({ orderBy: { position: 'asc' } }),
   ]);
-  return containers.map((c) => {
+  const edited = new Map(tiles.map((t) => [t.key, t]));
+
+  const services = containers.map((c): Service => {
     const l = c.labels;
+    const key = serviceKey(c);
+    const tile = edited.get(key);
     const u = usage.get(c.id);
+    // An empty link saved here means "no link", not "use the label's"
+    const url = tile?.url != null ? tile.url : l['homepage.href'];
     return {
-      key: serviceKey(c),
+      key,
       containerId: c.id,
       containerName: c.name,
-      name: l['homepage.name'] || prettyName(c),
-      group: l['homepage.group'] || DEFAULT_GROUP,
-      icon: iconName(l['homepage.icon']) ?? c.stack?.service ?? c.name,
-      url: l['homepage.href'] || undefined,
+      name: tile?.name || l['homepage.name'] || prettyName(c),
+      group: tile?.group || l['homepage.group'] || DEFAULT_GROUP,
+      icon:
+        tile?.icon ||
+        iconName(l['homepage.icon']) ||
+        c.stack?.service ||
+        c.name,
+      url: url || undefined,
       description: l['homepage.description'] || undefined,
+      position: tile?.position ?? undefined,
+      hidden: tile?.hidden ?? false,
+      edited: !!tile,
       image: c.image,
       state: c.state,
       status: c.status,
@@ -59,4 +75,5 @@ export async function getServices(): Promise<Service[]> {
         : undefined,
     };
   });
+  return { services, groupOrder: groups.map((g) => g.name) };
 }
