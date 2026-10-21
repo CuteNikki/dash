@@ -317,16 +317,9 @@ const BREADCRUMBS = 'flex flex-wrap items-center gap-1 font-mono';
 /** How often to look in on the folder that's open while the disk's being measured. */
 const FOLDER_POLL_MS = 2_000;
 
-/**
- * Done ones biggest first, then those still being measured, by what they
- * were, and last, folders that aren't on this disk.
- */
-function bySize(
-  a: MeasuredSize & { elsewhere?: boolean },
-  b: MeasuredSize & { elsewhere?: boolean }
-) {
+/** Done ones biggest first, then those still being measured, by what they were. */
+function bySize(a: MeasuredSize, b: MeasuredSize) {
   return (
-    Number(Boolean(a.elsewhere)) - Number(Boolean(b.elsewhere)) ||
     Number(b.size !== undefined) - Number(a.size !== undefined) ||
     (b.size ?? b.before ?? 0) - (a.size ?? a.before ?? 0)
   );
@@ -414,9 +407,7 @@ function Folders({ scanning }: { scanning: boolean }) {
                           : undefined
                       }
                       onOpen={
-                        // One that's elsewhere isn't measured, so has nothing to show
-                        entry.folder &&
-                        !('elsewhere' in entry && entry.elsewhere)
+                        entry.folder
                           ? () =>
                               setPath(
                                 path === '/'
@@ -441,17 +432,7 @@ function Folders({ scanning }: { scanning: boolean }) {
  * A size, or while it's still being measured, what it was last time, faded,
  * or that it's being measured.
  */
-function Size({ size }: { size: MeasuredSize & { elsewhere?: boolean } }) {
-  if (size.elsewhere) {
-    return (
-      <span
-        title='Another disk’s, or the system’s or memory’s, so not counted here'
-        className='opacity-50'
-      >
-        elsewhere
-      </span>
-    );
-  }
+function Size({ size }: { size: MeasuredSize }) {
   if (size.size !== undefined) return formatBytes(size.size);
   if (size.before !== undefined) {
     return (
@@ -517,7 +498,7 @@ function Entry({
   share,
   onOpen,
 }: {
-  entry: MeasuredSize & { name: string; folder: boolean; elsewhere?: boolean };
+  entry: MeasuredSize & { name: string; folder: boolean };
   /** None while it's still being measured */
   share?: number;
   /** For a folder, to look into it */

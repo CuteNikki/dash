@@ -31,12 +31,11 @@ const FILES_MARKER = '--files--';
 const MISSING = 3;
 
 type Listing = {
-  folders: string[];
   /**
-   * Its folders that are another disk's, or the kernel's or memory's, such as
-   * /proc or /tmp: measuring stays on this disk, so they have no size here
+   * Those on this disk: another disk's, or the kernel's or memory's, such as
+   * /proc or /tmp, take none of it, so they're left out
    */
-  elsewhere: Set<string>;
+  folders: string[];
   files: { name: string; size: number }[];
 };
 
@@ -53,8 +52,8 @@ type Scan = {
 // Kept on globalThis, so development's hot reloads keep a finished
 // measurement rather than starting over
 const scan: Scan = ((
-  globalThis as typeof globalThis & { diskMeasurement?: Scan }
-).diskMeasurement ??= {
+  globalThis as typeof globalThis & { diskSizes?: Scan }
+).diskSizes ??= {
   status: { state: 'none' },
   sizes: new Map(),
   previous: new Map(),
@@ -162,22 +161,20 @@ true`,
   const out = lines.filter((l) => l.stream === 'stdout').map((l) => l.line);
   const split = out.indexOf(FILES_MARKER);
   const folders: string[] = [];
-  const elsewhere = new Set<string>();
   const before = out.slice(0, split);
-  // Without its own device, the last line, nothing's taken for elsewhere
+  // The folder's own device, the last line: a folder on another isn't this disk's
   const own = deeper ? undefined : before.pop();
   for (const line of before) {
     if (deeper) {
+      // du stays on this disk, so lists only this disk's
       const entry = parseDu(line);
       if (!entry || entry.path === folder) continue;
       scan.sizes.set(entry.path, entry.size);
       folders.push(posix.basename(entry.path));
     } else {
       const space = line.indexOf(' ');
-      const name = posix.basename(line.slice(space + 1));
-      folders.push(name);
-      if (own !== undefined && line.slice(0, space) !== own)
-        elsewhere.add(name);
+      if (own !== undefined && line.slice(0, space) !== own) continue;
+      folders.push(posix.basename(line.slice(space + 1)));
     }
   }
   const files = out
@@ -185,7 +182,7 @@ true`,
     .map(parseDu)
     .filter((f) => f !== undefined)
     .map((f) => ({ name: posix.basename(f.path), size: f.size }));
-  const result = { folders, elsewhere, files };
+  const result = { folders, files };
   scan.listings.set(folder, result);
   return result;
 }
@@ -197,20 +194,20 @@ true`,
  */
 export async function folderUsage(path: string): Promise<FolderUsage> {
   const folder = checkPath(path);
-  const { folders, elsewhere, files } = await listing(folder);
+  const { folders, files } = await listing(folder);
   const entry = (name: string) => {
     const full = posix.join(folder, name);
-    return elsewhere.has(name)
-      ? { name, elsewhere: true }
-      : { name, size: scan.sizes.get(full), before: scan.previous.get(full) };
+    return {
+      name,
+      size: scan.sizes.get(full),
+      before: scan.previous.get(full),
+    };
   };
   const bySize = (
-    a: { size?: number; before?: number; elsewhere?: boolean },
-    b: { size?: number; before?: number; elsewhere?: boolean }
+    a: { size?: number; before?: number },
+    b: { size?: number; before?: number }
   ) =>
-    // Measured ones first, then the rest by what they were, and last what
-    // isn't on this disk
-    Number(Boolean(a.elsewhere)) - Number(Boolean(b.elsewhere)) ||
+    // Measured ones first, then the rest by what they were
     Number(b.size !== undefined) - Number(a.size !== undefined) ||
     (b.size ?? b.before ?? 0) - (a.size ?? a.before ?? 0);
   return {
