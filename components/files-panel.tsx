@@ -146,30 +146,8 @@ export function FilesPanel({
             }}
           />
         </nav>
-        <div className='flex min-h-0 min-w-0 flex-1 flex-col gap-2'>
-          {isMarkdown && opened?.content !== undefined && (
-            <ToggleGroup
-              type='single'
-              variant='outline'
-              size='sm'
-              value={previewing ? 'preview' : 'edit'}
-              onValueChange={(v) =>
-                v &&
-                setEditing((e) => {
-                  const next = new Set(e);
-                  if (v === 'edit') next.add(path);
-                  else next.delete(path);
-                  return next;
-                })
-              }
-              aria-label='Show'
-              className='self-start'
-            >
-              <ToggleGroupItem value='preview'>Preview</ToggleGroupItem>
-              <ToggleGroupItem value='edit'>Edit</ToggleGroupItem>
-            </ToggleGroup>
-          )}
-          <div className='min-h-0 flex-1'>
+        <div className='flex min-h-0 min-w-0 flex-1 flex-col'>
+          <div className='relative min-h-0 flex-1'>
             {opened === undefined ? (
               <CodeSkeleton />
             ) : opened.content === undefined ? (
@@ -186,6 +164,27 @@ export function FilesPanel({
                 fileName={name}
                 label={name}
               />
+            )}
+            {isMarkdown && opened?.content !== undefined && (
+              <ToggleGroup
+                type='single'
+                variant='outline'
+                value={previewing ? 'preview' : 'edit'}
+                onValueChange={(v) =>
+                  v &&
+                  setEditing((e) => {
+                    const next = new Set(e);
+                    if (v === 'edit') next.add(path);
+                    else next.delete(path);
+                    return next;
+                  })
+                }
+                aria-label='Show'
+                className='absolute top-3 right-4 bg-background'
+              >
+                <ToggleGroupItem value='preview'>Preview</ToggleGroupItem>
+                <ToggleGroupItem value='edit'>Edit</ToggleGroupItem>
+              </ToggleGroup>
             )}
           </div>
         </div>

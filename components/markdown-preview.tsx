@@ -86,12 +86,16 @@ const components: Components = {
  */
 export function MarkdownPreview({ text }: { text: string }) {
   return (
-    <div className='h-full overflow-auto rounded-lg bg-muted p-6'>
-      <article className='max-w-4xl text-sm/relaxed'>
-        <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
-          {text}
-        </ReactMarkdown>
-      </article>
+    // The scroller sits inside the rounded box, as in the editor, so the box
+    // clips its scrollbar to the corners
+    <div className='h-full overflow-hidden rounded-lg bg-muted'>
+      <div className='h-full overflow-auto p-6'>
+        <article className='max-w-4xl text-sm/relaxed'>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+            {text}
+          </ReactMarkdown>
+        </article>
+      </div>
     </div>
   );
 }
