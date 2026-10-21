@@ -141,6 +141,25 @@ export function LogViewer({ containerId }: { containerId: string }) {
     if (follow && el) el.scrollTop = el.scrollHeight;
   }, [shown, follow]);
 
+  // Shift and the wheel scroll long lines sideways. Some browsers report that
+  // as scrolling down, which the panel (a dialog, keeping the page behind it
+  // still) refuses at the end of the log, so the log scrolls itself sideways
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    function onWheel(e: WheelEvent) {
+      if (!e.shiftKey || e.deltaX !== 0 || e.deltaY === 0 || !el) return;
+      e.preventDefault();
+      const lineHeight = parseFloat(getComputedStyle(el).lineHeight);
+      el.scrollLeft +=
+        e.deltaMode === WheelEvent.DOM_DELTA_LINE
+          ? e.deltaY * lineHeight
+          : e.deltaY;
+    }
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
   // Where the last scroll left off, to tell the reader scrolling up from the
   // log itself changing under it (new lines, old ones dropping off, a filter)
   const lastScroll = useRef({ top: 0, height: 0 });
