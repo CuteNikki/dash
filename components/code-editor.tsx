@@ -29,10 +29,14 @@ const theme = EditorView.theme({
     backgroundColor: 'color-mix(in oklch, var(--foreground) 5%, transparent)',
   },
   '.cm-cursor': { borderLeftColor: 'var(--foreground)' },
-  '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection':
-    {
-      backgroundColor: 'color-mix(in oklch, var(--ring) 35%, transparent)',
-    },
+  // A tint of the text color, so selected text stays readable in either theme.
+  // The focused selector matches CodeMirror's own, which is otherwise lavender.
+  '.cm-selectionLayer .cm-selectionBackground': {
+    backgroundColor: 'color-mix(in oklch, var(--foreground) 12%, transparent)',
+  },
+  '&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground': {
+    backgroundColor: 'color-mix(in oklch, var(--foreground) 20%, transparent)',
+  },
 });
 
 const highlight = HighlightStyle.define([
