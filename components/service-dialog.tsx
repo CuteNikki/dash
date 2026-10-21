@@ -64,7 +64,15 @@ export function ServiceDialog({
   return (
     <Dialog open={!!service} onOpenChange={(open) => !open && onClose()}>
       {/* Full screen on a phone, a large window in the middle on a computer */}
-      <DialogContent className='flex h-full max-w-full flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-5/6 sm:max-w-7xl sm:rounded-xl'>
+      <DialogContent
+        className='flex h-full max-w-full flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-5/6 sm:max-w-7xl sm:rounded-xl'
+        // Focus the window itself, not its first button, whose tooltip
+        // would open with it; Tab still reaches every button
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          (e.currentTarget as HTMLElement).focus();
+        }}
+      >
         {service && (
           <ServiceBody
             service={service}
