@@ -17,6 +17,8 @@ export function ScrollFade({
   fadeTop = 'top-0',
   fadeFrom = 'from-card',
   fill,
+  ref,
+  onScroll,
   children,
 }: {
   /** The scrolling area's own, such as its height and overflow */
@@ -30,9 +32,13 @@ export function ScrollFade({
    * tall as its own height says, which a parent that sizes it needs
    */
   fill?: boolean;
+  /** The scrolling area itself, for one that also scrolls it */
+  ref?: React.RefObject<HTMLDivElement | null>;
+  onScroll?: (e: React.UIEvent<HTMLDivElement>) => void;
   children: React.ReactNode;
 }) {
-  const scroller = useRef<HTMLDivElement>(null);
+  const own = useRef<HTMLDivElement>(null);
+  const scroller = ref ?? own;
   const [more, setMore] = useState({ above: false, below: false });
   // The scrollbar's width, which the fades stop short of
   const [bar, setBar] = useState(0);
@@ -64,7 +70,14 @@ export function ScrollFade({
     'pointer-events-none absolute left-0 h-[2lh] to-transparent transition-opacity';
   return (
     <div className={cn('relative min-h-0', fill && 'h-full')}>
-      <div ref={scroller} onScroll={measure} className={className}>
+      <div
+        ref={scroller}
+        onScroll={(e) => {
+          measure();
+          onScroll?.(e);
+        }}
+        className={className}
+      >
         {children}
       </div>
       <div

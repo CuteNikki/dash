@@ -22,6 +22,7 @@ import {
 import { cn } from '@/lib/utils';
 
 import { ConsoleInput } from '@/components/console-input';
+import { ScrollFade } from '@/components/scroll-fade';
 import { CodeSkeleton } from '@/components/skeletons';
 import { Button } from '@/components/ui/button';
 import {
@@ -242,36 +243,41 @@ export function LogViewer({
           Follow
         </Button>
       </div>
-      <div
-        ref={scroller}
-        // Scrolling up stops following; scrolling back to the end resumes it
-        onScroll={onScroll}
-        className='min-h-0 flex-1 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs/relaxed'
-      >
-        <div ref={content}>
-          {error ? (
-            <p className='text-destructive'>{error}</p>
-          ) : !loaded ? (
-            <CodeSkeleton lines={20} className='h-auto bg-transparent p-0' />
-          ) : shown.length === 0 ? (
-            <p className='text-muted-foreground'>
-              {filter ? 'No lines match.' : 'No log lines yet.'}
-            </p>
-          ) : (
-            shown.map((line, i) => (
-              <Fragment key={line.id}>
-                {line.time &&
-                  dayOf(line.time) !== dayOf(shown[i - 1]?.time) && (
-                    <div className='flex items-center gap-3 py-2 text-muted-foreground'>
-                      {dayLabel(line.time)}
-                      <span className='h-px flex-1 bg-border' />
-                    </div>
-                  )}
-                <LogLine line={line} wrap={wrap} />
-              </Fragment>
-            ))
-          )}
-        </div>
+      {/* The box clips the fades to its rounded corners */}
+      <div className='min-h-0 flex-1 overflow-hidden rounded-lg bg-muted font-mono text-xs/relaxed'>
+        <ScrollFade
+          ref={scroller}
+          // Scrolling up stops following; scrolling back to the end resumes it
+          onScroll={onScroll}
+          className='h-full overflow-auto p-3'
+          fadeFrom='from-muted'
+          fill
+        >
+          <div ref={content}>
+            {error ? (
+              <p className='text-destructive'>{error}</p>
+            ) : !loaded ? (
+              <CodeSkeleton lines={20} className='h-auto bg-transparent p-0' />
+            ) : shown.length === 0 ? (
+              <p className='text-muted-foreground'>
+                {filter ? 'No lines match.' : 'No log lines yet.'}
+              </p>
+            ) : (
+              shown.map((line, i) => (
+                <Fragment key={line.id}>
+                  {line.time &&
+                    dayOf(line.time) !== dayOf(shown[i - 1]?.time) && (
+                      <div className='flex items-center gap-3 py-2 text-muted-foreground'>
+                        {dayLabel(line.time)}
+                        <span className='h-px flex-1 bg-border' />
+                      </div>
+                    )}
+                  <LogLine line={line} wrap={wrap} />
+                </Fragment>
+              ))
+            )}
+          </div>
+        </ScrollFade>
       </div>
       {commands && (
         <ConsoleInput
