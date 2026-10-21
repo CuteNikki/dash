@@ -1,7 +1,7 @@
 import { unauthorized } from '@/lib/session';
-import { readStackFiles, stackOf } from '@/lib/stack-files';
+import { stackInfo, stackOf } from '@/lib/stack-files';
 
-/** The compose files and .env of the stack a container belongs to. */
+/** The stack a container belongs to: its folder, compose files, and whether it builds. */
 export async function GET(
   _request: Request,
   { params }: RouteContext<'/api/containers/[id]/files'>
@@ -15,5 +15,5 @@ export async function GET(
       { status: 404 }
     );
   }
-  return Response.json({ dir: stack.dir, files: await readStackFiles(stack) });
+  return Response.json(await stackInfo(stack));
 }

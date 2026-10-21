@@ -3,11 +3,12 @@ import { unauthorized } from '@/lib/session';
 import { stackOf } from '@/lib/stack-files';
 
 /**
- * Redeploys the container's stack (docker compose up -d), streaming what
+ * Redeploys the container's stack (docker compose up -d, with --build for
+ * ?build=1), streaming what
  * Compose prints as one JSON object per line, then { exitCode }.
  */
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: RouteContext<'/api/containers/[id]/deploy'>
 ) {
   const denied = await unauthorized();
@@ -25,7 +26,13 @@ export async function POST(
       const send = (value: unknown) =>
         controller.enqueue(encoder.encode(JSON.stringify(value) + '\n'));
       try {
-        const run = runCompose(stack, ['up', '-d']);
+        // ?build=1 builds the stack's images afresh first, for a changed Dockerfile
+        const build = new URL(request.url).searchParams.get('build') === '1';
+        const run = runCompose(stack, [
+          'up',
+          '-d',
+          ...(build ? ['--build'] : []),
+        ]);
         for (;;) {
           const next = await run.next();
           if (next.done) {

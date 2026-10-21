@@ -4,15 +4,20 @@ import { posix } from 'node:path';
 
 import { composeOutput, type Stack } from '@/lib/compose';
 import { listContainers } from '@/lib/docker';
-import { readHostFile, removeHostFile, writeHostFile } from '@/lib/host-files';
+import {
+  listHostDir,
+  readHostFile,
+  readHostFileStart,
+  realHostPath,
+  removeHostFile,
+  writeHostFile,
+  type HostEntry,
+} from '@/lib/host-files';
 
-export type StackFile = {
-  path: string;
-  name: string;
-  kind: 'compose' | 'env';
-  /** Undefined for a .env that isn't there yet */
-  content?: string;
-};
+/** Bigger than any config file; a file this size is data, not for editing here. */
+const MAX_EDIT_BYTES = 1024 * 1024;
+/** How much of a file is looked at to tell text from binary. */
+const SNIFF_BYTES = 8 * 1024;
 
 /** The compose stack a container belongs to, as Docker's labels record it. */
 export async function stackOf(containerId: string): Promise<Stack | undefined> {
@@ -22,43 +27,95 @@ export async function stackOf(containerId: string): Promise<Stack | undefined> {
   return { project: s.project, dir: s.dir, files: s.files };
 }
 
-/**
- * The files of a stack that can be edited here: its compose files, and the
- * .env beside them that Compose reads its variables from. Nothing else, so
- * the dashboard can't be used to edit any file on the server.
- */
-function editablePaths(stack: Stack) {
-  return [
-    ...stack.files.map((path) => ({ path, kind: 'compose' as const })),
-    { path: posix.join(stack.dir, '.env'), kind: 'env' as const },
-  ];
+export type StackInfo = {
+  dir: string;
+  /** Its compose files, relative to its folder */
+  compose: string[];
+  /** Whether a service builds its own image, so a rebuild can be offered */
+  builds: boolean;
+};
+
+export async function stackInfo(stack: Stack): Promise<StackInfo> {
+  const texts = await Promise.all(stack.files.map((f) => readHostFile(f)));
+  return {
+    dir: stack.dir,
+    compose: stack.files.map((f) => posix.relative(stack.dir, f)),
+    builds: texts.some((t) => t && /^\s+build:/m.test(t)),
+  };
 }
 
-export async function readStackFiles(stack: Stack): Promise<StackFile[]> {
-  return Promise.all(
-    editablePaths(stack).map(async ({ path, kind }) => ({
-      path,
-      name: posix.basename(path),
-      kind,
-      content: await readHostFile(path),
-    }))
-  );
+const within = (dir: string, path: string) =>
+  path === dir || path.startsWith(`${dir}/`);
+
+/**
+ * A path in a stack's folder, given relative to it, made absolute. Anything
+ * that would lead out of the folder, by `..` or a symbolic link, is refused,
+ * so only the stack's own files can be reached.
+ */
+async function resolve(stack: Stack, relative: string) {
+  const outside = new Error("That's outside the stack's folder");
+  const path = posix.normalize(posix.join(stack.dir, relative));
+  if (!within(stack.dir, path)) throw outside;
+  const root = (await realHostPath(stack.dir)) ?? stack.dir;
+  // The folder must exist and lie inside; the file itself may be new
+  const parent =
+    path === stack.dir ? root : await realHostPath(posix.dirname(path));
+  if (!parent || !within(root, parent)) throw outside;
+  const real =
+    path === stack.dir ? root : posix.join(parent, posix.basename(path));
+  const target = await realHostPath(real);
+  if (target && !within(root, target)) throw outside;
+  return real;
+}
+
+export async function listStackDir(
+  stack: Stack,
+  relative: string
+): Promise<HostEntry[]> {
+  return listHostDir(await resolve(stack, relative));
+}
+
+export type OpenedFile =
+  { content: string } | { content?: undefined; reason: string };
+
+export async function openStackFile(
+  stack: Stack,
+  relative: string
+): Promise<OpenedFile> {
+  const path = await resolve(stack, relative);
+  const siblings = await listHostDir(posix.dirname(path)).catch(() => []);
+  const entry = siblings.find((e) => e.name === posix.basename(path));
+  if (!entry) return { reason: "There's no such file" };
+  if (entry.kind === 'dir') return { reason: "That's a folder" };
+  if (entry.size > MAX_EDIT_BYTES) {
+    return { reason: 'Too big to edit here; it’s data rather than a setting' };
+  }
+  if ((await readHostFileStart(path, SNIFF_BYTES)).includes(0)) {
+    return { reason: 'Not a text file' };
+  }
+  return { content: (await readHostFile(path)) ?? '' };
 }
 
 export type SaveResult = { ok: true } | { ok: false; error: string };
 
 /**
- * Saves a stack file once Compose accepts it: the new text goes in a file
- * beside the real one first, `docker compose config` reads the stack with it
- * in that one's place, and only then is the real file replaced.
+ * Saves a file in a stack's folder. Its compose files and .env are checked
+ * first: the new text goes in a file beside the real one, `docker compose
+ * config` reads the stack with it in that one's place, and only then is the
+ * real file replaced. Other files are saved as they are.
  */
 export async function saveStackFile(
   stack: Stack,
-  path: string,
+  relative: string,
   content: string
 ): Promise<SaveResult> {
-  const file = editablePaths(stack).find((f) => f.path === path);
-  if (!file) return { ok: false, error: "That file isn't part of this stack" };
+  const path = await resolve(stack, relative);
+  const isCompose = stack.files.includes(path);
+  const isEnv = path === posix.join(stack.dir, '.env');
+  if (!isCompose && !isEnv) {
+    await writeHostFile(path, content);
+    return { ok: true };
+  }
 
   const candidate = posix.join(
     posix.dirname(path),
@@ -66,22 +123,17 @@ export async function saveStackFile(
   );
   await writeHostFile(candidate, content);
   try {
-    const args =
-      file.kind === 'env'
-        ? ['--env-file', candidate, 'config', '-q']
-        : ['config', '-q'];
-    const checked =
-      file.kind === 'env'
+    const { ok, output } = await composeOutput(
+      isEnv
         ? stack
         : {
             ...stack,
             files: stack.files.map((f) => (f === path ? candidate : f)),
-          };
-    const { ok, output } = await composeOutput(checked, args);
-    if (!ok) {
-      // Compose names the file it read; show the real one's name
-      return { ok: false, error: output.replaceAll(candidate, path) };
-    }
+          },
+      isEnv ? ['--env-file', candidate, 'config', '-q'] : ['config', '-q']
+    );
+    // Compose names the file it read; show the real one's name
+    if (!ok) return { ok: false, error: output.replaceAll(candidate, path) };
   } finally {
     await removeHostFile(candidate);
   }
