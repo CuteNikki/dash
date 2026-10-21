@@ -37,53 +37,58 @@ function iconName(label?: string) {
  * looking like Homepage did, then from its name.
  */
 export async function getDashboard(): Promise<Dashboard> {
-  const [containers, usage, tiles, groups] = await Promise.all([
-    listContainers(),
-    currentUsage(),
-    db.tile.findMany(),
-    db.group.findMany({ orderBy: { position: 'asc' } }),
-  ]);
+  const [containers, { containers: usage, host }, tiles, groups] =
+    await Promise.all([
+      listContainers(),
+      currentUsage(),
+      db.tile.findMany(),
+      db.group.findMany({ orderBy: { position: 'asc' } }),
+    ]);
   const edited = new Map(tiles.map((t) => [t.key, t]));
 
-  const services = containers.map((c): Service => {
-    const l = c.labels;
-    const key = serviceKey(c);
-    const tile = edited.get(key);
-    const u = usage.get(c.id);
-    // A tile edited here has its own addresses, even none
-    const href = l['homepage.href'];
-    const addresses = tile ? tile.addresses : href ? [href] : [];
-    return {
-      key,
-      containerId: c.id,
-      containerName: c.name,
-      name: tile?.name || l['homepage.name'] || prettyName(c),
-      group: tile?.group || l['homepage.group'] || DEFAULT_GROUP,
-      icon:
-        tile?.icon ||
-        iconName(l['homepage.icon']) ||
-        c.stack?.service ||
-        c.name,
-      addresses,
-      url: addresses.find(isLink),
-      description: l['homepage.description'] || undefined,
-      position: tile?.position ?? undefined,
-      hidden: tile?.hidden ?? false,
-      edited: !!tile,
-      image: c.image,
-      state: c.state,
-      status: c.status,
-      stack: c.stack,
-      usage: u
-        ? { cpu: u.cpu, memory: u.memory, history: u.history }
-        : undefined,
-    };
-  });
+  // The development helper that reads the server's stats isn't a service
+  const helper = process.env.HOST_STATS_CONTAINER;
+  const services = containers
+    .filter((c) => c.name !== helper)
+    .map((c): Service => {
+      const l = c.labels;
+      const key = serviceKey(c);
+      const tile = edited.get(key);
+      const u = usage.get(c.id);
+      // A tile edited here has its own addresses, even none
+      const href = l['homepage.href'];
+      const addresses = tile ? tile.addresses : href ? [href] : [];
+      return {
+        key,
+        containerId: c.id,
+        containerName: c.name,
+        name: tile?.name || l['homepage.name'] || prettyName(c),
+        group: tile?.group || l['homepage.group'] || DEFAULT_GROUP,
+        icon:
+          tile?.icon ||
+          iconName(l['homepage.icon']) ||
+          c.stack?.service ||
+          c.name,
+        addresses,
+        url: addresses.find(isLink),
+        description: l['homepage.description'] || undefined,
+        position: tile?.position ?? undefined,
+        hidden: tile?.hidden ?? false,
+        edited: !!tile,
+        image: c.image,
+        state: c.state,
+        status: c.status,
+        stack: c.stack,
+        usage: u
+          ? { cpu: u.cpu, memory: u.memory, history: u.history }
+          : undefined,
+      };
+    });
   const icons = await iconInfo(services.map((s) => s.icon));
   for (const service of services) {
     const info = icons.get(service.icon);
     service.iconVariants = info?.variants;
     service.iconMissing = info?.missing;
   }
-  return { services, groupOrder: groups.map((g) => g.name) };
+  return { services, groupOrder: groups.map((g) => g.name), host };
 }

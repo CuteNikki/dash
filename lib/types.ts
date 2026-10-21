@@ -43,4 +43,26 @@ export type Dashboard = {
   services: Service[];
   /** Groups in the order they've been placed; others follow by name */
   groupOrder: string[];
+  /** The server itself, once it's been measured twice */
+  host?: HostStats;
+};
+
+/** The server: CPU over all its cores, memory, its disk and its internet traffic. */
+export type HostStats = {
+  cores: number;
+  /** Percent of all cores together */
+  cpu: number;
+  /** Bytes */
+  memory: { used: number; total: number };
+  /** Bytes, of the disk the root filesystem is on */
+  disk: { used: number; total: number };
+  /** Bytes per second, on the interface to the internet */
+  network: { received: number; sent: number };
+  /** Recent readings, oldest first */
+  history: {
+    cpu: number[];
+    memory: number[];
+    received: number[];
+    sent: number[];
+  };
 };

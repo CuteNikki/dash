@@ -12,6 +12,16 @@ export function formatBytes(bytes: number) {
   return `${value.toFixed(digits)} ${BYTE_UNITS[unit]}`;
 }
 
+/** Bytes per second, e.g. 31232 → "30 KB/s". */
+export function formatRate(bytesPerSecond: number) {
+  return `${formatBytes(bytesPerSecond)}/s`;
+}
+
+/** A share of something, e.g. 0.62 → "62%". */
+export function formatShare(part: number, whole: number) {
+  return `${whole > 0 ? Math.round((part / whole) * 100) : 0}%`;
+}
+
 /** Percent of one core, e.g. 0.4 → "0.4%", 182 → "182%". */
 export function formatCpu(percent: number) {
   return `${percent < 10 ? percent.toFixed(1) : Math.round(percent)}%`;

@@ -11,6 +11,7 @@ import type { Dashboard as DashboardData, Service } from '@/lib/types';
 
 import { AccountMenu } from '@/components/account-menu';
 import { EditTileDialog } from '@/components/edit-tile-dialog';
+import { HostStatsBar } from '@/components/host-stats';
 import { ServiceDialog } from '@/components/service-dialog';
 import { ThemeButton } from '@/components/theme-button';
 import { TilesView } from '@/components/tiles-view';
@@ -36,7 +37,7 @@ export function Dashboard({
   const [openKey, setOpenKey] = useState<string>();
   const [editKey, setEditKey] = useState<string>();
 
-  const { services, groupOrder } = data;
+  const { services, groupOrder, host } = data;
   const shown = editing ? services : services.filter((s) => !s.hidden);
   const groups = useMemo(
     () => groupServices(shown, groupOrder),
@@ -68,6 +69,7 @@ export function Dashboard({
         <ThemeButton />
         <AccountMenu email={email} />
       </header>
+      {host && <HostStatsBar host={host} />}
       <TilesView groups={groups} editing={editing} onOpen={open} />
       <ServiceDialog
         service={find(openKey)}

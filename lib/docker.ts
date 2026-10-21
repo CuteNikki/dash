@@ -207,6 +207,24 @@ export async function containerUsage(id: string): Promise<Usage> {
   };
 }
 
+/** Runs a command in a running container and returns what it printed. */
+export async function execOutput(container: string, cmd: string[]) {
+  const { Id } = await dockerJson<{ Id: string }>(
+    'POST',
+    `/containers/${encodeURIComponent(container)}/exec`,
+    { AttachStdout: true, AttachStderr: true, Cmd: cmd }
+  );
+  const res = await dockerRequest('POST', `/exec/${Id}/start`, {
+    Detach: false,
+    Tty: false,
+  });
+  let stdout = '';
+  for await (const { stream, line } of logLines(res, false)) {
+    if (stream === 'stdout') stdout += line + '\n';
+  }
+  return stdout;
+}
+
 /** The log stream of a container, from the last `tail` lines on. */
 export async function containerLogs(
   id: string,

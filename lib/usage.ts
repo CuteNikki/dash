@@ -1,16 +1,21 @@
 import 'server-only';
 
 import { containerUsage, listContainers, type Usage } from '@/lib/docker';
+import { readHost, type HostReading } from '@/lib/host';
+import type { HostStats } from '@/lib/types';
 
-/** How often running containers are measured while someone is watching. */
+/** How often the server and its containers are measured while someone is watching. */
 const INTERVAL_MS = 5_000;
-/** Readings kept per container: ten minutes at one every five seconds. */
+/** Readings kept for each graph: ten minutes at one every five seconds. */
 const HISTORY = 120;
 /** Measuring stops this long after the dashboard was last asked for usage. */
 const IDLE_MS = 60_000;
 
 type Sampler = {
   usage: Map<string, Usage & { history: number[] }>;
+  host?: HostStats;
+  /** The last reading of the server's counters, to measure the next against */
+  lastHost?: HostReading;
   timer?: NodeJS.Timeout;
   /** The copy of this module whose timer runs, see below */
   owner?: symbol;
@@ -30,12 +35,10 @@ if (sampler.owner !== MODULE) {
   sampler.owner = MODULE;
 }
 
-async function sample() {
-  if (Date.now() - sampler.lastAsked > IDLE_MS) {
-    clearInterval(sampler.timer);
-    sampler.timer = undefined;
-    return;
-  }
+const recent = (history: number[] | undefined, value: number) =>
+  [...(history ?? []), value].slice(-HISTORY);
+
+async function sampleContainers() {
   const running = (await listContainers()).filter((c) =>
     ['running', 'unhealthy', 'starting'].includes(c.state)
   );
@@ -47,10 +50,7 @@ async function sample() {
     running.map(async (c) => {
       try {
         const reading = await containerUsage(c.id);
-        const history = [
-          ...(sampler.usage.get(c.id)?.history ?? []),
-          reading.cpu,
-        ].slice(-HISTORY);
+        const history = recent(sampler.usage.get(c.id)?.history, reading.cpu);
         sampler.usage.set(c.id, { ...reading, history });
       } catch {
         // Stopped between listing and measuring: it drops out next time
@@ -59,7 +59,49 @@ async function sample() {
   );
 }
 
-/** The latest usage of each running container, by id, starting the sampler if needed. */
+/** CPU and network are rates, so the first reading only sets a starting point. */
+async function sampleHost() {
+  const now = await readHost();
+  const last = sampler.lastHost;
+  sampler.lastHost = now;
+  if (!last) return;
+  const seconds = (now.at - last.at) / 1000;
+  const ticks = now.cpu.total - last.cpu.total;
+  const cpu = ticks > 0 ? ((now.cpu.busy - last.cpu.busy) / ticks) * 100 : 0;
+  const received =
+    Math.max(0, now.network.received - last.network.received) / seconds;
+  const sent = Math.max(0, now.network.sent - last.network.sent) / seconds;
+  const history = sampler.host?.history;
+  sampler.host = {
+    cores: now.cores,
+    cpu,
+    memory: now.memory,
+    disk: now.disk,
+    network: { received, sent },
+    history: {
+      cpu: recent(history?.cpu, cpu),
+      memory: recent(history?.memory, now.memory.used),
+      received: recent(history?.received, received),
+      sent: recent(history?.sent, sent),
+    },
+  };
+}
+
+async function sample() {
+  if (Date.now() - sampler.lastAsked > IDLE_MS) {
+    clearInterval(sampler.timer);
+    sampler.timer = undefined;
+    sampler.lastHost = undefined;
+    return;
+  }
+  await Promise.all([
+    sampleContainers(),
+    // Without access to the server's counters, there's just no server stats
+    sampleHost().catch(() => undefined),
+  ]);
+}
+
+/** The latest readings, starting the sampler if needed. */
 export async function currentUsage() {
   sampler.lastAsked = Date.now();
   if (!sampler.timer) {
@@ -69,5 +111,5 @@ export async function currentUsage() {
     );
     if (!sampler.usage.size) await sample();
   }
-  return sampler.usage;
+  return { containers: sampler.usage, host: sampler.host };
 }
