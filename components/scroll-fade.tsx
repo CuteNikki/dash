@@ -16,6 +16,7 @@ export function ScrollFade({
   className,
   fadeTop = 'top-0',
   fadeFrom = 'from-card',
+  fill,
   children,
 }: {
   /** The scrolling area's own, such as its height and overflow */
@@ -24,6 +25,11 @@ export function ScrollFade({
   fadeTop?: string;
   /** The color behind it, which the fades are in, as a gradient's from- class */
   fadeFrom?: string;
+  /**
+   * Fills its parent's height and scrolls within it, rather than being as
+   * tall as its own height says, which a parent that sizes it needs
+   */
+  fill?: boolean;
   children: React.ReactNode;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
@@ -57,7 +63,7 @@ export function ScrollFade({
   const fade =
     'pointer-events-none absolute left-0 h-[2lh] to-transparent transition-opacity';
   return (
-    <div className='relative min-h-0'>
+    <div className={cn('relative min-h-0', fill && 'h-full')}>
       <div ref={scroller} onScroll={measure} className={className}>
         {children}
       </div>

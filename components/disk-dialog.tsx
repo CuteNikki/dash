@@ -399,6 +399,7 @@ function Folders({ scanning }: { scanning: boolean }) {
           <ScrollFade
             className='h-full [scrollbar-gutter:stable] overflow-auto p-1'
             fadeFrom='from-muted'
+            fill
           >
             {entries.length === 0 ? (
               <p className='p-2 text-muted-foreground'>It’s empty.</p>
