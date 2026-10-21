@@ -2,12 +2,8 @@
 
 import { useState } from 'react';
 
+import { ICON_SETS, iconFileUrl, parseIcon } from '@/lib/icon-sets';
 import { cn } from '@/lib/utils';
-
-const DASHBOARD_ICONS =
-  'https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg';
-const MATERIAL_ICONS = 'https://cdn.jsdelivr.net/npm/@mdi/svg@7.4.47/svg';
-const SIMPLE_ICONS = 'https://cdn.jsdelivr.net/npm/simple-icons@15.0.0/icons';
 
 type IconSource =
   | { kind: 'image'; url: string }
@@ -17,21 +13,18 @@ type IconSource =
 
 /**
  * Where an icon comes from, named the way Homepage names them: "jellyfin"
- * from dashboard-icons, "mdi-server" from Material Design Icons, "si-discord"
- * from Simple Icons, or a full https:// address.
+ * from dashboard-icons, "mdi-…", "si-…" or "sh-…" from the other sets, or a
+ * full https:// address, such as an uploaded one.
  */
 export function iconSource(icon: string): IconSource {
-  const name = encodeURIComponent(icon.replace(/^(mdi|si)-/, ''));
-  if (icon.startsWith('mdi-')) {
-    return { kind: 'mask', url: `${MATERIAL_ICONS}/${name}.svg` };
-  }
-  if (icon.startsWith('si-')) {
-    return { kind: 'mask', url: `${SIMPLE_ICONS}/${name}.svg` };
-  }
+  if (!icon) return { kind: 'letter' };
   if (/^https:\/\//.test(icon)) return { kind: 'image', url: icon };
   // A path is one of Homepage's own files, which only Homepage can serve
   if (icon.includes('/')) return { kind: 'letter' };
-  return { kind: 'image', url: `${DASHBOARD_ICONS}/${name}.svg` };
+  const url = iconFileUrl(icon);
+  return ICON_SETS[parseIcon(icon).set].mono
+    ? { kind: 'mask', url }
+    : { kind: 'image', url };
 }
 
 /** An app's icon, or its first letter when there's none to show. */

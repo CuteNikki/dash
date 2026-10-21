@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useDeferredValue } from 'react';
 import useSWR from 'swr';
 
 import { fetcher } from '@/lib/fetcher';
+import type { IconMatch } from '@/lib/icon-search';
 import { cn } from '@/lib/utils';
 
 import { ServiceIcon } from '@/components/service-icon';
@@ -13,12 +14,10 @@ import {
   InputGroupInput,
 } from '@/components/ui/input-group';
 
-/** Icons shown at once; typing narrows them down. */
-const MAX_SUGGESTIONS = 48;
-
 /**
- * An icon by name, with matching dashboard-icons to pick from below. Any
- * name the tile understands works: "mdi-…", "si-…" or an https:// address.
+ * An icon by name, with matches from every icon set to pick from below. Any
+ * name the tile understands works: "mdi-…", "si-…", "sh-…" or an https://
+ * address.
  */
 export function IconField({
   id,
@@ -32,22 +31,15 @@ export function IconField({
   name: string;
   onChange: (icon: string) => void;
 }) {
-  const { data: icons } = useSWR<string[]>('/api/icons', fetcher, {
-    revalidateOnFocus: false,
-  });
-  const query = value.trim().toLowerCase();
-  const matches = useMemo(() => {
-    const all = icons ?? [];
-    const found = query ? all.filter((n) => n.includes(query)) : all;
-    // The closest names first: exact, then starting with what's typed
-    return found
-      .toSorted(
-        (a, b) =>
-          Number(b === query) - Number(a === query) ||
-          Number(b.startsWith(query)) - Number(a.startsWith(query))
-      )
-      .slice(0, MAX_SUGGESTIONS);
-  }, [icons, query]);
+  // Searches as typing pauses, keeping the last matches up meanwhile
+  const query = useDeferredValue(value.trim());
+  const { data: matches = [] } = useSWR<IconMatch[]>(
+    /^https:\/\//.test(query)
+      ? null
+      : `/api/icons?q=${encodeURIComponent(query)}`,
+    fetcher,
+    { keepPreviousData: true, revalidateOnFocus: false }
+  );
 
   return (
     <div className='flex flex-col gap-2'>
@@ -59,27 +51,31 @@ export function IconField({
           id={id}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder='jellyfin, mdi-server, si-discord or a link'
+          placeholder='Search icons, or paste a link to one'
           autoComplete='off'
           spellCheck={false}
         />
       </InputGroup>
       {matches.length > 0 && (
         <div className='grid max-h-40 grid-cols-8 gap-1 overflow-y-auto rounded-md border p-1'>
-          {matches.map((icon) => (
+          {matches.map((match) => (
             <button
-              key={icon}
+              key={match.icon}
               type='button'
-              title={icon}
-              aria-label={icon}
-              aria-pressed={icon === value}
-              onClick={() => onChange(icon)}
+              title={`${match.icon} (${match.label})`}
+              aria-label={match.icon}
+              aria-pressed={match.icon === value}
+              onClick={() => onChange(match.icon)}
               className={cn(
                 'flex aspect-square items-center justify-center rounded-md p-1 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring',
-                icon === value && 'bg-muted ring-1 ring-foreground/20'
+                match.icon === value && 'bg-muted ring-1 ring-foreground/20'
               )}
             >
-              <ServiceIcon icon={icon} name={icon} className='size-6' />
+              <ServiceIcon
+                icon={match.icon}
+                name={match.icon}
+                className='size-6'
+              />
             </button>
           ))}
         </div>
