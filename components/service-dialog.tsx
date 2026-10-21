@@ -33,12 +33,12 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const DONE: Record<ContainerAction, string> = {
@@ -47,8 +47,8 @@ const DONE: Record<ContainerAction, string> = {
   restart: 'Restarted',
 };
 
-/** A service's logs, usage and controls, beside the dashboard. */
-export function ServiceSheet({
+/** A service's logs, usage and controls, over the dashboard. */
+export function ServiceDialog({
   service,
   onClose,
   onChanged,
@@ -61,17 +61,22 @@ export function ServiceSheet({
   onEdit: (service: Service) => void;
 }) {
   return (
-    <Sheet open={!!service} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className='gap-0 data-[side=right]:w-full data-[side=right]:sm:max-w-2xl'>
+    <Dialog open={!!service} onOpenChange={(open) => !open && onClose()}>
+      {/* Full screen on a phone, a large window in the middle on a computer */}
+      <DialogContent className='flex h-full max-w-full flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-5/6 sm:max-w-5xl sm:rounded-xl'>
         {service && (
-          <SheetBody service={service} onChanged={onChanged} onEdit={onEdit} />
+          <ServiceBody
+            service={service}
+            onChanged={onChanged}
+            onEdit={onEdit}
+          />
         )}
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
 
-function SheetBody({
+function ServiceBody({
   service,
   onChanged,
   onEdit,
@@ -98,7 +103,7 @@ function SheetBody({
 
   return (
     <>
-      <SheetHeader className='gap-4 border-b'>
+      <DialogHeader className='gap-4 border-b p-4'>
         <div className='flex items-center gap-3 pr-8'>
           <ServiceIcon
             icon={service.icon}
@@ -107,16 +112,16 @@ function SheetBody({
             className='size-10'
           />
           <div className='min-w-0'>
-            <SheetTitle className='truncate text-base'>
+            <DialogTitle className='truncate text-base'>
               {service.name}
-            </SheetTitle>
-            <SheetDescription className='flex items-center gap-2'>
+            </DialogTitle>
+            <DialogDescription className='flex items-center gap-2'>
               <StatusDot state={service.state} />
               {stateLabel(service.state)}
               <span className='truncate font-mono'>
                 {service.containerName}
               </span>
-            </SheetDescription>
+            </DialogDescription>
           </div>
         </div>
         <div className='flex flex-wrap items-center gap-2'>
@@ -160,7 +165,7 @@ function SheetBody({
             </Button>
           )}
         </div>
-      </SheetHeader>
+      </DialogHeader>
 
       <Tabs defaultValue='logs' className='min-h-0 flex-1 gap-4 p-4'>
         <TabsList>

@@ -11,7 +11,7 @@ import type { Dashboard as DashboardData, Service } from '@/lib/types';
 
 import { AccountMenu } from '@/components/account-menu';
 import { EditTileDialog } from '@/components/edit-tile-dialog';
-import { ServiceSheet } from '@/components/service-sheet';
+import { ServiceDialog } from '@/components/service-dialog';
 import { ThemeButton } from '@/components/theme-button';
 import { TilesView } from '@/components/tiles-view';
 import { Button } from '@/components/ui/button';
@@ -69,7 +69,7 @@ export function Dashboard({
         <AccountMenu email={email} />
       </header>
       <TilesView groups={groups} editing={editing} onOpen={open} />
-      <ServiceSheet
+      <ServiceDialog
         service={find(openKey)}
         onClose={() => setOpenKey(undefined)}
         onChanged={() => void mutate()}
