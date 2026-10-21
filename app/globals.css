@@ -59,8 +59,8 @@
 
 :root {
   /* Black and white like Vercel; color only says how something is doing */
-  --success: oklch(0.6 0.15 150);
-  --warning: oklch(0.7 0.16 70);
+  --success: oklch(0.53 0.14 150);
+  --warning: oklch(0.56 0.13 62);
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);

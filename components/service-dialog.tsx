@@ -127,7 +127,7 @@ function ServiceBody({
         <div className='flex flex-wrap items-center gap-2'>
           {running ? (
             <Button
-              variant='outline'
+              variant='destructive'
               disabled={pending}
               onClick={() => setConfirmStop(true)}
             >
@@ -136,7 +136,7 @@ function ServiceBody({
             </Button>
           ) : (
             <Button
-              variant='outline'
+              variant='success'
               disabled={pending}
               onClick={() => run('start')}
             >
@@ -145,7 +145,7 @@ function ServiceBody({
             </Button>
           )}
           <Button
-            variant='outline'
+            variant='warning'
             disabled={pending || !running}
             onClick={() => run('restart')}
           >
