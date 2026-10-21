@@ -28,7 +28,7 @@ import type {
 import { cn } from '@/lib/utils';
 
 import { ScrollFade } from '@/components/scroll-fade';
-import { CodeSkeleton } from '@/components/skeletons';
+import { TextSkeleton } from '@/components/skeletons';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,6 +48,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type DiskState = {
   scan: DiskScan;
@@ -107,35 +108,40 @@ function DiskUsage() {
   }, [state, mutate]);
 
   if (error) return <p className='text-muted-foreground'>{error.message}</p>;
-  if (!data) return <CodeSkeleton lines={10} className='flex-1' />;
 
-  const scan = data.scan;
+  // Until the first answer, the same sections with placeholders in them, so
+  // nothing moves when it comes
+  const scan = data?.scan;
   return (
     <>
-      <DockerSection docker={data.docker} onFreed={() => void mutate()} />
+      <DockerSection docker={data?.docker} onFreed={() => void mutate()} />
       <section className='flex min-h-0 flex-1 flex-col gap-2'>
         <div className='flex flex-wrap items-center gap-2'>
           <h3 className='mr-auto font-medium'>Folders</h3>
           <span
             // The folder it's just done, for the curious
             title={
-              scan.state === 'scanning' && scan.current
+              scan?.state === 'scanning' && scan.current
                 ? `Just did ${scan.current}`
                 : undefined
             }
             className='min-w-0 truncate text-muted-foreground tabular-nums'
           >
-            {scan.state === 'scanning'
-              ? `Measuring… ${scan.folders.toLocaleString()} folders`
-              : scan.state === 'done'
-                ? `Measured ${ago(data.seconds)}`
-                : scan.state === 'failed'
-                  ? `Couldn't measure: ${scan.error}`
-                  : 'Not measured yet'}
+            {!data || !scan ? (
+              <TextSkeleton className='w-28' />
+            ) : scan.state === 'scanning' ? (
+              `Measuring… ${scan.folders.toLocaleString()} folders`
+            ) : scan.state === 'done' ? (
+              `Measured ${ago(data.seconds)}`
+            ) : scan.state === 'failed' ? (
+              `Couldn't measure: ${scan.error}`
+            ) : (
+              'Not measured yet'
+            )}
           </span>
           <Button
             variant='outline'
-            disabled={scan.state === 'scanning' || measuring}
+            disabled={!scan || scan.state === 'scanning' || measuring}
             onClick={() =>
               startMeasuring(async () => {
                 await measureDisk();
@@ -144,13 +150,15 @@ function DiskUsage() {
             }
           >
             <RefreshCwIcon
-              className={scan.state === 'scanning' ? 'animate-spin' : undefined}
+              className={
+                scan?.state === 'scanning' ? 'animate-spin' : undefined
+              }
             />
             Measure again
           </Button>
         </div>
-        {scan.state === 'none' ? (
-          <CodeSkeleton lines={12} className='flex-1' />
+        {!scan || scan.state === 'none' ? (
+          <FoldersSkeleton />
         ) : (
           // Sizes fill in while it's measured, which takes a minute or two
           // and keeps going with this closed
@@ -195,7 +203,8 @@ function DockerSection({
   docker,
   onFreed,
 }: {
-  docker: DiskState['docker'];
+  /** None while it's looked up: the cards show with placeholders */
+  docker?: DiskState['docker'];
   onFreed: () => void;
 }) {
   const [asking, setAsking] = useState<Prunable>();
@@ -219,7 +228,7 @@ function DockerSection({
       <h3 className='font-medium'>Docker</h3>
       <div className='grid grid-cols-2 gap-3 lg:grid-cols-4'>
         {DOCKER_KINDS.map(({ key, label, icon }) => {
-          const space = docker[key];
+          const space = docker?.[key];
           const prunable = key in PRUNES ? (key as Prunable) : undefined;
           return (
             <div
@@ -229,18 +238,28 @@ function DockerSection({
               <span className='flex items-center gap-2 text-muted-foreground [&_svg]:size-4'>
                 {icon}
                 <span className='mr-auto'>{label}</span>
-                <span className='font-mono tabular-nums'>{space.count}</span>
+                <span className='font-mono tabular-nums'>
+                  {space ? space.count : <TextSkeleton className='w-4' />}
+                </span>
               </span>
               <span className='font-mono text-lg font-medium tabular-nums'>
-                {formatBytes(space.size)}
+                {space ? (
+                  formatBytes(space.size)
+                ) : (
+                  <TextSkeleton className='w-16' />
+                )}
               </span>
               <span className='flex min-h-6 items-center gap-2 text-muted-foreground'>
                 <span className='mr-auto'>
-                  {space.reclaimable > 0
-                    ? `${formatBytes(space.reclaimable)} unused`
-                    : 'All in use'}
+                  {!space ? (
+                    <TextSkeleton className='w-20' />
+                  ) : space.reclaimable > 0 ? (
+                    `${formatBytes(space.reclaimable)} unused`
+                  ) : (
+                    'All in use'
+                  )}
                 </span>
-                {prunable && space.reclaimable > 0 && (
+                {prunable && space && space.reclaimable > 0 && (
                   <Button
                     size='sm'
                     variant='destructive'
@@ -267,7 +286,7 @@ function DockerSection({
             </AlertDialogTitle>
             <AlertDialogDescription>
               {asking && PRUNES[asking].description} It frees about{' '}
-              {asking && formatBytes(docker[asking].reclaimable)}.
+              {asking && docker && formatBytes(docker[asking].reclaimable)}.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -289,6 +308,11 @@ function DockerSection({
     </section>
   );
 }
+
+/** A folder or file's row in the list, and its placeholder's */
+const ROW = 'flex w-full items-center gap-3 rounded-md px-2 py-1 text-left';
+/** The line of folders above the list, and its placeholder's */
+const BREADCRUMBS = 'flex flex-wrap items-center gap-1 font-mono';
 
 /** How often to look in on the folder that's open while the disk's being measured. */
 const FOLDER_POLL_MS = 2_000;
@@ -339,10 +363,7 @@ function Folders({ scanning }: { scanning: boolean }) {
 
   return (
     <div className='flex min-h-0 flex-1 flex-col gap-2'>
-      <nav
-        aria-label='Folder'
-        className='flex flex-wrap items-center gap-1 font-mono'
-      >
+      <nav aria-label='Folder' className={BREADCRUMBS}>
         {['', ...parts].map((part, i) => {
           const to = `/${parts.slice(0, i).join('/')}`;
           const here = i === parts.length;
@@ -372,7 +393,7 @@ function Folders({ scanning }: { scanning: boolean }) {
       {error ? (
         <p className='text-muted-foreground'>{error.message}</p>
       ) : !shown ? (
-        <CodeSkeleton lines={12} className='flex-1' />
+        <EntriesSkeleton />
       ) : (
         <div className='min-h-0 flex-1 overflow-hidden rounded-lg bg-muted'>
           <ScrollFade
@@ -445,6 +466,51 @@ function Size({ size }: { size: MeasuredSize & { elsewhere?: boolean } }) {
   return <span className='animate-pulse opacity-50'>measuring…</span>;
 }
 
+/** How many placeholder rows fill the list while it's looked up; the rest is hidden. */
+const SKELETON_ROWS = 20;
+
+/** The folders' breadcrumbs and list while there's nothing to show yet. */
+function FoldersSkeleton() {
+  return (
+    <div className='flex min-h-0 flex-1 flex-col gap-2'>
+      <nav aria-hidden className={BREADCRUMBS}>
+        <TextSkeleton className='w-10' />
+      </nav>
+      <EntriesSkeleton />
+    </div>
+  );
+}
+
+/** A folder's list with rows like its entries, empty, while it's looked up. */
+function EntriesSkeleton() {
+  return (
+    <div
+      aria-busy
+      aria-label='Loading'
+      className='min-h-0 flex-1 overflow-hidden rounded-lg bg-muted'
+    >
+      {/* With the room the list keeps for its scrollbar, so the rows match */}
+      <div className='h-full [scrollbar-gutter:stable] overflow-hidden p-1'>
+        {Array.from({ length: SKELETON_ROWS }, (_, i) => (
+          <div key={i} className={ROW}>
+            <Skeleton className='size-3.5 shrink-0 bg-foreground/10' />
+            <span className='min-w-0 flex-1'>
+              <TextSkeleton className={NAME_WIDTHS[i % NAME_WIDTHS.length]} />
+            </span>
+            <span className='hidden w-32 shrink-0 sm:block' />
+            <span className='flex w-24 shrink-0 justify-end'>
+              <TextSkeleton className='w-12' />
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Name lengths that look like a folder's, never all alike. */
+const NAME_WIDTHS = ['w-24', 'w-16', 'w-32', 'w-20', 'w-28', 'w-12'];
+
 /** One folder or file: its name, its share of the folder it's in, its size. */
 function Entry({
   entry,
@@ -481,17 +547,16 @@ function Entry({
       </span>
     </>
   );
-  const row = 'flex w-full items-center gap-3 rounded-md px-2 py-1 text-left';
   return onOpen ? (
     <button
       type='button'
       onClick={onOpen}
-      className={cn(row, 'hover:bg-background/60')}
+      className={cn(ROW, 'hover:bg-background/60')}
     >
       {content}
     </button>
   ) : (
     // A file: nothing to open, and quieter than the folders beside it
-    <div className={cn(row, 'text-muted-foreground')}>{content}</div>
+    <div className={cn(ROW, 'text-muted-foreground')}>{content}</div>
   );
 }

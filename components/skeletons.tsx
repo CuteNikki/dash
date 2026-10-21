@@ -22,6 +22,18 @@ function Bar({ className }: { className?: string }) {
   return <Skeleton className={cn('bg-foreground/10', className)} />;
 }
 
+/**
+ * A placeholder for a line of text, exactly as tall as the line it stands in
+ * for, so the text that replaces it moves nothing.
+ */
+export function TextSkeleton({ className }: { className?: string }) {
+  return (
+    <span aria-hidden className='flex h-lh items-center'>
+      <Bar className={cn('h-3', className)} />
+    </span>
+  );
+}
+
 /** Lines of code or log, in the box they'll appear in. */
 export function CodeSkeleton({
   lines = 14,
