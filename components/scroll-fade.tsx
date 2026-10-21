@@ -25,6 +25,8 @@ export function ScrollFade({
 }) {
   const scroller = useRef<HTMLDivElement>(null);
   const [more, setMore] = useState({ above: false, below: false });
+  // The scrollbar's width, which the fades stop short of
+  const [bar, setBar] = useState(0);
 
   function measure() {
     const el = scroller.current;
@@ -35,6 +37,7 @@ export function ScrollFade({
     setMore((m) =>
       m.above === above && m.below === below ? m : { above, below }
     );
+    setBar(el.offsetWidth - el.clientWidth);
   }
 
   // Again whenever the area or what's in it changes size, as when a filter
@@ -49,7 +52,7 @@ export function ScrollFade({
   });
 
   const fade =
-    'pointer-events-none absolute inset-x-0 h-[2lh] from-card to-transparent transition-opacity';
+    'pointer-events-none absolute left-0 h-[2lh] from-card to-transparent transition-opacity';
   return (
     <div className='relative min-h-0'>
       <div ref={scroller} onScroll={measure} className={className}>
@@ -57,6 +60,7 @@ export function ScrollFade({
       </div>
       <div
         aria-hidden
+        style={{ right: bar }}
         className={cn(
           fade,
           'bg-linear-to-b',
@@ -66,6 +70,7 @@ export function ScrollFade({
       />
       <div
         aria-hidden
+        style={{ right: bar }}
         className={cn(
           fade,
           'bottom-0 bg-linear-to-t',

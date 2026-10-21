@@ -54,12 +54,14 @@ export function ProcessList({
     .sort((a, b) => b[sort] - a[sort] || b.cpu - a.cpu);
 
   return (
-    <Card size='sm' className='px-3 lg:col-span-3'>
-      <div className='flex h-6 items-center gap-2 text-muted-foreground [&_svg:not([class*=size-])]:size-4'>
-        <ListIcon />
-        <span>Processes</span>
-        <span className='mr-auto font-mono tabular-nums'>
-          {processes.length}
+    // Its columns follow the card's own width: PID shows once there's room,
+    // and a container's name beside its icon, so the process always has most
+    <Card size='sm' className='@container px-3 lg:col-span-3'>
+      {/* The title, the filter in the middle, and how many there are */}
+      <div className='grid h-6 grid-cols-[1fr_auto_1fr] items-center gap-2 text-muted-foreground [&_svg:not([class*=size-])]:size-4'>
+        <span className='flex items-center gap-2'>
+          <ListIcon />
+          Processes
         </span>
         <InputGroup className='h-6 w-48'>
           <InputGroupAddon>
@@ -72,20 +74,33 @@ export function ProcessList({
             onChange={(e) => setFilter(e.target.value)}
           />
         </InputGroup>
+        <span className='justify-self-end font-mono tabular-nums'>
+          {query
+            ? `${shown.length} of ${processes.length}`
+            : `${processes.length} total`}
+        </span>
       </div>
       {processes.length === 0 ? (
         <p className='text-muted-foreground'>Measuring…</p>
       ) : (
-        // Nine lines: the headings and the busiest eight, the rest a scroll
-        // away, faded at the edges while there's more; the headings stay put,
+        // Nine lines whatever the filter leaves, so the page doesn't shift
+        // while typing: the headings and eight processes, the rest a scroll
+        // away, faded at the edges while there's more. The scrollbar's room is
+        // kept when it's gone, so the columns stay put too; the headings do,
         // so the top fade starts a line down
-        <ScrollFade className='max-h-[9lh] overflow-auto' fadeTop='top-[1lh]'>
-          <table className='w-full table-fixed'>
+        <ScrollFade
+          className='h-[9lh] [scrollbar-gutter:stable] overflow-auto'
+          fadeTop='top-[1lh]'
+        >
+          {/* A gap after every column but the last, so none run into the next */}
+          <table className='w-full table-fixed [&_td:not(:last-child)]:pr-4 [&_th:not(:last-child)]:pr-4'>
             <thead className='sticky top-0 bg-card text-left text-muted-foreground'>
               <tr>
                 <th className='font-normal'>Process</th>
-                <th className='w-20 font-normal'>PID</th>
-                <th className='w-40 font-normal'>Container</th>
+                <th className='hidden w-20 font-normal @2xl:table-cell'>PID</th>
+                <th className='w-8 font-normal @lg:w-40'>
+                  <span className='hidden @lg:inline'>Container</span>
+                </th>
                 <SortHeading by='cpu' sort={sort} onSort={setSort}>
                   CPU
                 </SortHeading>
@@ -107,11 +122,15 @@ export function ProcessList({
                         </span>
                       )}
                     </td>
-                    <td className='font-mono text-muted-foreground'>{p.pid}</td>
+                    <td className='hidden font-mono text-muted-foreground @2xl:table-cell'>
+                      {p.pid}
+                    </td>
                     <td>
                       {service && (
                         <button
                           type='button'
+                          title={service.name}
+                          aria-label={`Open ${service.name}`}
                           onClick={() => onOpen(service)}
                           className='flex max-w-full items-center gap-1.5 rounded-sm hover:underline'
                         >
@@ -122,7 +141,9 @@ export function ProcessList({
                             missing={service.iconMissing}
                             className='size-3.5 shrink-0'
                           />
-                          <span className='truncate'>{service.name}</span>
+                          <span className='hidden truncate @lg:inline'>
+                            {service.name}
+                          </span>
                         </button>
                       )}
                     </td>
