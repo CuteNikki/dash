@@ -216,6 +216,74 @@ export async function containerPid(id: string) {
   return info.State.Pid;
 }
 
+/** Bytes Docker keeps of one kind, and how many of them nothing uses. */
+export type DockerSpace = { size: number; reclaimable: number; count: number };
+
+/**
+ * What Docker's images, containers, volumes and build cache take on the
+ * disk, and how much of each nothing uses, as \`docker system df\` counts it.
+ */
+export async function dockerSpace() {
+  const df = await dockerJson<{
+    LayersSize: number;
+    Images: { Size: number; SharedSize: number; Containers: number }[];
+    Containers: { SizeRw?: number }[];
+    Volumes: { UsageData?: { Size: number; RefCount: number } }[];
+    BuildCache: { Size: number; InUse: boolean; Shared: boolean }[] | null;
+  }>('GET', '/system/df');
+  const sum = (values: number[]) =>
+    values.reduce((a, b) => a + Math.max(0, b), 0);
+  const unusedImages = df.Images.filter((i) => i.Containers === 0);
+  const volumes = df.Volumes.map((v) => v.UsageData).filter(
+    (u) => u !== undefined
+  );
+  // Shared cache is counted under what shares it
+  const cache = (df.BuildCache ?? []).filter((c) => !c.Shared);
+  return {
+    images: {
+      size: df.LayersSize,
+      // What only unused images hold: their layers shared with others stay
+      reclaimable: sum(
+        unusedImages.map((i) => i.Size - Math.max(0, i.SharedSize))
+      ),
+      count: df.Images.length,
+    },
+    containers: {
+      size: sum(df.Containers.map((c) => c.SizeRw ?? 0)),
+      reclaimable: 0,
+      count: df.Containers.length,
+    },
+    volumes: {
+      size: sum(volumes.map((u) => u.Size)),
+      reclaimable: sum(
+        volumes.filter((u) => u.RefCount === 0).map((u) => u.Size)
+      ),
+      count: volumes.length,
+    },
+    buildCache: {
+      size: sum(cache.map((c) => c.Size)),
+      reclaimable: sum(cache.filter((c) => !c.InUse).map((c) => c.Size)),
+      count: cache.length,
+    },
+  } satisfies Record<string, DockerSpace>;
+}
+
+/**
+ * Frees what Docker keeps that nothing uses: the build cache no build is
+ * using, or images no container (running or stopped) is made from. Gives the
+ * bytes freed.
+ */
+export async function dockerPrune(what: 'buildCache' | 'images') {
+  const result = await dockerJson<{ SpaceReclaimed: number }>(
+    'POST',
+    what === 'buildCache'
+      ? '/build/prune?all=true'
+      : // Not only untagged ones: every image without a container
+        `/images/prune?filters=${encodeURIComponent(JSON.stringify({ dangling: ['false'] }))}`
+  );
+  return result.SpaceReclaimed;
+}
+
 /** What Docker knows about the server it runs on, and its own state. */
 export async function dockerInfo() {
   const info = await dockerJson<{

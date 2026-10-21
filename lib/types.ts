@@ -111,6 +111,21 @@ export type HostProcess = {
   memory: number;
 };
 
+/** How measuring the disk is going: underway, done (and when), or failed. */
+export type DiskScan =
+  | { state: 'none' }
+  | { state: 'scanning'; startedAt: number; folders: number }
+  | { state: 'done'; finishedAt: number; folders: number }
+  | { state: 'failed'; error: string };
+
+/** A folder on the server: its size, and what's in it, biggest first, in bytes. */
+export type FolderUsage = {
+  path: string;
+  size: number;
+  folders: { name: string; size: number }[];
+  files: { name: string; size: number }[];
+};
+
 /** One process, looked at closely, to see what it is before stopping it. */
 export type ProcessDetails = {
   pid: number;
