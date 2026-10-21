@@ -5,10 +5,13 @@ import { posix } from 'node:path';
 import { composeOutput, type Stack } from '@/lib/compose';
 import { listContainers } from '@/lib/docker';
 import {
+  createHostEntry,
   listHostDir,
+  moveHostEntry,
   readHostFile,
   readHostFileStart,
   realHostPath,
+  removeHostEntry,
   removeHostFile,
   writeHostFile,
   type HostEntry,
@@ -96,7 +99,7 @@ export async function openStackFile(
   return { content: (await readHostFile(path)) ?? '' };
 }
 
-export type SaveResult = { ok: true } | { ok: false; error: string };
+export type FileResult = { ok: true } | { ok: false; error: string };
 
 /**
  * Saves a file in a stack's folder. Its compose files and .env are checked
@@ -108,7 +111,7 @@ export async function saveStackFile(
   stack: Stack,
   relative: string,
   content: string
-): Promise<SaveResult> {
+): Promise<FileResult> {
   const path = await resolve(stack, relative);
   const isCompose = stack.files.includes(path);
   const isEnv = path === posix.join(stack.dir, '.env');
@@ -139,4 +142,65 @@ export async function saveStackFile(
   }
   await writeHostFile(path, content);
   return { ok: true };
+}
+
+/** A name for a new or renamed entry: one level, so no slashes, and not . or .. */
+function checkName(name: string) {
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error('A name is needed');
+  if (trimmed.includes('/')) throw new Error('A name can’t contain /');
+  if (trimmed === '.' || trimmed === '..') {
+    throw new Error(`${trimmed} can’t be used as a name`);
+  }
+  return trimmed;
+}
+
+/**
+ * The stack's folder and its compose files are left alone, as are folders
+ * holding them: Docker finds the stack by those paths.
+ */
+async function checkMovable(stack: Stack, relative: string) {
+  const path = await resolve(stack, relative);
+  if (path === ((await realHostPath(stack.dir)) ?? stack.dir)) {
+    throw new Error('That’s the stack’s own folder');
+  }
+  const compose = stack.files.find((f) => within(path, f));
+  if (compose) {
+    throw new Error(
+      `${posix.basename(compose)} is how Docker finds this stack, so it stays where it is`
+    );
+  }
+  return path;
+}
+
+/** Makes an empty file or folder in one of the stack's folders. */
+export async function createStackEntry(
+  stack: Stack,
+  folder: string,
+  name: string,
+  kind: 'file' | 'dir'
+) {
+  await createHostEntry(
+    await resolve(stack, posix.join(folder, checkName(name))),
+    kind
+  );
+}
+
+/** Gives a file or folder a new name in the same folder. */
+export async function renameStackEntry(
+  stack: Stack,
+  relative: string,
+  name: string
+) {
+  const from = await checkMovable(stack, relative);
+  const to = await resolve(
+    stack,
+    posix.join(posix.dirname(relative), checkName(name))
+  );
+  if (to !== from) await moveHostEntry(from, to);
+}
+
+/** Deletes a file, or a folder with everything in it. */
+export async function deleteStackEntry(stack: Stack, relative: string) {
+  await removeHostEntry(await checkMovable(stack, relative));
 }

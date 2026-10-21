@@ -1,9 +1,12 @@
 import 'server-only';
 
 import {
+  chown,
+  mkdir,
   readdir,
   readFile,
   realpath,
+  rename,
   rm,
   stat,
   writeFile,
@@ -84,6 +87,65 @@ export async function removeHostFile(path: string) {
     return;
   }
   await helper('rm -f -- "$1"', path);
+}
+
+/** Exit code the helper's scripts use for "something's already there". */
+const TAKEN = 3;
+
+function taken(path: string): never {
+  throw new Error(
+    `There's already a file or folder named ${posix.basename(path)}`
+  );
+}
+
+/**
+ * Makes an empty file or folder, owned like the folder it's in rather than
+ * by the dashboard, which runs as root. Refuses if something's already there.
+ */
+export async function createHostEntry(path: string, kind: 'file' | 'dir') {
+  if (!HELPER) {
+    if (await stat(path).catch(() => undefined)) taken(path);
+    if (kind === 'dir') await mkdir(path);
+    else await writeFile(path, '', { flag: 'wx' });
+    const parent = await stat(posix.dirname(path));
+    await chown(path, parent.uid, parent.gid);
+    return;
+  }
+  const { stderr, exitCode } = await helper(
+    `[ -e "$1" ] && exit ${TAKEN}
+if [ "$2" = dir ]; then mkdir "$1"; else : > "$1"; fi || exit 1
+chown "$(stat -c %u:%g "$(dirname "$1")")" "$1"`,
+    path,
+    kind
+  );
+  if (exitCode === TAKEN) taken(path);
+  if (exitCode !== 0) failed(stderr, `Couldn't create ${path}`);
+}
+
+/** Moves a file or folder to a new path. Refuses if something's already there. */
+export async function moveHostEntry(from: string, to: string) {
+  if (!HELPER) {
+    if (await stat(to).catch(() => undefined)) taken(to);
+    await rename(from, to);
+    return;
+  }
+  const { stderr, exitCode } = await helper(
+    `[ -e "$2" ] && exit ${TAKEN}; mv "$1" "$2"`,
+    from,
+    to
+  );
+  if (exitCode === TAKEN) taken(to);
+  if (exitCode !== 0) failed(stderr, `Couldn't rename ${from}`);
+}
+
+/** Removes a file, or a folder and everything in it. */
+export async function removeHostEntry(path: string) {
+  if (!HELPER) {
+    await rm(path, { recursive: true, force: true });
+    return;
+  }
+  const { stderr, exitCode } = await helper('rm -rf -- "$1"', path);
+  if (exitCode !== 0) failed(stderr, `Couldn't delete ${path}`);
 }
 
 /** Who owns a file or folder, as "uid:gid". */
