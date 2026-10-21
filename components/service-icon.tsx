@@ -2,7 +2,12 @@
 
 import { useState } from 'react';
 
-import { ICON_SETS, iconFileUrl, parseIcon } from '@/lib/icon-sets';
+import {
+  ICON_SETS,
+  iconFileUrl,
+  parseIcon,
+  type IconVariants,
+} from '@/lib/icon-sets';
 import { cn } from '@/lib/utils';
 
 type IconSource =
@@ -27,15 +32,52 @@ export function iconSource(icon: string): IconSource {
     : { kind: 'image', url };
 }
 
-/** An app's icon, or its first letter when there's none to show. */
+/**
+ * An app's icon, or its first letter when there's none to show. An icon
+ * drawn for each kind of background shows the one that suits the theme.
+ */
 export function ServiceIcon({
   icon,
   name,
+  variants,
   className,
 }: {
   icon: string;
   name: string;
+  variants?: IconVariants;
   className?: string;
+}) {
+  if (!variants)
+    return <SingleIcon icon={icon} name={name} className={className} />;
+  return (
+    <>
+      <SingleIcon
+        icon={variants.onLight}
+        name={name}
+        className={className}
+        display='dark:hidden'
+      />
+      <SingleIcon
+        icon={variants.onDark}
+        name={name}
+        className={className}
+        display='hidden dark:flex'
+      />
+    </>
+  );
+}
+
+function SingleIcon({
+  icon,
+  name,
+  className,
+  display,
+}: {
+  icon: string;
+  name: string;
+  className?: string;
+  /** Which theme it shows in; last, so nothing else overrides it */
+  display?: string;
 }) {
   const [failed, setFailed] = useState<string>();
   const source =
@@ -44,7 +86,7 @@ export function ServiceIcon({
 
   if (source.kind === 'mask') {
     return (
-      <span aria-hidden className={cn(box, 'p-1')}>
+      <span aria-hidden className={cn(box, 'p-1', display)}>
         <span
           className='block size-full bg-foreground mask-contain mask-center mask-no-repeat'
           style={{ maskImage: `url("${source.url}")` }}
@@ -61,7 +103,7 @@ export function ServiceIcon({
         alt=''
         loading='lazy'
         onError={() => setFailed(icon)}
-        className={cn(box, 'object-contain')}
+        className={cn(box, 'object-contain', display)}
       />
     );
   }
@@ -70,7 +112,8 @@ export function ServiceIcon({
       aria-hidden
       className={cn(
         box,
-        'flex items-center justify-center rounded-md bg-muted text-sm font-medium text-muted-foreground'
+        'flex items-center justify-center rounded-md bg-muted text-sm font-medium text-muted-foreground',
+        display
       )}
     >
       {name.charAt(0).toUpperCase()}

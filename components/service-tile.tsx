@@ -33,7 +33,11 @@ export function ServiceTile({
         className='h-full px-3 transition-shadow group-hover/tile:ring-foreground/25 data-[dimmed=true]:opacity-60'
       >
         <div className='flex items-center gap-3'>
-          <ServiceIcon icon={service.icon} name={service.name} />
+          <ServiceIcon
+            icon={service.icon}
+            variants={service.iconVariants}
+            name={service.name}
+          />
           <div className='min-w-0 flex-1'>
             <div className='truncate text-sm font-medium'>{service.name}</div>
             <div className='truncate text-muted-foreground'>

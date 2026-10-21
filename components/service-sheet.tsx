@@ -102,6 +102,7 @@ function SheetBody({
         <div className='flex items-center gap-3 pr-8'>
           <ServiceIcon
             icon={service.icon}
+            variants={service.iconVariants}
             name={service.name}
             className='size-10'
           />

@@ -71,7 +71,12 @@ export function IconField({
     <div className='flex flex-col gap-2'>
       <InputGroup>
         <InputGroupAddon>
-          <ServiceIcon icon={value} name={name} className='size-4' />
+          <ServiceIcon
+            icon={value}
+            variants={matches.find((m) => m.icon === value)?.variants}
+            name={name}
+            className='size-4'
+          />
         </InputGroupAddon>
         <InputGroupInput
           id={id}
@@ -129,6 +134,7 @@ export function IconField({
             >
               <ServiceIcon
                 icon={match.icon}
+                variants={match.variants}
                 name={match.icon}
                 className='size-6'
               />

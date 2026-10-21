@@ -1,6 +1,11 @@
 import 'server-only';
 
-import { ICON_SETS, type IconSet } from '@/lib/icon-sets';
+import {
+  ICON_SETS,
+  parseIcon,
+  type IconSet,
+  type IconVariants,
+} from '@/lib/icon-sets';
 
 /** The sets' indexes are fetched again after a day. */
 const REFRESH_MS = 24 * 60 * 60 * 1000;
@@ -21,6 +26,8 @@ type Entry = {
   name: string;
   /** Other names it's known by, in lowercase */
   aliases: string[];
+  /** For icons drawn once for each kind of background */
+  variants?: IconVariants;
 };
 
 async function json<T>(url: string): Promise<T> {
@@ -53,11 +60,16 @@ function simpleIconsSlug(title: string) {
 
 const loaders: Record<IconSet, () => Promise<Entry[]>> = {
   async dashboard() {
-    const tree = await json<{ svg?: string[] }>(INDEXES.dashboard);
-    return (tree.svg ?? [])
-      .map((file) => file.replace(/\.svg$/, ''))
+    const files = await dashboardFiles();
+    return [...files]
       .filter((name) => !/-(light|dark)$/.test(name))
-      .map((name) => ({ icon: name, set: 'dashboard', name, aliases: [] }));
+      .map((name) => ({
+        icon: name,
+        set: 'dashboard',
+        name,
+        aliases: [],
+        variants: variantsIn(files, name),
+      }));
   },
   async mdi() {
     const meta = await json<
@@ -103,6 +115,54 @@ const loaders: Record<IconSet, () => Promise<Entry[]>> = {
   },
 };
 
+type Files = { names: Set<string>; at: number };
+const files: { current?: Files; loading?: Promise<Files> } = {};
+
+/** Every dashboard-icons file name, variants included. */
+async function dashboardFiles() {
+  if (files.current && Date.now() - files.current.at < REFRESH_MS) {
+    return files.current.names;
+  }
+  files.loading ??= json<{ svg?: string[] }>(INDEXES.dashboard)
+    .then((tree) => {
+      const names = new Set(
+        (tree.svg ?? []).map((file) => file.replace(/\.svg$/, ''))
+      );
+      files.current = { names, at: Date.now() };
+      return files.current;
+    })
+    .finally(() => (files.loading = undefined));
+  return (await files.loading).names;
+}
+
+function variantsIn(names: Set<string>, name: string) {
+  const light = names.has(`${name}-light`);
+  const dark = names.has(`${name}-dark`);
+  if (!light && !dark) return undefined;
+  return {
+    onLight: dark ? `${name}-dark` : name,
+    onDark: light ? `${name}-light` : name,
+  } satisfies IconVariants;
+}
+
+/**
+ * The light and dark versions of each of these icons that has them, by icon.
+ * Only dashboard-icons draws icons for either background; one from another
+ * set, or any while its index can't be fetched, is drawn as it is.
+ */
+export async function themeVariants(icons: string[]) {
+  const found = new Map<string, IconVariants>();
+  const names = await dashboardFiles().catch(() => new Set<string>());
+  for (const icon of icons) {
+    if (/^https:\/\//.test(icon) || parseIcon(icon).set !== 'dashboard') {
+      continue;
+    }
+    const variants = variantsIn(names, icon);
+    if (variants) found.set(icon, variants);
+  }
+  return found;
+}
+
 type Cache = { entries: Entry[]; at: number };
 const cache: { current?: Cache; loading?: Promise<Cache> } = {};
 
@@ -138,7 +198,12 @@ function score(entry: Entry, query: string) {
 /** dashboard-icons first among equals: they're in color and made for apps. */
 const SET_ORDER: IconSet[] = ['dashboard', 'sh', 'si', 'mdi'];
 
-export type IconMatch = { icon: string; set: IconSet; label: string };
+export type IconMatch = {
+  icon: string;
+  set: IconSet;
+  label: string;
+  variants?: IconVariants;
+};
 
 export async function searchIcons(query: string, limit: number) {
   const q = query.trim().toLowerCase();
@@ -160,5 +225,6 @@ export async function searchIcons(query: string, limit: number) {
       icon: entry.icon,
       set: entry.set,
       label: ICON_SETS[entry.set].label,
+      variants: entry.variants,
     }));
 }

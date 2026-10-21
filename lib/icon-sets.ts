@@ -47,3 +47,11 @@ export function iconFileUrl(icon: string) {
   const { set, name } = parseIcon(icon);
   return `${ICON_SETS[set].url}/${encodeURIComponent(name)}.svg`;
 }
+
+/**
+ * The icons to draw on a light and on a dark background, for icons drawn
+ * twice. dashboard-icons names them so: "glances" in dark colors for light
+ * backgrounds, "glances-light" in light colors for dark ones, and "-dark" the
+ * other way around where the plain one is the light one.
+ */
+export type IconVariants = { onLight: string; onDark: string };
