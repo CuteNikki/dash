@@ -147,6 +147,25 @@ export function LogViewer({ containerId }: { containerId: string }) {
     if (follow && el) el.scrollTop = el.scrollHeight;
   }, [shown, follow]);
 
+  // While following, stays at the end when the log changes size without new
+  // lines: wrapping turned on or off, the window resized, the font loading
+  const content = useRef<HTMLDivElement>(null);
+  const following = useRef(follow);
+  useEffect(() => {
+    following.current = follow;
+  }, [follow]);
+  useEffect(() => {
+    const el = scroller.current;
+    const inner = content.current;
+    if (!el || !inner) return;
+    const observer = new ResizeObserver(() => {
+      if (following.current) el.scrollTop = el.scrollHeight;
+    });
+    observer.observe(el);
+    observer.observe(inner);
+    return () => observer.disconnect();
+  }, []);
+
   // Shift and the wheel scroll long lines sideways, which some browsers report
   // as scrolling down. The panel (a dialog, keeping the page behind it still)
   // cancels that on the document at the end of the log, so those wheel turns
@@ -213,25 +232,28 @@ export function LogViewer({ containerId }: { containerId: string }) {
         onScroll={onScroll}
         className='min-h-0 flex-1 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs/relaxed'
       >
-        {error ? (
-          <p className='text-destructive'>{error}</p>
-        ) : shown.length === 0 ? (
-          <p className='text-muted-foreground'>
-            {filter ? 'No lines match.' : 'No log lines yet.'}
-          </p>
-        ) : (
-          shown.map((line, i) => (
-            <Fragment key={line.id}>
-              {line.time && dayOf(line.time) !== dayOf(shown[i - 1]?.time) && (
-                <div className='flex items-center gap-3 py-2 text-muted-foreground'>
-                  {dayLabel(line.time)}
-                  <span className='h-px flex-1 bg-border' />
-                </div>
-              )}
-              <LogLine line={line} wrap={wrap} />
-            </Fragment>
-          ))
-        )}
+        <div ref={content}>
+          {error ? (
+            <p className='text-destructive'>{error}</p>
+          ) : shown.length === 0 ? (
+            <p className='text-muted-foreground'>
+              {filter ? 'No lines match.' : 'No log lines yet.'}
+            </p>
+          ) : (
+            shown.map((line, i) => (
+              <Fragment key={line.id}>
+                {line.time &&
+                  dayOf(line.time) !== dayOf(shown[i - 1]?.time) && (
+                    <div className='flex items-center gap-3 py-2 text-muted-foreground'>
+                      {dayLabel(line.time)}
+                      <span className='h-px flex-1 bg-border' />
+                    </div>
+                  )}
+                <LogLine line={line} wrap={wrap} />
+              </Fragment>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
