@@ -7,6 +7,7 @@ import {
   ArrowDownIcon,
   ArrowUpIcon,
   BookOpenIcon,
+  ChevronRightIcon,
   CpuIcon,
   HardDriveIcon,
   MemoryStickIcon,
@@ -25,6 +26,7 @@ import {
 } from '@/lib/format';
 import type { HostStats, Service } from '@/lib/types';
 
+import { DiskDialog } from '@/components/disk-dialog';
 import { HistoryChart } from '@/components/history-chart';
 import { ProcessList } from '@/components/process-list';
 import { Card } from '@/components/ui/card';
@@ -166,14 +168,7 @@ function LiveStats({
       >
         <Usage used={host.memory.used} total={host.memory.total} />
       </Stat>
-      <Stat
-        icon={<HardDriveIcon />}
-        label='Disk'
-        detail={`of ${formatBytes(host.disk.size)}`}
-        value={formatBytes(host.disk.used)}
-      >
-        <Usage used={host.disk.used} total={host.disk.total} />
-      </Stat>
+      <DiskStat disk={host.disk} />
       {diskIo}
       {network}
     </div>
@@ -242,6 +237,36 @@ function CpuStat({ host }: { host: HostStats }) {
         className='h-full'
       />
     </Stat>
+  );
+}
+
+/** The disk's use, which opens what takes it up. */
+function DiskStat({ disk }: { disk: HostStats['disk'] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        type='button'
+        onClick={() => setOpen(true)}
+        aria-label='Disk: see what takes up space'
+        className='group/stat flex rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-ring [&>*]:flex-1 [&>*]:transition-shadow [&>*]:group-hover/stat:ring-foreground/25'
+      >
+        <Stat
+          icon={<HardDriveIcon />}
+          label='Disk'
+          detail={
+            <span className='flex items-center gap-1 font-mono tabular-nums'>
+              of {formatBytes(disk.size)}
+              <ChevronRightIcon className='size-3.5' />
+            </span>
+          }
+          value={formatBytes(disk.used)}
+        >
+          <Usage used={disk.used} total={disk.total} />
+        </Stat>
+      </button>
+      <DiskDialog open={open} onClose={() => setOpen(false)} disk={disk} />
+    </>
   );
 }
 

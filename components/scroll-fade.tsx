@@ -9,18 +9,21 @@ const EDGE_SLACK_PX = 2;
 
 /**
  * A scrolling area whose edges fade out while there's more to scroll to that
- * way, so it shows it scrolls. The fades are in the card's color, for areas
- * on a card.
+ * way, so it shows it scrolls. The fades are in the color of what's behind
+ * it: the card's, unless told otherwise.
  */
 export function ScrollFade({
   className,
   fadeTop = 'top-0',
+  fadeFrom = 'from-card',
   children,
 }: {
   /** The scrolling area's own, such as its height and overflow */
   className?: string;
   /** Where the top fade starts, such as below headings that stay put */
   fadeTop?: string;
+  /** The color behind it, which the fades are in, as a gradient's from- class */
+  fadeFrom?: string;
   children: React.ReactNode;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
@@ -52,7 +55,7 @@ export function ScrollFade({
   });
 
   const fade =
-    'pointer-events-none absolute left-0 h-[2lh] from-card to-transparent transition-opacity';
+    'pointer-events-none absolute left-0 h-[2lh] to-transparent transition-opacity';
   return (
     <div className='relative min-h-0'>
       <div ref={scroller} onScroll={measure} className={className}>
@@ -63,6 +66,7 @@ export function ScrollFade({
         style={{ right: bar }}
         className={cn(
           fade,
+          fadeFrom,
           'bg-linear-to-b',
           fadeTop,
           more.above ? 'opacity-100' : 'opacity-0'
@@ -73,6 +77,7 @@ export function ScrollFade({
         style={{ right: bar }}
         className={cn(
           fade,
+          fadeFrom,
           'bottom-0 bg-linear-to-t',
           more.below ? 'opacity-100' : 'opacity-0'
         )}
