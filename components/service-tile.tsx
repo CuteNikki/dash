@@ -32,6 +32,7 @@ export function ServiceTile({
         data-dimmed={!running || service.hidden}
         className='h-full px-3 transition-shadow group-hover/tile:ring-foreground/25 data-[dimmed=true]:opacity-60'
       >
+        {/* The icon centred beside the text; the dot level with the name */}
         <div className='flex items-center gap-3'>
           <ServiceIcon
             icon={service.icon}
@@ -51,17 +52,17 @@ export function ServiceTile({
             ))}
           </div>
           {editing ? (
-            <span className='flex items-center gap-2 text-muted-foreground'>
+            <span className='mt-0.5 flex items-center gap-2 self-start text-muted-foreground'>
               {service.hidden && (
                 <EyeOffIcon aria-label='Hidden' className='size-4' />
               )}
               <PencilIcon className='size-4' />
             </span>
           ) : (
-            <StatusDot state={service.state} />
+            <StatusDot state={service.state} className='mt-1.5 self-start' />
           )}
         </div>
-        <div className='flex items-center gap-3 font-mono text-muted-foreground tabular-nums'>
+        <div className='mt-auto flex items-center gap-3 font-mono text-muted-foreground tabular-nums'>
           {running && service.usage ? (
             <>
               <span>{formatCpu(service.usage.cpu)}</span>
