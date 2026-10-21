@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { ArrowDownToLineIcon, SearchIcon } from 'lucide-react';
 
+import { hasAnsi, parseAnsi, type Segment, type Tone } from '@/lib/ansi';
 import { cn } from '@/lib/utils';
 
 import {
@@ -16,19 +17,46 @@ import { Toggle } from '@/components/ui/toggle';
 /** Lines kept in the viewer; older ones drop off the top. */
 const MAX_LINES = 2_000;
 
-type Line = { id: number; time?: Date; text: string; stderr: boolean };
+type Line = {
+  id: number;
+  time?: Date;
+  /** Without color codes, for filtering */
+  text: string;
+  segments: Segment[];
+};
 
 const TIMESTAMP = /^(\d{4}-\d{2}-\d{2}T[\d:.]+Z)\s?/;
 const ERROR_WORDS = /\b(error|err|fatal|panic|exception)\b/i;
 const WARNING_WORDS = /\b(warn|warning|wrn)\b/i;
 
+const TONE_CLASS: Record<Tone, string> = {
+  error: 'text-destructive',
+  warning: 'text-warning',
+  success: 'text-success',
+  muted: 'text-muted-foreground',
+};
+
+/** A line's own colors, or for one without, a guess from words like "error". */
+function segmentsOf(text: string): Segment[] {
+  if (hasAnsi(text)) return parseAnsi(text);
+  const tone: Tone | undefined = ERROR_WORDS.test(text)
+    ? 'error'
+    : WARNING_WORDS.test(text)
+      ? 'warning'
+      : undefined;
+  return [{ text, tone }];
+}
+
 function parse(id: number, entry: { stream: string; line: string }): Line {
   const match = entry.line.match(TIMESTAMP);
+  const segments = segmentsOf(
+    match ? entry.line.slice(match[0].length) : entry.line
+  );
   return {
     id,
     time: match ? new Date(match[1]) : undefined,
-    text: match ? entry.line.slice(match[0].length) : entry.line,
-    stderr: entry.stream === 'stderr',
+    text: segments.map((s) => s.text).join(''),
+    segments,
   };
 }
 
@@ -120,14 +148,18 @@ export function LogViewer({ containerId }: { containerId: string }) {
               <span className='shrink-0 text-muted-foreground tabular-nums'>
                 {line.time?.toLocaleTimeString()}
               </span>
-              <span
-                className={cn(
-                  ERROR_WORDS.test(line.text)
-                    ? 'text-destructive'
-                    : WARNING_WORDS.test(line.text) && 'text-warning'
-                )}
-              >
-                {line.text}
+              <span>
+                {line.segments.map((segment, i) => (
+                  <span
+                    key={i}
+                    className={cn(
+                      segment.tone && TONE_CLASS[segment.tone],
+                      segment.bold && 'font-semibold'
+                    )}
+                  >
+                    {segment.text}
+                  </span>
+                ))}
               </span>
             </div>
           ))
