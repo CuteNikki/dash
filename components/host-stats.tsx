@@ -88,7 +88,9 @@ function Stat({
         <span className='mr-auto'>{label}</span>
         <span className='font-mono tabular-nums'>{detail}</span>
       </div>
-      <div className='font-mono text-lg font-medium tabular-nums'>{value}</div>
+      <div className='font-mono text-lg leading-control font-medium tabular-nums'>
+        {value}
+      </div>
       <div className='mt-auto flex h-6 items-end'>{children}</div>
     </Card>
   );
