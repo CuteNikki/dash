@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { ArrowDownToLineIcon, SearchIcon } from 'lucide-react';
+import { SearchIcon } from 'lucide-react';
 
 import { hasAnsi, parseAnsi, type Segment, type Tone } from '@/lib/ansi';
 import { cn } from '@/lib/utils';
@@ -12,7 +12,8 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from '@/components/ui/input-group';
-import { Toggle } from '@/components/ui/toggle';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 
 /** Lines kept in the viewer; older ones drop off the top. */
 const MAX_LINES = 2_000;
@@ -109,7 +110,7 @@ export function LogViewer({ containerId }: { containerId: string }) {
 
   return (
     <div className='flex min-h-0 flex-1 flex-col gap-3'>
-      <div className='flex items-center gap-2'>
+      <div className='flex items-center gap-4'>
         <InputGroup>
           <InputGroupAddon>
             <SearchIcon />
@@ -121,15 +122,10 @@ export function LogViewer({ containerId }: { containerId: string }) {
             onChange={(e) => setFilter(e.target.value)}
           />
         </InputGroup>
-        <Toggle
-          variant='outline'
-          pressed={follow}
-          onPressedChange={setFollow}
-          aria-label='Follow new lines'
-        >
-          <ArrowDownToLineIcon />
-          Follow
-        </Toggle>
+        <div className='flex shrink-0 items-center gap-2'>
+          <Switch id='follow' checked={follow} onCheckedChange={setFollow} />
+          <Label htmlFor='follow'>Follow</Label>
+        </div>
       </div>
       <div
         ref={scroller}
