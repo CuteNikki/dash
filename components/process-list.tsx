@@ -83,13 +83,13 @@ export function ProcessList({
       {processes.length === 0 ? (
         <p className='text-muted-foreground'>Measuring…</p>
       ) : (
-        // Nine lines whatever the filter leaves, so the page doesn't shift
-        // while typing: the headings and eight processes, the rest a scroll
+        // Five lines whatever the filter leaves, so the page doesn't shift
+        // while typing: the headings and four processes, the rest a scroll
         // away, faded at the edges while there's more. The scrollbar's room is
         // kept when it's gone, so the columns stay put too; the headings do,
         // so the top fade starts a line down
         <ScrollFade
-          className='h-[9lh] [scrollbar-gutter:stable] overflow-auto'
+          className='h-[5lh] [scrollbar-gutter:stable] overflow-auto'
           fadeTop='top-[1lh]'
         >
           {/* A gap after every column but the last, so none run into the next */}
