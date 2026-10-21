@@ -114,7 +114,11 @@ function LiveStats({ host }: { host: HostStats }) {
           </span>
         }
       >
-        <Sparkline values={host.history.received} className='h-6 w-full' />
+        <Sparkline
+          values={host.history.received}
+          second={host.history.sent}
+          className='h-6 w-full'
+        />
       </Stat>
     </div>
   );
