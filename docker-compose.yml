@@ -15,6 +15,9 @@ services:
     # Sees the server's processes and its network, for the server's stats and
     # its process list, rather than only its own
     pid: host
+    # And which container each runs in, its own included, which a container
+    # otherwise only sees for the others
+    cgroup: host
     volumes:
       # Docker, to list, run and look into the services
       - /var/run/docker.sock:/var/run/docker.sock
