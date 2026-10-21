@@ -154,6 +154,42 @@
   [role='button']:not(:disabled) {
     cursor: pointer;
   }
+
+  /* Slim scrollbars in the theme's colours, rather than the system's own (on Windows a wide grey bar with arrows).
+     Chromium and Safari draw them from these ::-webkit-scrollbar styles, which leave the arrows out. Chromium ignores
+     the styles wherever scrollbar-width or scrollbar-color is set, so those are only for other browsers, like Firefox. */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 9999px;
+    background: color-mix(in oklab, var(--muted-foreground) 55%, transparent)
+      padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(
+      in oklab,
+      var(--muted-foreground) 80%,
+      transparent
+    );
+  }
+  @supports not selector(::-webkit-scrollbar) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: color-mix(
+          in oklab,
+          var(--muted-foreground) 55%,
+          transparent
+        )
+        transparent;
+    }
+  }
   html {
     @apply font-sans;
   }
