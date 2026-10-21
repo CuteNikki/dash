@@ -6,6 +6,7 @@ import {
   gitPull,
   gitPush,
   gitStatus,
+  gitSwitch,
   type GitResult,
 } from '@/lib/git';
 import { requireUser } from '@/lib/session';
@@ -60,4 +61,22 @@ export async function commitChanges(
     ok: pushed.ok,
     output: `${committed.output}\n${pushed.output}`.trim(),
   };
+}
+
+/**
+ * Switches the service's repository to a branch, or makes a new one from
+ * here. An existing branch has to be one git lists, local or on a remote.
+ */
+export async function switchBranch(
+  containerId: string,
+  branch: string,
+  create: boolean
+): Promise<GitResult> {
+  const repo = await repoOf(containerId);
+  if (!repo) return noRepo;
+  const known = [...repo.branches.local, ...repo.branches.remote];
+  if (!create && !known.includes(branch)) {
+    return { ok: false, output: 'There’s no branch by that name' };
+  }
+  return gitSwitch(repo.root, branch, create);
 }

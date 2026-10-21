@@ -57,6 +57,12 @@ export type GitStatus = {
   behind: number;
   changes: GitChange[];
   commits: GitCommit[];
+  branches: {
+    /** Branches in this checkout */
+    local: string[];
+    /** Branches only on a remote, e.g. "origin/feature", to switch to */
+    remote: string[];
+  };
 };
 
 const MARK = '--dash--';
@@ -77,7 +83,9 @@ echo ${MARK}; git rev-parse --abbrev-ref HEAD
 echo ${MARK}; git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null
 echo ${MARK}; git rev-list --left-right --count HEAD...@{u} 2>/dev/null
 echo ${MARK}; git status --porcelain=v1
-echo ${MARK}; git log -n ${COMMITS} --format='%h%x09%an%x09%at%x09%s'`
+echo ${MARK}; git log -n ${COMMITS} --format='%h%x09%an%x09%at%x09%s'
+echo ${MARK}; git for-each-ref --format='%(refname:short)' refs/heads
+echo ${MARK}; git for-each-ref --format='%(refname:short)' refs/remotes`
   );
   if (!ok || !stdout.length) return undefined;
   const parts: string[][] = [[]];
@@ -85,7 +93,13 @@ echo ${MARK}; git log -n ${COMMITS} --format='%h%x09%an%x09%at%x09%s'`
     if (line === MARK) parts.push([]);
     else parts.at(-1)!.push(line);
   }
-  const [[root], [branch], [upstream], [counts], status, log] = parts;
+  const [[root], [branch], [upstream], [counts], status, log, heads, remotes] =
+    parts;
+  const local = heads ?? [];
+  // A remote's own HEAD isn't a branch, and ones already checked out are local
+  const remote = (remotes ?? []).filter(
+    (r) => r.includes('/') && !local.includes(r.slice(r.indexOf('/') + 1))
+  );
   const [ahead, behind] = (counts ?? '0\t0').split(/\s+/).map(Number);
   return {
     root,
@@ -107,7 +121,29 @@ echo ${MARK}; git log -n ${COMMITS} --format='%h%x09%an%x09%at%x09%s'`
         subject: subject.join('\t'),
       };
     }),
+    branches: { local, remote },
   };
+}
+
+/**
+ * Switches to a branch: a local one, one on a remote (making a local branch
+ * that tracks it), or a new one made from here. Git refuses if uncommitted
+ * changes would be lost, and its reason comes back.
+ */
+export async function gitSwitch(
+  root: string,
+  branch: string,
+  create: boolean
+): Promise<GitResult> {
+  return gitScript(
+    root,
+    `git check-ref-format --branch "$1" >/dev/null || { echo "That's not a name a branch can have" >&2; exit 1; }
+if [ "$2" = new ]; then git switch -c "$1"
+elif git show-ref --verify --quiet "refs/heads/$1"; then git switch "$1"
+else git switch --track "$1"; fi`,
+    branch,
+    create ? 'new' : 'existing'
+  );
 }
 
 export type GitResult = { ok: boolean; output: string };

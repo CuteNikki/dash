@@ -2,20 +2,20 @@
 
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import useSWR from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 
 import {
   ArrowDownIcon,
   ArrowUpIcon,
-  GitBranchIcon,
   GitCommitHorizontalIcon,
   RefreshCwIcon,
 } from 'lucide-react';
 
-import { commitChanges, runGit } from '@/actions/git';
+import { commitChanges, runGit, switchBranch } from '@/actions/git';
 import { fetcher } from '@/lib/fetcher';
 import type { GitChange, GitStatus } from '@/lib/git';
 
+import { BranchPicker } from '@/components/branch-picker';
 import { CodeEditor } from '@/components/code-editor';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -74,6 +74,7 @@ export function GitPanel({
   const [message, setMessage] = useState('');
   const [output, setOutput] = useState<{ ok: boolean; text: string }>();
   const [pending, startTransition] = useTransition();
+  const { mutate } = useSWRConfig();
 
   const changed = new Set(status.changes.map((c) => c.path));
   const chosen = [...changed].filter((p) => !skipped.has(p));
@@ -100,6 +101,24 @@ export function GitPanel({
     });
   }
 
+  function switchTo(branch: string, create: boolean) {
+    act(
+      async () => {
+        const result = await switchBranch(containerId, branch, create);
+        // The files on disk are the new branch's now: read them again
+        if (result.ok) {
+          await mutate(
+            (key) =>
+              typeof key === 'string' &&
+              key.startsWith(`/api/containers/${containerId}/files`)
+          );
+        }
+        return result;
+      },
+      create ? `Made and switched to ${branch}` : `Switched to ${branch}`
+    );
+  }
+
   function commit(push: boolean) {
     act(
       async () => {
@@ -114,8 +133,13 @@ export function GitPanel({
   return (
     <div className='flex min-h-0 flex-1 flex-col gap-3'>
       <div className='flex flex-wrap items-center gap-2'>
-        <GitBranchIcon className='size-4 text-muted-foreground' />
-        <span className='font-mono font-medium'>{status.branch}</span>
+        <BranchPicker
+          current={status.branch}
+          local={status.branches.local}
+          remote={status.branches.remote}
+          disabled={pending}
+          onSwitch={switchTo}
+        />
         {status.upstream ? (
           <span className='font-mono text-muted-foreground'>
             {status.upstream}
@@ -180,7 +204,7 @@ export function GitPanel({
                 <div
                   key={change.path}
                   aria-current={change.path === diffPath ? 'true' : undefined}
-                  className='flex items-center gap-2 rounded-md px-2 py-1 aria-[current=true]:bg-background'
+                  className='flex items-center gap-2 rounded-md px-2 py-1 aria-current:bg-background'
                 >
                   <Checkbox
                     checked={!skipped.has(change.path)}
