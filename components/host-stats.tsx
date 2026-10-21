@@ -83,7 +83,7 @@ function Stat({
 }) {
   return (
     <Card size='sm' className='px-3'>
-      <div className='flex items-center gap-2 text-muted-foreground [&_svg:not([class*=size-])]:size-4'>
+      <div className='flex items-center gap-2 leading-control text-muted-foreground [&_svg:not([class*=size-])]:size-4'>
         {icon}
         <span className='mr-auto'>{label}</span>
         <span className='font-mono tabular-nums'>{detail}</span>
