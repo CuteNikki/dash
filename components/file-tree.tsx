@@ -1,6 +1,13 @@
 'use client';
 
-import { createContext, use, useRef, useState, useTransition } from 'react';
+import {
+  createContext,
+  use,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+} from 'react';
 import { toast } from 'sonner';
 import useSWR, { useSWRConfig } from 'swr';
 
@@ -99,6 +106,7 @@ export function FileTree({
   onChoose,
   onRenamed,
   onDeleted,
+  keysFrom,
 }: {
   containerId: string;
   /** The stack's files API */
@@ -112,6 +120,8 @@ export function FileTree({
   onChoose: (path: string) => void;
   onRenamed: (from: string, to: string) => void;
   onDeleted: (path: string) => void;
+  /** Where F2 renames: the row it's pressed on, or else the open file, as from its editor */
+  keysFrom: React.RefObject<HTMLElement | null>;
 }) {
   const { mutate } = useSWRConfig();
   const [open, setOpen] = useState<Set<string>>(new Set());
@@ -138,9 +148,13 @@ export function FileTree({
   }
 
   function startDraft(next: Draft) {
-    if (next.action === 'create' && next.folder) {
-      setOpen((o) => new Set(o).add(next.folder));
-    }
+    // The folder it's in opens, with the ones around it, so the name shows
+    const folder = next.action === 'create' ? next.folder : parentOf(next.path);
+    setOpen((o) => {
+      const opened = new Set(o);
+      for (let f = folder; f; f = parentOf(f)) opened.add(f);
+      return opened;
+    });
     setDraft(next);
   }
 
@@ -201,6 +215,27 @@ export function FileTree({
     );
     onRenamed(current.path, path);
   }
+
+  // Listens afresh after each render, so F2 always goes to the current file
+  useEffect(() => {
+    const el = keysFrom.current;
+    if (!el) return;
+    function onKeyDown(e: KeyboardEvent) {
+      // Not while a name's being typed, where F2 means nothing
+      if (e.key !== 'F2' || e.target instanceof HTMLInputElement) return;
+      const row = (e.target as Element).closest<HTMLElement>('[data-path]');
+      const path = row?.dataset.path ?? chosen;
+      if (compose.some((c) => isWithin(path, c))) return;
+      e.preventDefault();
+      startDraft({
+        action: 'rename',
+        kind: (row?.dataset.kind as Kind | undefined) ?? 'file',
+        path,
+      });
+    }
+    el.addEventListener('keydown', onKeyDown);
+    return () => el.removeEventListener('keydown', onKeyDown);
+  });
 
   function confirmDelete() {
     const target = deleting;
@@ -476,12 +511,14 @@ function Entry({
                   onClick={() =>
                     isDir ? tree.toggle(path) : tree.onChoose(path)
                   }
+                  // A folder's clicks open and close it, so only files
+                  onDoubleClick={() => !isDir && !fixed && rename()}
+                  data-path={path}
+                  data-kind={entry.kind}
                   onKeyDown={(e) => {
-                    if (fixed) return;
-                    if (e.key === 'F2') rename();
-                    else if (e.key === 'Delete') remove();
-                    else return;
+                    if (fixed || e.key !== 'Delete') return;
                     e.preventDefault();
+                    remove();
                   }}
                   className={ROW}
                 >
@@ -587,10 +624,31 @@ function NameInput({
   name?: string;
 }) {
   const { finishDraft } = useTree();
+  const field = useRef<HTMLInputElement>(null);
+  // Once dropped, the blur as the field goes away mustn't keep the name after all
+  const dropped = useRef(false);
+
+  // Escape drops the name rather than closing the dialog the tree is in. The
+  // dialog hears Escape on the document before the field does, so the field
+  // listens on the window, which hears it first.
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== 'Escape' || e.target !== field.current) return;
+      e.preventDefault();
+      e.stopPropagation();
+      dropped.current = true;
+      finishDraft();
+    }
+    window.addEventListener('keydown', onKeyDown, { capture: true });
+    return () =>
+      window.removeEventListener('keydown', onKeyDown, { capture: true });
+  });
+
   return (
     <div style={indentFor(depth)} className={cn(ROW, 'hover:bg-transparent')}>
       <EntryIcon kind={kind} />
       <input
+        ref={field}
         autoFocus
         defaultValue={name}
         aria-label={kind === 'dir' ? 'Folder name' : 'File name'}
@@ -603,14 +661,11 @@ function NameInput({
           );
         }}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') finishDraft(e.currentTarget.value);
-          else if (e.key === 'Escape') finishDraft();
-          else return;
+          if (e.key !== 'Enter') return;
           e.preventDefault();
-          // Escape would otherwise close the dialog the tree is in
-          e.stopPropagation();
+          finishDraft(e.currentTarget.value);
         }}
-        onBlur={(e) => finishDraft(e.currentTarget.value)}
+        onBlur={(e) => !dropped.current && finishDraft(e.currentTarget.value)}
         className='min-w-0 flex-1 rounded-sm bg-background px-1 outline-1 outline-ring'
       />
     </div>

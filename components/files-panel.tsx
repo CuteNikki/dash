@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 
@@ -50,6 +50,7 @@ export function FilesPanel({
   const [pending, startTransition] = useTransition();
   // Markdown files being previewed rather than edited
   const [previewed, setPreviewed] = useState<Set<string>>(new Set());
+  const panel = useRef<HTMLDivElement>(null);
 
   const path = chosen ?? info?.compose[0];
   const { data: opened, mutate } = useSWR<OpenedFile>(
@@ -126,7 +127,7 @@ export function FilesPanel({
   }
 
   return (
-    <div className='flex min-h-0 flex-1 flex-col gap-3'>
+    <div ref={panel} className='flex min-h-0 flex-1 flex-col gap-3'>
       <div className='flex min-h-0 flex-1 flex-col gap-3 sm:flex-row'>
         <nav
           aria-label='Files'
@@ -137,6 +138,7 @@ export function FilesPanel({
             base={base}
             dir={info.dir}
             compose={info.compose}
+            keysFrom={panel}
             chosen={path}
             unsaved={unsaved}
             onChoose={(p) => {
