@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { resetTile, saveTile } from '@/actions/tiles';
 import type { Service } from '@/lib/types';
 
+import { AddressesField, toItems } from '@/components/addresses-field';
 import { GroupField } from '@/components/group-field';
 import { IconField } from '@/components/icon-field';
 import { Button } from '@/components/ui/button';
@@ -20,7 +21,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
 
 /** How a service's tile looks: its name, icon, link and group. */
 export function EditTileDialog({
@@ -64,7 +64,7 @@ function EditTileForm({
 }) {
   const [name, setName] = useState(service.name);
   const [icon, setIcon] = useState(service.icon);
-  const [addresses, setAddresses] = useState(service.addresses.join('\n'));
+  const [addresses, setAddresses] = useState(() => toItems(service.addresses));
   const [group, setGroup] = useState(service.group);
   const [hidden, setHidden] = useState(service.hidden);
   const [error, setError] = useState<string>();
@@ -76,7 +76,7 @@ function EditTileForm({
         key: service.key,
         name,
         icon,
-        addresses: addresses.split('\n'),
+        addresses: addresses.map((a) => a.value),
         group,
         hidden,
       });
@@ -133,17 +133,11 @@ function EditTileForm({
         </div>
         <div className='flex flex-col gap-2'>
           <Label htmlFor='tile-addresses'>Addresses</Label>
-          <Textarea
+          <AddressesField
             id='tile-addresses'
-            value={addresses}
-            onChange={(e) => setAddresses(e.target.value)}
-            placeholder={'https://jellyfin.niso.moe\nmc.niso.moe:25565'}
-            className='font-mono'
-            spellCheck={false}
+            items={addresses}
+            onChange={setAddresses}
           />
-          <p className='text-muted-foreground'>
-            One per line: links, or anything else, like a host and port
-          </p>
         </div>
         <div className='flex flex-col gap-2'>
           <Label htmlFor='tile-group'>Group</Label>
