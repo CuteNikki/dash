@@ -75,4 +75,6 @@ export const MEASURES = {
   memory: { format: formatBytes, floor: 64 * MB },
   /** About what an idle server sends and receives anyway */
   network: { format: formatRate, floor: 128 * KB },
+  /** Above the logs and databases an idle server writes anyway */
+  disk: { format: formatRate, floor: MB },
 } satisfies Record<string, Measure>;

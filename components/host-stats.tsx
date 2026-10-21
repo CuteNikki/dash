@@ -3,12 +3,16 @@
 import { useState } from 'react';
 
 import {
+  ActivityIcon,
   ArrowDownIcon,
   ArrowUpIcon,
+  BookOpenIcon,
   CpuIcon,
   HardDriveIcon,
+  ListIcon,
   MemoryStickIcon,
   NetworkIcon,
+  PenLineIcon,
   ServerIcon,
 } from 'lucide-react';
 
@@ -20,14 +24,14 @@ import {
   formatShare,
   MEASURES,
 } from '@/lib/format';
-import type { HostStats } from '@/lib/types';
+import type { HostProcess, HostStats } from '@/lib/types';
 
 import { HistoryChart } from '@/components/history-chart';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
-/** The server itself: what it is, then its CPU, memory, disk and network. */
+/** The server itself: what it is, then its CPU, memory, disk, network and busiest processes. */
 export function HostStatsBar({ host }: { host: HostStats }) {
   return (
     <section aria-label='Server' className='flex flex-col gap-3'>
@@ -110,8 +114,87 @@ function LiveStats({ host }: { host: HostStats }) {
       >
         <Usage used={host.disk.used} total={host.disk.total} />
       </Stat>
+      <Stat
+        icon={<ActivityIcon />}
+        label='Disk I/O'
+        detail='read · write'
+        value={
+          <span className='flex items-center gap-4'>
+            <span className='flex items-center gap-1'>
+              <BookOpenIcon
+                aria-label='Read'
+                className='size-4 text-muted-foreground'
+              />
+              {formatRate(host.diskIo.read)}
+            </span>
+            <span className='flex items-center gap-1'>
+              <PenLineIcon
+                aria-label='Written'
+                className='size-4 text-muted-foreground'
+              />
+              {formatRate(host.diskIo.written)}
+            </span>
+          </span>
+        }
+      >
+        <HistoryChart
+          label='Disk reads and writes over the last ten minutes'
+          times={host.history.at}
+          series={[
+            {
+              label: 'Read',
+              values: host.history.diskRead,
+              measure: MEASURES.disk,
+            },
+            {
+              label: 'Write',
+              values: host.history.diskWritten,
+              measure: MEASURES.disk,
+              dashed: true,
+            },
+          ]}
+        />
+      </Stat>
       <NetworkStat host={host} />
+      <TopProcesses processes={host.processes} />
     </div>
+  );
+}
+
+/** The busiest processes on the server, across the rest of the row. */
+function TopProcesses({ processes }: { processes: HostProcess[] }) {
+  return (
+    <Card size='sm' className='px-3 lg:col-span-3'>
+      <div className='flex h-6 items-center gap-2 text-muted-foreground [&_svg:not([class*=size-])]:size-4'>
+        <ListIcon />
+        <span className='mr-auto'>Top processes</span>
+      </div>
+      {processes.length === 0 ? (
+        <p className='text-muted-foreground'>Measuring…</p>
+      ) : (
+        <table className='w-full table-fixed'>
+          <thead className='text-left text-muted-foreground'>
+            <tr>
+              <th className='font-normal'>Process</th>
+              <th className='w-20 text-right font-normal'>CPU</th>
+              <th className='w-20 text-right font-normal'>Memory</th>
+            </tr>
+          </thead>
+          <tbody className='font-mono tabular-nums'>
+            {processes.map((p) => (
+              <tr key={p.pid}>
+                <td className='truncate'>
+                  {p.name}
+                  <span className='ml-2 text-muted-foreground'>{p.pid}</span>
+                </td>
+                <td className='text-right'>{formatCpu(p.cpu)}</td>
+                <td className='text-right'>{formatBytes(p.memory)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </Card>
   );
 }
 

@@ -7,7 +7,7 @@ import {
   type Usage,
 } from '@/lib/docker';
 import { readHost, type HostReading } from '@/lib/host';
-import type { HostStats, UsageHistory } from '@/lib/types';
+import type { HostProcess, HostStats, UsageHistory } from '@/lib/types';
 
 /** How often the server and its containers are measured while someone is watching. */
 const INTERVAL_MS = 5_000;
@@ -15,6 +15,8 @@ const INTERVAL_MS = 5_000;
 const HISTORY = 120;
 /** Measuring stops this long after the dashboard was last asked for usage. */
 const IDLE_MS = 60_000;
+/** Processes listed as the server's busiest. */
+const TOP_PROCESSES = 5;
 
 type Sampler = {
   usage: Map<string, Usage & { history: UsageHistory }>;
@@ -80,9 +82,13 @@ async function sampleHost() {
   const seconds = (now.at - last.at) / 1000;
   const ticks = now.cpu.total - last.cpu.total;
   const cpu = ticks > 0 ? ((now.cpu.busy - last.cpu.busy) / ticks) * 100 : 0;
-  const received =
-    Math.max(0, now.network.received - last.network.received) / seconds;
-  const sent = Math.max(0, now.network.sent - last.network.sent) / seconds;
+  const rate = (from: number, to: number) => Math.max(0, to - from) / seconds;
+  const received = rate(last.network.received, now.network.received);
+  const sent = rate(last.network.sent, now.network.sent);
+  const diskIo = {
+    read: rate(last.diskIo.read, now.diskIo.read),
+    written: rate(last.diskIo.written, now.diskIo.written),
+  };
   const history = sampler.host?.history;
   sampler.host = {
     cores: now.cores,
@@ -90,6 +96,8 @@ async function sampleHost() {
     memory: now.memory,
     disk: now.disk,
     network: { received, sent },
+    diskIo,
+    processes: busiest(last, now, ticks / now.cores),
     system: {
       ...info,
       cpuModel: now.cpuModel,
@@ -103,8 +111,38 @@ async function sampleHost() {
       memory: recent(history?.memory, now.memory.used),
       received: recent(history?.received, received),
       sent: recent(history?.sent, sent),
+      diskRead: recent(history?.diskRead, diskIo.read),
+      diskWritten: recent(history?.diskWritten, diskIo.written),
     },
   };
+}
+
+/**
+ * The processes that used the most CPU between two readings. `coreTicks` is
+ * one core's clock ticks in that time, for a share of one core, as for
+ * containers. A process seen only once has no time to measure yet.
+ */
+function busiest(
+  last: HostReading,
+  now: HostReading,
+  coreTicks: number
+): HostProcess[] {
+  if (coreTicks <= 0) return [];
+  const measured: HostProcess[] = [];
+  for (const [pid, p] of now.processes) {
+    const before = last.processes.get(pid);
+    // An id given to a new process since is a different program
+    if (!before || before.name !== p.name || before.ticks > p.ticks) continue;
+    measured.push({
+      pid,
+      name: p.name,
+      cpu: ((p.ticks - before.ticks) / coreTicks) * 100,
+      memory: p.memory,
+    });
+  }
+  return measured
+    .sort((a, b) => b.cpu - a.cpu || b.memory - a.memory)
+    .slice(0, TOP_PROCESSES);
 }
 
 async function sample() {

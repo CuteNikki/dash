@@ -1,7 +1,6 @@
 import 'server-only';
 
 import { execFile } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 
 import { execOutput } from '@/lib/docker';
@@ -14,41 +13,45 @@ import { execOutput } from '@/lib/docker';
  */
 const HELPER = process.env.HOST_HELPER_CONTAINER;
 
-/** Process 1 is the server's own init, so its network is the server's. */
-const FILES = {
-  cpu: '/proc/stat',
-  memory: '/proc/meminfo',
-  network: '/proc/1/net/dev',
-  routes: '/proc/1/net/route',
-  cpuinfo: '/proc/cpuinfo',
-  uptime: '/proc/uptime',
-  load: '/proc/loadavg',
+/**
+ * What's read, each by a shell command. Process 1 is the server's own init,
+ * so its network is the server's. A process can end between being listed
+ * and being read, so those reads skip what's gone.
+ */
+const SOURCES = {
+  cpu: 'cat /proc/stat',
+  memory: 'cat /proc/meminfo',
+  network: 'cat /proc/1/net/dev',
+  routes: 'cat /proc/1/net/route',
+  cpuinfo: 'cat /proc/cpuinfo',
+  uptime: 'cat /proc/uptime',
+  load: 'cat /proc/loadavg',
+  disks: 'cat /proc/diskstats',
+  disk: 'df -kP /',
+  processes: 'cat /proc/[0-9]*/stat 2>/dev/null',
+  // Kernel threads have no memory of their own, so no line
+  processMemory: "grep -H '^VmRSS:' /proc/[0-9]*/status 2>/dev/null",
 } as const;
 
-type Raw = Record<keyof typeof FILES, string> & { disk: string };
+type Raw = Record<keyof typeof SOURCES, string>;
 
+/** Room for every process's line, which a busy server has hundreds of. */
+const MAX_OUTPUT_BYTES = 16 * 1024 * 1024;
+
+/** Everything in one run of the shell, each part's output split by a marker. */
 async function readRaw(): Promise<Raw> {
-  const names = Object.keys(FILES) as (keyof typeof FILES)[];
-  if (HELPER) {
-    // One exec for all of them, the files and df's line split by a marker
-    const marker = '--dash--';
-    const script = [...names.map((n) => `cat ${FILES[n]}`), 'df -kP /'].join(
-      `; echo ${marker}; `
-    );
-    const parts = (await execOutput(HELPER, ['sh', '-c', script])).split(
-      `${marker}\n`
-    );
-    return {
-      ...Object.fromEntries(names.map((n, i) => [n, parts[i] ?? ''])),
-      disk: parts[names.length] ?? '',
-    } as Raw;
-  }
-  const files = await Promise.all(names.map((n) => readFile(FILES[n], 'utf8')));
-  const { stdout } = await promisify(execFile)('df', ['-kP', '/']);
-  return {
-    ...Object.fromEntries(names.map((n, i) => [n, files[i]])),
-    disk: stdout,
-  } as Raw;
+  const names = Object.keys(SOURCES) as (keyof typeof SOURCES)[];
+  const marker = '--dash--';
+  const script = `${names.map((n) => SOURCES[n]).join(`; echo ${marker}; `)}; true`;
+  const output = HELPER
+    ? await execOutput(HELPER, ['sh', '-c', script])
+    : (
+        await promisify(execFile)('sh', ['-c', script], {
+          maxBuffer: MAX_OUTPUT_BYTES,
+        })
+      ).stdout;
+  const parts = output.split(`${marker}\n`);
+  return Object.fromEntries(names.map((n, i) => [n, parts[i] ?? ''])) as Raw;
 }
 
 export type HostReading = {
@@ -61,6 +64,10 @@ export type HostReading = {
   memory: { used: number; total: number };
   /** Bytes, of the disk the root filesystem is on */
   disk: { used: number; total: number };
+  /** Bytes read from and written to the server's disks since boot */
+  diskIo: { read: number; written: number };
+  /** Every process, by its id */
+  processes: Map<number, ProcessReading>;
   /** Bytes received and sent since boot, on the interface to the internet */
   network: { received: number; sent: number; interface: string };
   /** Bytes; a total of 0 is a server without swap */
@@ -72,6 +79,59 @@ export type HostReading = {
   /** Processes waiting for the CPU, averaged over 1, 5 and 15 minutes */
   load: [number, number, number];
 };
+
+export type ProcessReading = {
+  /** Its command's name, as the kernel keeps it: at most 15 characters */
+  name: string;
+  /** CPU time it's used since it started, in clock ticks */
+  ticks: number;
+  /** Bytes of memory it holds */
+  memory: number;
+};
+
+/** The kernel counts disk traffic in sectors of this many bytes, whatever the disk's own. */
+const SECTOR_BYTES = 512;
+/** Whole disks, not their partitions, nor loop, RAM or mapped devices */
+const WHOLE_DISK = /^(sd[a-z]+|vd[a-z]+|xvd[a-z]+|nvme\d+n\d+|mmcblk\d+)$/;
+
+function parseDiskIo(diskstats: string) {
+  // major minor name reads merged sectors-read ms writes merged sectors-written …
+  let read = 0;
+  let written = 0;
+  for (const line of diskstats.split('\n')) {
+    const cols = line.trim().split(/\s+/);
+    if (!WHOLE_DISK.test(cols[2] ?? '')) continue;
+    read += Number(cols[5]) * SECTOR_BYTES;
+    written += Number(cols[9]) * SECTOR_BYTES;
+  }
+  return { read, written };
+}
+
+function parseProcesses(stats: string, statuses: string) {
+  const memory = new Map<number, number>();
+  for (const line of statuses.split('\n')) {
+    // /proc/123/status:VmRSS:     4567 kB
+    const match = line.match(/^\/proc\/(\d+)\/status:VmRSS:\s+(\d+) kB/);
+    if (match) memory.set(Number(match[1]), Number(match[2]) * 1024);
+  }
+  const processes = new Map<number, ProcessReading>();
+  for (const line of stats.split('\n')) {
+    // pid (name) state …; the name can hold spaces and brackets of its own,
+    // so it runs to the last closing one
+    const open = line.indexOf('(');
+    const close = line.lastIndexOf(')');
+    if (open < 0 || close < open) continue;
+    const pid = Number(line.slice(0, open));
+    const fields = line.slice(close + 2).split(' ');
+    // Counting from the state: user and system time are the 12th and 13th
+    processes.set(pid, {
+      name: line.slice(open + 1, close),
+      ticks: Number(fields[11]) + Number(fields[12]),
+      memory: memory.get(pid) ?? 0,
+    });
+  }
+  return processes;
+}
 
 function parseCpu(stat: string) {
   // cpu  user nice system idle iowait irq softirq steal …
@@ -131,6 +191,8 @@ export async function readHost(): Promise<HostReading> {
       number,
     ],
     disk: parseDisk(raw.disk),
+    diskIo: parseDiskIo(raw.disks),
+    processes: parseProcesses(raw.processes, raw.processMemory),
     network: parseNetwork(raw.network, raw.routes),
   };
 }
