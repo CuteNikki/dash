@@ -54,12 +54,13 @@ export type GitCommit = {
 export type GitStatus = {
   root: string;
   branch: string;
+  /** The commit checked out, which changes with every commit, pull and switch */
+  head: string;
   /** e.g. "origin/main"; undefined for a branch that doesn't track one */
   upstream?: string;
   ahead: number;
   behind: number;
   changes: GitChange[];
-  commits: GitCommit[];
   branches: {
     /** Branches in this checkout */
     local: string[];
@@ -69,7 +70,31 @@ export type GitStatus = {
 };
 
 const MARK = '--dash--';
-const COMMITS = 15;
+/** A commit's line in git log's output, as `parseCommit` reads it */
+const COMMIT_FORMAT = '%h%x09%an%x09%at%x09%s';
+
+function parseCommit(line: string): GitCommit {
+  const [hash, author, at, ...subject] = line.split('\t');
+  return {
+    hash,
+    author,
+    at: Number(at) * 1000,
+    subject: subject.join('\t'),
+  };
+}
+
+/** Splits a script's output at the marks between its parts. */
+function partsOf(stdout: string[]) {
+  const parts: string[][] = [[]];
+  for (const line of stdout) {
+    if (line === MARK) parts.push([]);
+    else parts.at(-1)!.push(line);
+  }
+  return parts;
+}
+
+/** Runs from the top of the repository, which paths in it are relative to. */
+const AT_ROOT = 'cd "$(git rev-parse --show-toplevel)" || exit 1';
 
 function statusOf(xy: string): GitChange['status'] {
   if (xy === '??') return '?';
@@ -83,21 +108,24 @@ export async function gitStatus(dir: string): Promise<GitStatus | undefined> {
     dir,
     `git rev-parse --show-toplevel 2>/dev/null || exit 0
 echo ${MARK}; git rev-parse --abbrev-ref HEAD
+echo ${MARK}; git rev-parse HEAD 2>/dev/null
 echo ${MARK}; git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null
 echo ${MARK}; git rev-list --left-right --count HEAD...@{u} 2>/dev/null
 echo ${MARK}; git status --porcelain=v1
-echo ${MARK}; git log -n ${COMMITS} --format='%h%x09%an%x09%at%x09%s'
 echo ${MARK}; git for-each-ref --format='%(refname:short)' refs/heads
 echo ${MARK}; git for-each-ref --format='%(refname:short)' refs/remotes`
   );
   if (!ok || !stdout.length) return undefined;
-  const parts: string[][] = [[]];
-  for (const line of stdout) {
-    if (line === MARK) parts.push([]);
-    else parts.at(-1)!.push(line);
-  }
-  const [[root], [branch], [upstream], [counts], status, log, heads, remotes] =
-    parts;
+  const [
+    [root],
+    [branch],
+    [head],
+    [upstream],
+    [counts],
+    status,
+    heads,
+    remotes,
+  ] = partsOf(stdout);
   const local = heads ?? [];
   // A remote's own HEAD isn't a branch, and ones already checked out are local
   const remote = (remotes ?? []).filter(
@@ -107,6 +135,7 @@ echo ${MARK}; git for-each-ref --format='%(refname:short)' refs/remotes`
   return {
     root,
     branch,
+    head: head ?? '',
     upstream: upstream || undefined,
     ahead: ahead || 0,
     behind: behind || 0,
@@ -115,15 +144,6 @@ echo ${MARK}; git for-each-ref --format='%(refname:short)' refs/remotes`
       // A rename reads "old -> new"; the new name is the file now
       path: line.slice(3).split(' -> ').at(-1)!.replace(/^"|"$/g, ''),
     })),
-    commits: (log ?? []).map((line) => {
-      const [hash, author, at, ...subject] = line.split('\t');
-      return {
-        hash,
-        author,
-        at: Number(at) * 1000,
-        subject: subject.join('\t'),
-      };
-    }),
     branches: { local, remote },
   };
 }
@@ -186,6 +206,101 @@ export async function gitDiff(root: string, path: string) {
 then git diff HEAD -- "$1"
 else git diff --no-index -- /dev/null "$1"; true
 fi`,
+    path
+  );
+  return stdout.join('\n');
+}
+
+/** A commit's own name: its hash, or the start of it. */
+const HASH = /^[0-9a-f]{4,64}$/;
+
+/**
+ * The branch's commits, newest first: `count` of them after the first
+ * `skip`, and whether there are older ones.
+ */
+export async function gitLog(dir: string, skip: number, count: number) {
+  const { stdout } = await gitScript(
+    dir,
+    `git log --skip="$1" -n "$2" --format='${COMMIT_FORMAT}' 2>/dev/null; true`,
+    String(skip),
+    String(count + 1)
+  );
+  const commits = stdout.map(parseCommit);
+  return { commits: commits.slice(0, count), more: commits.length > count };
+}
+
+export type GitCommitFile = GitChange & {
+  /** Lines added and removed; undefined for a binary file */
+  added?: number;
+  removed?: number;
+};
+
+export type GitCommitDetails = GitCommit & {
+  /** The whole hash */
+  id: string;
+  email: string;
+  /** The message after its first line */
+  body: string;
+  /** What it changed, against its first parent for a merge */
+  files: GitCommitFile[];
+};
+
+/** Against the first parent for a merge, as the branch saw it; renames as a deletion and an addition */
+const SHOW = 'git show --format= --diff-merges=first-parent --no-renames';
+
+/** One commit: who made it and when, its whole message, and the files it changed. */
+export async function gitCommitDetails(
+  dir: string,
+  hash: string
+): Promise<GitCommitDetails | undefined> {
+  if (!HASH.test(hash)) return undefined;
+  const { ok, stdout } = await gitScript(
+    dir,
+    `${AT_ROOT}
+git rev-parse --verify --quiet "$1^{commit}" >/dev/null || exit 1
+git show -s --format='%H%x09%ae%x09${COMMIT_FORMAT}' "$1"
+echo ${MARK}; git show -s --format=%b "$1"
+echo ${MARK}; ${SHOW} --name-status "$1"
+echo ${MARK}; ${SHOW} --numstat "$1"`,
+    hash
+  );
+  if (!ok || !stdout.length) return undefined;
+  const [[first], body, statuses, counts] = partsOf(stdout);
+  const [id, email, ...rest] = first.split('\t');
+  const lines = new Map(
+    (counts ?? []).map((line) => {
+      const [added, removed, ...path] = line.split('\t');
+      return [path.join('\t'), { added, removed }];
+    })
+  );
+  return {
+    ...parseCommit(rest.join('\t')),
+    id,
+    email,
+    body: (body ?? []).join('\n').trim(),
+    files: (statuses ?? []).filter(Boolean).map((line) => {
+      const [code, ...path] = line.split('\t');
+      const file = path.join('\t');
+      const n = lines.get(file);
+      const binary = !n || n.added === '-';
+      return {
+        path: file,
+        status: statusOf(code),
+        added: binary ? undefined : Number(n.added),
+        removed: binary ? undefined : Number(n.removed),
+      };
+    }),
+  };
+}
+
+/** What one commit changed in one file, as a unified diff. */
+export async function gitCommitDiff(dir: string, hash: string, path: string) {
+  if (!HASH.test(hash)) return '';
+  const { stdout } = await gitScript(
+    dir,
+    `${AT_ROOT}
+${SHOW} "$1" -- "$2"`,
+    hash,
     path
   );
   return stdout.join('\n');

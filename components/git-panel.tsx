@@ -13,48 +13,35 @@ import {
 
 import { commitChanges, runGit, switchBranch } from '@/actions/git';
 import { fetcher } from '@/lib/fetcher';
-import type { GitChange, GitStatus } from '@/lib/git';
+import type { GitStatus } from '@/lib/git';
 
 import { BranchPicker } from '@/components/branch-picker';
 import { CodeEditor } from '@/components/code-editor';
+import { ChangeStatus } from '@/components/git-change';
+import { GitHistory } from '@/components/git-history';
 import { CodeSkeleton } from '@/components/skeletons';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 
-const STATUS_LABEL: Record<GitChange['status'], string> = {
-  M: 'Changed',
-  A: 'Added',
-  D: 'Deleted',
-  R: 'Renamed',
-  '?': 'New',
-};
+/** Lines of git's output a message shows: its end, where git says how it went. */
+const OUTPUT_LINES = 8;
 
-/** How long ago, in the largest unit that fits: "5 min ago", "3 days ago". */
-function ago(at: number) {
-  const seconds = (Date.now() - at) / 1000;
-  const units: [string, number][] = [
-    ['year', 365 * 24 * 3600],
-    ['month', 30 * 24 * 3600],
-    ['day', 24 * 3600],
-    ['h', 3600],
-    ['min', 60],
-  ];
-  for (const [unit, size] of units) {
-    const n = Math.floor(seconds / size);
-    if (n >= 1) {
-      const name = unit.length > 3 && n !== 1 ? `${unit}s` : unit;
-      return `${n} ${name} ago`;
-    }
-  }
-  return 'just now';
+/** What git printed, in its own lines, for under a message. */
+function GitOutput({ text }: { text: string }) {
+  return (
+    <span className='font-mono whitespace-pre-wrap'>
+      {text.trim().split('\n').slice(-OUTPUT_LINES).join('\n')}
+    </span>
+  );
 }
 
 /**
  * The git repository a service's stack is in: where its branch stands
  * against its remote, what's changed with each file's diff, committing the
- * chosen files, and fetching, pulling and pushing.
+ * chosen files, fetching, pulling and pushing, and the branch's history.
  */
 export function GitPanel({
   containerId,
@@ -73,7 +60,10 @@ export function GitPanel({
     status.changes[0]?.path
   );
   const [message, setMessage] = useState('');
-  const [output, setOutput] = useState<{ ok: boolean; text: string }>();
+  // The history, when there's nothing to commit
+  const [view, setView] = useState(
+    status.changes.length ? 'changes' : 'history'
+  );
   const [pending, startTransition] = useTransition();
   const { mutate } = useSWRConfig();
 
@@ -95,9 +85,19 @@ export function GitPanel({
   ) {
     startTransition(async () => {
       const result = await run();
-      setOutput({ ok: result.ok, text: result.output || done });
-      if (result.ok) toast.success(done);
-      else toast.error('Git refused', { description: 'See its output below' });
+      const output = result.output.trim();
+      if (result.ok) {
+        toast.success(done, {
+          description: output && <GitOutput text={output} />,
+        });
+      } else {
+        // Until closed, as git's reason is worth reading
+        toast.error('Git refused', {
+          description: <GitOutput text={output || 'It gave no reason'} />,
+          duration: Infinity,
+          closeButton: true,
+        });
+      }
       await onChanged();
     });
   }
@@ -132,8 +132,23 @@ export function GitPanel({
   }
 
   return (
-    <div className='flex min-h-0 flex-1 flex-col gap-3'>
+    <Tabs
+      value={view}
+      onValueChange={setView}
+      className='flex min-h-0 flex-1 flex-col gap-3'
+    >
       <div className='flex flex-wrap items-center gap-2'>
+        <TabsList>
+          <TabsTrigger value='changes'>
+            Changes
+            {status.changes.length > 0 && (
+              <span className='font-mono text-muted-foreground tabular-nums'>
+                {status.changes.length}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value='history'>History</TabsTrigger>
+        </TabsList>
         <BranchPicker
           current={status.branch}
           local={status.branches.local}
@@ -190,154 +205,102 @@ export function GitPanel({
         </span>
       </div>
 
-      <div className='flex min-h-0 flex-1 flex-col gap-3 sm:flex-row'>
-        <div className='flex shrink-0 flex-col gap-3 sm:w-72'>
-          <section
-            aria-label='Changes'
-            className='flex min-h-0 flex-1 flex-col gap-1 overflow-auto rounded-lg bg-muted p-1'
-          >
-            {status.changes.length === 0 ? (
-              <p className='p-2 text-muted-foreground'>
-                Nothing changed since the last commit.
-              </p>
-            ) : (
-              status.changes.map((change) => (
-                <div
-                  key={change.path}
-                  aria-current={change.path === diffPath ? 'true' : undefined}
-                  className='flex items-center gap-2 rounded-md px-2 py-1 aria-current:bg-background'
-                >
-                  <Checkbox
-                    checked={!skipped.has(change.path)}
-                    aria-label={`Commit ${change.path}`}
-                    onCheckedChange={(on) =>
-                      setSkipped((s) => {
-                        const next = new Set(s);
-                        if (on) next.delete(change.path);
-                        else next.add(change.path);
-                        return next;
-                      })
-                    }
-                  />
-                  <button
-                    type='button'
-                    onClick={() => setShown(change.path)}
-                    className='flex min-w-0 flex-1 items-center gap-2 text-left'
+      <TabsContent value='changes' className='flex min-h-0 flex-col'>
+        {status.changes.length === 0 ? (
+          <p className='rounded-lg bg-muted p-3 text-muted-foreground'>
+            Nothing changed since the last commit.
+          </p>
+        ) : (
+          <div className='flex min-h-0 flex-1 flex-col gap-3 sm:flex-row'>
+            <div className='flex shrink-0 flex-col gap-3 sm:w-72'>
+              <section
+                aria-label='Changes'
+                className='flex min-h-0 flex-1 flex-col gap-1 overflow-auto rounded-lg bg-muted p-1'
+              >
+                {status.changes.map((change) => (
+                  <div
+                    key={change.path}
+                    aria-current={change.path === diffPath ? 'true' : undefined}
+                    className='flex items-center gap-2 rounded-md px-2 py-1 aria-current:bg-background'
                   >
-                    <span
-                      title={STATUS_LABEL[change.status]}
-                      className='w-3 shrink-0 font-mono text-muted-foreground'
+                    <Checkbox
+                      checked={!skipped.has(change.path)}
+                      aria-label={`Commit ${change.path}`}
+                      onCheckedChange={(on) =>
+                        setSkipped((s) => {
+                          const next = new Set(s);
+                          if (on) next.delete(change.path);
+                          else next.add(change.path);
+                          return next;
+                        })
+                      }
+                    />
+                    <button
+                      type='button'
+                      onClick={() => setShown(change.path)}
+                      className='flex min-w-0 flex-1 items-center gap-2 text-left'
                     >
-                      {change.status === '?' ? 'N' : change.status}
-                    </span>
-                    <span className='truncate font-mono' title={change.path}>
-                      {change.path}
-                    </span>
-                  </button>
+                      <ChangeStatus status={change.status} />
+                      <span className='truncate font-mono' title={change.path}>
+                        {change.path}
+                      </span>
+                    </button>
+                  </div>
+                ))}
+              </section>
+              <div className='flex flex-col gap-2'>
+                <Label htmlFor='commit-message'>Commit message</Label>
+                <Textarea
+                  id='commit-message'
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder='What these changes do'
+                />
+                <div className='flex flex-wrap gap-2'>
+                  <Button
+                    variant='outline'
+                    disabled={pending || !message.trim() || !chosen.length}
+                    onClick={() => commit(false)}
+                  >
+                    <GitCommitHorizontalIcon />
+                    Commit {chosen.length}
+                  </Button>
+                  <Button
+                    disabled={
+                      pending ||
+                      !message.trim() ||
+                      !chosen.length ||
+                      !status.upstream
+                    }
+                    onClick={() => commit(true)}
+                  >
+                    <ArrowUpIcon />
+                    Commit & push
+                  </Button>
                 </div>
-              ))
-            )}
-          </section>
-          {status.changes.length > 0 && (
-            <div className='flex flex-col gap-2'>
-              <Label htmlFor='commit-message'>Commit message</Label>
-              <Textarea
-                id='commit-message'
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder='What these changes do'
-              />
-              <div className='flex flex-wrap gap-2'>
-                <Button
-                  variant='outline'
-                  disabled={pending || !message.trim() || !chosen.length}
-                  onClick={() => commit(false)}
-                >
-                  <GitCommitHorizontalIcon />
-                  Commit {chosen.length}
-                </Button>
-                <Button
-                  disabled={
-                    pending ||
-                    !message.trim() ||
-                    !chosen.length ||
-                    !status.upstream
-                  }
-                  onClick={() => commit(true)}
-                >
-                  <ArrowUpIcon />
-                  Commit & push
-                </Button>
               </div>
             </div>
-          )}
-        </div>
 
-        <div className='flex min-h-0 min-w-0 flex-1 flex-col'>
-          {diffPath ? (
-            diff ? (
-              <CodeEditor
-                key={diffPath}
-                value={diff.diff}
-                fileName='changes.diff'
-                label={`Changes to ${diffPath}`}
-                readOnly
-              />
-            ) : (
-              <CodeSkeleton />
-            )
-          ) : (
-            <section
-              aria-label='Recent commits'
-              className='min-h-0 flex-1 overflow-auto rounded-lg bg-muted p-1'
-            >
-              <Commits commits={status.commits} />
-            </section>
-          )}
-        </div>
-      </div>
+            <div className='flex min-h-0 min-w-0 flex-1 flex-col'>
+              {diff && diffPath ? (
+                <CodeEditor
+                  key={diffPath}
+                  value={diff.diff}
+                  fileName='changes.diff'
+                  label={`Changes to ${diffPath}`}
+                  readOnly
+                />
+              ) : (
+                <CodeSkeleton />
+              )}
+            </div>
+          </div>
+        )}
+      </TabsContent>
 
-      {diffPath && status.commits.length > 0 && (
-        <details className='rounded-lg bg-muted px-3 py-2'>
-          <summary className='cursor-pointer text-muted-foreground'>
-            Recent commits
-          </summary>
-          <Commits commits={status.commits} />
-        </details>
-      )}
-
-      {output && (
-        <pre
-          role={output.ok ? 'status' : 'alert'}
-          data-ok={output.ok}
-          className='max-h-32 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs/relaxed whitespace-pre-wrap text-muted-foreground data-[ok=false]:bg-destructive/10 data-[ok=false]:text-destructive'
-        >
-          {output.text}
-        </pre>
-      )}
-    </div>
-  );
-}
-
-function Commits({ commits }: { commits: GitStatus['commits'] }) {
-  return (
-    <ul className='flex flex-col'>
-      {commits.map((c) => (
-        <li key={c.hash} className='flex items-baseline gap-3 px-2 py-1'>
-          <span className='shrink-0 font-mono text-muted-foreground'>
-            {c.hash}
-          </span>
-          <span className='min-w-0 flex-1 truncate' title={c.subject}>
-            {c.subject}
-          </span>
-          <span
-            className='shrink-0 text-muted-foreground'
-            title={new Date(c.at).toLocaleString()}
-          >
-            {c.author}, {ago(c.at)}
-          </span>
-        </li>
-      ))}
-    </ul>
+      <TabsContent value='history' className='flex min-h-0 flex-col'>
+        <GitHistory containerId={containerId} head={status.head} />
+      </TabsContent>
+    </Tabs>
   );
 }

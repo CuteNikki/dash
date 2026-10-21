@@ -26,6 +26,26 @@ export function formatDuration(seconds: number) {
   return `${minutes} min`;
 }
 
+/** How long ago a moment was, in the largest unit that fits: "5 min ago", "3 days ago". */
+export function formatAgo(at: number) {
+  const seconds = (Date.now() - at) / 1000;
+  const units: [string, number][] = [
+    ['year', 365 * DAY],
+    ['month', 30 * DAY],
+    ['day', DAY],
+    ['h', HOUR],
+    ['min', MINUTE],
+  ];
+  for (const [unit, size] of units) {
+    const n = Math.floor(seconds / size);
+    if (n >= 1) {
+      const name = unit.length > 3 && n !== 1 ? `${unit}s` : unit;
+      return `${n} ${name} ago`;
+    }
+  }
+  return 'just now';
+}
+
 /** Bytes per second, e.g. 31232 → "30 KB/s". */
 export function formatRate(bytesPerSecond: number) {
   return `${formatBytes(bytesPerSecond)}/s`;
