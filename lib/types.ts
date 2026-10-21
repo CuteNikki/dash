@@ -54,6 +54,8 @@ export type Dashboard = {
   groupOrder: string[];
   /** The server itself, once it's been measured twice */
   host?: HostStats;
+  /** No stats yet, but they're coming: they take two readings, a few seconds apart */
+  hostComing: boolean;
 };
 
 /** The server: CPU over all its cores, memory, its disk and its internet traffic. */

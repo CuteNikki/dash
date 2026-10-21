@@ -37,7 +37,7 @@ export function Dashboard({
   const [openKey, setOpenKey] = useState<string>();
   const [editKey, setEditKey] = useState<string>();
 
-  const { services, groupOrder, host } = data;
+  const { services, groupOrder, host, hostComing } = data;
   const shown = editing ? services : services.filter((s) => !s.hidden);
   const groups = useMemo(
     () => groupServices(shown, groupOrder),
@@ -69,7 +69,9 @@ export function Dashboard({
         <ThemeButton />
         <AccountMenu email={email} />
       </header>
-      {host && <HostStatsBar host={host} services={services} onOpen={open} />}
+      {(host || hostComing) && (
+        <HostStatsBar host={host} services={services} onOpen={open} />
+      )}
       <TilesView groups={groups} editing={editing} onOpen={open} />
       <ServiceDialog
         service={find(openKey)}

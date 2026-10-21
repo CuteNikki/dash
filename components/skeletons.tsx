@@ -46,13 +46,11 @@ export function CodeSkeleton({
     <div
       aria-busy
       aria-label='Loading'
-      className={cn(
-        'flex h-full flex-col gap-2 rounded-lg bg-muted p-3',
-        className
-      )}
+      className={cn('flex h-full flex-col rounded-lg bg-muted p-3', className)}
     >
       {Array.from({ length: lines }, (_, i) => (
-        <Bar key={i} className={cn('h-3', WIDTHS[i % WIDTHS.length])} />
+        // A line apiece, as tall as a line of the code or log it stands in for
+        <TextSkeleton key={i} className={WIDTHS[i % WIDTHS.length]} />
       ))}
     </div>
   );
@@ -75,10 +73,13 @@ export function TreeSkeleton({
           style={indent}
           className='flex items-center gap-1.5 py-1 pr-2 pl-1'
         >
-          {/* Where a folder's arrow goes, then the icon, as in a real row */}
+          {/* Where a folder's arrow goes, then the icon, as in a real row,
+              and the name a line tall, as the row's is */}
           <span className='size-3.5 shrink-0' />
           <Bar className='size-3.5 shrink-0' />
-          <Bar className={cn('h-3', WIDTHS[(i + 3) % WIDTHS.length])} />
+          <span className='min-w-0 flex-1'>
+            <TextSkeleton className={WIDTHS[(i + 3) % WIDTHS.length]} />
+          </span>
         </div>
       ))}
     </div>

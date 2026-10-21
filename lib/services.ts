@@ -37,7 +37,7 @@ function iconName(label?: string) {
  * looking like Homepage did, then from its name.
  */
 export async function getDashboard(): Promise<Dashboard> {
-  const [containers, { containers: usage, host }, tiles, groups] =
+  const [containers, { containers: usage, host, hostComing }, tiles, groups] =
     await Promise.all([
       listContainers(),
       currentUsage(),
@@ -90,5 +90,10 @@ export async function getDashboard(): Promise<Dashboard> {
     service.iconVariants = info?.variants;
     service.iconMissing = info?.missing;
   }
-  return { services, groupOrder: groups.map((g) => g.name), host };
+  return {
+    services,
+    groupOrder: groups.map((g) => g.name),
+    host,
+    hostComing,
+  };
 }

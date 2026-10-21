@@ -22,66 +22,81 @@ import {
   MEASURES,
   type Measure,
 } from '@/lib/format';
-import type { HostStats, Service } from '@/lib/types';
+import type { Capacity, HostStats, Service } from '@/lib/types';
 
 import { DiskDialog } from '@/components/disk-dialog';
 import { HistoryChart } from '@/components/history-chart';
 import { ProcessList } from '@/components/process-list';
+import { TextSkeleton } from '@/components/skeletons';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
-/** The server itself: what it is, then its CPU and processes, memory, disk and network. */
+/**
+ * The server itself: what it is, then its CPU and processes, memory, disk
+ * and network. Until it's been measured, each card is there with
+ * placeholders where its numbers go, so nothing moves when they come.
+ */
 export function HostStatsBar({
   host,
   services,
   onOpen,
 }: {
-  host: HostStats;
+  /** None while it's first measured */
+  host?: HostStats;
   /** For each process's container */
   services: Service[];
   onOpen: (service: Service) => void;
 }) {
   return (
-    <section aria-label='Server' className='flex flex-col gap-3'>
+    <section
+      aria-label='Server'
+      aria-busy={!host}
+      className='flex flex-col gap-3'
+    >
       <ServerDetails host={host} />
       <LiveStats host={host} services={services} onOpen={onOpen} />
     </section>
   );
 }
 
-function ServerDetails({ host }: { host: HostStats }) {
-  const s = host.system;
-  const details = [
-    ['System', s.os],
-    ['Kernel', `${s.kernel} (${s.architecture})`],
-    ['Processor', `${s.cpuModel}, ${host.cores} cores`],
-    ['Up for', formatDuration(s.uptime)],
-    ['Load', s.load.map((l) => l.toFixed(2)).join('  ')],
-    [
-      'Swap',
-      s.swap.total > 0
-        ? `${formatBytes(s.swap.used)} of ${formatBytes(s.swap.total)}`
+/** What the server is, label by label. */
+const SERVER_DETAILS: [string, (host: HostStats) => string][] = [
+  ['System', (h) => h.system.os],
+  ['Kernel', (h) => `${h.system.kernel} (${h.system.architecture})`],
+  ['Processor', (h) => `${h.system.cpuModel}, ${h.cores} cores`],
+  ['Up for', (h) => formatDuration(h.system.uptime)],
+  ['Load', (h) => h.system.load.map((l) => l.toFixed(2)).join('  ')],
+  [
+    'Swap',
+    ({ system: { swap } }) =>
+      swap.total > 0
+        ? `${formatBytes(swap.used)} of ${formatBytes(swap.total)}`
         : 'None',
-    ],
-    ['Docker', s.docker],
-    [
-      'Containers',
+  ],
+  ['Docker', (h) => h.system.docker],
+  [
+    'Containers',
+    ({ system: s }) =>
       `${s.containers.running} running, ${s.containers.stopped} stopped, ${s.images} images`,
-    ],
-  ];
+  ],
+];
+
+function ServerDetails({ host }: { host?: HostStats }) {
   return (
     <Card size='sm' className='px-3'>
       <div className='flex items-center gap-2'>
         <ServerIcon className='size-4 text-muted-foreground' />
-        <span className='text-sm font-medium'>{s.hostname}</span>
+        <span className='text-sm font-medium'>
+          {host ? host.system.hostname : <TextSkeleton className='w-16' />}
+        </span>
       </div>
       <dl className='grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-4'>
-        {details.map(([label, value]) => (
+        {SERVER_DETAILS.map(([label, value]) => (
           <div key={label} className='flex min-w-0 flex-col'>
             <dt className='text-muted-foreground'>{label}</dt>
-            <dd className='truncate' title={value}>
-              {value}
+            <dd className='truncate' title={host && value(host)}>
+              {host ? value(host) : <TextSkeleton className='w-32' />}
             </dd>
           </div>
         ))}
@@ -95,7 +110,7 @@ function LiveStats({
   services,
   onOpen,
 }: {
-  host: HostStats;
+  host?: HostStats;
   services: Service[];
   onOpen: (service: Service) => void;
 }) {
@@ -103,22 +118,22 @@ function LiveStats({
     <FlowStat
       icon={<NetworkIcon />}
       label='Network'
-      times={host.history.at}
+      times={host?.history.at}
       measure={MEASURES.network}
       flows={[
         {
           short: 'Down',
           label: 'Download',
           icon: <ArrowDownIcon />,
-          value: host.network.received,
-          values: host.history.received,
+          value: host?.network.received,
+          values: host?.history.received,
         },
         {
           short: 'Up',
           label: 'Upload',
           icon: <ArrowUpIcon />,
-          value: host.network.sent,
-          values: host.history.sent,
+          value: host?.network.sent,
+          values: host?.history.sent,
         },
       ]}
     />
@@ -127,7 +142,7 @@ function LiveStats({
     <FlowStat
       icon={<ActivityIcon />}
       label='Disk I/O'
-      times={host.history.at}
+      times={host?.history.at}
       measure={MEASURES.disk}
       // Down, then up, as on Network: written to the disk, then read off it
       flows={[
@@ -135,15 +150,15 @@ function LiveStats({
           short: 'Write',
           label: 'Write',
           icon: <ArrowDownIcon />,
-          value: host.diskIo.written,
-          values: host.history.diskWritten,
+          value: host?.diskIo.written,
+          values: host?.history.diskWritten,
         },
         {
           short: 'Read',
           label: 'Read',
           icon: <ArrowUpIcon />,
-          value: host.diskIo.read,
-          values: host.history.diskRead,
+          value: host?.diskIo.read,
+          values: host?.history.diskRead,
         },
       ]}
     />
@@ -154,7 +169,7 @@ function LiveStats({
       {/* CPU beside the processes using it, its graph as tall as their list */}
       <CpuStat host={host} />
       <ProcessList
-        processes={host.processes}
+        processes={host?.processes ?? []}
         services={services}
         onOpen={onOpen}
       />
@@ -162,15 +177,34 @@ function LiveStats({
       <Stat
         icon={<MemoryStickIcon />}
         label='Memory'
-        detail={`of ${formatBytes(host.memory.size)}`}
-        value={formatBytes(host.memory.used)}
+        detail={<Of capacity={host?.memory} />}
+        value={host ? formatBytes(host.memory.used) : <ValueSkeleton />}
       >
-        <Usage used={host.memory.used} total={host.memory.total} />
+        <Usage capacity={host?.memory} />
       </Stat>
-      <DiskStat disk={host.disk} />
+      <DiskStat disk={host?.disk} />
       {diskIo}
       {network}
     </div>
+  );
+}
+
+/** A big number to come, as tall as one. */
+function ValueSkeleton() {
+  return <TextSkeleton className='w-16' />;
+}
+
+/** "of 24 GB": what something's out of, as it's sold. */
+function Of({ capacity }: { capacity?: Capacity }) {
+  return (
+    <span className='flex items-center gap-1 font-mono tabular-nums'>
+      of{' '}
+      {capacity ? (
+        formatBytes(capacity.size)
+      ) : (
+        <TextSkeleton className='w-10' />
+      )}
+    </span>
   );
 }
 
@@ -178,17 +212,17 @@ function LiveStats({
  * The CPU over all cores, as a graph of their total, or with each core's own
  * line behind it, faint, to see how they share the work.
  */
-function CpuStat({ host }: { host: HostStats }) {
+function CpuStat({ host }: { host?: HostStats }) {
   const [shown, setShown] = useState<'total' | 'cores'>('total');
-  const cores = host.history.coreCpu ?? [];
+  const cores = host?.history.coreCpu ?? [];
   // The readings every line has: a core measured for less time has fewer
   const count = Math.min(
-    host.history.at.length,
+    host?.history.at.length ?? 0,
     ...(shown === 'cores' ? cores.map((c) => c.length) : [])
   );
   const total = {
     label: 'All cores',
-    values: host.history.cpu.slice(-count),
+    values: host?.history.cpu.slice(-count) ?? [],
     measure: MEASURES.cpu,
   };
 
@@ -202,69 +236,77 @@ function CpuStat({ host }: { host: HostStats }) {
           size='sm'
           variant='outline'
           value={shown}
+          disabled={!host}
           // Picking the shown one again would unpick it; keep one picked
           onValueChange={(v) => v && setShown(v as typeof shown)}
           aria-label='Show in the graph'
         >
           <ToggleGroupItem value='total'>Total</ToggleGroupItem>
-          <ToggleGroupItem value='cores'>{host.cores} cores</ToggleGroupItem>
+          <ToggleGroupItem value='cores'>
+            {host ? `${host.cores} cores` : 'Cores'}
+          </ToggleGroupItem>
         </ToggleGroup>
       }
-      value={formatCpu(host.cpu)}
+      value={host ? formatCpu(host.cpu) : <ValueSkeleton />}
       fill
     >
-      <HistoryChart
-        label={
-          shown === 'cores'
-            ? 'CPU, each core and all together, over the last ten minutes'
-            : 'CPU over the last ten minutes'
-        }
-        times={host.history.at.slice(-count)}
-        series={
-          shown === 'cores'
-            ? [
-                total,
-                ...cores.map((values, i) => ({
-                  label: `Core ${i}`,
-                  values: values.slice(-count),
-                  measure: MEASURES.cpu,
-                  faint: true,
-                })),
-              ]
-            : [{ ...total, label: 'CPU' }]
-        }
-        className='h-full'
-      />
+      {host && (
+        <HistoryChart
+          label={
+            shown === 'cores'
+              ? 'CPU, each core and all together, over the last ten minutes'
+              : 'CPU over the last ten minutes'
+          }
+          times={host.history.at.slice(-count)}
+          series={
+            shown === 'cores'
+              ? [
+                  total,
+                  ...cores.map((values, i) => ({
+                    label: `Core ${i}`,
+                    values: values.slice(-count),
+                    measure: MEASURES.cpu,
+                    faint: true,
+                  })),
+                ]
+              : [{ ...total, label: 'CPU' }]
+          }
+          className='h-full'
+        />
+      )}
     </Stat>
   );
 }
 
 /** The disk's use, which opens what takes it up. */
-function DiskStat({ disk }: { disk: HostStats['disk'] }) {
+function DiskStat({ disk }: { disk?: Capacity }) {
   const [open, setOpen] = useState(false);
   return (
     <>
       <button
         type='button'
+        disabled={!disk}
         onClick={() => setOpen(true)}
         aria-label='Disk: see what takes up space'
-        className='group/stat flex rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-ring [&>*]:flex-1 [&>*]:transition-shadow [&>*]:group-hover/stat:ring-foreground/25'
+        className='group/stat flex rounded-lg text-left outline-none *:flex-1 *:transition-shadow focus-visible:ring-2 focus-visible:ring-ring enabled:*:group-hover/stat:ring-foreground/25'
       >
         <Stat
           icon={<HardDriveIcon />}
           label='Disk'
           detail={
-            <span className='flex items-center gap-1 font-mono tabular-nums'>
-              of {formatBytes(disk.size)}
+            <span className='flex items-center gap-1'>
+              <Of capacity={disk} />
               <ChevronRightIcon className='size-3.5' />
             </span>
           }
-          value={formatBytes(disk.used)}
+          value={disk ? formatBytes(disk.used) : <ValueSkeleton />}
         >
-          <Usage used={disk.used} total={disk.total} />
+          <Usage capacity={disk} />
         </Stat>
       </button>
-      <DiskDialog open={open} onClose={() => setOpen(false)} disk={disk} />
+      {disk && (
+        <DiskDialog open={open} onClose={() => setOpen(false)} disk={disk} />
+      )}
     </>
   );
 }
@@ -276,10 +318,10 @@ type Flow = {
   /** For the graph's tooltip and screen readers */
   label: string;
   icon: React.ReactNode;
-  /** Now */
-  value: number;
+  /** Now; none until it's measured */
+  value?: number;
   /** The last ten minutes */
-  values: number[];
+  values?: number[];
 };
 
 /**
@@ -295,14 +337,14 @@ function FlowStat({
 }: {
   icon: React.ReactNode;
   label: string;
-  times: number[];
+  times?: number[];
   measure: Measure;
   flows: [Flow, Flow];
 }) {
   const [shown, setShown] = useState<'0' | '1' | 'both'>('both');
   const [first, second] = flows.map((f) => ({
     label: f.label,
-    values: f.values,
+    values: f.values ?? [],
     measure,
   }));
   const series = {
@@ -311,6 +353,7 @@ function FlowStat({
     both: [first, { ...second, dashed: true }],
   }[shown];
   const graphed = series.map((s) => s.label.toLowerCase()).join(' and ');
+  const measured = times !== undefined;
 
   return (
     <Stat
@@ -322,6 +365,7 @@ function FlowStat({
           size='sm'
           variant='outline'
           value={shown}
+          disabled={!measured}
           // Picking the shown one again would unpick it; keep one picked
           onValueChange={(v) => v && setShown(v as typeof shown)}
           aria-label='Show in the graph'
@@ -336,23 +380,33 @@ function FlowStat({
           {flows.map((f) => (
             <span
               key={f.label}
-              aria-label={`${f.label} ${measure.format(f.value)}`}
+              aria-label={
+                f.value === undefined
+                  ? undefined
+                  : `${f.label} ${measure.format(f.value)}`
+              }
               // Icons a step smaller than the text's, which a filled one like
               // a book needs to look as big as a thin arrow beside a number
               className='flex items-center gap-1 [&_svg]:size-3.5 [&_svg]:text-muted-foreground'
             >
               {f.icon}
-              {measure.format(f.value)}
+              {f.value === undefined ? (
+                <ValueSkeleton />
+              ) : (
+                measure.format(f.value)
+              )}
             </span>
           ))}
         </span>
       }
     >
-      <HistoryChart
-        label={`${label} ${graphed} over the last ten minutes`}
-        times={times}
-        series={series}
-      />
+      {times && (
+        <HistoryChart
+          label={`${label} ${graphed} over the last ten minutes`}
+          times={times}
+          series={series}
+        />
+      )}
     </Stat>
   );
 }
@@ -399,14 +453,19 @@ function Stat({
   );
 }
 
-/** How full something is, as a bar with the share beside it. */
-function Usage({ used, total }: { used: number; total: number }) {
-  const share = total > 0 ? (used / total) * 100 : 0;
+/** How full something is, as a bar with the share beside it; empty until it's known. */
+function Usage({ capacity }: { capacity?: Capacity }) {
+  const share =
+    capacity && capacity.total > 0 ? (capacity.used / capacity.total) * 100 : 0;
   return (
     <div className='flex w-full items-center gap-3'>
       <Progress value={share} aria-label='Used' className='flex-1' />
       <span className='font-mono text-muted-foreground tabular-nums'>
-        {formatShare(used, total)}
+        {capacity ? (
+          formatShare(capacity.used, capacity.total)
+        ) : (
+          <TextSkeleton className='w-7' />
+        )}
       </span>
     </div>
   );

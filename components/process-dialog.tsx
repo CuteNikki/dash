@@ -12,6 +12,7 @@ import { formatBytes, formatCpu, formatDuration } from '@/lib/format';
 import type { HostProcess, ProcessDetails, Service } from '@/lib/types';
 
 import { ServiceIcon } from '@/components/service-icon';
+import { TextSkeleton } from '@/components/skeletons';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,7 +32,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Skeleton } from '@/components/ui/skeleton';
 
 /**
  * One of the server's processes, looked at closely: how it was started, who
@@ -135,12 +135,8 @@ function Details({
         <DetailsSkeleton />
       ) : (
         <div className='flex min-w-0 flex-col gap-4'>
-          {data.command && (
-            <pre className='max-h-32 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs/relaxed break-all whitespace-pre-wrap select-all'>
-              {data.command}
-            </pre>
-          )}
-          <dl className='grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3'>
+          {data.command && <pre className={COMMAND}>{data.command}</pre>}
+          <dl className={DETAILS}>
             <Detail label='User'>{data.user}</Detail>
             <Detail label='Running for'>
               <span title={new Date(data.startedAt).toLocaleString()}>
@@ -196,7 +192,9 @@ function Details({
 
       <DialogFooter className='items-center'>
         {data?.locked ? (
-          <p className='mr-auto flex items-center gap-2 text-muted-foreground'>
+          // As tall as the Stop button it stands in place of, so the
+          // dialog's the same height whichever it shows
+          <p className='mr-auto flex min-h-7 items-center gap-2 text-muted-foreground'>
             <LockIcon className='size-3.5 shrink-0' />
             {data.locked}
           </p>
@@ -275,19 +273,37 @@ function Detail({
   );
 }
 
-/** The details' own layout while they're looked up, a moment or two. */
+/** The box a process's command shows in, and its placeholder's */
+const COMMAND =
+  'max-h-32 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs/relaxed break-all whitespace-pre-wrap select-all';
+/** The grid of what it is, and its placeholder's */
+const DETAILS = 'grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3';
+/** The details' labels, in the order they show */
+const LABELS = [
+  'User',
+  'Running for',
+  'State',
+  'CPU',
+  'Memory',
+  'Threads',
+  'Parent',
+  'Container',
+];
+
+/** The details while they're looked up: the same box and grid, values to come. */
 function DetailsSkeleton() {
   return (
-    <div aria-busy aria-label='Loading' className='flex flex-col gap-4'>
-      <Skeleton className='h-14 rounded-lg' />
-      <div className='grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3'>
-        {Array.from({ length: 8 }, (_, i) => (
-          <div key={i} className='flex flex-col gap-1'>
-            <Skeleton className='h-3 w-1/3' />
-            <Skeleton className='h-3 w-2/3' />
-          </div>
+    <div aria-busy aria-label='Loading' className='flex min-w-0 flex-col gap-4'>
+      <pre className={COMMAND}>
+        <TextSkeleton className='w-2/3' />
+      </pre>
+      <dl className={DETAILS}>
+        {LABELS.map((label) => (
+          <Detail key={label} label={label}>
+            <TextSkeleton className='w-16' />
+          </Detail>
         ))}
-      </div>
+      </dl>
     </div>
   );
 }

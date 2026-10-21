@@ -19,9 +19,13 @@ import type { OpenedFile, StackInfo } from '@/lib/stack-files';
 import { cn } from '@/lib/utils';
 
 import { CodeEditor } from '@/components/code-editor';
-import { FileTree, isWithin } from '@/components/file-tree';
+import { FileTree, isWithin, TreeToolbar } from '@/components/file-tree';
 import { MarkdownPreview } from '@/components/markdown-preview';
-import { CodeSkeleton, TreeSkeleton } from '@/components/skeletons';
+import {
+  CodeSkeleton,
+  TextSkeleton,
+  TreeSkeleton,
+} from '@/components/skeletons';
 import { Button } from '@/components/ui/button';
 
 type DeployLine = { line?: string; exitCode?: number };
@@ -131,7 +135,9 @@ export function FilesPanel({
       <div className='flex min-h-0 flex-1 flex-col gap-3 sm:flex-row'>
         <nav
           aria-label='Files'
-          className='max-h-40 shrink-0 overflow-auto rounded-lg bg-muted p-1 sm:max-h-none sm:w-56'
+          // Its scrollbar's room kept whether it scrolls or not, as is its
+          // placeholder's, so the rows are the same width either way
+          className='max-h-40 shrink-0 [scrollbar-gutter:stable] overflow-auto rounded-lg bg-muted p-1 sm:max-h-none sm:w-56'
         >
           <FileTree
             containerId={containerId}
@@ -246,16 +252,21 @@ export function FilesPanel({
           <SaveIcon />
           Save
         </Button>
-        {info.builds && (
-          <Button
-            variant='outline'
-            disabled={pending}
-            onClick={() => save('build')}
-          >
-            <HammerIcon />
-            {changed ? 'Save & rebuild' : 'Rebuild'}
-          </Button>
-        )}
+        {/* Always there, so the buttons never move: off for a stack that
+            uses others' images rather than building its own */}
+        <Button
+          variant='outline'
+          disabled={pending || !info.builds}
+          title={
+            info.builds
+              ? undefined
+              : 'Its images are downloaded, not built here'
+          }
+          onClick={() => save('build')}
+        >
+          <HammerIcon />
+          {changed && info.builds ? 'Save & rebuild' : 'Rebuild'}
+        </Button>
         <Button disabled={pending} onClick={() => save('deploy')}>
           <RocketIcon className={cn(pending && 'animate-pulse')} />
           {changed ? 'Save & redeploy' : 'Redeploy'}
@@ -288,15 +299,18 @@ function FilesSkeleton() {
   return (
     <div className='flex min-h-0 flex-1 flex-col gap-3'>
       <div className='flex min-h-0 flex-1 flex-col gap-3 sm:flex-row'>
-        <div className='max-h-40 shrink-0 overflow-hidden rounded-lg bg-muted p-1 sm:max-h-none sm:w-56'>
+        <div className='max-h-40 shrink-0 [scrollbar-gutter:stable] overflow-hidden rounded-lg bg-muted p-1 sm:max-h-none sm:w-56'>
+          <TreeToolbar />
           <TreeSkeleton />
         </div>
         <div className='min-h-0 min-w-0 flex-1'>
           <CodeSkeleton />
         </div>
       </div>
-      <div className='flex items-center gap-2'>
-        <span className='mr-auto' />
+      <div className='flex flex-wrap items-center gap-2'>
+        <span className='mr-auto'>
+          <TextSkeleton className='w-64' />
+        </span>
         <Button variant='ghost' disabled>
           <Undo2Icon />
           Revert
@@ -304,6 +318,10 @@ function FilesSkeleton() {
         <Button variant='outline' disabled>
           <SaveIcon />
           Save
+        </Button>
+        <Button variant='outline' disabled>
+          <HammerIcon />
+          Rebuild
         </Button>
         <Button disabled>
           <RocketIcon />

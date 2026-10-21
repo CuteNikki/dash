@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { ProcessDialog } from '@/components/process-dialog';
 import { ScrollFade } from '@/components/scroll-fade';
 import { ServiceIcon } from '@/components/service-icon';
+import { TextSkeleton } from '@/components/skeletons';
 import { Card } from '@/components/ui/card';
 import {
   InputGroup,
@@ -19,6 +20,11 @@ import {
 } from '@/components/ui/input-group';
 
 type SortKey = 'cpu' | 'memory';
+
+/** Placeholder rows while the first measurement's under way: as many as show. */
+const SKELETON_ROWS = 6;
+/** Name lengths that look like processes', never all alike. */
+const NAME_WIDTHS = ['w-40', 'w-24', 'w-56', 'w-32', 'w-48', 'w-28'];
 
 /**
  * The server's processes, busiest first: what each is, the container it runs
@@ -37,6 +43,9 @@ export function ProcessList({
 }) {
   const [sort, setSort] = useState<SortKey>('cpu');
   const [filter, setFilter] = useState('');
+  // Until the first measurement: a process is only listed once it's been
+  // measured twice, a few seconds apart
+  const measuring = processes.length === 0;
   // The process picked to look at closely, by its id
   const [picked, setPicked] = useState<number>();
   const byContainer = useMemo(
@@ -80,14 +89,16 @@ export function ProcessList({
           />
         </InputGroup>
         <span className='justify-self-end font-mono tabular-nums'>
-          {query
-            ? `${shown.length} of ${processes.length}`
-            : `${processes.length} total`}
+          {measuring ? (
+            <TextSkeleton className='w-16' />
+          ) : query ? (
+            `${shown.length} of ${processes.length}`
+          ) : (
+            `${processes.length} total`
+          )}
         </span>
       </div>
-      {processes.length === 0 ? (
-        <p className='text-muted-foreground'>Measuring…</p>
-      ) : (
+      {
         // Seven lines whatever the filter leaves, so the page doesn't shift
         // while typing: the headings and six processes, the rest a scroll
         // away, faded at the edges while there's more. The scrollbar's room is
@@ -126,6 +137,31 @@ export function ProcessList({
               </tr>
             </thead>
             <tbody className='tabular-nums'>
+              {/* Rows to come, as the first measurement's under way */}
+              {measuring &&
+                Array.from({ length: SKELETON_ROWS }, (_, i) => (
+                  <tr key={i} aria-hidden>
+                    <td>
+                      <TextSkeleton
+                        className={NAME_WIDTHS[i % NAME_WIDTHS.length]}
+                      />
+                    </td>
+                    <td className='hidden @2xl:table-cell'>
+                      <TextSkeleton className='w-12' />
+                    </td>
+                    <td />
+                    <td>
+                      <span className='flex justify-end'>
+                        <TextSkeleton className='w-8' />
+                      </span>
+                    </td>
+                    <td>
+                      <span className='flex justify-end'>
+                        <TextSkeleton className='w-10' />
+                      </span>
+                    </td>
+                  </tr>
+                ))}
               {shown.map((p) => {
                 const service = serviceOf(p);
                 return (
@@ -187,11 +223,11 @@ export function ProcessList({
               })}
             </tbody>
           </table>
-          {shown.length === 0 && (
+          {!measuring && shown.length === 0 && (
             <p className='text-muted-foreground'>No processes match.</p>
           )}
         </ScrollFade>
-      )}
+      }
       <ProcessDialog
         process={processes.find((p) => p.pid === picked)}
         services={services}

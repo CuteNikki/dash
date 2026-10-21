@@ -29,7 +29,7 @@ import { fetcher } from '@/lib/fetcher';
 import type { HostEntry } from '@/lib/host-files';
 import { cn } from '@/lib/utils';
 
-import { TreeSkeleton } from '@/components/skeletons';
+import { TextSkeleton, TreeSkeleton } from '@/components/skeletons';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -311,41 +311,18 @@ export function FileTree({
   return (
     <TreeContext value={tree}>
       <div className='flex min-h-full flex-col'>
-        <div className='flex items-center gap-0.5 py-0.5 pr-0.5 pl-2'>
-          <span className='mr-auto truncate font-medium text-muted-foreground'>
-            {nameOf(dir)}
-          </span>
-          <ToolbarButton
-            label='New File'
-            onClick={() =>
-              startDraft({ action: 'create', kind: 'file', folder: here })
-            }
-          >
-            <FilePlusIcon />
-          </ToolbarButton>
-          <ToolbarButton
-            label='New Folder'
-            onClick={() =>
-              startDraft({ action: 'create', kind: 'dir', folder: here })
-            }
-          >
-            <FolderPlusIcon />
-          </ToolbarButton>
-          <ToolbarButton
-            label='Refresh'
-            onClick={() =>
-              mutate((key) => typeof key === 'string' && key.startsWith(base))
-            }
-          >
-            <RefreshCwIcon />
-          </ToolbarButton>
-          <ToolbarButton
-            label='Collapse All'
-            onClick={() => setOpen(new Set())}
-          >
-            <ChevronsDownUpIcon />
-          </ToolbarButton>
-        </div>
+        <TreeToolbar
+          name={nameOf(dir)}
+          actions={{
+            newFile: () =>
+              startDraft({ action: 'create', kind: 'file', folder: here }),
+            newFolder: () =>
+              startDraft({ action: 'create', kind: 'dir', folder: here }),
+            refresh: () =>
+              mutate((key) => typeof key === 'string' && key.startsWith(base)),
+            collapseAll: () => setOpen(new Set()),
+          }}
+        />
         <Folder path='' depth={0} />
         {/* The space below the entries stands for the stack's own folder */}
         <ContextMenu modal={false}>
@@ -411,13 +388,50 @@ function keepFocus(e: Event) {
   e.preventDefault();
 }
 
+/**
+ * The tree's own row: its folder's name, then New File, New Folder, Refresh
+ * and Collapse All. Without them, as while the stack's looked up, the name's
+ * a placeholder and the buttons are there but can't be used.
+ */
+export function TreeToolbar({
+  name,
+  actions,
+}: {
+  name?: string;
+  actions?: Record<
+    'newFile' | 'newFolder' | 'refresh' | 'collapseAll',
+    () => void
+  >;
+}) {
+  return (
+    <div className='flex items-center gap-0.5 py-0.5 pr-0.5 pl-2'>
+      <span className='mr-auto min-w-0 truncate font-medium text-muted-foreground'>
+        {name ?? <TextSkeleton className='w-20' />}
+      </span>
+      <ToolbarButton label='New File' onClick={actions?.newFile}>
+        <FilePlusIcon />
+      </ToolbarButton>
+      <ToolbarButton label='New Folder' onClick={actions?.newFolder}>
+        <FolderPlusIcon />
+      </ToolbarButton>
+      <ToolbarButton label='Refresh' onClick={actions?.refresh}>
+        <RefreshCwIcon />
+      </ToolbarButton>
+      <ToolbarButton label='Collapse All' onClick={actions?.collapseAll}>
+        <ChevronsDownUpIcon />
+      </ToolbarButton>
+    </div>
+  );
+}
+
 function ToolbarButton({
   label,
   onClick,
   children,
 }: {
   label: string;
-  onClick: () => void;
+  /** None while there's nothing to act on yet */
+  onClick?: () => void;
   children: React.ReactNode;
 }) {
   return (
@@ -428,6 +442,7 @@ function ToolbarButton({
           size='icon-sm'
           aria-label={label}
           onClick={onClick}
+          disabled={!onClick}
         >
           {children}
         </Button>

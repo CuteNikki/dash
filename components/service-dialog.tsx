@@ -26,6 +26,7 @@ import { GitPanel } from '@/components/git-panel';
 import { HistoryChart } from '@/components/history-chart';
 import { LogViewer } from '@/components/log-viewer';
 import { ServiceIcon } from '@/components/service-icon';
+import { TextSkeleton } from '@/components/skeletons';
 import { StatusDot } from '@/components/status-dot';
 import {
   AlertDialog,
@@ -269,33 +270,48 @@ function UsageChart({
   values,
   times,
   measure,
+  measuring,
 }: {
   label: string;
   value?: number;
   values?: number[];
   times?: number[];
   measure: Measure;
+  /** Running, but not measured yet: its value's to come */
+  measuring: boolean;
 }) {
   return (
     <div className='flex flex-col gap-2'>
       <span className='text-muted-foreground'>{label}, last ten minutes</span>
       <span className='font-mono text-lg tabular-nums'>
-        {value === undefined ? '–' : measure.format(value)}
+        {value !== undefined ? (
+          measure.format(value)
+        ) : measuring ? (
+          <TextSkeleton className='w-16' />
+        ) : (
+          '–'
+        )}
       </span>
-      {values && times && (
-        <HistoryChart
-          label={`${label} over the last ten minutes`}
-          times={times}
-          series={[{ label, values, measure }]}
-          className='h-24 text-foreground'
-        />
-      )}
+      {/* The chart's room, kept until there are readings to draw */}
+      <div className='h-24'>
+        {values && times && (
+          <HistoryChart
+            label={`${label} over the last ten minutes`}
+            times={times}
+            series={[{ label, values, measure }]}
+            className='h-full text-foreground'
+          />
+        )}
+      </div>
     </div>
   );
 }
 
 function UsagePanel({ service }: { service: Service }) {
   const usage = service.usage;
+  // A running one that hasn't been measured yet, as just after it starts
+  const measuring =
+    !usage && ['running', 'unhealthy', 'starting'].includes(service.state);
   const details = [
     ['Image', service.image],
     ['Container', service.containerName],
@@ -319,6 +335,7 @@ function UsagePanel({ service }: { service: Service }) {
           values={usage?.history.cpu}
           times={usage?.history.at}
           measure={MEASURES.cpu}
+          measuring={measuring}
         />
         <UsageChart
           label='Memory'
@@ -326,6 +343,7 @@ function UsagePanel({ service }: { service: Service }) {
           values={usage?.history.memory}
           times={usage?.history.at}
           measure={MEASURES.memory}
+          measuring={measuring}
         />
       </div>
     </div>

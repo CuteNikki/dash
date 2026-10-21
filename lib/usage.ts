@@ -19,6 +19,8 @@ const IDLE_MS = 60_000;
 type Sampler = {
   usage: Map<string, Usage & { history: UsageHistory }>;
   host?: HostStats;
+  /** Set once the server's counters couldn't be read, so there won't be stats */
+  hostUnreadable?: boolean;
   /** The last reading of the server's counters, to measure the next against */
   lastHost?: HostReading;
   timer?: NodeJS.Timeout;
@@ -163,7 +165,10 @@ async function sample() {
   await Promise.all([
     sampleContainers(),
     // Without access to the server's counters, there's just no server stats
-    sampleHost().catch(() => undefined),
+    sampleHost().then(
+      () => (sampler.hostUnreadable = false),
+      () => (sampler.hostUnreadable = true)
+    ),
   ]);
 }
 
@@ -177,5 +182,10 @@ export async function currentUsage() {
     );
     if (!sampler.usage.size) await sample();
   }
-  return { containers: sampler.usage, host: sampler.host };
+  return {
+    containers: sampler.usage,
+    host: sampler.host,
+    // Coming, unless the counters can't be read
+    hostComing: !sampler.host && !sampler.hostUnreadable,
+  };
 }
