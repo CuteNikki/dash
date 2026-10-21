@@ -285,12 +285,22 @@ function dayLabel(time: Date) {
   });
 }
 
+/**
+ * Hours with two digits, so every time is as wide as the next and the text
+ * after them lines up, before 10 o'clock as after.
+ */
+const TIME_FORMAT: Intl.DateTimeFormatOptions = {
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+};
+
 /** One line: its time, then its text, wrapping at the log's edge under the text, not the time. */
 function LogLine({ line, wrap }: { line: Line; wrap: boolean }) {
   return (
     <div className='flex gap-3'>
       <span className='shrink-0 whitespace-pre text-muted-foreground tabular-nums'>
-        {line.time?.toLocaleTimeString()}
+        {line.time?.toLocaleTimeString(undefined, TIME_FORMAT)}
       </span>
       <span
         className={cn(
