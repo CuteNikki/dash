@@ -9,12 +9,13 @@ import {
   useState,
 } from 'react';
 
-import { ListEndIcon, SearchIcon } from 'lucide-react';
+import { ListEndIcon, SearchIcon, WrapTextIcon } from 'lucide-react';
 
 import {
   afterCarriageReturn,
   hasAnsi,
   parseAnsi,
+  withoutLeadingTime,
   type Segment,
   type Tone,
 } from '@/lib/ansi';
@@ -83,7 +84,11 @@ function segmentsOf(text: string): Segment[] {
 function parse(id: number, entry: { stream: string; line: string }): Line {
   const match = entry.line.match(TIMESTAMP);
   const segments = segmentsOf(
-    afterCarriageReturn(match ? entry.line.slice(match[0].length) : entry.line)
+    withoutLeadingTime(
+      afterCarriageReturn(
+        match ? entry.line.slice(match[0].length) : entry.line
+      )
+    )
   );
   return {
     id,
@@ -99,6 +104,7 @@ export function LogViewer({ containerId }: { containerId: string }) {
   const [error, setError] = useState<string>();
   const [filter, setFilter] = useState('');
   const [follow, setFollow] = useState(true);
+  const [wrap, setWrap] = useState(true);
   const scroller = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -185,6 +191,14 @@ export function LogViewer({ containerId }: { containerId: string }) {
           />
         </InputGroup>
         <Button
+          variant={wrap ? 'default' : 'outline'}
+          aria-pressed={wrap}
+          onClick={() => setWrap(!wrap)}
+        >
+          <WrapTextIcon />
+          Wrap
+        </Button>
+        <Button
           variant={follow ? 'default' : 'outline'}
           aria-pressed={follow}
           onClick={() => setFollow(!follow)}
@@ -214,7 +228,7 @@ export function LogViewer({ containerId }: { containerId: string }) {
                   <span className='h-px flex-1 bg-border' />
                 </div>
               )}
-              <LogLine line={line} />
+              <LogLine line={line} wrap={wrap} />
             </Fragment>
           ))
         )}
@@ -243,13 +257,20 @@ function dayLabel(time: Date) {
   });
 }
 
-function LogLine({ line }: { line: Line }) {
+/** One line: its time, then its text, wrapping under the text, not the time. */
+function LogLine({ line, wrap }: { line: Line; wrap: boolean }) {
   return (
-    <div className='flex gap-3 whitespace-pre'>
-      <span className='shrink-0 text-muted-foreground tabular-nums'>
+    <div className='flex gap-3'>
+      <span className='shrink-0 whitespace-pre text-muted-foreground tabular-nums'>
         {line.time?.toLocaleTimeString()}
       </span>
-      <span>
+      <span
+        className={cn(
+          wrap
+            ? 'min-w-0 flex-1 wrap-anywhere whitespace-pre-wrap'
+            : 'whitespace-pre'
+        )}
+      >
         {line.segments.map((segment, i) => (
           <span
             key={i}

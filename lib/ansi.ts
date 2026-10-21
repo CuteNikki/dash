@@ -44,6 +44,31 @@ export function afterCarriageReturn(line: string) {
   );
 }
 
+/** Colors and other terminal controls a line may start with, kept when the time after them is dropped */
+const LEADING_CONTROLS = `((?:${ESC}\[[0-9;?]*[A-Za-z])*)`;
+/** 11:49:59, 2026-10-21 11:49:49.123, 2026/10/21T11:49:49Z and the like */
+const TIME = String.raw`(?:\d{4}[-/.]\d{2}[-/.]\d{2}[T ])?\d{1,2}:\d{2}:\d{2}(?:[.,]\d+)?(?:Z|[+-]\d{2}:?\d{2})?`;
+const LEADING_TIMES = [
+  // "[2026/10/18 21:16:57] INFO: …" → "INFO: …"
+  [new RegExp(String.raw`^${LEADING_CONTROLS}\[\s*${TIME}\s*\]\s*`), '$1'],
+  // "[11:49:59 INFO]: …" → "[INFO]: …"
+  [new RegExp(String.raw`^${LEADING_CONTROLS}\[\s*${TIME}\s+`), '$1['],
+  // "2026-10-21 12:00:00 WARN …" → "WARN …"
+  [new RegExp(String.raw`^${LEADING_CONTROLS}${TIME}\s+`), '$1'],
+] as const;
+
+/**
+ * A line without the time it starts with: the log already shows when Docker
+ * got each line, to the moment and in the viewer's own time zone, where
+ * programs often write theirs in UTC.
+ */
+export function withoutLeadingTime(line: string) {
+  for (const [pattern, replacement] of LEADING_TIMES) {
+    if (pattern.test(line)) return line.replace(pattern, replacement);
+  }
+  return line;
+}
+
 export function parseAnsi(input: string): Segment[] {
   const text = input.replace(OTHER_CONTROLS, '');
   const segments: Segment[] = [];
