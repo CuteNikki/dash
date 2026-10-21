@@ -167,22 +167,25 @@ export function FilesPanel({
               />
             )}
             {isMarkdown && opened?.content !== undefined && (
-              // Names the other view, the one it switches to
-              <Button
-                variant='outline'
-                className='absolute top-3 right-4 bg-background'
-                onClick={() =>
-                  setEditing((e) => {
-                    const next = new Set(e);
-                    if (previewing) next.add(path);
-                    else next.delete(path);
-                    return next;
-                  })
-                }
-              >
-                {previewing ? <PencilIcon /> : <EyeIcon />}
-                {previewing ? 'Edit' : 'Preview'}
-              </Button>
+              // A solid backing, as the outline button's own background is
+              // see-through in dark mode and the file would show through it
+              <div className='absolute top-3 right-4 rounded-md bg-background'>
+                {/* Names the other view, the one it switches to */}
+                <Button
+                  variant='outline'
+                  onClick={() =>
+                    setEditing((e) => {
+                      const next = new Set(e);
+                      if (previewing) next.add(path);
+                      else next.delete(path);
+                      return next;
+                    })
+                  }
+                >
+                  {previewing ? <PencilIcon /> : <EyeIcon />}
+                  {previewing ? 'Edit' : 'Preview'}
+                </Button>
+              </div>
             )}
           </div>
         </div>
