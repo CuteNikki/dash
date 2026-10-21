@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { ListEndIcon, SearchIcon } from 'lucide-react';
 
@@ -104,10 +104,26 @@ export function LogViewer({ containerId }: { containerId: string }) {
     return q ? lines.filter((l) => l.text.toLowerCase().includes(q)) : lines;
   }, [lines, filter]);
 
-  useEffect(() => {
+  // Before the browser paints, so new lines show up already scrolled to
+  useLayoutEffect(() => {
     const el = scroller.current;
     if (follow && el) el.scrollTop = el.scrollHeight;
   }, [shown, follow]);
+
+  // Where the last scroll left off, to tell the reader scrolling up from the
+  // log itself changing under it (new lines, old ones dropping off, a filter)
+  const lastScroll = useRef({ top: 0, height: 0 });
+
+  function onScroll(e: React.UIEvent<HTMLDivElement>) {
+    const el = e.currentTarget;
+    const last = lastScroll.current;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight <= BOTTOM_SLACK_PX) {
+      setFollow(true);
+    } else if (el.scrollTop < last.top && el.scrollHeight === last.height) {
+      setFollow(false);
+    }
+    lastScroll.current = { top: el.scrollTop, height: el.scrollHeight };
+  }
 
   return (
     <div className='flex min-h-0 flex-1 flex-col gap-3'>
@@ -135,12 +151,7 @@ export function LogViewer({ containerId }: { containerId: string }) {
       <div
         ref={scroller}
         // Scrolling up stops following; scrolling back to the end resumes it
-        onScroll={(e) => {
-          const el = e.currentTarget;
-          setFollow(
-            el.scrollHeight - el.scrollTop - el.clientHeight <= BOTTOM_SLACK_PX
-          );
-        }}
+        onScroll={onScroll}
         className='min-h-0 flex-1 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs/relaxed'
       >
         {error ? (
