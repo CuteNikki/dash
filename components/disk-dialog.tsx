@@ -19,7 +19,12 @@ import { measureDisk, pruneDocker } from '@/actions/disk';
 import type { DockerSpace } from '@/lib/docker';
 import { fetcher } from '@/lib/fetcher';
 import { formatBytes, formatDuration } from '@/lib/format';
-import type { Capacity, DiskScan, FolderUsage } from '@/lib/types';
+import type {
+  Capacity,
+  DiskScan,
+  FolderUsage,
+  MeasuredSize,
+} from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 import { ScrollFade } from '@/components/scroll-fade';
@@ -111,9 +116,12 @@ function DiskUsage() {
       <section className='flex min-h-0 flex-1 flex-col gap-2'>
         <div className='flex flex-wrap items-center gap-2'>
           <h3 className='mr-auto font-medium'>Folders</h3>
-          <span className='text-muted-foreground'>
+          <span
+            title={scan.state === 'scanning' ? scan.current : undefined}
+            className='min-w-0 truncate text-muted-foreground'
+          >
             {scan.state === 'scanning'
-              ? `Measuring: ${scan.folders.toLocaleString()} folders so far`
+              ? `Measuring: ${scan.folders.toLocaleString()} folders so far${scan.current ? `, just did ${scan.current}` : ''}`
               : scan.state === 'done'
                 ? `Measured ${ago(data.seconds)}`
                 : scan.state === 'failed'
@@ -136,16 +144,12 @@ function DiskUsage() {
             Measure again
           </Button>
         </div>
-        {scan.state === 'done' ? (
-          // Keyed by when it was measured, so a new measurement starts at the top
-          <Folders key={scan.finishedAt} measured={scan.finishedAt} />
+        {scan.state === 'none' ? (
+          <CodeSkeleton lines={12} className='flex-1' />
         ) : (
-          <div className='flex flex-1 flex-col items-center justify-center gap-2 rounded-lg bg-muted p-6 text-center text-muted-foreground'>
-            <p>
-              Every folder on the disk is being measured. It takes a minute or
-              two, and keeps going if you close this.
-            </p>
-          </div>
+          // Sizes fill in while it's measured, which takes a minute or two
+          // and keeps going with this closed
+          <Folders scanning={scan.state === 'scanning'} />
         )}
       </section>
     </>
@@ -281,21 +285,52 @@ function DockerSection({
   );
 }
 
-/** The measured folders, from the top: what's in the one open, biggest first. */
-function Folders({ measured }: { measured: number }) {
+/** How often to look in on the folder that's open while the disk's being measured. */
+const FOLDER_POLL_MS = 2_000;
+
+/**
+ * Done ones biggest first, then those still being measured, by what they
+ * were, and last, folders that aren't on this disk.
+ */
+function bySize(
+  a: MeasuredSize & { elsewhere?: boolean },
+  b: MeasuredSize & { elsewhere?: boolean }
+) {
+  return (
+    Number(Boolean(a.elsewhere)) - Number(Boolean(b.elsewhere)) ||
+    Number(b.size !== undefined) - Number(a.size !== undefined) ||
+    (b.size ?? b.before ?? 0) - (a.size ?? a.before ?? 0)
+  );
+}
+
+/**
+ * The disk's folders, from the top: what's in the one open, biggest first.
+ * While it's being measured, sizes fill in as each folder's done.
+ */
+function Folders({ scanning }: { scanning: boolean }) {
   const [path, setPath] = useState('/');
   const { data, error } = useSWR<FolderUsage>(
-    `/api/disk/folder?path=${encodeURIComponent(path)}&measured=${measured}`,
+    // Asked again once the measurement's done, for its last sizes
+    `/api/disk/folder?path=${encodeURIComponent(path)}&scanning=${scanning}`,
     fetcher,
-    { revalidateOnFocus: false }
+    {
+      revalidateOnFocus: false,
+      refreshInterval: scanning ? FOLDER_POLL_MS : 0,
+      // The sizes so far stay while the next ones come
+      keepPreviousData: true,
+    }
   );
   const parts = path.split('/').filter(Boolean);
-  const entries = data
+  // A folder that's moved on from shows nothing of the last one's
+  const shown = data?.path === path ? data : undefined;
+  const entries = shown
     ? [
-        ...data.folders.map((f) => ({ ...f, folder: true })),
-        ...data.files.map((f) => ({ ...f, folder: false })),
-      ].sort((a, b) => b.size - a.size)
+        ...shown.folders.map((f) => ({ ...f, folder: true })),
+        ...shown.files.map((f) => ({ ...f, folder: false })),
+      ].sort(bySize)
     : [];
+  // Shares of the folder, or while it's still being measured, of its biggest
+  const whole = shown?.size ?? Math.max(0, ...entries.map((e) => e.size ?? 0));
 
   return (
     <div className='flex min-h-0 flex-1 flex-col gap-2'>
@@ -323,15 +358,15 @@ function Folders({ measured }: { measured: number }) {
             </span>
           );
         })}
-        {data && (
+        {shown && (
           <span className='ml-auto text-muted-foreground tabular-nums'>
-            {formatBytes(data.size)}
+            <Size size={shown} />
           </span>
         )}
       </nav>
       {error ? (
         <p className='text-muted-foreground'>{error.message}</p>
-      ) : !data ? (
+      ) : !shown ? (
         <CodeSkeleton lines={12} className='flex-1' />
       ) : (
         <div className='min-h-0 flex-1 overflow-hidden rounded-lg bg-muted'>
@@ -347,9 +382,15 @@ function Folders({ measured }: { measured: number }) {
                   <li key={`${entry.folder}/${entry.name}`}>
                     <Entry
                       entry={entry}
-                      share={data.size > 0 ? (entry.size / data.size) * 100 : 0}
+                      share={
+                        entry.size !== undefined && whole > 0
+                          ? (entry.size / whole) * 100
+                          : undefined
+                      }
                       onOpen={
-                        entry.folder
+                        // One that's elsewhere isn't measured, so has nothing to show
+                        entry.folder &&
+                        !('elsewhere' in entry && entry.elsewhere)
                           ? () =>
                               setPath(
                                 path === '/'
@@ -370,14 +411,44 @@ function Folders({ measured }: { measured: number }) {
   );
 }
 
+/**
+ * A size, or while it's still being measured, what it was last time, faded,
+ * or that it's being measured.
+ */
+function Size({ size }: { size: MeasuredSize & { elsewhere?: boolean } }) {
+  if (size.elsewhere) {
+    return (
+      <span
+        title='Another disk’s, or the system’s or memory’s, so not counted here'
+        className='opacity-50'
+      >
+        elsewhere
+      </span>
+    );
+  }
+  if (size.size !== undefined) return formatBytes(size.size);
+  if (size.before !== undefined) {
+    return (
+      <span
+        title='What it was last time; it’s being measured again'
+        className='opacity-50'
+      >
+        {formatBytes(size.before)}
+      </span>
+    );
+  }
+  return <span className='animate-pulse opacity-50'>measuring…</span>;
+}
+
 /** One folder or file: its name, its share of the folder it's in, its size. */
 function Entry({
   entry,
   share,
   onOpen,
 }: {
-  entry: { name: string; size: number; folder: boolean };
-  share: number;
+  entry: MeasuredSize & { name: string; folder: boolean; elsewhere?: boolean };
+  /** None while it's still being measured */
+  share?: number;
   /** For a folder, to look into it */
   onOpen?: () => void;
 }) {
@@ -391,13 +462,17 @@ function Entry({
       <span className='min-w-0 flex-1 truncate' title={entry.name}>
         {entry.name}
       </span>
-      <Progress
-        value={share}
-        aria-label={`${Math.round(share)}% of this folder`}
-        className='hidden w-32 shrink-0 sm:block'
-      />
-      <span className='w-20 shrink-0 text-right font-mono tabular-nums'>
-        {formatBytes(entry.size)}
+      {/* Its room kept while it's measured, so the sizes line up */}
+      <span className='hidden w-32 shrink-0 sm:block'>
+        {share !== undefined && (
+          <Progress
+            value={share}
+            aria-label={`${Math.round(share)}% of this folder`}
+          />
+        )}
+      </span>
+      <span className='w-24 shrink-0 text-right font-mono tabular-nums'>
+        <Size size={entry} />
       </span>
     </>
   );

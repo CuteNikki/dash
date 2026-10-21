@@ -114,15 +114,28 @@ export type HostProcess = {
 /** How measuring the disk is going: underway, done (and when), or failed. */
 export type DiskScan =
   | { state: 'none' }
-  | { state: 'scanning'; startedAt: number; folders: number }
+  | {
+      state: 'scanning';
+      startedAt: number;
+      /** Measured so far */
+      folders: number;
+      /** The folder it's just finished */
+      current?: string;
+    }
   | { state: 'done'; finishedAt: number; folders: number }
   | { state: 'failed'; error: string };
 
-/** A folder on the server: its size, and what's in it, biggest first, in bytes. */
-export type FolderUsage = {
+/**
+ * Bytes: none while it's still being measured, with what it was the last
+ * time, if it was measured before.
+ */
+export type MeasuredSize = { size?: number; before?: number };
+
+/** A folder on the server: its size, and what's in it, biggest first. */
+export type FolderUsage = MeasuredSize & {
   path: string;
-  size: number;
-  folders: { name: string; size: number }[];
+  /** Elsewhere: another disk's, or the kernel's or memory's, so not measured here */
+  folders: (MeasuredSize & { name: string; elsewhere?: boolean })[];
   files: { name: string; size: number }[];
 };
 

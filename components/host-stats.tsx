@@ -6,13 +6,11 @@ import {
   ActivityIcon,
   ArrowDownIcon,
   ArrowUpIcon,
-  BookOpenIcon,
   ChevronRightIcon,
   CpuIcon,
   HardDriveIcon,
   MemoryStickIcon,
   NetworkIcon,
-  PenLineIcon,
   ServerIcon,
 } from 'lucide-react';
 
@@ -131,20 +129,21 @@ function LiveStats({
       label='Disk I/O'
       times={host.history.at}
       measure={MEASURES.disk}
+      // Down, then up, as on Network: written to the disk, then read off it
       flows={[
-        {
-          short: 'Read',
-          label: 'Read',
-          icon: <BookOpenIcon />,
-          value: host.diskIo.read,
-          values: host.history.diskRead,
-        },
         {
           short: 'Write',
           label: 'Write',
-          icon: <PenLineIcon />,
+          icon: <ArrowDownIcon />,
           value: host.diskIo.written,
           values: host.history.diskWritten,
+        },
+        {
+          short: 'Read',
+          label: 'Read',
+          icon: <ArrowUpIcon />,
+          value: host.diskIo.read,
+          values: host.history.diskRead,
         },
       ]}
     />
