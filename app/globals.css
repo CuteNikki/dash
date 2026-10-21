@@ -45,6 +45,9 @@
      height, which keeps Geist's text centred beside icons at any display
      scale, where relaxed sits it a pixel or so high */
   --leading-control: normal;
+  /* How long a log line gets before wrapping: past the panel, with some
+     scrolling, so only the really long ones break */
+  --container-log-line: 160ch;
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);

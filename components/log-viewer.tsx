@@ -257,7 +257,7 @@ function dayLabel(time: Date) {
   });
 }
 
-/** One line: its time, then its text, wrapping under the text, not the time. */
+/** One line: its time, then its text, wrapping (past 160 characters) under the text, not the time. */
 function LogLine({ line, wrap }: { line: Line; wrap: boolean }) {
   return (
     <div className='flex gap-3'>
@@ -267,7 +267,7 @@ function LogLine({ line, wrap }: { line: Line; wrap: boolean }) {
       <span
         className={cn(
           wrap
-            ? 'min-w-0 flex-1 wrap-anywhere whitespace-pre-wrap'
+            ? 'w-max max-w-log-line shrink-0 wrap-anywhere whitespace-pre-wrap'
             : 'whitespace-pre'
         )}
       >
