@@ -20,9 +20,9 @@ import {
   formatBytes,
   formatCpu,
   formatDuration,
-  formatRate,
   formatShare,
   MEASURES,
+  type Measure,
 } from '@/lib/format';
 import type { HostProcess, HostStats } from '@/lib/types';
 
@@ -84,6 +84,7 @@ function ServerDetails({ host }: { host: HostStats }) {
 function LiveStats({ host }: { host: HostStats }) {
   return (
     <div className='grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4'>
+      {/* CPU beside the processes using it */}
       <Stat
         icon={<CpuIcon />}
         label='CPU'
@@ -98,10 +99,12 @@ function LiveStats({ host }: { host: HostStats }) {
           ]}
         />
       </Stat>
+      <TopProcesses processes={host.processes} />
+      {/* Then what's full, and what's flowing */}
       <Stat
         icon={<MemoryStickIcon />}
         label='Memory'
-        detail={`of ${formatBytes(host.memory.total)}`}
+        detail={`of ${formatBytes(host.memory.size)}`}
         value={formatBytes(host.memory.used)}
       >
         <Usage used={host.memory.used} total={host.memory.total} />
@@ -109,54 +112,55 @@ function LiveStats({ host }: { host: HostStats }) {
       <Stat
         icon={<HardDriveIcon />}
         label='Disk'
-        detail={`of ${formatBytes(host.disk.total)}`}
+        detail={`of ${formatBytes(host.disk.size)}`}
         value={formatBytes(host.disk.used)}
       >
         <Usage used={host.disk.used} total={host.disk.total} />
       </Stat>
-      <Stat
+      <FlowStat
+        icon={<NetworkIcon />}
+        label='Network'
+        times={host.history.at}
+        measure={MEASURES.network}
+        flows={[
+          {
+            short: 'Down',
+            label: 'Download',
+            icon: <ArrowDownIcon />,
+            value: host.network.received,
+            values: host.history.received,
+          },
+          {
+            short: 'Up',
+            label: 'Upload',
+            icon: <ArrowUpIcon />,
+            value: host.network.sent,
+            values: host.history.sent,
+          },
+        ]}
+      />
+      <FlowStat
         icon={<ActivityIcon />}
         label='Disk I/O'
-        detail='read · write'
-        value={
-          <span className='flex items-center gap-4'>
-            <span className='flex items-center gap-1'>
-              <BookOpenIcon
-                aria-label='Read'
-                className='size-4 text-muted-foreground'
-              />
-              {formatRate(host.diskIo.read)}
-            </span>
-            <span className='flex items-center gap-1'>
-              <PenLineIcon
-                aria-label='Written'
-                className='size-4 text-muted-foreground'
-              />
-              {formatRate(host.diskIo.written)}
-            </span>
-          </span>
-        }
-      >
-        <HistoryChart
-          label='Disk reads and writes over the last ten minutes'
-          times={host.history.at}
-          series={[
-            {
-              label: 'Read',
-              values: host.history.diskRead,
-              measure: MEASURES.disk,
-            },
-            {
-              label: 'Write',
-              values: host.history.diskWritten,
-              measure: MEASURES.disk,
-              dashed: true,
-            },
-          ]}
-        />
-      </Stat>
-      <NetworkStat host={host} />
-      <TopProcesses processes={host.processes} />
+        times={host.history.at}
+        measure={MEASURES.disk}
+        flows={[
+          {
+            short: 'Read',
+            label: 'Read',
+            icon: <BookOpenIcon />,
+            value: host.diskIo.read,
+            values: host.history.diskRead,
+          },
+          {
+            short: 'Write',
+            label: 'Write',
+            icon: <PenLineIcon />,
+            value: host.diskIo.written,
+            values: host.history.diskWritten,
+          },
+        ]}
+      />
     </div>
   );
 }
@@ -198,31 +202,53 @@ function TopProcesses({ processes }: { processes: HostProcess[] }) {
   );
 }
 
-type Direction = 'down' | 'up' | 'both';
+/** One way something flows: data down or up, read or written. */
+type Flow = {
+  /** For the switch above the graph */
+  short: string;
+  /** For the graph's tooltip and screen readers */
+  label: string;
+  icon: React.ReactNode;
+  /** Now */
+  value: number;
+  /** The last ten minutes */
+  values: number[];
+};
 
-/** Download and upload speed, with a graph of either or both. */
-function NetworkStat({ host }: { host: HostStats }) {
-  const [shown, setShown] = useState<Direction>('both');
-  const down = {
-    label: 'Download',
-    values: host.history.received,
-    measure: MEASURES.network,
-  };
-  const up = {
-    label: 'Upload',
-    values: host.history.sent,
-    measure: MEASURES.network,
-  };
+/**
+ * Something that flows two ways, network or disk: both rates now, and a
+ * graph of either or both, the second dashed when they share it.
+ */
+function FlowStat({
+  icon,
+  label,
+  times,
+  measure,
+  flows,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  times: number[];
+  measure: Measure;
+  flows: [Flow, Flow];
+}) {
+  const [shown, setShown] = useState<'0' | '1' | 'both'>('both');
+  const [first, second] = flows.map((f) => ({
+    label: f.label,
+    values: f.values,
+    measure,
+  }));
   const series = {
-    down: [down],
-    up: [up],
-    both: [down, { ...up, dashed: true }],
+    '0': [first],
+    '1': [second],
+    both: [first, { ...second, dashed: true }],
   }[shown];
+  const graphed = series.map((s) => s.label.toLowerCase()).join(' and ');
 
   return (
     <Stat
-      icon={<NetworkIcon />}
-      label='Network'
+      icon={icon}
+      label={label}
       detail={
         <ToggleGroup
           type='single'
@@ -230,30 +256,34 @@ function NetworkStat({ host }: { host: HostStats }) {
           variant='outline'
           value={shown}
           // Picking the shown one again would unpick it; keep one picked
-          onValueChange={(v) => v && setShown(v as Direction)}
+          onValueChange={(v) => v && setShown(v as typeof shown)}
           aria-label='Show in the graph'
         >
-          <ToggleGroupItem value='down'>Down</ToggleGroupItem>
-          <ToggleGroupItem value='up'>Up</ToggleGroupItem>
+          <ToggleGroupItem value='0'>{flows[0].short}</ToggleGroupItem>
+          <ToggleGroupItem value='1'>{flows[1].short}</ToggleGroupItem>
           <ToggleGroupItem value='both'>Both</ToggleGroupItem>
         </ToggleGroup>
       }
       value={
         <span className='flex items-center gap-4'>
-          <span className='flex items-center gap-1'>
-            <ArrowDownIcon className='size-4 text-muted-foreground' />
-            {formatRate(host.network.received)}
-          </span>
-          <span className='flex items-center gap-1'>
-            <ArrowUpIcon className='size-4 text-muted-foreground' />
-            {formatRate(host.network.sent)}
-          </span>
+          {flows.map((f) => (
+            <span
+              key={f.label}
+              aria-label={`${f.label} ${measure.format(f.value)}`}
+              // Icons a step smaller than the text's, which a filled one like
+              // a book needs to look as big as a thin arrow beside a number
+              className='flex items-center gap-1 [&_svg]:size-3.5 [&_svg]:text-muted-foreground'
+            >
+              {f.icon}
+              {measure.format(f.value)}
+            </span>
+          ))}
         </span>
       }
     >
       <HistoryChart
-        label={`Network ${{ down: 'download', up: 'upload', both: 'download and upload' }[shown]} speed over the last ten minutes`}
-        times={host.history.at}
+        label={`${label} ${graphed} over the last ten minutes`}
+        times={times}
         series={series}
       />
     </Stat>

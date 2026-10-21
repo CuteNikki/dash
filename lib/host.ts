@@ -4,6 +4,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
 import { execOutput } from '@/lib/docker';
+import type { Capacity } from '@/lib/types';
 
 /**
  * The server's own counters, from the kernel. In the dashboard's container
@@ -28,6 +29,14 @@ const SOURCES = {
   load: 'cat /proc/loadavg',
   disks: 'cat /proc/diskstats',
   disk: 'df -kP /',
+  // The memory installed: its block size in hex, then a 1 for each block online
+  memoryBlocks:
+    'cat /sys/devices/system/memory/block_size_bytes /sys/devices/system/memory/memory*/online 2>/dev/null',
+  // The whole disk the root filesystem is on, in 512-byte sectors: from the
+  // root mount's device to its disk, stepping up from a partition
+  diskSize: `dev=$(awk '$5 == "/" { print $3; exit }' /proc/1/mountinfo)
+p=$(readlink -f "/sys/dev/block/$dev"); [ -f "$p/partition" ] && p=\${p%/*}
+cat "$p/size" 2>/dev/null`,
   processes: 'cat /proc/[0-9]*/stat 2>/dev/null',
   // Kernel threads have no memory of their own, so no line
   processMemory: "grep -H '^VmRSS:' /proc/[0-9]*/status 2>/dev/null",
@@ -60,10 +69,9 @@ export type HostReading = {
   /** Total CPU time and the part of it spent idle, in clock ticks */
   cpu: { busy: number; total: number };
   cores: number;
-  /** Bytes */
-  memory: { used: number; total: number };
-  /** Bytes, of the disk the root filesystem is on */
-  disk: { used: number; total: number };
+  memory: Capacity;
+  /** Of the disk the root filesystem is on */
+  disk: Capacity;
   /** Bytes read from and written to the server's disks since boot */
   diskIo: { read: number; written: number };
   /** Every process, by its id */
@@ -89,7 +97,7 @@ export type ProcessReading = {
   memory: number;
 };
 
-/** The kernel counts disk traffic in sectors of this many bytes, whatever the disk's own. */
+/** The kernel counts disks in sectors of this many bytes, whatever the disk's own. */
 const SECTOR_BYTES = 512;
 /** Whole disks, not their partitions, nor loop, RAM or mapped devices */
 const WHOLE_DISK = /^(sd[a-z]+|vd[a-z]+|xvd[a-z]+|nvme\d+n\d+|mmcblk\d+)$/;
@@ -142,23 +150,37 @@ function parseCpu(stat: string) {
   return { cpu: { busy: total - idle, total }, cores };
 }
 
-function parseMemory(meminfo: string) {
+function parseMemory(meminfo: string, blocks: string) {
   const kb = (key: string) =>
     Number(meminfo.match(new RegExp(`^${key}:\\s+(\\d+)`, 'm'))?.[1] ?? 0) *
     1024;
   const total = kb('MemTotal');
   const swap = kb('SwapTotal');
+  // The block size in hex, then a 1 for each block that's online; a server
+  // that doesn't list its memory that way shows what's usable as its size
+  const [blockSize, ...online] = blocks.trim().split('\n');
+  const installed =
+    parseInt(blockSize, 16) * online.filter((b) => b.trim() === '1').length;
   return {
-    // Used as the kernel counts it: what isn't available to programs
-    memory: { used: total - kb('MemAvailable'), total },
+    memory: {
+      // Used as the kernel counts it: what isn't available to programs
+      used: total - kb('MemAvailable'),
+      total,
+      size: Math.max(installed || 0, total),
+    },
     swap: { used: swap - kb('SwapFree'), total: swap },
   };
 }
 
-function parseDisk(df: string) {
+function parseDisk(df: string, sectors: string) {
   // Filesystem 1024-blocks Used Available Capacity Mounted on
-  const [, size, used] = df.trim().split('\n').at(-1)!.split(/\s+/);
-  return { used: Number(used) * 1024, total: Number(size) * 1024 };
+  const [, blocks, used] = df.trim().split('\n').at(-1)!.split(/\s+/);
+  const total = Number(blocks) * 1024;
+  return {
+    used: Number(used) * 1024,
+    total,
+    size: Math.max(Number(sectors.trim()) * SECTOR_BYTES || 0, total),
+  };
 }
 
 function parseNetwork(dev: string, routes: string) {
@@ -181,7 +203,7 @@ export async function readHost(): Promise<HostReading> {
   return {
     at: Date.now(),
     ...parseCpu(raw.cpu),
-    ...parseMemory(raw.memory),
+    ...parseMemory(raw.memory, raw.memoryBlocks),
     cpuModel:
       raw.cpuinfo.match(/^model name\s*:\s*(.+)$/m)?.[1].trim() ?? 'Unknown',
     uptime: Number(raw.uptime.split(/\s+/)[0]),
@@ -190,7 +212,7 @@ export async function readHost(): Promise<HostReading> {
       number,
       number,
     ],
-    disk: parseDisk(raw.disk),
+    disk: parseDisk(raw.disk, raw.diskSize),
     diskIo: parseDiskIo(raw.disks),
     processes: parseProcesses(raw.processes, raw.processMemory),
     network: parseNetwork(raw.network, raw.routes),

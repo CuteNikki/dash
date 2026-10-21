@@ -61,10 +61,9 @@ export type HostStats = {
   cores: number;
   /** Percent of all cores together */
   cpu: number;
-  /** Bytes */
-  memory: { used: number; total: number };
-  /** Bytes, of the disk the root filesystem is on */
-  disk: { used: number; total: number };
+  memory: Capacity;
+  /** Of the disk the root filesystem is on */
+  disk: Capacity;
   /** Bytes per second, on the interface to the internet */
   network: { received: number; sent: number };
   /** Bytes per second, read from and written to the server's disks */
@@ -102,4 +101,17 @@ export type HostProcess = {
   cpu: number;
   /** Bytes */
   memory: number;
+};
+
+/** Memory or a disk, in bytes. */
+export type Capacity = {
+  used: number;
+  /** What's usable, a little less than its size */
+  total: number;
+  /**
+   * Its size as it's sold, 24 GB of memory or a 500 GB disk: all the memory
+   * installed, with the part the kernel keeps for itself, or the whole disk,
+   * with what its filesystem takes for its own records
+   */
+  size: number;
 };
