@@ -86,6 +86,17 @@ export async function removeHostFile(path: string) {
   await helper('rm -f -- "$1"', path);
 }
 
+/** Who owns a file or folder, as "uid:gid". */
+export async function hostOwner(path: string) {
+  if (!HELPER) {
+    const info = await stat(path);
+    return `${info.uid}:${info.gid}`;
+  }
+  const { stdout, stderr, exitCode } = await helper('stat -c %u:%g "$1"', path);
+  if (exitCode !== 0) failed(stderr, `Couldn't look at ${path}`);
+  return stdout.trim();
+}
+
 /** Where a path really leads, following symbolic links; undefined if nowhere. */
 export async function realHostPath(path: string) {
   if (!HELPER) {
