@@ -151,22 +151,7 @@ function LiveStats({
   return (
     <div className='grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4'>
       {/* CPU beside the processes using it, its graph as tall as their list */}
-      <Stat
-        icon={<CpuIcon />}
-        label='CPU'
-        detail={`${host.cores} cores`}
-        value={formatCpu(host.cpu)}
-        fill
-      >
-        <HistoryChart
-          label='CPU over the last ten minutes'
-          times={host.history.at}
-          series={[
-            { label: 'CPU', values: host.history.cpu, measure: MEASURES.cpu },
-          ]}
-          className='h-full'
-        />
-      </Stat>
+      <CpuStat host={host} />
       <ProcessList
         processes={host.processes}
         services={services}
@@ -192,6 +177,71 @@ function LiveStats({
       {diskIo}
       {network}
     </div>
+  );
+}
+
+/**
+ * The CPU over all cores, as a graph of their total, or with each core's own
+ * line behind it, faint, to see how they share the work.
+ */
+function CpuStat({ host }: { host: HostStats }) {
+  const [shown, setShown] = useState<'total' | 'cores'>('total');
+  const cores = host.history.coreCpu ?? [];
+  // The readings every line has: a core measured for less time has fewer
+  const count = Math.min(
+    host.history.at.length,
+    ...(shown === 'cores' ? cores.map((c) => c.length) : [])
+  );
+  const total = {
+    label: 'All cores',
+    values: host.history.cpu.slice(-count),
+    measure: MEASURES.cpu,
+  };
+
+  return (
+    <Stat
+      icon={<CpuIcon />}
+      label='CPU'
+      detail={
+        <ToggleGroup
+          type='single'
+          size='sm'
+          variant='outline'
+          value={shown}
+          // Picking the shown one again would unpick it; keep one picked
+          onValueChange={(v) => v && setShown(v as typeof shown)}
+          aria-label='Show in the graph'
+        >
+          <ToggleGroupItem value='total'>Total</ToggleGroupItem>
+          <ToggleGroupItem value='cores'>{host.cores} cores</ToggleGroupItem>
+        </ToggleGroup>
+      }
+      value={formatCpu(host.cpu)}
+      fill
+    >
+      <HistoryChart
+        label={
+          shown === 'cores'
+            ? 'CPU, each core and all together, over the last ten minutes'
+            : 'CPU over the last ten minutes'
+        }
+        times={host.history.at.slice(-count)}
+        series={
+          shown === 'cores'
+            ? [
+                total,
+                ...cores.map((values, i) => ({
+                  label: `Core ${i}`,
+                  values: values.slice(-count),
+                  measure: MEASURES.cpu,
+                  faint: true,
+                })),
+              ]
+            : [{ ...total, label: 'CPU' }]
+        }
+        className='h-full'
+      />
+    </Stat>
   );
 }
 

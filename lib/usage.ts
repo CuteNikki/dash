@@ -6,7 +6,7 @@ import {
   listContainers,
   type Usage,
 } from '@/lib/docker';
-import { readHost, type HostReading } from '@/lib/host';
+import { readHost, type CpuTime, type HostReading } from '@/lib/host';
 import type { HostProcess, HostStats, UsageHistory } from '@/lib/types';
 
 /** How often the server and its containers are measured while someone is watching. */
@@ -78,8 +78,13 @@ async function sampleHost() {
   sampler.lastHost = now;
   if (!last) return;
   const seconds = (now.at - last.at) / 1000;
+  const share = (from: CpuTime | undefined, to: CpuTime) => {
+    const ticks = to.total - (from?.total ?? 0);
+    return from && ticks > 0 ? ((to.busy - from.busy) / ticks) * 100 : 0;
+  };
   const ticks = now.cpu.total - last.cpu.total;
-  const cpu = ticks > 0 ? ((now.cpu.busy - last.cpu.busy) / ticks) * 100 : 0;
+  const cpu = share(last.cpu, now.cpu);
+  const coreCpu = now.coreCpu.map((c, i) => share(last.coreCpu[i], c));
   const rate = (from: number, to: number) => Math.max(0, to - from) / seconds;
   const received = rate(last.network.received, now.network.received);
   const sent = rate(last.network.sent, now.network.sent);
@@ -91,6 +96,7 @@ async function sampleHost() {
   sampler.host = {
     cores: now.cores,
     cpu,
+    coreCpu,
     memory: now.memory,
     disk: now.disk,
     network: { received, sent },
@@ -106,6 +112,7 @@ async function sampleHost() {
     history: {
       at: recent(history?.at, now.at),
       cpu: recent(history?.cpu, cpu),
+      coreCpu: coreCpu.map((c, i) => recent(history?.coreCpu?.[i], c)),
       memory: recent(history?.memory, now.memory.used),
       received: recent(history?.received, received),
       sent: recent(history?.sent, sent),

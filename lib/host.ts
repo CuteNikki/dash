@@ -75,8 +75,10 @@ async function readRaw(): Promise<Raw> {
 export type HostReading = {
   /** When it was read, for working out rates between two readings */
   at: number;
-  /** Total CPU time and the part of it spent idle, in clock ticks */
-  cpu: { busy: number; total: number };
+  /** All cores' CPU time together */
+  cpu: CpuTime;
+  /** The same for each core, in order */
+  coreCpu: CpuTime[];
   cores: number;
   memory: Capacity;
   /** Of the disk the root filesystem is on */
@@ -170,13 +172,22 @@ function parseProcesses(raw: Raw) {
   return processes;
 }
 
-function parseCpu(stat: string) {
-  // cpu  user nice system idle iowait irq softirq steal …
-  const fields = stat.split('\n')[0].trim().split(/\s+/).slice(1).map(Number);
+/** CPU time, and the part of it spent busy, in clock ticks */
+export type CpuTime = { busy: number; total: number };
+
+/** cpu  user nice system idle iowait irq softirq steal …, for all or one core */
+function cpuTime(line: string): CpuTime {
+  const fields = line.trim().split(/\s+/).slice(1).map(Number);
   const total = fields.reduce((a, b) => a + b, 0);
   const idle = fields[3] + (fields[4] ?? 0);
-  const cores = stat.split('\n').filter((l) => /^cpu\d+ /.test(l)).length;
-  return { cpu: { busy: total - idle, total }, cores };
+  return { busy: total - idle, total };
+}
+
+function parseCpu(stat: string) {
+  const lines = stat.split('\n');
+  // The first line is all of them together, then cpu0, cpu1, …
+  const coreCpu = lines.filter((l) => /^cpu\d+ /.test(l)).map(cpuTime);
+  return { cpu: cpuTime(lines[0]), coreCpu, cores: coreCpu.length };
 }
 
 function parseMemory(meminfo: string, blocks: string) {

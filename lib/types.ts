@@ -61,6 +61,8 @@ export type HostStats = {
   cores: number;
   /** Percent of all cores together */
   cpu: number;
+  /** Percent of each core, in order */
+  coreCpu: number[];
   memory: Capacity;
   /** Of the disk the root filesystem is on */
   disk: Capacity;
@@ -85,6 +87,8 @@ export type HostStats = {
     /** When each reading was taken, in milliseconds since 1970 */
     at: number[];
     cpu: number[];
+    /** Each core's, in order */
+    coreCpu: number[][];
     memory: number[];
     received: number[];
     sent: number[];

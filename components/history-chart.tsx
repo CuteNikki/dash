@@ -20,6 +20,8 @@ export type ChartSeries = {
   measure: Measure;
   /** Drawn dashed and fainter, to tell it from a solid one beside it */
   dashed?: boolean;
+  /** Drawn thin and faint, one of many behind a solid one, such as each core behind their total */
+  faint?: boolean;
 };
 
 /**
@@ -99,24 +101,26 @@ export function HistoryChart({
             points={s.values.map((v, i) => `${x(i)},${y(v)}`).join(' ')}
             fill='none'
             stroke='currentColor'
-            strokeWidth={1.5}
+            strokeWidth={s.faint ? 1 : 1.5}
             strokeLinejoin='round'
             vectorEffect='non-scaling-stroke'
             strokeDasharray={s.dashed ? '3 3' : undefined}
-            className={cn(s.dashed && 'opacity-50')}
+            className={cn(s.dashed && 'opacity-50', s.faint && 'opacity-30')}
           />
         ))}
       </svg>
       {shown !== undefined && (
         <>
-          {series.map((s) => (
-            <span
-              key={s.label}
-              aria-hidden
-              className='pointer-events-none absolute size-1.5 -translate-1/2 rounded-full bg-foreground'
-              style={{ left: `${x(shown)}%`, top: `${y(s.values[shown])}%` }}
-            />
-          ))}
+          {series
+            .filter((s) => !s.faint)
+            .map((s) => (
+              <span
+                key={s.label}
+                aria-hidden
+                className='pointer-events-none absolute size-1.5 -translate-1/2 rounded-full bg-foreground'
+                style={{ left: `${x(shown)}%`, top: `${y(s.values[shown])}%` }}
+              />
+            ))}
           <Tooltip open>
             <TooltipTrigger asChild>
               <span
@@ -136,7 +140,8 @@ export function HistoryChart({
                       aria-hidden
                       className={cn(
                         'w-3 border-t-2 border-current',
-                        s.dashed && 'border-dashed opacity-50'
+                        s.dashed && 'border-dashed opacity-50',
+                        s.faint && 'border-t opacity-30'
                       )}
                     />
                     <span className='font-mono font-medium tabular-nums'>
