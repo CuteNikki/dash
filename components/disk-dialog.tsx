@@ -154,7 +154,7 @@ function DiskUsage() {
                 scan?.state === 'scanning' ? 'animate-spin' : undefined
               }
             />
-            Measure again
+            Measure
           </Button>
         </div>
         {!scan || scan.state === 'none' ? (
