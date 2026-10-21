@@ -9,7 +9,6 @@ import {
   BookOpenIcon,
   CpuIcon,
   HardDriveIcon,
-  ListIcon,
   MemoryStickIcon,
   NetworkIcon,
   PenLineIcon,
@@ -24,19 +23,29 @@ import {
   MEASURES,
   type Measure,
 } from '@/lib/format';
-import type { HostProcess, HostStats } from '@/lib/types';
+import type { HostStats, Service } from '@/lib/types';
 
 import { HistoryChart } from '@/components/history-chart';
+import { ProcessList } from '@/components/process-list';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
-/** The server itself: what it is, then its CPU, memory, disk, network and busiest processes. */
-export function HostStatsBar({ host }: { host: HostStats }) {
+/** The server itself: what it is, then its CPU and processes, memory, disk and network. */
+export function HostStatsBar({
+  host,
+  services,
+  onOpen,
+}: {
+  host: HostStats;
+  /** For each process's container */
+  services: Service[];
+  onOpen: (service: Service) => void;
+}) {
   return (
     <section aria-label='Server' className='flex flex-col gap-3'>
       <ServerDetails host={host} />
-      <LiveStats host={host} />
+      <LiveStats host={host} services={services} onOpen={onOpen} />
     </section>
   );
 }
@@ -81,15 +90,73 @@ function ServerDetails({ host }: { host: HostStats }) {
   );
 }
 
-function LiveStats({ host }: { host: HostStats }) {
+function LiveStats({
+  host,
+  services,
+  onOpen,
+}: {
+  host: HostStats;
+  services: Service[];
+  onOpen: (service: Service) => void;
+}) {
+  const network = (
+    <FlowStat
+      icon={<NetworkIcon />}
+      label='Network'
+      times={host.history.at}
+      measure={MEASURES.network}
+      flows={[
+        {
+          short: 'Down',
+          label: 'Download',
+          icon: <ArrowDownIcon />,
+          value: host.network.received,
+          values: host.history.received,
+        },
+        {
+          short: 'Up',
+          label: 'Upload',
+          icon: <ArrowUpIcon />,
+          value: host.network.sent,
+          values: host.history.sent,
+        },
+      ]}
+    />
+  );
+  const diskIo = (
+    <FlowStat
+      icon={<ActivityIcon />}
+      label='Disk I/O'
+      times={host.history.at}
+      measure={MEASURES.disk}
+      flows={[
+        {
+          short: 'Read',
+          label: 'Read',
+          icon: <BookOpenIcon />,
+          value: host.diskIo.read,
+          values: host.history.diskRead,
+        },
+        {
+          short: 'Write',
+          label: 'Write',
+          icon: <PenLineIcon />,
+          value: host.diskIo.written,
+          values: host.history.diskWritten,
+        },
+      ]}
+    />
+  );
+
   return (
     <div className='grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4'>
-      {/* CPU beside the processes using it */}
+      {/* CPU beside the processes using it, its graph as tall as their list */}
       <Stat
         icon={<CpuIcon />}
         label='CPU'
         detail={`${host.cores} cores`}
         value={formatCpu(host.cpu)}
+        fill
       >
         <HistoryChart
           label='CPU over the last ten minutes'
@@ -97,10 +164,15 @@ function LiveStats({ host }: { host: HostStats }) {
           series={[
             { label: 'CPU', values: host.history.cpu, measure: MEASURES.cpu },
           ]}
+          className='h-full'
         />
       </Stat>
-      <TopProcesses processes={host.processes} />
-      {/* Then what's full, and what's flowing */}
+      <ProcessList
+        processes={host.processes}
+        services={services}
+        onOpen={onOpen}
+      />
+      {/* Then memory, the disk twice over, and the network */}
       <Stat
         icon={<MemoryStickIcon />}
         label='Memory'
@@ -117,88 +189,9 @@ function LiveStats({ host }: { host: HostStats }) {
       >
         <Usage used={host.disk.used} total={host.disk.total} />
       </Stat>
-      <FlowStat
-        icon={<NetworkIcon />}
-        label='Network'
-        times={host.history.at}
-        measure={MEASURES.network}
-        flows={[
-          {
-            short: 'Down',
-            label: 'Download',
-            icon: <ArrowDownIcon />,
-            value: host.network.received,
-            values: host.history.received,
-          },
-          {
-            short: 'Up',
-            label: 'Upload',
-            icon: <ArrowUpIcon />,
-            value: host.network.sent,
-            values: host.history.sent,
-          },
-        ]}
-      />
-      <FlowStat
-        icon={<ActivityIcon />}
-        label='Disk I/O'
-        times={host.history.at}
-        measure={MEASURES.disk}
-        flows={[
-          {
-            short: 'Read',
-            label: 'Read',
-            icon: <BookOpenIcon />,
-            value: host.diskIo.read,
-            values: host.history.diskRead,
-          },
-          {
-            short: 'Write',
-            label: 'Write',
-            icon: <PenLineIcon />,
-            value: host.diskIo.written,
-            values: host.history.diskWritten,
-          },
-        ]}
-      />
+      {diskIo}
+      {network}
     </div>
-  );
-}
-
-/** The busiest processes on the server, across the rest of the row. */
-function TopProcesses({ processes }: { processes: HostProcess[] }) {
-  return (
-    <Card size='sm' className='px-3 lg:col-span-3'>
-      <div className='flex h-6 items-center gap-2 text-muted-foreground [&_svg:not([class*=size-])]:size-4'>
-        <ListIcon />
-        <span className='mr-auto'>Top processes</span>
-      </div>
-      {processes.length === 0 ? (
-        <p className='text-muted-foreground'>Measuring…</p>
-      ) : (
-        <table className='w-full table-fixed'>
-          <thead className='text-left text-muted-foreground'>
-            <tr>
-              <th className='font-normal'>Process</th>
-              <th className='w-20 text-right font-normal'>CPU</th>
-              <th className='w-20 text-right font-normal'>Memory</th>
-            </tr>
-          </thead>
-          <tbody className='font-mono tabular-nums'>
-            {processes.map((p) => (
-              <tr key={p.pid}>
-                <td className='truncate'>
-                  {p.name}
-                  <span className='ml-2 text-muted-foreground'>{p.pid}</span>
-                </td>
-                <td className='text-right'>{formatCpu(p.cpu)}</td>
-                <td className='text-right'>{formatBytes(p.memory)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </Card>
   );
 }
 
@@ -295,12 +288,15 @@ function Stat({
   label,
   detail,
   value,
+  fill,
   children,
 }: {
   icon: React.ReactNode;
   label: string;
   detail: React.ReactNode;
   value: React.ReactNode;
+  /** The graph takes the room the card has to spare, beside a taller one */
+  fill?: boolean;
   /** A graph or a bar along the bottom */
   children: React.ReactNode;
 }) {
@@ -316,7 +312,15 @@ function Stat({
         )}
       </div>
       <div className='font-mono text-lg font-medium tabular-nums'>{value}</div>
-      <div className='mt-auto flex h-6 items-end'>{children}</div>
+      {fill ? (
+        // Laid over the room to spare, so the graph fills the height the row
+        // has without adding any of its own
+        <div className='relative min-h-6 flex-1'>
+          <div className='absolute inset-0 flex'>{children}</div>
+        </div>
+      ) : (
+        <div className='mt-auto flex h-6 items-end'>{children}</div>
+      )}
     </Card>
   );
 }

@@ -68,7 +68,7 @@ export type HostStats = {
   network: { received: number; sent: number };
   /** Bytes per second, read from and written to the server's disks */
   diskIo: { read: number; written: number };
-  /** The busiest processes, most CPU first */
+  /** Its processes, the busiest first */
   processes: HostProcess[];
   /** What it is: its name, system, processor, how long it's been up */
   system: DockerInfo & {
@@ -97,6 +97,10 @@ export type HostProcess = {
   pid: number;
   /** At most 15 characters, as the kernel keeps it */
   name: string;
+  /** How it was started, as far as is kept; empty for the kernel's own */
+  command: string;
+  /** The full id of the container it runs in, if it does */
+  containerId?: string;
   /** Percent of one core, as for containers */
   cpu: number;
   /** Bytes */

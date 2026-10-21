@@ -69,7 +69,7 @@ export function Dashboard({
         <ThemeButton />
         <AccountMenu email={email} />
       </header>
-      {host && <HostStatsBar host={host} />}
+      {host && <HostStatsBar host={host} services={services} onOpen={open} />}
       <TilesView groups={groups} editing={editing} onOpen={open} />
       <ServiceDialog
         service={find(openKey)}

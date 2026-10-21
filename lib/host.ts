@@ -14,6 +14,9 @@ import type { Capacity } from '@/lib/types';
  */
 const HELPER = process.env.HOST_HELPER_CONTAINER;
 
+/** How much of a process's command is kept, enough to tell what it is. */
+const COMMAND_BYTES = 256;
+
 /**
  * What's read, each by a shell command. Process 1 is the server's own init,
  * so its network is the server's. A process can end between being listed
@@ -40,6 +43,12 @@ cat "$p/size" 2>/dev/null`,
   processes: 'cat /proc/[0-9]*/stat 2>/dev/null',
   // Kernel threads have no memory of their own, so no line
   processMemory: "grep -H '^VmRSS:' /proc/[0-9]*/status 2>/dev/null",
+  // The container a process runs in, by the id in its control group's name
+  processContainers:
+    "grep -H -E -o 'docker[-/][0-9a-f]{64}' /proc/[0-9]*/cgroup 2>/dev/null",
+  // How each was started, its arguments split by NULs made spaces, under a
+  // "==> /proc/123/cmdline <==" heading each; enough to tell it apart
+  processCommands: `head -c ${COMMAND_BYTES} /proc/[0-9]*/cmdline 2>/dev/null | tr '\\0' ' '`,
 } as const;
 
 type Raw = Record<keyof typeof SOURCES, string>;
@@ -95,6 +104,10 @@ export type ProcessReading = {
   ticks: number;
   /** Bytes of memory it holds */
   memory: number;
+  /** How it was started, its arguments split by spaces; empty for the kernel's own */
+  command: string;
+  /** The full id of the container it runs in, if it does */
+  containerId?: string;
 };
 
 /** The kernel counts disks in sectors of this many bytes, whatever the disk's own. */
@@ -115,15 +128,29 @@ function parseDiskIo(diskstats: string) {
   return { read, written };
 }
 
-function parseProcesses(stats: string, statuses: string) {
+function parseProcesses(raw: Raw) {
   const memory = new Map<number, number>();
-  for (const line of statuses.split('\n')) {
+  for (const line of raw.processMemory.split('\n')) {
     // /proc/123/status:VmRSS:     4567 kB
     const match = line.match(/^\/proc\/(\d+)\/status:VmRSS:\s+(\d+) kB/);
     if (match) memory.set(Number(match[1]), Number(match[2]) * 1024);
   }
+  const containers = new Map<number, string>();
+  for (const line of raw.processContainers.split('\n')) {
+    // /proc/123/cgroup:docker-<id>, or docker/<id> with older setups
+    const match = line.match(/^\/proc\/(\d+)\/cgroup:docker[-/]([0-9a-f]+)/);
+    if (match) containers.set(Number(match[1]), match[2]);
+  }
+  const commands = new Map<number, string>();
+  // The heading's pid, then the command up to the next heading
+  const parts = raw.processCommands.split(
+    /(?:^|\n)==> \/proc\/(\d+)\/cmdline <==\n/
+  );
+  for (let i = 1; i < parts.length; i += 2) {
+    commands.set(Number(parts[i]), (parts[i + 1] ?? '').trim());
+  }
   const processes = new Map<number, ProcessReading>();
-  for (const line of stats.split('\n')) {
+  for (const line of raw.processes.split('\n')) {
     // pid (name) state …; the name can hold spaces and brackets of its own,
     // so it runs to the last closing one
     const open = line.indexOf('(');
@@ -136,6 +163,8 @@ function parseProcesses(stats: string, statuses: string) {
       name: line.slice(open + 1, close),
       ticks: Number(fields[11]) + Number(fields[12]),
       memory: memory.get(pid) ?? 0,
+      command: commands.get(pid) ?? '',
+      containerId: containers.get(pid),
     });
   }
   return processes;
@@ -214,7 +243,7 @@ export async function readHost(): Promise<HostReading> {
     ],
     disk: parseDisk(raw.disk, raw.diskSize),
     diskIo: parseDiskIo(raw.disks),
-    processes: parseProcesses(raw.processes, raw.processMemory),
+    processes: parseProcesses(raw),
     network: parseNetwork(raw.network, raw.routes),
   };
 }

@@ -15,8 +15,6 @@ const INTERVAL_MS = 5_000;
 const HISTORY = 120;
 /** Measuring stops this long after the dashboard was last asked for usage. */
 const IDLE_MS = 60_000;
-/** Processes listed as the server's busiest. */
-const TOP_PROCESSES = 5;
 
 type Sampler = {
   usage: Map<string, Usage & { history: UsageHistory }>;
@@ -118,9 +116,10 @@ async function sampleHost() {
 }
 
 /**
- * The processes that used the most CPU between two readings. `coreTicks` is
- * one core's clock ticks in that time, for a share of one core, as for
- * containers. A process seen only once has no time to measure yet.
+ * The server's processes, busiest first, with the CPU each used between two
+ * readings. `coreTicks` is one core's clock ticks in that time, for a share
+ * of one core, as for containers. A process seen only once has no time to
+ * measure yet, and the kernel's own threads only count while they're busy.
  */
 function busiest(
   last: HostReading,
@@ -133,16 +132,18 @@ function busiest(
     const before = last.processes.get(pid);
     // An id given to a new process since is a different program
     if (!before || before.name !== p.name || before.ticks > p.ticks) continue;
+    const cpu = ((p.ticks - before.ticks) / coreTicks) * 100;
+    if (!p.memory && !cpu) continue;
     measured.push({
       pid,
       name: p.name,
-      cpu: ((p.ticks - before.ticks) / coreTicks) * 100,
+      command: p.command,
+      containerId: p.containerId,
+      cpu,
       memory: p.memory,
     });
   }
-  return measured
-    .sort((a, b) => b.cpu - a.cpu || b.memory - a.memory)
-    .slice(0, TOP_PROCESSES);
+  return measured.sort((a, b) => b.cpu - a.cpu || b.memory - a.memory);
 }
 
 async function sample() {
