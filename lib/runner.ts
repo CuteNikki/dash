@@ -16,6 +16,13 @@ export type Run = {
   env?: Record<string, string>;
   /** Mounts beyond the stacks' folder */
   binds?: string[];
+  /** Sees the server's processes rather than only its own, to look at them */
+  hostProcesses?: boolean;
+  /**
+   * May signal the server's processes, which Docker's own AppArmor profile
+   * otherwise keeps a container to its own
+   */
+  signalsHost?: boolean;
 };
 
 export type RunLine = { stream: 'stdout' | 'stderr'; line: string };
@@ -38,6 +45,8 @@ async function create(run: Run) {
     Labels: { 'dash.purpose': 'a short-lived run for the dashboard' },
     HostConfig: {
       Binds: [`${STACKS_ROOT}:${STACKS_ROOT}`, ...(run.binds ?? [])],
+      PidMode: run.hostProcesses ? 'host' : undefined,
+      SecurityOpt: run.signalsHost ? ['apparmor=unconfined'] : undefined,
     },
   };
   try {
@@ -78,13 +87,13 @@ export async function* runContainer(run: Run): AsyncGenerator<RunLine, number> {
   }
 }
 
-/** Runs to the end: its whole output, line by line, and whether it succeeded. */
+/** Runs to the end: its whole output, line by line, and how it exited. */
 export async function runToEnd(run: Run) {
   const lines: RunLine[] = [];
   const it = runContainer(run);
   for (;;) {
     const next = await it.next();
-    if (next.done) return { ok: next.value === 0, lines };
+    if (next.done) return { ok: next.value === 0, exitCode: next.value, lines };
     lines.push(next.value);
   }
 }

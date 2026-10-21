@@ -8,6 +8,7 @@ import { formatBytes, formatCpu } from '@/lib/format';
 import type { HostProcess, Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
+import { ProcessDialog } from '@/components/process-dialog';
 import { ScrollFade } from '@/components/scroll-fade';
 import { ServiceIcon } from '@/components/service-icon';
 import { Card } from '@/components/ui/card';
@@ -23,6 +24,7 @@ type SortKey = 'cpu' | 'memory';
  * The server's processes, busiest first: what each is, the container it runs
  * in (which opens that service), and its CPU and memory. Sorted by either,
  * filtered by name, command or container, scrolling past the first few.
+ * Picking one shows it closely, to stop it.
  */
 export function ProcessList({
   processes,
@@ -35,6 +37,8 @@ export function ProcessList({
 }) {
   const [sort, setSort] = useState<SortKey>('cpu');
   const [filter, setFilter] = useState('');
+  // The process picked to look at closely, by its id
+  const [picked, setPicked] = useState<number>();
   const byContainer = useMemo(
     () => new Map(services.map((s) => [s.containerId, s])),
     [services]
@@ -113,7 +117,18 @@ export function ProcessList({
               {shown.map((p) => {
                 const service = serviceOf(p);
                 return (
-                  <tr key={p.pid}>
+                  <tr
+                    key={p.pid}
+                    tabIndex={0}
+                    aria-label={`${p.name} ${p.pid}`}
+                    onClick={() => setPicked(p.pid)}
+                    onKeyDown={(e) => {
+                      if (e.key !== 'Enter' && e.key !== ' ') return;
+                      e.preventDefault();
+                      setPicked(p.pid);
+                    }}
+                    className='cursor-pointer outline-none hover:bg-muted focus-visible:bg-muted'
+                  >
                     <td className='truncate' title={p.command || p.name}>
                       <span className='font-mono'>{p.name}</span>
                       {p.command && (
@@ -131,7 +146,11 @@ export function ProcessList({
                           type='button'
                           title={service.name}
                           aria-label={`Open ${service.name}`}
-                          onClick={() => onOpen(service)}
+                          onClick={(e) => {
+                            // Its service, not the process's details
+                            e.stopPropagation();
+                            onOpen(service);
+                          }}
                           className='flex max-w-full items-center gap-1.5 rounded-sm hover:underline'
                         >
                           <ServiceIcon
@@ -161,6 +180,12 @@ export function ProcessList({
           )}
         </ScrollFade>
       )}
+      <ProcessDialog
+        process={processes.find((p) => p.pid === picked)}
+        services={services}
+        onOpenService={onOpen}
+        onClose={() => setPicked(undefined)}
+      />
     </Card>
   );
 }

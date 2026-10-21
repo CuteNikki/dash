@@ -107,6 +107,42 @@ export type HostProcess = {
   memory: number;
 };
 
+/** One process, looked at closely, to see what it is before stopping it. */
+export type ProcessDetails = {
+  pid: number;
+  name: string;
+  /** How it was started, in full */
+  command: string;
+  /** Who it runs as, by name where the server knows one */
+  user: string;
+  /** e.g. "Sleeping", "Running" */
+  state: string;
+  threads: number;
+  parentPid: number;
+  /** Milliseconds since 1970 */
+  startedAt: number;
+  /** Seconds, as of when it was looked at */
+  runningFor: number;
+  /** When it started, in the kernel's ticks since boot: with its id, says it's the same process */
+  start: number;
+  /** Bytes */
+  memory: number;
+  containerId?: string;
+  /** Whether it's its container's own first process, so stopping it stops the container */
+  containerMain?: boolean;
+  /** Why it can't be stopped from here, when it can't */
+  locked?: string;
+};
+
+/** How stopping a process went. */
+export type StopResult =
+  | { ok: true; outcome: 'stopped' | 'gone' }
+  | {
+      ok: false;
+      outcome: 'running' | 'replaced' | 'locked' | 'failed';
+      error: string;
+    };
+
 /** Memory or a disk, in bytes. */
 export type Capacity = {
   used: number;

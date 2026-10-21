@@ -207,6 +207,15 @@ export async function containerUsage(id: string): Promise<Usage> {
   };
 }
 
+/** The id on the server of a running container's own process, its first. */
+export async function containerPid(id: string) {
+  const info = await dockerJson<{ State: { Pid: number } }>(
+    'GET',
+    `/containers/${encodeURIComponent(id)}/json`
+  );
+  return info.State.Pid;
+}
+
 /** What Docker knows about the server it runs on, and its own state. */
 export async function dockerInfo() {
   const info = await dockerJson<{

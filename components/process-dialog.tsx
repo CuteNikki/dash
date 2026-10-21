@@ -1,0 +1,293 @@
+'use client';
+
+import { useState, useTransition } from 'react';
+import { toast } from 'sonner';
+import useSWR from 'swr';
+
+import { LockIcon, SquareIcon, ZapIcon } from 'lucide-react';
+
+import { stopProcess } from '@/actions/processes';
+import { fetcher } from '@/lib/fetcher';
+import { formatBytes, formatCpu, formatDuration } from '@/lib/format';
+import type { HostProcess, ProcessDetails, Service } from '@/lib/types';
+
+import { ServiceIcon } from '@/components/service-icon';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Skeleton } from '@/components/ui/skeleton';
+
+/**
+ * One of the server's processes, looked at closely: how it was started, who
+ * runs it, since when, and its container. It can be stopped from here,
+ * after asking, unless the server depends on it; one that won't stop when
+ * asked can then be forced.
+ */
+export function ProcessDialog({
+  process,
+  services,
+  onOpenService,
+  onClose,
+}: {
+  /** As the list last measured it, for its CPU; none closes the dialog */
+  process?: HostProcess;
+  services: Service[];
+  onOpenService: (service: Service) => void;
+  onClose: () => void;
+}) {
+  return (
+    <Dialog open={process !== undefined} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className='sm:max-w-2xl'>
+        {process && (
+          // Keyed, so another process starts afresh rather than as this one ended
+          <Details
+            key={process.pid}
+            process={process}
+            services={services}
+            onOpenService={onOpenService}
+            onClose={onClose}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Details({
+  process,
+  services,
+  onOpenService,
+  onClose,
+}: {
+  process: HostProcess;
+  services: Service[];
+  onOpenService: (service: Service) => void;
+  onClose: () => void;
+}) {
+  const { data, error, mutate } = useSWR<ProcessDetails>(
+    `/api/processes/${process.pid}`,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
+  const [confirming, setConfirming] = useState(false);
+  // Set once asking hasn't stopped it, offering to force it
+  const [stubborn, setStubborn] = useState<string>();
+  const [pending, startTransition] = useTransition();
+  const service = services.find((s) => s.containerId === data?.containerId);
+
+  function stop(force: boolean) {
+    if (!data) return;
+    startTransition(async () => {
+      const result = await stopProcess(data.pid, data.start, force);
+      if (result.ok) {
+        toast.success(
+          result.outcome === 'gone'
+            ? `${data.name} had already ended`
+            : `Stopped ${data.name}`
+        );
+        onClose();
+      } else if (result.outcome === 'running') {
+        setStubborn(result.error);
+      } else {
+        toast.error(`Couldn't stop ${data.name}`, {
+          description: result.error,
+        });
+        if (result.outcome === 'replaced') onClose();
+        else await mutate();
+      }
+      setConfirming(false);
+    });
+  }
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle className='font-mono'>
+          {process.name}
+          <span className='ml-2 font-normal text-muted-foreground'>
+            {process.pid}
+          </span>
+        </DialogTitle>
+        <DialogDescription className='sr-only'>
+          What this process is, and stopping it
+        </DialogDescription>
+      </DialogHeader>
+
+      {error ? (
+        <p className='text-muted-foreground'>{error.message}</p>
+      ) : !data ? (
+        <DetailsSkeleton />
+      ) : (
+        <div className='flex min-w-0 flex-col gap-4'>
+          {data.command && (
+            <pre className='max-h-32 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs/relaxed break-all whitespace-pre-wrap select-all'>
+              {data.command}
+            </pre>
+          )}
+          <dl className='grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3'>
+            <Detail label='User'>{data.user}</Detail>
+            <Detail label='Running for'>
+              <span title={new Date(data.startedAt).toLocaleString()}>
+                {formatDuration(data.runningFor)}
+              </span>
+            </Detail>
+            <Detail label='State'>{data.state}</Detail>
+            <Detail label='CPU'>{formatCpu(process.cpu)}</Detail>
+            <Detail label='Memory'>{formatBytes(data.memory)}</Detail>
+            <Detail label='Threads'>{data.threads}</Detail>
+            <Detail label='Parent'>{data.parentPid}</Detail>
+            <Detail label='Container'>
+              {service ? (
+                <button
+                  type='button'
+                  onClick={() => {
+                    onClose();
+                    onOpenService(service);
+                  }}
+                  className='flex max-w-full items-center gap-1.5 hover:underline'
+                >
+                  <ServiceIcon
+                    icon={service.icon}
+                    name={service.name}
+                    variants={service.iconVariants}
+                    missing={service.iconMissing}
+                    className='size-3.5 shrink-0'
+                  />
+                  <span className='truncate'>{service.name}</span>
+                </button>
+              ) : data.containerId ? (
+                <span className='font-mono'>
+                  {data.containerId.slice(0, 12)}
+                </span>
+              ) : (
+                'None, it runs on the server'
+              )}
+            </Detail>
+          </dl>
+          {data.containerMain && (
+            <p className='text-muted-foreground'>
+              It’s its container’s own first process: stopping it stops the
+              container, which may then start again by itself.
+            </p>
+          )}
+          {stubborn && (
+            <p role='alert' className='text-warning'>
+              {stubborn}
+            </p>
+          )}
+        </div>
+      )}
+
+      <DialogFooter className='items-center'>
+        {data?.locked ? (
+          <p className='mr-auto flex items-center gap-2 text-muted-foreground'>
+            <LockIcon className='size-3.5 shrink-0' />
+            {data.locked}
+          </p>
+        ) : stubborn ? (
+          <Button
+            variant='destructive'
+            disabled={pending}
+            onClick={() => stop(true)}
+          >
+            <ZapIcon />
+            Force stop
+          </Button>
+        ) : (
+          <Button
+            variant='destructive'
+            disabled={!data || pending}
+            onClick={() => setConfirming(true)}
+          >
+            <SquareIcon />
+            {pending ? 'Stopping…' : 'Stop'}
+          </Button>
+        )}
+      </DialogFooter>
+
+      <AlertDialog
+        open={confirming}
+        onOpenChange={(o) => !pending && setConfirming(o)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Stop {data?.name} ({data?.pid})?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {data?.containerMain && service
+                ? `${service.name} stops with it, and may start again by itself. `
+                : service
+                  ? `It runs in ${service.name}, which may not work without it. `
+                  : ''}
+              It’s asked to stop, and has a few seconds to finish up.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant='destructive'
+              disabled={pending}
+              onClick={(e) => {
+                // Stays open until it's done, to show it's happening
+                e.preventDefault();
+                stop(false);
+              }}
+            >
+              <SquareIcon />
+              {pending ? 'Stopping…' : 'Stop'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+
+function Detail({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className='flex min-w-0 flex-col'>
+      <dt className='text-muted-foreground'>{label}</dt>
+      <dd className='truncate'>{children}</dd>
+    </div>
+  );
+}
+
+/** The details' own layout while they're looked up, a moment or two. */
+function DetailsSkeleton() {
+  return (
+    <div aria-busy aria-label='Loading' className='flex flex-col gap-4'>
+      <Skeleton className='h-14 rounded-lg' />
+      <div className='grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3'>
+        {Array.from({ length: 8 }, (_, i) => (
+          <div key={i} className='flex flex-col gap-1'>
+            <Skeleton className='h-3 w-1/3' />
+            <Skeleton className='h-3 w-2/3' />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
