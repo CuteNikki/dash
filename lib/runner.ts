@@ -45,6 +45,9 @@ async function create(run: Run) {
     Labels: { 'dash.purpose': 'a short-lived run for the dashboard' },
     HostConfig: {
       Binds: [`${STACKS_ROOT}:${STACKS_ROOT}`, ...(run.binds ?? [])],
+      // By Docker once it exits, so none is left behind even when the
+      // dashboard stops partway through a run
+      AutoRemove: true,
       PidMode: run.hostProcesses ? 'host' : undefined,
       SecurityOpt: run.signalsHost ? ['apparmor=unconfined'] : undefined,
     },
@@ -67,20 +70,25 @@ async function create(run: Run) {
 export async function* runContainer(run: Run): AsyncGenerator<RunLine, number> {
   const { Id } = await create(run);
   try {
+    // Both before it starts, as it may be done and gone before either could
+    // be asked for afterwards: what it prints, and how it exits
+    const output = await dockerRequest(
+      'POST',
+      `/containers/${Id}/attach?stream=1&stdout=1&stderr=1`
+    );
+    const removed = await dockerRequest(
+      'POST',
+      `/containers/${Id}/wait?condition=removed`
+    );
     await dockerRequest('POST', `/containers/${Id}/start`).then((r) =>
       r.resume()
     );
-    const logs = await dockerRequest(
-      'GET',
-      `/containers/${Id}/logs?stdout=1&stderr=1&follow=1`
-    );
-    yield* logLines(logs, false);
-    const { StatusCode } = await json<{ StatusCode: number }>(
-      'POST',
-      `/containers/${Id}/wait`
-    );
-    return StatusCode;
+    yield* logLines(output, false);
+    let text = '';
+    for await (const chunk of removed) text += chunk;
+    return (JSON.parse(text) as { StatusCode: number }).StatusCode;
   } finally {
+    // Only left when the run was given up on before it finished
     await dockerRequest('DELETE', `/containers/${Id}?force=1`)
       .then((r) => r.resume())
       .catch(() => undefined);
