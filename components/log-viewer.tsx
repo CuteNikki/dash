@@ -21,6 +21,7 @@ import {
 } from '@/lib/ansi';
 import { cn } from '@/lib/utils';
 
+import { CodeSkeleton } from '@/components/skeletons';
 import { Button } from '@/components/ui/button';
 import {
   InputGroup,
@@ -102,6 +103,8 @@ function parse(id: number, entry: { stream: string; line: string }): Line {
 export function LogViewer({ containerId }: { containerId: string }) {
   const [lines, setLines] = useState<Line[]>([]);
   const [error, setError] = useState<string>();
+  // Until the first lines (or the news that there are none) come in
+  const [loaded, setLoaded] = useState(false);
   const [filter, setFilter] = useState('');
   const [follow, setFollow] = useState(true);
   const [wrap, setWrap] = useState(true);
@@ -122,6 +125,7 @@ export function LogViewer({ containerId }: { containerId: string }) {
       let rest = '';
       for (;;) {
         const { value, done } = await reader.read();
+        setLoaded(true);
         if (done) break;
         const parts = (rest + value).split('\n');
         rest = parts.pop() ?? '';
@@ -235,6 +239,8 @@ export function LogViewer({ containerId }: { containerId: string }) {
         <div ref={content}>
           {error ? (
             <p className='text-destructive'>{error}</p>
+          ) : !loaded ? (
+            <CodeSkeleton lines={20} className='h-auto bg-transparent p-0' />
           ) : shown.length === 0 ? (
             <p className='text-muted-foreground'>
               {filter ? 'No lines match.' : 'No log lines yet.'}

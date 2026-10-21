@@ -17,6 +17,7 @@ import type { GitChange, GitStatus } from '@/lib/git';
 
 import { BranchPicker } from '@/components/branch-picker';
 import { CodeEditor } from '@/components/code-editor';
+import { CodeSkeleton } from '@/components/skeletons';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -283,7 +284,7 @@ export function GitPanel({
                 readOnly
               />
             ) : (
-              <p className='text-muted-foreground'>Reading the changes…</p>
+              <CodeSkeleton />
             )
           ) : (
             <section

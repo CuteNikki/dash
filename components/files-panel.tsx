@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 
 import { CodeEditor } from '@/components/code-editor';
 import { MarkdownPreview } from '@/components/markdown-preview';
+import { CodeSkeleton, TreeSkeleton } from '@/components/skeletons';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
@@ -60,9 +61,7 @@ export function FilesPanel({
   );
 
   if (error) return <p className='text-muted-foreground'>{error.message}</p>;
-  if (!info || !path) {
-    return <p className='text-muted-foreground'>Loading files…</p>;
-  }
+  if (!info || !path) return <FilesSkeleton />;
 
   const name = path.split('/').at(-1)!;
   const saved = opened?.content;
@@ -172,7 +171,7 @@ export function FilesPanel({
           )}
           <div className='min-h-0 flex-1'>
             {opened === undefined ? (
-              <p className='text-muted-foreground'>Opening {name}…</p>
+              <CodeSkeleton />
             ) : opened.content === undefined ? (
               <p className='rounded-lg bg-muted p-3 text-muted-foreground'>
                 {name}: {opened.reason}
@@ -285,11 +284,7 @@ function Folder({
     );
   }
   if (!entries) {
-    return (
-      <p className='p-1 text-muted-foreground' style={indent}>
-        …
-      </p>
-    );
+    return <TreeSkeleton rows={depth === 0 ? 10 : 3} indent={indent} />;
   }
 
   return (
@@ -360,4 +355,35 @@ function without(edits: Record<string, string>, path: string) {
   const rest = { ...edits };
   delete rest[path];
   return rest;
+}
+
+/** The tab's own layout while the stack is looked up, so nothing jumps after. */
+function FilesSkeleton() {
+  return (
+    <div className='flex min-h-0 flex-1 flex-col gap-3'>
+      <div className='flex min-h-0 flex-1 flex-col gap-3 sm:flex-row'>
+        <div className='max-h-40 shrink-0 overflow-hidden rounded-lg bg-muted p-1 sm:max-h-none sm:w-56'>
+          <TreeSkeleton />
+        </div>
+        <div className='min-h-0 min-w-0 flex-1'>
+          <CodeSkeleton />
+        </div>
+      </div>
+      <div className='flex items-center gap-2'>
+        <span className='mr-auto' />
+        <Button variant='ghost' disabled>
+          <Undo2Icon />
+          Revert
+        </Button>
+        <Button variant='outline' disabled>
+          <SaveIcon />
+          Save
+        </Button>
+        <Button disabled>
+          <RocketIcon />
+          Redeploy
+        </Button>
+      </div>
+    </div>
+  );
 }
