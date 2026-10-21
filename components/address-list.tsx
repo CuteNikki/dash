@@ -27,10 +27,7 @@ export function AddressList({ addresses }: { addresses: string[] }) {
   return (
     <ul className='flex flex-wrap gap-x-4 gap-y-1'>
       {addresses.map((address) => (
-        <li
-          key={address}
-          className='flex min-w-0 items-center gap-1 leading-control'
-        >
+        <li key={address} className='flex min-w-0 items-center gap-1'>
           <span className='truncate font-mono select-all'>
             {formatAddress(address)}
           </span>

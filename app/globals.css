@@ -43,10 +43,12 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  /* Single-line controls (buttons, inputs, menu items): the font's own line
-     height, which keeps Geist's text centred beside icons at any display
-     scale, where relaxed sits it a pixel or so high */
-  --leading-control: normal;
+  /* Relaxed, as the mira style sets almost everything, but 20px at its 12px
+     text rather than 19.5px: whole pixels at 100%, 125% and 150% display
+     scale alike. On a fraction of a pixel, Chrome draws Geist up to a pixel
+     and a half above the middle of its line, so text beside an icon looked
+     too high. */
+  --leading-relaxed: calc(20 / 12);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
