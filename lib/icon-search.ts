@@ -16,6 +16,11 @@ const INDEXES = {
   mdi: 'https://cdn.jsdelivr.net/npm/@mdi/svg@7.4.47/meta.json',
   si: 'https://cdn.jsdelivr.net/npm/simple-icons@15.0.0/data/simple-icons.json',
   sh: 'https://cdn.jsdelivr.net/gh/selfhst/icons/index.json',
+  // These two have no index of their own; jsDelivr lists their files
+  papirus:
+    'https://data.jsdelivr.com/v1/packages/gh/PapirusDevelopmentTeam/papirus_icons@master?structure=flat',
+  homelab:
+    'https://data.jsdelivr.com/v1/packages/gh/loganmarchione/homelab-svg-assets@main?structure=flat',
 } satisfies Record<IconSet, string>;
 
 type Entry = {
@@ -34,6 +39,16 @@ async function json<T>(url: string): Promise<T> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`${url}: ${res.status}`);
   return res.json();
+}
+
+/** The SVG files in one folder of a repository, as jsDelivr lists them, by name. */
+async function svgFiles(listing: string, folder: string) {
+  const { files } = await json<{ files: { name: string }[] }>(listing);
+  return files
+    .map((f) => f.name)
+    .filter((path) => path.startsWith(folder) && path.endsWith('.svg'))
+    .map((path) => path.slice(folder.length, -'.svg'.length))
+    .filter((name) => !name.includes('/'));
 }
 
 /** Simple Icons' file names, made from titles by its own rule. */
@@ -112,6 +127,26 @@ const loaders: Record<IconSet, () => Promise<Entry[]>> = {
         name: i.Reference,
         aliases: [i.Name.toLowerCase()],
       }));
+  },
+  async papirus() {
+    return (await svgFiles(INDEXES.papirus, '/src/')).map((name) => {
+      // "games_pokemon_go" is also "pokemon go"
+      const words = name.replace(/^[a-z]+_/, '').replaceAll('_', ' ');
+      return {
+        icon: `papirus-${name}`,
+        set: 'papirus',
+        name,
+        aliases: [words],
+      };
+    });
+  },
+  async homelab() {
+    return (await svgFiles(INDEXES.homelab, '/assets/')).map((name) => ({
+      icon: `homelab-${name}`,
+      set: 'homelab',
+      name,
+      aliases: [],
+    }));
   },
 };
 
@@ -201,7 +236,14 @@ function score(entry: Entry, query: string) {
 }
 
 /** dashboard-icons first among equals: they're in color and made for apps. */
-const SET_ORDER: IconSet[] = ['dashboard', 'sh', 'si', 'mdi'];
+const SET_ORDER: IconSet[] = [
+  'dashboard',
+  'sh',
+  'homelab',
+  'papirus',
+  'si',
+  'mdi',
+];
 
 export type IconMatch = {
   icon: string;

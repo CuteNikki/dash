@@ -28,13 +28,29 @@ export const ICON_SETS = {
     url: 'https://cdn.jsdelivr.net/gh/selfhst/icons/svg',
     mono: false,
   },
+  // Two more Homarr offers, which Homepage has no names for
+  papirus: {
+    label: 'Papirus',
+    prefix: 'papirus-',
+    url: 'https://cdn.jsdelivr.net/gh/PapirusDevelopmentTeam/papirus_icons/src',
+    mono: false,
+  },
+  homelab: {
+    label: 'homelab-svg-assets',
+    prefix: 'homelab-',
+    url: 'https://cdn.jsdelivr.net/gh/loganmarchione/homelab-svg-assets/assets',
+    mono: false,
+  },
 } as const;
 
 export type IconSet = keyof typeof ICON_SETS;
 
+/** Sets named by a prefix; dashboard-icons has none. */
+const PREFIXED = ['mdi', 'si', 'sh', 'papirus', 'homelab'] as const;
+
 /** Which set an icon name belongs to, and its file name there. */
 export function parseIcon(icon: string): { set: IconSet; name: string } {
-  for (const set of ['mdi', 'si', 'sh'] as const) {
+  for (const set of PREFIXED) {
     const { prefix } = ICON_SETS[set];
     if (icon.startsWith(prefix)) {
       return { set, name: icon.slice(prefix.length) };
