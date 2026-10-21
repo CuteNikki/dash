@@ -5,10 +5,7 @@ import { toast } from 'sonner';
 import useSWR from 'swr';
 
 import {
-  ChevronRightIcon,
   EyeIcon,
-  FileIcon,
-  FolderIcon,
   HammerIcon,
   PencilIcon,
   RocketIcon,
@@ -18,11 +15,11 @@ import {
 
 import { saveFile } from '@/actions/files';
 import { fetcher } from '@/lib/fetcher';
-import type { HostEntry } from '@/lib/host-files';
 import type { OpenedFile, StackInfo } from '@/lib/stack-files';
 import { cn } from '@/lib/utils';
 
 import { CodeEditor } from '@/components/code-editor';
+import { FileTree, isWithin } from '@/components/file-tree';
 import { MarkdownPreview } from '@/components/markdown-preview';
 import { CodeSkeleton, TreeSkeleton } from '@/components/skeletons';
 import { Button } from '@/components/ui/button';
@@ -135,15 +132,30 @@ export function FilesPanel({
           aria-label='Files'
           className='max-h-40 shrink-0 overflow-auto rounded-lg bg-muted p-1 sm:max-h-none sm:w-56'
         >
-          <Folder
+          <FileTree
+            containerId={containerId}
             base={base}
-            path=''
-            depth={0}
+            dir={info.dir}
+            compose={info.compose}
             chosen={path}
             unsaved={unsaved}
             onChoose={(p) => {
               setChosen(p);
               setProblem(undefined);
+            }}
+            onRenamed={(from, to) => {
+              const move = (p: string) => movedPath(p, from, to);
+              setChosen(move(path));
+              setEdits((e) => mapKeys(e, move));
+              setPreviewed((p) => new Set([...p].map(move)));
+            }}
+            onDeleted={(gone) => {
+              const kept = (p: string) => !isWithin(gone, p);
+              if (!kept(path)) setChosen(undefined);
+              setEdits((e) =>
+                Object.fromEntries(Object.entries(e).filter(([p]) => kept(p)))
+              );
+              setPreviewed((p) => new Set([...p].filter(kept)));
             }}
           />
         </nav>
@@ -251,102 +263,14 @@ export function FilesPanel({
   );
 }
 
-/** A folder's entries, its subfolders loading when they're opened. */
-function Folder({
-  base,
-  path,
-  depth,
-  chosen,
-  unsaved,
-  onChoose,
-}: {
-  base: string;
-  path: string;
-  depth: number;
-  chosen: string;
-  unsaved: Set<string>;
-  onChoose: (path: string) => void;
-}) {
-  const { data: entries, error } = useSWR<HostEntry[]>(
-    `${base}/tree?path=${encodeURIComponent(path)}`,
-    fetcher,
-    { revalidateOnFocus: false }
-  );
-  const [open, setOpen] = useState<Set<string>>(new Set());
-  // Each level steps in by one gap width, from the theme's spacing
-  const indent = { paddingLeft: `calc(var(--spacing) * ${1 + depth * 4})` };
+/** Where a path is once `from` is renamed to `to`. */
+function movedPath(path: string, from: string, to: string) {
+  return isWithin(from, path) ? to + path.slice(from.length) : path;
+}
 
-  if (error) {
-    return (
-      <p className='p-1 text-muted-foreground' style={indent}>
-        {error.message}
-      </p>
-    );
-  }
-  if (!entries) {
-    return <TreeSkeleton rows={depth === 0 ? 10 : 3} indent={indent} />;
-  }
-
-  return (
-    <ul>
-      {entries.map((entry) => {
-        const full = path ? `${path}/${entry.name}` : entry.name;
-        const isOpen = open.has(full);
-        return (
-          <li key={entry.name}>
-            <button
-              type='button'
-              style={indent}
-              aria-expanded={entry.kind === 'dir' ? isOpen : undefined}
-              aria-current={full === chosen ? 'page' : undefined}
-              onClick={() => {
-                if (entry.kind === 'file') return onChoose(full);
-                setOpen((o) => {
-                  const next = new Set(o);
-                  if (next.has(full)) next.delete(full);
-                  else next.add(full);
-                  return next;
-                });
-              }}
-              className='flex w-full items-center gap-1.5 rounded-md py-1 pr-2 text-left hover:bg-background/60 aria-[current=page]:bg-background aria-[current=page]:font-medium'
-            >
-              {entry.kind === 'dir' ? (
-                <ChevronRightIcon
-                  className={cn(
-                    'size-3.5 shrink-0 text-muted-foreground transition-transform',
-                    isOpen && 'rotate-90'
-                  )}
-                />
-              ) : (
-                <span className='size-3.5 shrink-0' />
-              )}
-              {entry.kind === 'dir' ? (
-                <FolderIcon className='size-3.5 shrink-0 text-muted-foreground' />
-              ) : (
-                <FileIcon className='size-3.5 shrink-0 text-muted-foreground' />
-              )}
-              <span className='truncate'>{entry.name}</span>
-              {unsaved.has(full) && (
-                <span
-                  aria-label='Not saved'
-                  className='ml-auto size-1.5 shrink-0 rounded-full bg-foreground'
-                />
-              )}
-            </button>
-            {entry.kind === 'dir' && isOpen && (
-              <Folder
-                base={base}
-                path={full}
-                depth={depth + 1}
-                chosen={chosen}
-                unsaved={unsaved}
-                onChoose={onChoose}
-              />
-            )}
-          </li>
-        );
-      })}
-    </ul>
+function mapKeys<T>(record: Record<string, T>, map: (key: string) => string) {
+  return Object.fromEntries(
+    Object.entries(record).map(([key, value]) => [map(key), value])
   );
 }
 
