@@ -20,6 +20,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 
 /** How a service's tile looks: its name, icon, link and group. */
 export function EditTileDialog({
@@ -63,7 +64,7 @@ function EditTileForm({
 }) {
   const [name, setName] = useState(service.name);
   const [icon, setIcon] = useState(service.icon);
-  const [url, setUrl] = useState(service.url ?? '');
+  const [addresses, setAddresses] = useState(service.addresses.join('\n'));
   const [group, setGroup] = useState(service.group);
   const [hidden, setHidden] = useState(service.hidden);
   const [error, setError] = useState<string>();
@@ -75,7 +76,7 @@ function EditTileForm({
         key: service.key,
         name,
         icon,
-        url,
+        addresses: addresses.split('\n'),
         group,
         hidden,
       });
@@ -131,14 +132,18 @@ function EditTileForm({
           />
         </div>
         <div className='flex flex-col gap-2'>
-          <Label htmlFor='tile-url'>Link</Label>
-          <Input
-            id='tile-url'
-            type='url'
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder='https://'
+          <Label htmlFor='tile-addresses'>Addresses</Label>
+          <Textarea
+            id='tile-addresses'
+            value={addresses}
+            onChange={(e) => setAddresses(e.target.value)}
+            placeholder={'https://jellyfin.niso.moe\nmc.niso.moe:25565'}
+            className='font-mono'
+            spellCheck={false}
           />
+          <p className='text-muted-foreground'>
+            One per line: links, or anything else, like a host and port
+          </p>
         </div>
         <div className='flex flex-col gap-2'>
           <Label htmlFor='tile-group'>Group</Label>

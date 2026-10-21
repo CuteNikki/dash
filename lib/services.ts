@@ -2,6 +2,7 @@ import 'server-only';
 
 import { db } from '@/lib/db';
 import { listContainers, type Container } from '@/lib/docker';
+import { isLink } from '@/lib/format';
 import { DEFAULT_GROUP } from '@/lib/groups';
 import { iconInfo } from '@/lib/icon-search';
 import type { Dashboard, Service } from '@/lib/types';
@@ -49,8 +50,9 @@ export async function getDashboard(): Promise<Dashboard> {
     const key = serviceKey(c);
     const tile = edited.get(key);
     const u = usage.get(c.id);
-    // An empty link saved here means "no link", not "use the label's"
-    const url = tile?.url != null ? tile.url : l['homepage.href'];
+    // A tile edited here has its own addresses, even none
+    const href = l['homepage.href'];
+    const addresses = tile ? tile.addresses : href ? [href] : [];
     return {
       key,
       containerId: c.id,
@@ -62,7 +64,8 @@ export async function getDashboard(): Promise<Dashboard> {
         iconName(l['homepage.icon']) ||
         c.stack?.service ||
         c.name,
-      url: url || undefined,
+      addresses,
+      url: addresses.find(isLink),
       description: l['homepage.description'] || undefined,
       position: tile?.position ?? undefined,
       hidden: tile?.hidden ?? false,

@@ -17,11 +17,16 @@ export function formatCpu(percent: number) {
   return `${percent < 10 ? percent.toFixed(1) : Math.round(percent)}%`;
 }
 
-/** The address to show for a link: its host, without the scheme. */
-export function formatHost(url: string) {
-  try {
-    return new URL(url).host;
-  } catch {
-    return url;
-  }
+const SCHEME = /^https?:\/\//i;
+
+/** Whether an address is a web link, rather than text like a host and port. */
+export function isLink(address: string) {
+  return SCHEME.test(address);
+}
+
+/** An address as a tile shows it: a link without its scheme, the rest as it is. */
+export function formatAddress(address: string) {
+  return isLink(address)
+    ? address.replace(SCHEME, '').replace(/\/$/, '')
+    : address;
 }

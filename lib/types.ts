@@ -14,6 +14,9 @@ export type Service = {
   iconVariants?: IconVariants;
   /** When there's no icon by that name, so the letter shows from the start */
   iconMissing?: boolean;
+  /** Where to reach it: links, or plain text like a host and port */
+  addresses: string[];
+  /** The first of them that's a web link, for Open */
   url?: string;
   description?: string;
   /** Order within its group, when it's been placed; otherwise by name */

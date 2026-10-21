@@ -17,6 +17,7 @@ import { formatBytes, formatCpu } from '@/lib/format';
 import { isRunning, stateLabel } from '@/lib/status';
 import type { Service } from '@/lib/types';
 
+import { AddressList } from '@/components/address-list';
 import { LogViewer } from '@/components/log-viewer';
 import { ServiceIcon } from '@/components/service-icon';
 import { Sparkline } from '@/components/sparkline';
@@ -125,6 +126,9 @@ function ServiceBody({
             </DialogDescription>
           </div>
         </div>
+        {service.addresses.length > 0 && (
+          <AddressList addresses={service.addresses} />
+        )}
         <div className='flex flex-wrap items-center gap-2'>
           {running ? (
             <Button

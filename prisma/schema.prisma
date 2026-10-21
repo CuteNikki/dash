@@ -15,7 +15,9 @@ model Tile {
   name      String?
   /// A dashboard-icons name, "mdi-…", "si-…" or an https:// address
   icon      String?
-  url       String?
+  /// Where to reach it, one per line on the tile: links (https://…), or
+  /// plain text such as a host and port for a game server
+  addresses String[] @default([])
   group     String?
   /// Order within its group, lowest first
   position  Int?

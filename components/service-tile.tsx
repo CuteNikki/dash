@@ -1,6 +1,6 @@
 import { EyeOffIcon, PencilIcon } from 'lucide-react';
 
-import { formatBytes, formatCpu, formatHost } from '@/lib/format';
+import { formatAddress, formatBytes, formatCpu } from '@/lib/format';
 import { isRunning, stateLabel } from '@/lib/status';
 import type { Service } from '@/lib/types';
 
@@ -41,9 +41,14 @@ export function ServiceTile({
           />
           <div className='min-w-0 flex-1'>
             <div className='truncate text-sm font-medium'>{service.name}</div>
-            <div className='truncate text-muted-foreground'>
-              {service.url ? formatHost(service.url) : service.containerName}
-            </div>
+            {(service.addresses.length
+              ? service.addresses
+              : [service.containerName]
+            ).map((address) => (
+              <div key={address} className='truncate text-muted-foreground'>
+                {formatAddress(address)}
+              </div>
+            ))}
           </div>
           {editing ? (
             <span className='flex items-center gap-2 text-muted-foreground'>
