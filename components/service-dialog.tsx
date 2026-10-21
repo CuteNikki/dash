@@ -63,7 +63,7 @@ export function ServiceDialog({
   return (
     <Dialog open={!!service} onOpenChange={(open) => !open && onClose()}>
       {/* Full screen on a phone, a large window in the middle on a computer */}
-      <DialogContent className='flex h-full max-w-full flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-5/6 sm:max-w-5xl sm:rounded-xl'>
+      <DialogContent className='flex h-full max-w-full flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-5/6 sm:max-w-7xl sm:rounded-xl'>
         {service && (
           <ServiceBody
             service={service}
