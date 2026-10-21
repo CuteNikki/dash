@@ -61,13 +61,14 @@ export function ProcessList({
     // Its columns follow the card's own width: PID shows once there's room,
     // and a container's name beside its icon, so the process always has most
     <Card size='sm' className='@container px-3 lg:col-span-3'>
-      {/* The title, the filter in the middle, and how many there are */}
-      <div className='grid h-6 grid-cols-[1fr_auto_1fr] items-center gap-2 text-muted-foreground [&_svg:not([class*=size-])]:size-4'>
+      {/* The title, the filter in the middle, and how many there are; on a
+          narrow card, the filter goes on a line of its own below */}
+      <div className='grid grid-cols-[1fr_auto] items-center gap-2 text-muted-foreground @md:h-6 @md:grid-cols-[1fr_auto_1fr] [&_svg:not([class*=size-])]:size-4'>
         <span className='flex items-center gap-2'>
           <ListIcon />
           Processes
         </span>
-        <InputGroup className='h-6 w-48'>
+        <InputGroup className='order-last col-span-2 h-6 @md:order-none @md:col-span-1 @md:w-48'>
           <InputGroupAddon>
             <SearchIcon />
           </InputGroupAddon>
@@ -106,10 +107,20 @@ export function ProcessList({
                 <th className='w-8 font-normal @lg:w-40'>
                   <span className='hidden @lg:inline'>Container</span>
                 </th>
-                <SortHeading by='cpu' sort={sort} onSort={setSort}>
+                <SortHeading
+                  by='cpu'
+                  sort={sort}
+                  onSort={setSort}
+                  className='w-16'
+                >
                   CPU
                 </SortHeading>
-                <SortHeading by='memory' sort={sort} onSort={setSort}>
+                <SortHeading
+                  by='memory'
+                  sort={sort}
+                  onSort={setSort}
+                  className='w-18'
+                >
                   Memory
                 </SortHeading>
               </tr>
@@ -196,18 +207,21 @@ function SortHeading({
   by,
   sort,
   onSort,
+  className,
   children,
 }: {
   by: SortKey;
   sort: SortKey;
   onSort: (by: SortKey) => void;
+  /** Its width: as wide as its numbers, so it doesn't stand apart from the rest */
+  className: string;
   children: React.ReactNode;
 }) {
   const active = sort === by;
   return (
     <th
       aria-sort={active ? 'descending' : undefined}
-      className='w-20 text-right font-normal'
+      className={cn('text-right font-normal', className)}
     >
       <button
         type='button'
