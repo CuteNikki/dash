@@ -1,8 +1,12 @@
 'use client';
 
-import { useDeferredValue } from 'react';
+import { useDeferredValue, useRef, useTransition } from 'react';
+import { toast } from 'sonner';
 import useSWR from 'swr';
 
+import { UploadIcon } from 'lucide-react';
+
+import { uploadIcon } from '@/actions/icons';
 import { fetcher } from '@/lib/fetcher';
 import type { IconMatch } from '@/lib/icon-search';
 import { cn } from '@/lib/utils';
@@ -11,6 +15,7 @@ import { ServiceIcon } from '@/components/service-icon';
 import {
   InputGroup,
   InputGroupAddon,
+  InputGroupButton,
   InputGroupInput,
 } from '@/components/ui/input-group';
 
@@ -41,6 +46,22 @@ export function IconField({
     { keepPreviousData: true, revalidateOnFocus: false }
   );
 
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [uploading, startUpload] = useTransition();
+
+  function upload(file: File) {
+    startUpload(async () => {
+      const form = new FormData();
+      form.set('file', file);
+      const result = await uploadIcon(form);
+      if ('error' in result) {
+        toast.error("Couldn't upload the icon", { description: result.error });
+      } else {
+        onChange(result.url);
+      }
+    });
+  }
+
   return (
     <div className='flex flex-col gap-2'>
       <InputGroup>
@@ -55,7 +76,27 @@ export function IconField({
           autoComplete='off'
           spellCheck={false}
         />
+        <InputGroupAddon align='inline-end'>
+          <InputGroupButton
+            disabled={uploading}
+            onClick={() => fileInput.current?.click()}
+          >
+            <UploadIcon />
+            {uploading ? 'Uploading' : 'Upload'}
+          </InputGroupButton>
+        </InputGroupAddon>
       </InputGroup>
+      <input
+        ref={fileInput}
+        type='file'
+        accept='image/png,image/svg+xml,image/webp,image/jpeg'
+        hidden
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = '';
+          if (file) upload(file);
+        }}
+      />
       {matches.length > 0 && (
         <div className='grid max-h-40 grid-cols-8 gap-1 overflow-y-auto rounded-md border p-1'>
           {matches.map((match) => (

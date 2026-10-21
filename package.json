@@ -17,6 +17,7 @@
     "@better-auth/passkey": "^1.7.9",
     "@prisma/adapter-pg": "7.10.0",
     "@prisma/client": "7.10.0",
+    "aws4fetch": "^1.0.20",
     "better-auth": "^1.7.9",
     "class-variance-authority": "^0.7.1",
     "cmdk": "^1.1.1",
