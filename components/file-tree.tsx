@@ -432,7 +432,7 @@ function Folder({ path, depth }: { path: string; depth: number }) {
 }
 
 const ROW =
-  'flex w-full items-center gap-1.5 rounded-md py-1 pr-2 text-left hover:bg-background/60 aria-[current=page]:bg-background aria-[current=page]:font-medium';
+  'flex w-full items-center gap-1.5 rounded-md py-1 pr-2 text-left hover:bg-background/60 aria-[current=page]:bg-background';
 
 function Entry({
   entry,
@@ -452,81 +452,101 @@ function Entry({
   const remove = () => tree.askDelete(path, entry.kind);
 
   const renaming = tree.draft?.action === 'rename' && tree.draft.path === path;
+  // The full name, for one too long for the tree
+  const nameRef = useRef<HTMLSpanElement>(null);
+  const [showName, setShowName] = useState(false);
 
   return (
     <li>
       {renaming ? (
         <NameInput kind={entry.kind} depth={depth} name={entry.name} />
       ) : (
-        <ContextMenu modal={false}>
-          <ContextMenuTrigger asChild>
-            <button
-              type='button'
-              style={indentFor(depth)}
-              aria-expanded={isDir ? isOpen : undefined}
-              aria-current={path === tree.chosen ? 'page' : undefined}
-              onClick={() => (isDir ? tree.toggle(path) : tree.onChoose(path))}
-              onKeyDown={(e) => {
-                if (fixed) return;
-                if (e.key === 'F2') rename();
-                else if (e.key === 'Delete') remove();
-                else return;
-                e.preventDefault();
-              }}
-              className={ROW}
-            >
-              <EntryIcon kind={entry.kind} open={isOpen} />
-              <span className='truncate'>{entry.name}</span>
-              {tree.unsaved.has(path) && (
-                <span
-                  aria-label='Not saved'
-                  className='ml-auto size-1.5 shrink-0 rounded-full bg-foreground'
-                />
+        <Tooltip
+          open={showName}
+          onOpenChange={(o) => setShowName(o && isCutOff(nameRef.current))}
+        >
+          <ContextMenu modal={false}>
+            <TooltipTrigger asChild>
+              <ContextMenuTrigger asChild>
+                <button
+                  type='button'
+                  style={indentFor(depth)}
+                  aria-expanded={isDir ? isOpen : undefined}
+                  aria-current={path === tree.chosen ? 'page' : undefined}
+                  onClick={() =>
+                    isDir ? tree.toggle(path) : tree.onChoose(path)
+                  }
+                  onKeyDown={(e) => {
+                    if (fixed) return;
+                    if (e.key === 'F2') rename();
+                    else if (e.key === 'Delete') remove();
+                    else return;
+                    e.preventDefault();
+                  }}
+                  className={ROW}
+                >
+                  <EntryIcon kind={entry.kind} open={isOpen} />
+                  <span ref={nameRef} className='truncate'>
+                    {entry.name}
+                  </span>
+                  {tree.unsaved.has(path) && (
+                    <span
+                      aria-label='Not saved'
+                      className='ml-auto size-1.5 shrink-0 rounded-full bg-foreground'
+                    />
+                  )}
+                </button>
+              </ContextMenuTrigger>
+            </TooltipTrigger>
+            <ContextMenuContent onCloseAutoFocus={keepFocus}>
+              {isDir && (
+                <>
+                  <NewItems folder={path} />
+                  <ContextMenuSeparator />
+                </>
               )}
-            </button>
-          </ContextMenuTrigger>
-          <ContextMenuContent onCloseAutoFocus={keepFocus}>
-            {isDir && (
-              <>
-                <NewItems folder={path} />
-                <ContextMenuSeparator />
-              </>
-            )}
-            <ContextMenuItem disabled={fixed} onSelect={rename}>
-              <PencilIcon />
-              Rename…
-              <ContextMenuShortcut>F2</ContextMenuShortcut>
-            </ContextMenuItem>
-            <ContextMenuItem
-              variant='destructive'
-              disabled={fixed}
-              onSelect={remove}
-            >
-              <Trash2Icon />
-              Delete
-              <ContextMenuShortcut>Del</ContextMenuShortcut>
-            </ContextMenuItem>
-            <ContextMenuSeparator />
-            <ContextMenuItem onSelect={() => tree.copyPath(path)}>
-              <CopyIcon />
-              Copy Path
-            </ContextMenuItem>
-            <ContextMenuItem
-              onSelect={() =>
-                navigator.clipboard
-                  .writeText(path)
-                  .then(() => toast.success('Copied', { description: path }))
-              }
-            >
-              <CopyIcon />
-              Copy Relative Path
-            </ContextMenuItem>
-          </ContextMenuContent>
-        </ContextMenu>
+              <ContextMenuItem disabled={fixed} onSelect={rename}>
+                <PencilIcon />
+                Rename…
+                <ContextMenuShortcut>F2</ContextMenuShortcut>
+              </ContextMenuItem>
+              <ContextMenuItem
+                variant='destructive'
+                disabled={fixed}
+                onSelect={remove}
+              >
+                <Trash2Icon />
+                Delete
+                <ContextMenuShortcut>Del</ContextMenuShortcut>
+              </ContextMenuItem>
+              <ContextMenuSeparator />
+              <ContextMenuItem onSelect={() => tree.copyPath(path)}>
+                <CopyIcon />
+                Copy Path
+              </ContextMenuItem>
+              <ContextMenuItem
+                onSelect={() =>
+                  navigator.clipboard
+                    .writeText(path)
+                    .then(() => toast.success('Copied', { description: path }))
+                }
+              >
+                <CopyIcon />
+                Copy Relative Path
+              </ContextMenuItem>
+            </ContextMenuContent>
+          </ContextMenu>
+          <TooltipContent side='right'>{entry.name}</TooltipContent>
+        </Tooltip>
       )}
       {isDir && isOpen && <Folder path={path} depth={depth + 1} />}
     </li>
   );
+}
+
+/** Whether text is cut off at its box's edge. */
+function isCutOff(el: HTMLElement | null) {
+  return !!el && el.scrollWidth > el.clientWidth;
 }
 
 /** A folder's arrow, or the space for one, then its icon. */
