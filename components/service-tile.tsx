@@ -67,7 +67,10 @@ export function ServiceTile({
             <>
               <span>{formatCpu(service.usage.cpu)}</span>
               <span>{formatBytes(service.usage.memory)}</span>
-              <Sparkline values={service.usage.history} className='ml-auto' />
+              <Sparkline
+                values={service.usage.history.cpu}
+                className='ml-auto'
+              />
             </>
           ) : (
             <span>{stateLabel(service.state)}</span>

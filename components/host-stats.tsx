@@ -1,3 +1,7 @@
+'use client';
+
+import { useState } from 'react';
+
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -17,9 +21,10 @@ import {
 } from '@/lib/format';
 import type { HostStats } from '@/lib/types';
 
-import { Sparkline } from '@/components/sparkline';
+import { HistoryChart } from '@/components/history-chart';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 /** The server itself: what it is, then its CPU, memory, disk and network. */
 export function HostStatsBar({ host }: { host: HostStats }) {
@@ -80,7 +85,13 @@ function LiveStats({ host }: { host: HostStats }) {
         detail={`${host.cores} cores`}
         value={formatCpu(host.cpu)}
       >
-        <Sparkline values={host.history.cpu} className='h-6 w-full' />
+        <HistoryChart
+          label='CPU over the last ten minutes'
+          times={host.history.at}
+          series={[
+            { label: 'CPU', values: host.history.cpu, format: formatCpu },
+          ]}
+        />
       </Stat>
       <Stat
         icon={<MemoryStickIcon />}
@@ -98,29 +109,70 @@ function LiveStats({ host }: { host: HostStats }) {
       >
         <Usage used={host.disk.used} total={host.disk.total} />
       </Stat>
-      <Stat
-        icon={<NetworkIcon />}
-        label='Network'
-        detail={
-          <span className='flex items-center gap-1'>
-            <ArrowUpIcon className='size-3' />
-            {formatRate(host.network.sent)}
-          </span>
-        }
-        value={
+      <NetworkStat host={host} />
+    </div>
+  );
+}
+
+type Direction = 'down' | 'up' | 'both';
+
+/** Download and upload speed, with a graph of either or both. */
+function NetworkStat({ host }: { host: HostStats }) {
+  const [shown, setShown] = useState<Direction>('both');
+  const down = {
+    label: 'Download',
+    values: host.history.received,
+    format: formatRate,
+  };
+  const up = {
+    label: 'Upload',
+    values: host.history.sent,
+    format: formatRate,
+  };
+  const series = {
+    down: [down],
+    up: [up],
+    both: [down, { ...up, dashed: true }],
+  }[shown];
+
+  return (
+    <Stat
+      icon={<NetworkIcon />}
+      label='Network'
+      detail={
+        <ToggleGroup
+          type='single'
+          size='sm'
+          variant='outline'
+          value={shown}
+          // Picking the shown one again would unpick it; keep one picked
+          onValueChange={(v) => v && setShown(v as Direction)}
+          aria-label='Show in the graph'
+        >
+          <ToggleGroupItem value='down'>Down</ToggleGroupItem>
+          <ToggleGroupItem value='up'>Up</ToggleGroupItem>
+          <ToggleGroupItem value='both'>Both</ToggleGroupItem>
+        </ToggleGroup>
+      }
+      value={
+        <span className='flex items-center gap-4'>
           <span className='flex items-center gap-1'>
             <ArrowDownIcon className='size-4 text-muted-foreground' />
             {formatRate(host.network.received)}
           </span>
-        }
-      >
-        <Sparkline
-          values={host.history.received}
-          second={host.history.sent}
-          className='h-6 w-full'
-        />
-      </Stat>
-    </div>
+          <span className='flex items-center gap-1'>
+            <ArrowUpIcon className='size-4 text-muted-foreground' />
+            {formatRate(host.network.sent)}
+          </span>
+        </span>
+      }
+    >
+      <HistoryChart
+        label={`Network ${{ down: 'download', up: 'upload', both: 'download and upload' }[shown]} speed over the last ten minutes`}
+        times={host.history.at}
+        series={series}
+      />
+    </Stat>
   );
 }
 
@@ -140,10 +192,14 @@ function Stat({
 }) {
   return (
     <Card size='sm' className='px-3'>
-      <div className='flex items-center gap-2 text-muted-foreground [&_svg:not([class*=size-])]:size-4'>
+      <div className='flex h-6 items-center gap-2 text-muted-foreground [&_svg:not([class*=size-])]:size-4'>
         {icon}
         <span className='mr-auto'>{label}</span>
-        <span className='font-mono tabular-nums'>{detail}</span>
+        {typeof detail === 'string' ? (
+          <span className='font-mono tabular-nums'>{detail}</span>
+        ) : (
+          detail
+        )}
       </div>
       <div className='font-mono text-lg font-medium tabular-nums'>{value}</div>
       <div className='mt-auto flex h-6 items-end'>{children}</div>

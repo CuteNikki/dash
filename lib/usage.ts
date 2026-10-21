@@ -7,7 +7,7 @@ import {
   type Usage,
 } from '@/lib/docker';
 import { readHost, type HostReading } from '@/lib/host';
-import type { HostStats } from '@/lib/types';
+import type { HostStats, UsageHistory } from '@/lib/types';
 
 /** How often the server and its containers are measured while someone is watching. */
 const INTERVAL_MS = 5_000;
@@ -17,7 +17,7 @@ const HISTORY = 120;
 const IDLE_MS = 60_000;
 
 type Sampler = {
-  usage: Map<string, Usage & { history: number[] }>;
+  usage: Map<string, Usage & { history: UsageHistory }>;
   host?: HostStats;
   /** The last reading of the server's counters, to measure the next against */
   lastHost?: HostReading;
@@ -55,8 +55,15 @@ async function sampleContainers() {
     running.map(async (c) => {
       try {
         const reading = await containerUsage(c.id);
-        const history = recent(sampler.usage.get(c.id)?.history, reading.cpu);
-        sampler.usage.set(c.id, { ...reading, history });
+        const last = sampler.usage.get(c.id)?.history;
+        sampler.usage.set(c.id, {
+          ...reading,
+          history: {
+            at: recent(last?.at, Date.now()),
+            cpu: recent(last?.cpu, reading.cpu),
+            memory: recent(last?.memory, reading.memory),
+          },
+        });
       } catch {
         // Stopped between listing and measuring: it drops out next time
       }
@@ -91,6 +98,7 @@ async function sampleHost() {
       swap: now.swap,
     },
     history: {
+      at: recent(history?.at, now.at),
       cpu: recent(history?.cpu, cpu),
       memory: recent(history?.memory, now.memory.used),
       received: recent(history?.received, received),

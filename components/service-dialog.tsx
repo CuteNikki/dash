@@ -18,9 +18,9 @@ import { isRunning, stateLabel } from '@/lib/status';
 import type { Service } from '@/lib/types';
 
 import { AddressList } from '@/components/address-list';
+import { HistoryChart } from '@/components/history-chart';
 import { LogViewer } from '@/components/log-viewer';
 import { ServiceIcon } from '@/components/service-icon';
-import { Sparkline } from '@/components/sparkline';
 import { StatusDot } from '@/components/status-dot';
 import {
   AlertDialog,
@@ -220,6 +220,38 @@ function ServiceBody({
   );
 }
 
+/** One measure: its current value, and the last ten minutes of it. */
+function UsageChart({
+  label,
+  value,
+  values,
+  times,
+  format,
+}: {
+  label: string;
+  value?: number;
+  values?: number[];
+  times?: number[];
+  format: (value: number) => string;
+}) {
+  return (
+    <div className='flex flex-col gap-2'>
+      <span className='text-muted-foreground'>{label}, last ten minutes</span>
+      <span className='font-mono text-lg tabular-nums'>
+        {value === undefined ? '–' : format(value)}
+      </span>
+      {values && times && (
+        <HistoryChart
+          label={`${label} over the last ten minutes`}
+          times={times}
+          series={[{ label, values, format }]}
+          className='h-24 text-foreground'
+        />
+      )}
+    </div>
+  );
+}
+
 function UsagePanel({ service }: { service: Service }) {
   const usage = service.usage;
   const details = [
@@ -230,29 +262,22 @@ function UsagePanel({ service }: { service: Service }) {
   ];
   return (
     <div className='flex flex-col gap-6'>
-      <div className='grid grid-cols-2 gap-4'>
-        <div className='flex flex-col gap-1'>
-          <span className='text-muted-foreground'>CPU</span>
-          <span className='font-mono text-lg tabular-nums'>
-            {usage ? formatCpu(usage.cpu) : '–'}
-          </span>
-        </div>
-        <div className='flex flex-col gap-1'>
-          <span className='text-muted-foreground'>Memory</span>
-          <span className='font-mono text-lg tabular-nums'>
-            {usage ? formatBytes(usage.memory) : '–'}
-          </span>
-        </div>
+      <div className='flex flex-col gap-6'>
+        <UsageChart
+          label='CPU'
+          value={usage?.cpu}
+          values={usage?.history.cpu}
+          times={usage?.history.at}
+          format={formatCpu}
+        />
+        <UsageChart
+          label='Memory'
+          value={usage?.memory}
+          values={usage?.history.memory}
+          times={usage?.history.at}
+          format={formatBytes}
+        />
       </div>
-      {usage && (
-        <div className='flex flex-col gap-2'>
-          <span className='text-muted-foreground'>CPU, last ten minutes</span>
-          <Sparkline
-            values={usage.history}
-            className='h-24 w-full text-foreground'
-          />
-        </div>
-      )}
       <dl className='grid grid-cols-[auto_1fr] gap-x-6 gap-y-2'>
         {details.map(([label, value]) => (
           <div key={label} className='contents'>

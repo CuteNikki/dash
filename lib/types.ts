@@ -34,9 +34,18 @@ export type Service = {
     cpu: number;
     /** Bytes */
     memory: number;
-    /** Recent CPU readings, oldest first */
-    history: number[];
+    history: UsageHistory;
   };
+};
+
+/** A container's recent readings, oldest first */
+export type UsageHistory = {
+  /** When each was taken, in milliseconds since 1970 */
+  at: number[];
+  /** Percent of one core */
+  cpu: number[];
+  /** Bytes */
+  memory: number[];
 };
 
 export type Dashboard = {
@@ -70,6 +79,8 @@ export type HostStats = {
   };
   /** Recent readings, oldest first */
   history: {
+    /** When each reading was taken, in milliseconds since 1970 */
+    at: number[];
     cpu: number[];
     memory: number[];
     received: number[];
