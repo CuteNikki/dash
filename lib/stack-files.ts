@@ -155,20 +155,11 @@ function checkName(name: string) {
   return trimmed;
 }
 
-/**
- * The stack's folder and its compose files are left alone, as are folders
- * holding them: Docker finds the stack by those paths.
- */
+/** A path in the stack's folder, other than the folder itself, which stays. */
 async function checkMovable(stack: Stack, relative: string) {
   const path = await resolve(stack, relative);
   if (path === ((await realHostPath(stack.dir)) ?? stack.dir)) {
     throw new Error('That’s the stack’s own folder');
-  }
-  const compose = stack.files.find((f) => within(path, f));
-  if (compose) {
-    throw new Error(
-      `${posix.basename(compose)} is how Docker finds this stack, so it stays where it is`
-    );
   }
   return path;
 }

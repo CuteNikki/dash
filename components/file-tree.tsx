@@ -76,8 +76,8 @@ type Tree = {
    */
   finishDraft: (name: string | undefined, fromKey: boolean) => void;
   askDelete: (path: string, kind: Kind) => void;
-  /** Whether Docker finds the stack by this path, so it can't be renamed or deleted */
-  isFixed: (path: string) => boolean;
+  /** The compose file at or inside this path, which Docker finds the stack by */
+  composeIn: (path: string) => string | undefined;
   copyPath: (path: string) => void;
   onChoose: (path: string) => void;
   folderKey: (folder: string) => string;
@@ -152,6 +152,10 @@ export function FileTree({
   const folderKey = (folder: string) =>
     `${base}/tree?path=${encodeURIComponent(folder)}`;
   const refresh = (folder: string) => mutate(folderKey(folder));
+  const composeIn = (path: string) => compose.find((c) => isWithin(path, c));
+  /** What moving a compose file does, said once it's done or in asking */
+  const stackWarning = (file: string) =>
+    `Docker finds this stack by ${file}, so Redeploy won’t work until there’s a ${nameOf(file)} there again.`;
   // Where the toolbar's New File and New Folder put things: beside the open file
   const here = parentOf(chosen);
 
@@ -242,6 +246,11 @@ export function FileTree({
         )
     );
     onRenamed(current.path, path);
+    const moved = composeIn(current.path);
+    if (moved)
+      toast.warning(`Renamed ${nameOf(current.path)}`, {
+        description: stackWarning(moved),
+      });
     return path;
   }
 
@@ -254,7 +263,6 @@ export function FileTree({
       if (e.key !== 'F2' || e.target instanceof HTMLInputElement) return;
       const row = (e.target as Element).closest<HTMLElement>('[data-path]');
       const path = row?.dataset.path ?? chosen;
-      if (compose.some((c) => isWithin(path, c))) return;
       e.preventDefault();
       startDraft({
         action: 'rename',
@@ -294,7 +302,7 @@ export function FileTree({
     startDraft,
     finishDraft,
     askDelete: (path, kind) => setDeleting({ path, kind }),
-    isFixed: (path) => compose.some((c) => isWithin(path, c)),
+    composeIn,
     copyPath: (path) => copyPath(`${dir}/${path}`),
     onChoose,
     folderKey,
@@ -367,6 +375,9 @@ export function FileTree({
                 ? 'The folder and everything in it are deleted from the server. '
                 : 'The file is deleted from the server. '}
               This can’t be undone.
+              {deleting && composeIn(deleting.path) && (
+                <> {stackWarning(composeIn(deleting.path)!)}</>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -509,7 +520,6 @@ function Entry({
 }) {
   const tree = useTree();
   const isOpen = tree.open.has(path);
-  const fixed = tree.isFixed(path);
   const isDir = entry.kind === 'dir';
   const rename = () =>
     tree.startDraft({ action: 'rename', kind: entry.kind, path });
@@ -541,11 +551,11 @@ function Entry({
                     isDir ? tree.toggle(path) : tree.onChoose(path)
                   }
                   // A folder's clicks open and close it, so only files
-                  onDoubleClick={() => !isDir && !fixed && rename()}
+                  onDoubleClick={() => !isDir && rename()}
                   data-path={path}
                   data-kind={entry.kind}
                   onKeyDown={(e) => {
-                    if (fixed || e.key !== 'Delete') return;
+                    if (e.key !== 'Delete') return;
                     e.preventDefault();
                     remove();
                   }}
@@ -571,16 +581,12 @@ function Entry({
                   <ContextMenuSeparator />
                 </>
               )}
-              <ContextMenuItem disabled={fixed} onSelect={rename}>
+              <ContextMenuItem onSelect={rename}>
                 <PencilIcon />
                 Rename…
                 <ContextMenuShortcut>F2</ContextMenuShortcut>
               </ContextMenuItem>
-              <ContextMenuItem
-                variant='destructive'
-                disabled={fixed}
-                onSelect={remove}
-              >
+              <ContextMenuItem variant='destructive' onSelect={remove}>
                 <Trash2Icon />
                 Delete
                 <ContextMenuShortcut>Del</ContextMenuShortcut>
