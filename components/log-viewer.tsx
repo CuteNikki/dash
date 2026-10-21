@@ -1,6 +1,13 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  Fragment,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import { ListEndIcon, SearchIcon } from 'lucide-react';
 
@@ -179,28 +186,62 @@ export function LogViewer({ containerId }: { containerId: string }) {
             {filter ? 'No lines match.' : 'No log lines yet.'}
           </p>
         ) : (
-          shown.map((line) => (
-            <div key={line.id} className='flex gap-3 whitespace-pre'>
-              <span className='shrink-0 text-muted-foreground tabular-nums'>
-                {line.time?.toLocaleTimeString()}
-              </span>
-              <span>
-                {line.segments.map((segment, i) => (
-                  <span
-                    key={i}
-                    className={cn(
-                      segment.tone && TONE_CLASS[segment.tone],
-                      segment.bold && 'font-semibold'
-                    )}
-                  >
-                    {segment.text}
-                  </span>
-                ))}
-              </span>
-            </div>
+          shown.map((line, i) => (
+            <Fragment key={line.id}>
+              {line.time && dayOf(line.time) !== dayOf(shown[i - 1]?.time) && (
+                <div className='flex items-center gap-3 py-2 text-muted-foreground'>
+                  {dayLabel(line.time)}
+                  <span className='h-px flex-1 bg-border' />
+                </div>
+              )}
+              <LogLine line={line} />
+            </Fragment>
           ))
         )}
       </div>
+    </div>
+  );
+}
+
+/** The calendar day of a time, to tell when the log moves on to another. */
+function dayOf(time?: Date) {
+  return time?.toDateString();
+}
+
+/** "Today", "Yesterday", or the date, with the year once it's not this one. */
+function dayLabel(time: Date) {
+  const now = new Date();
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (dayOf(time) === dayOf(now)) return 'Today';
+  if (dayOf(time) === dayOf(yesterday)) return 'Yesterday';
+  return time.toLocaleDateString(undefined, {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: time.getFullYear() === now.getFullYear() ? undefined : 'numeric',
+  });
+}
+
+function LogLine({ line }: { line: Line }) {
+  return (
+    <div className='flex gap-3 whitespace-pre'>
+      <span className='shrink-0 text-muted-foreground tabular-nums'>
+        {line.time?.toLocaleTimeString()}
+      </span>
+      <span>
+        {line.segments.map((segment, i) => (
+          <span
+            key={i}
+            className={cn(
+              segment.tone && TONE_CLASS[segment.tone],
+              segment.bold && 'font-semibold'
+            )}
+          >
+            {segment.text}
+          </span>
+        ))}
+      </span>
     </div>
   );
 }
