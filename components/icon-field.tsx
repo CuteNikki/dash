@@ -4,7 +4,7 @@ import { useDeferredValue, useRef, useTransition } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 
-import { UploadIcon } from 'lucide-react';
+import { LoaderIcon, UploadIcon } from 'lucide-react';
 
 import { uploadIcon } from '@/actions/icons';
 import { fetcher } from '@/lib/fetcher';
@@ -18,6 +18,11 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from '@/components/ui/input-group';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 /**
  * An icon by name, with matches from every icon set to pick from below. Any
@@ -77,13 +82,23 @@ export function IconField({
           spellCheck={false}
         />
         <InputGroupAddon align='inline-end'>
-          <InputGroupButton
-            disabled={uploading}
-            onClick={() => fileInput.current?.click()}
-          >
-            <UploadIcon />
-            {uploading ? 'Uploading' : 'Upload'}
-          </InputGroupButton>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <InputGroupButton
+                size='icon-xs'
+                aria-label='Upload an icon'
+                disabled={uploading}
+                onClick={() => fileInput.current?.click()}
+              >
+                {uploading ? (
+                  <LoaderIcon className='animate-spin' />
+                ) : (
+                  <UploadIcon />
+                )}
+              </InputGroupButton>
+            </TooltipTrigger>
+            <TooltipContent>Upload an icon</TooltipContent>
+          </Tooltip>
         </InputGroupAddon>
       </InputGroup>
       <input
