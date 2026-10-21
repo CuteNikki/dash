@@ -10,9 +10,12 @@ export type Segment = { text: string; tone?: Tone; bold?: boolean };
 const ESC = String.fromCharCode(27);
 /** Color and style changes: ESC [ <codes> m */
 const SGR = new RegExp(`${ESC}\\[([0-9;]*)m`, 'g');
-/** Other terminal controls (cursor moves, clearing, titles), dropped */
+/**
+ * Other terminal controls (cursor moves, clearing, titles, the keypad modes
+ * a console switches when it takes input), dropped
+ */
 const OTHER_CONTROLS = new RegExp(
-  `${ESC}\\[[0-9;?]*[A-Za-ln-z]|${ESC}\\][^\\u0007]*(\\u0007|${ESC}\\\\)|${ESC}[()][0-9A-Za-z]`,
+  `${ESC}\\[[0-9;?]*[A-Za-ln-z]|${ESC}\\][^\\u0007]*(\\u0007|${ESC}\\\\)|${ESC}[()][0-9A-Za-z]|${ESC}[=>]`,
   'g'
 );
 

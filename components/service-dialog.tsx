@@ -217,7 +217,9 @@ function ServiceBody({
       <Tabs defaultValue='usage' className='min-h-0 flex-1 gap-4 p-4'>
         <TabsList>
           <TabsTrigger value='usage'>Usage</TabsTrigger>
-          <TabsTrigger value='logs'>Logs</TabsTrigger>
+          <TabsTrigger value='logs'>
+            {service.console ? 'Console' : 'Logs'}
+          </TabsTrigger>
           {service.stack && <TabsTrigger value='files'>Files</TabsTrigger>}
           {git && (
             <TabsTrigger value='git'>
@@ -234,6 +236,7 @@ function ServiceBody({
           <LogViewer
             key={service.containerId}
             containerId={service.containerId}
+            commands={service.console ? { running } : undefined}
           />
         </TabsContent>
         {service.stack && (

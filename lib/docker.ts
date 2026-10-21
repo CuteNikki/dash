@@ -45,17 +45,22 @@ export function dockerRequest(
       },
       async (res) => {
         if ((res.statusCode ?? 500) < 400) return resolve(res);
-        const text = await readAll(res);
-        let message = text;
-        try {
-          message = JSON.parse(text).message ?? text;
-        } catch {}
-        reject(new DockerError(message.trim(), res.statusCode ?? 500));
+        reject(await errorFrom(res));
       }
     );
     req.on('error', reject);
     req.end(body ? JSON.stringify(body) : undefined);
   });
+}
+
+/** Docker's reason for refusing a request: its message, or what it sent. */
+async function errorFrom(res: http.IncomingMessage) {
+  const text = await readAll(res);
+  let message = text;
+  try {
+    message = JSON.parse(text).message ?? text;
+  } catch {}
+  return new DockerError(message.trim(), res.statusCode ?? 500);
 }
 
 async function readAll(res: http.IncomingMessage) {
@@ -205,6 +210,57 @@ export async function containerUsage(id: string): Promise<Usage> {
     memory:
       (s.memory_stats.usage ?? 0) - (s.memory_stats.stats?.inactive_file ?? 0),
   };
+}
+
+/**
+ * Whether each container keeps its console's input open (compose's
+ * stdin_open), as a game server's console does. Docker sets it when it makes
+ * the container, so each is asked about once; this keeps only those there are.
+ */
+const inputOpen = new Map<string, boolean>();
+
+export async function takesInput(id: string) {
+  let open = inputOpen.get(id);
+  if (open === undefined) {
+    open = await dockerJson<{ Config: { OpenStdin: boolean } }>(
+      'GET',
+      `/containers/${encodeURIComponent(id)}/json`
+    ).then(
+      (info) => info.Config.OpenStdin,
+      () => false
+    );
+    inputOpen.set(id, open);
+  }
+  return open;
+}
+
+/** Which of every container there is take input, forgetting those gone. */
+export async function takingInput(containers: Container[]) {
+  const ids = new Set(containers.map((c) => c.id));
+  for (const id of inputOpen.keys()) if (!ids.has(id)) inputOpen.delete(id);
+  const open = await Promise.all([...ids].map(takesInput));
+  return new Set([...ids].filter((_, i) => open[i]));
+}
+
+/**
+ * Types into a running container's console, as `docker attach` would: the
+ * text goes to its input, and what it prints in reply shows in its log.
+ */
+export function sendInput(id: string, text: string) {
+  return new Promise<void>((resolve, reject) => {
+    const req = http.request({
+      ...connection(),
+      method: 'POST',
+      path: `/containers/${encodeURIComponent(id)}/attach?stream=1&stdin=1`,
+      // Docker hands over the connection itself, to write the input into
+      headers: { Connection: 'Upgrade', Upgrade: 'tcp' },
+    });
+    req.on('upgrade', (_res, socket) => socket.end(text, () => resolve()));
+    // Answered rather than handed over: refused, as when it's stopped
+    req.on('response', async (res) => reject(await errorFrom(res)));
+    req.on('error', reject);
+    req.end();
+  });
 }
 
 /** The id on the server of a running container's own process, its first. */

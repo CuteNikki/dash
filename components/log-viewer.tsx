@@ -21,6 +21,7 @@ import {
 } from '@/lib/ansi';
 import { cn } from '@/lib/utils';
 
+import { ConsoleInput } from '@/components/console-input';
 import { CodeSkeleton } from '@/components/skeletons';
 import { Button } from '@/components/ui/button';
 import {
@@ -99,8 +100,19 @@ function parse(id: number, entry: { stream: string; line: string }): Line {
   };
 }
 
-/** A container's log, following new lines as they're written. Keyed by container, so a new one starts empty. */
-export function LogViewer({ containerId }: { containerId: string }) {
+/**
+ * A container's log, following new lines as they're written, with a line to
+ * type commands into under it for one whose console takes them. Keyed by
+ * container, so a new one starts empty.
+ */
+export function LogViewer({
+  containerId,
+  commands,
+}: {
+  containerId: string;
+  /** Its console takes commands: whether it's running to take them now */
+  commands?: { running: boolean };
+}) {
   const [lines, setLines] = useState<Line[]>([]);
   const [error, setError] = useState<string>();
   // Until the first lines (or the news that there are none) come in
@@ -261,6 +273,14 @@ export function LogViewer({ containerId }: { containerId: string }) {
           )}
         </div>
       </div>
+      {commands && (
+        <ConsoleInput
+          containerId={containerId}
+          running={commands.running}
+          // Back to the end, where the reply comes in
+          onSent={() => setFollow(true)}
+        />
+      )}
     </div>
   );
 }

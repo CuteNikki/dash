@@ -29,6 +29,8 @@ export type Service = {
   state: ContainerState;
   status: string;
   stack?: { project: string; service: string; dir: string; files: string[] };
+  /** Takes commands typed into its console, as a game server does */
+  console: boolean;
   usage?: {
     /** Percent of one core */
     cpu: number;

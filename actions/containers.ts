@@ -5,9 +5,15 @@ import {
   containerAction,
   execRun,
   listContainers,
+  sendInput,
+  takesInput,
   type ContainerAction,
 } from '@/lib/docker';
 import { requireUser } from '@/lib/session';
+import { isRunning } from '@/lib/status';
+
+/** Longer than any command a console takes, to keep a paste from flooding one. */
+const MAX_COMMAND = 1_000;
 
 const ACTIONS: ContainerAction[] = ['start', 'stop', 'restart'];
 
@@ -26,6 +32,39 @@ export async function runContainerAction(
   }
   try {
     await containerAction(id, action);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: (error as Error).message };
+  }
+}
+
+/**
+ * Types one command into a container's console, as pressing Enter there
+ * would; its reply shows in the log.
+ */
+export async function sendToConsole(
+  id: string,
+  command: string
+): Promise<ActionResult> {
+  await requireUser();
+  if (/[\r\n]/.test(command)) {
+    return { ok: false, error: 'One command at a time, on one line' };
+  }
+  if (command.length > MAX_COMMAND) {
+    return { ok: false, error: 'That command is too long' };
+  }
+  const container = (await listContainers()).find((c) => c.id === id);
+  if (!container) {
+    return { ok: false, error: 'That container no longer exists' };
+  }
+  if (!(await takesInput(id))) {
+    return { ok: false, error: 'Its console takes no input' };
+  }
+  if (!isRunning(container.state)) {
+    return { ok: false, error: "It isn't running" };
+  }
+  try {
+    await sendInput(id, `${command}\n`);
     return { ok: true };
   } catch (error) {
     return { ok: false, error: (error as Error).message };

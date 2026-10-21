@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { db } from '@/lib/db';
-import { listContainers, type Container } from '@/lib/docker';
+import { listContainers, takingInput, type Container } from '@/lib/docker';
 import { isLink } from '@/lib/format';
 import { DEFAULT_GROUP } from '@/lib/groups';
 import { iconInfo } from '@/lib/icon-search';
@@ -45,6 +45,7 @@ export async function getDashboard(): Promise<Dashboard> {
       db.group.findMany({ orderBy: { position: 'asc' } }),
     ]);
   const edited = new Map(tiles.map((t) => [t.key, t]));
+  const consoles = await takingInput(containers);
 
   // The development helper that reads the server's stats isn't a service
   const helper = process.env.HOST_HELPER_CONTAINER;
@@ -79,6 +80,7 @@ export async function getDashboard(): Promise<Dashboard> {
         state: c.state,
         status: c.status,
         stack: c.stack,
+        console: consoles.has(c.id),
         usage: u
           ? { cpu: u.cpu, memory: u.memory, history: u.history }
           : undefined,
