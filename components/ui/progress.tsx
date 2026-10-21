@@ -12,8 +12,10 @@ function Progress({
   return (
     <ProgressPrimitive.Root
       data-slot='progress'
+      // The track a faint tint of the text, so it shows on any background,
+      // the muted panels it's often on included
       className={cn(
-        'relative flex h-1 w-full items-center overflow-x-hidden rounded-md bg-muted',
+        'relative flex h-1 w-full items-center overflow-x-hidden rounded-md bg-foreground/10',
         className
       )}
       {...props}
