@@ -24,6 +24,9 @@ async function gitScript(dir: string, script: string, ...args: string[]) {
       GIT_TERMINAL_PROMPT: '0',
       GIT_SSH_COMMAND: 'ssh -o BatchMode=yes',
     },
+    // The server's users, as SSH won't run as one it can't look up, and the
+    // image doesn't know the folder's owner
+    binds: ['/etc/passwd:/etc/passwd:ro', '/etc/group:/etc/group:ro'],
   };
   const { ok, lines } = await runToEnd(run);
   return {
