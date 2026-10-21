@@ -147,17 +147,34 @@ export function LogViewer({ containerId }: { containerId: string }) {
   useEffect(() => {
     const el = scroller.current;
     if (!el) return;
+    // Where a run of wheel turns is headed, so they add up into one smooth scroll
+    let target: number | undefined;
     function onWheel(e: WheelEvent) {
       if (!e.shiftKey || e.deltaX !== 0 || e.deltaY === 0 || !el) return;
+      // Only where the panel would refuse it; elsewhere the browser does it
+      const atEnd =
+        e.deltaY > 0
+          ? el.scrollHeight - el.scrollTop - el.clientHeight <= BOTTOM_SLACK_PX
+          : el.scrollTop <= 0;
+      if (!atEnd) return;
       e.preventDefault();
-      const lineHeight = parseFloat(getComputedStyle(el).lineHeight);
-      el.scrollLeft +=
+      const delta =
         e.deltaMode === WheelEvent.DOM_DELTA_LINE
-          ? e.deltaY * lineHeight
+          ? e.deltaY * parseFloat(getComputedStyle(el).lineHeight)
           : e.deltaY;
+      const widest = el.scrollWidth - el.clientWidth;
+      target = Math.min(widest, Math.max(0, (target ?? el.scrollLeft) + delta));
+      el.scrollTo({ left: target, behavior: 'smooth' });
+    }
+    function onScrollEnd() {
+      target = undefined;
     }
     el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
+    el.addEventListener('scrollend', onScrollEnd);
+    return () => {
+      el.removeEventListener('wheel', onWheel);
+      el.removeEventListener('scrollend', onScrollEnd);
+    };
   }, []);
 
   // Where the last scroll left off, to tell the reader scrolling up from the
