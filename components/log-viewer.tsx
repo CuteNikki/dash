@@ -141,40 +141,18 @@ export function LogViewer({ containerId }: { containerId: string }) {
     if (follow && el) el.scrollTop = el.scrollHeight;
   }, [shown, follow]);
 
-  // Shift and the wheel scroll long lines sideways. Some browsers report that
-  // as scrolling down, which the panel (a dialog, keeping the page behind it
-  // still) refuses at the end of the log, so the log scrolls itself sideways
+  // Shift and the wheel scroll long lines sideways, which some browsers report
+  // as scrolling down. The panel (a dialog, keeping the page behind it still)
+  // cancels that on the document at the end of the log, so those wheel turns
+  // stop here and the browser scrolls them as it does everywhere else.
   useEffect(() => {
     const el = scroller.current;
     if (!el) return;
-    // Where a run of wheel turns is headed, so they add up into one smooth scroll
-    let target: number | undefined;
     function onWheel(e: WheelEvent) {
-      if (!e.shiftKey || e.deltaX !== 0 || e.deltaY === 0 || !el) return;
-      // Only where the panel would refuse it; elsewhere the browser does it
-      const atEnd =
-        e.deltaY > 0
-          ? el.scrollHeight - el.scrollTop - el.clientHeight <= BOTTOM_SLACK_PX
-          : el.scrollTop <= 0;
-      if (!atEnd) return;
-      e.preventDefault();
-      const delta =
-        e.deltaMode === WheelEvent.DOM_DELTA_LINE
-          ? e.deltaY * parseFloat(getComputedStyle(el).lineHeight)
-          : e.deltaY;
-      const widest = el.scrollWidth - el.clientWidth;
-      target = Math.min(widest, Math.max(0, (target ?? el.scrollLeft) + delta));
-      el.scrollTo({ left: target, behavior: 'smooth' });
+      if (e.shiftKey) e.stopPropagation();
     }
-    function onScrollEnd() {
-      target = undefined;
-    }
-    el.addEventListener('wheel', onWheel, { passive: false });
-    el.addEventListener('scrollend', onScrollEnd);
-    return () => {
-      el.removeEventListener('wheel', onWheel);
-      el.removeEventListener('scrollend', onScrollEnd);
-    };
+    el.addEventListener('wheel', onWheel);
+    return () => el.removeEventListener('wheel', onWheel);
   }, []);
 
   // Where the last scroll left off, to tell the reader scrolling up from the
