@@ -28,8 +28,26 @@ type Line = {
 };
 
 const TIMESTAMP = /^(\d{4}-\d{2}-\d{2}T[\d:.]+Z)\s?/;
-const ERROR_WORDS = /\b(error|err|fatal|panic|exception)\b/i;
-const WARNING_WORDS = /\b(warn|warning|wrn)\b/i;
+/**
+ * The level a line states, for lines without colors of their own: a level
+ * word in capitals (ERROR, WARN), a structured one ("level":"error",
+ * level=warn), or the line starting with it ("error: …", "[warn]"). The words
+ * inside a file name or a message, like commands/warn.ts, don't count.
+ */
+function levelPattern(capitals: string, words: string) {
+  return new RegExp(
+    [
+      `\\b(${capitals})\\b`,
+      `\\blevel["']?\\s*[:=]\\s*["']?(${words})\\b`,
+      `^\\s*\\[?(${words})\\]?:?\\s`,
+    ].join('|')
+  );
+}
+const ERROR_LEVEL = levelPattern(
+  'ERROR|ERR|FATAL|PANIC|CRITICAL',
+  'error|err|fatal|panic|critical'
+);
+const WARNING_LEVEL = levelPattern('WARN|WARNING|WRN', 'warn|warning|wrn');
 
 const TONE_CLASS: Record<Tone, string> = {
   error: 'text-destructive',
@@ -38,12 +56,12 @@ const TONE_CLASS: Record<Tone, string> = {
   muted: 'text-muted-foreground',
 };
 
-/** A line's own colors, or for one without, a guess from words like "error". */
+/** A line's own colors, or for one without, the level it states. */
 function segmentsOf(text: string): Segment[] {
   if (hasAnsi(text)) return parseAnsi(text);
-  const tone: Tone | undefined = ERROR_WORDS.test(text)
+  const tone: Tone | undefined = ERROR_LEVEL.test(text)
     ? 'error'
-    : WARNING_WORDS.test(text)
+    : WARNING_LEVEL.test(text)
       ? 'warning'
       : undefined;
   return [{ text, tone }];
