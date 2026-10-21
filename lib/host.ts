@@ -10,9 +10,9 @@ import { execOutput } from '@/lib/docker';
  * The server's own counters, from the kernel. In the dashboard's container
  * (run with the host's process namespace) they're read directly; in
  * development, through a small helper container on the server that shares
- * it, named by HOST_STATS_CONTAINER.
+ * it, named by HOST_HELPER_CONTAINER.
  */
-const HELPER = process.env.HOST_STATS_CONTAINER;
+const HELPER = process.env.HOST_HELPER_CONTAINER;
 
 /** Process 1 is the server's own init, so its network is the server's. */
 const FILES = {

@@ -47,7 +47,7 @@ export async function getDashboard(): Promise<Dashboard> {
   const edited = new Map(tiles.map((t) => [t.key, t]));
 
   // The development helper that reads the server's stats isn't a service
-  const helper = process.env.HOST_STATS_CONTAINER;
+  const helper = process.env.HOST_HELPER_CONTAINER;
   const services = containers
     .filter((c) => c.name !== helper)
     .map((c): Service => {

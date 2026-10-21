@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
-import { resetTile, saveTile } from '@/actions/tiles';
+import { resetTile, restoreTile, saveTile } from '@/actions/tiles';
 import type { Service } from '@/lib/types';
 
 import { AddressesField, toItems } from '@/components/addresses-field';
@@ -91,8 +91,19 @@ function EditTileForm({
 
   function reset() {
     startTransition(async () => {
-      await resetTile(service.key);
-      toast.success(`${service.name} is back to how its labels describe it`);
+      const before = await resetTile(service.key);
+      toast.success(`Reset ${service.name}`, {
+        description:
+          'Its name, icon, addresses and group are back to defaults.',
+        action: before && {
+          label: 'Undo',
+          onClick: async () => {
+            await restoreTile(before);
+            toast.success(`Restored ${before.name ?? service.name}`);
+            onDone();
+          },
+        },
+      });
       onDone();
     });
   }

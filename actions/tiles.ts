@@ -43,8 +43,28 @@ export async function saveTile(input: TileInput): Promise<TileResult> {
   });
 }
 
-/** Forgets a tile's edits, so it looks as its labels say again. */
-export async function resetTile(key: string): Promise<TileResult> {
+export type TileSnapshot = NonNullable<
+  Awaited<ReturnType<typeof db.tile.findUnique>>
+>;
+
+/** Forgets a tile's edits, returning them so they can be put back. */
+export async function resetTile(
+  key: string
+): Promise<TileSnapshot | undefined> {
   await requireUser();
+  const tile = await db.tile.findUnique({ where: { key } });
   await db.tile.deleteMany({ where: { key } });
+  return tile ?? undefined;
+}
+
+/** Puts back a tile's edits as a reset found them. */
+export async function restoreTile(tile: TileSnapshot): Promise<TileResult> {
+  await requireUser();
+  const { key, name, icon, addresses, group, position, hidden } = tile;
+  const data = { name, icon, addresses, group, position, hidden };
+  await db.tile.upsert({
+    where: { key },
+    create: { key, ...data },
+    update: data,
+  });
 }
