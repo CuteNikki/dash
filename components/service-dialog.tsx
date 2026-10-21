@@ -8,11 +8,13 @@ import {
   ExternalLinkIcon,
   PencilIcon,
   PlayIcon,
+  RefreshCwIcon,
   RotateCwIcon,
   SquareIcon,
 } from 'lucide-react';
 
-import { runContainerAction } from '@/actions/containers';
+import { reloadCaddyConfig, runContainerAction } from '@/actions/containers';
+import { isCaddy } from '@/lib/caddy';
 import type { ContainerAction } from '@/lib/docker';
 import { fetcher } from '@/lib/fetcher';
 import { MEASURES, type Measure } from '@/lib/format';
@@ -122,6 +124,15 @@ function ServiceBody({
     });
   }
 
+  function reloadConfig() {
+    startTransition(async () => {
+      const result = await reloadCaddyConfig(service.containerId);
+      if (result.ok) toast.success('Caddy is using the new Caddyfile');
+      else
+        toast.error('Caddy kept its old config', { description: result.error });
+    });
+  }
+
   return (
     <>
       <DialogHeader className='gap-4 border-b p-4'>
@@ -177,6 +188,17 @@ function ServiceBody({
             <RotateCwIcon />
             Restart
           </Button>
+          {isCaddy(service.image) && (
+            <Button
+              variant='outline'
+              disabled={pending || !running}
+              title='Reads the Caddyfile again without restarting, so no site goes down'
+              onClick={reloadConfig}
+            >
+              <RefreshCwIcon />
+              Reload config
+            </Button>
+          )}
           <Button variant='outline' onClick={() => onEdit(service)}>
             <PencilIcon />
             Edit tile

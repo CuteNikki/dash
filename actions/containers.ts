@@ -1,7 +1,9 @@
 'use server';
 
+import { isCaddy, RELOAD_CADDY, reloadError } from '@/lib/caddy';
 import {
   containerAction,
+  execRun,
   listContainers,
   type ContainerAction,
 } from '@/lib/docker';
@@ -25,6 +27,24 @@ export async function runContainerAction(
   try {
     await containerAction(id, action);
     return { ok: true };
+  } catch (error) {
+    return { ok: false, error: (error as Error).message };
+  }
+}
+
+/** Has a running Caddy read its Caddyfile again, keeping the old config if the new one's wrong. */
+export async function reloadCaddyConfig(id: string): Promise<ActionResult> {
+  await requireUser();
+  const containers = await listContainers();
+  const caddy = containers.find((c) => c.id === id);
+  if (!caddy || !isCaddy(caddy.image)) {
+    return { ok: false, error: 'That container is not Caddy' };
+  }
+  try {
+    const { stderr, exitCode } = await execRun(id, RELOAD_CADDY);
+    return exitCode === 0
+      ? { ok: true }
+      : { ok: false, error: reloadError(stderr) };
   } catch (error) {
     return { ok: false, error: (error as Error).message };
   }
