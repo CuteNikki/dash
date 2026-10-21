@@ -1,0 +1,29 @@
+# The dashboard: the server's services, their logs, files and git, and the server itself.
+# Put here by `bun run deploy`, which builds and starts it.
+services:
+  dash:
+    build: .
+    container_name: dash
+    restart: unless-stopped
+    # Its secrets: the sign-in secret, the database and the image storage's keys.
+    # Only on the server, never in the repository.
+    env_file: .env
+    environment:
+      BETTER_AUTH_URL: https://dash.niso.moe
+      DOCKER_HOST: unix:///var/run/docker.sock
+      STACKS_ROOT: /home/nikki
+    # Sees the server's processes and its network, for the server's stats and
+    # its process list, rather than only its own
+    pid: host
+    volumes:
+      # Docker, to list, run and look into the services
+      - /var/run/docker.sock:/var/run/docker.sock
+      # The services' folders, at the same path as on the server, for their files
+      - /home/nikki:/home/nikki
+    networks:
+      - caddy
+
+networks:
+  # Behind Caddy, which serves it at dash.niso.moe
+  caddy:
+    external: true
