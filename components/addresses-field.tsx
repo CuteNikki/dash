@@ -24,7 +24,12 @@ import { GripVerticalIcon, PlusIcon, XIcon } from 'lucide-react';
 import { isLink } from '@/lib/format';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from '@/components/ui/input-group';
 
 /** An address with an id of its own, so its field keeps its place while dragged. */
 export type AddressItem = { id: string; value: string };
@@ -114,8 +119,9 @@ export function AddressesField({
       </DndContext>
       <Button
         type='button'
-        variant='outline'
-        className='self-start'
+        variant='ghost'
+        size='sm'
+        className='self-start text-muted-foreground'
         onClick={() => insertAfter(items.length - 1, [''])}
       >
         <PlusIcon />
@@ -151,24 +157,26 @@ function AddressRow({
   } = useSortable({ id: item.id });
 
   return (
-    <div
+    // The handle and remove button sit inside the field, as the icon field's
+    // upload does, so each address lines up with the fields around it
+    <InputGroup
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform), transition }}
       data-dragging={isDragging}
-      className='flex items-center gap-1 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80'
+      className='data-[dragging=true]:z-10 data-[dragging=true]:opacity-80'
     >
-      <Button
-        type='button'
-        variant='ghost'
-        size='icon'
-        aria-label='Drag to reorder'
-        className='cursor-grab touch-none text-muted-foreground active:cursor-grabbing'
-        {...attributes}
-        {...listeners}
-      >
-        <GripVerticalIcon />
-      </Button>
-      <Input
+      <InputGroupAddon>
+        <InputGroupButton
+          size='icon-xs'
+          aria-label='Drag to reorder'
+          className='cursor-grab touch-none active:cursor-grabbing'
+          {...attributes}
+          {...listeners}
+        >
+          <GripVerticalIcon />
+        </InputGroupButton>
+      </InputGroupAddon>
+      <InputGroupInput
         id={inputId}
         data-address={item.id}
         value={item.value}
@@ -192,19 +200,13 @@ function AddressRow({
         }}
         aria-invalid={badLink(item.value) || undefined}
         placeholder='https://… or host:port'
-        className='font-mono'
         spellCheck={false}
       />
-      <Button
-        type='button'
-        variant='ghost'
-        size='icon'
-        aria-label='Remove'
-        className='text-muted-foreground'
-        onClick={onRemove}
-      >
-        <XIcon />
-      </Button>
-    </div>
+      <InputGroupAddon align='inline-end'>
+        <InputGroupButton size='icon-xs' aria-label='Remove' onClick={onRemove}>
+          <XIcon />
+        </InputGroupButton>
+      </InputGroupAddon>
+    </InputGroup>
   );
 }
