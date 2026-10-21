@@ -87,17 +87,18 @@ export function ProcessList({
       {processes.length === 0 ? (
         <p className='text-muted-foreground'>Measuring…</p>
       ) : (
-        // Five lines whatever the filter leaves, so the page doesn't shift
-        // while typing: the headings and four processes, the rest a scroll
+        // Seven lines whatever the filter leaves, so the page doesn't shift
+        // while typing: the headings and six processes, the rest a scroll
         // away, faded at the edges while there's more. The scrollbar's room is
         // kept when it's gone, so the columns stay put too; the headings do,
         // so the top fade starts a line down
         <ScrollFade
-          className='h-[5lh] [scrollbar-gutter:stable] overflow-auto'
+          className='h-[7lh] [scrollbar-gutter:stable] overflow-auto'
           fadeTop='top-[1lh]'
         >
-          {/* A gap after every column but the last, so none run into the next */}
-          <table className='w-full table-fixed [&_td:not(:last-child)]:pr-4 [&_th:not(:last-child)]:pr-4'>
+          {/* A gap after every column but the last, so none run into the
+              next, and room at each row's ends for its rounded highlight */}
+          <table className='w-full table-fixed [&_td:first-child]:rounded-l-md [&_td:first-child]:pl-2 [&_td:last-child]:rounded-r-md [&_td:last-child]:pr-2 [&_td:not(:last-child)]:pr-4 [&_th:first-child]:pl-2 [&_th:last-child]:pr-2 [&_th:not(:last-child)]:pr-4'>
             <thead className='sticky top-0 bg-card text-left text-muted-foreground'>
               <tr>
                 <th className='font-normal'>Process</th>
