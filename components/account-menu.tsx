@@ -44,7 +44,7 @@ export function AccountMenu({ email }: { email: string }) {
           <UserIcon />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align='end'>
+      <DropdownMenuContent align='end' className='w-auto'>
         <DropdownMenuLabel className='font-normal text-muted-foreground'>
           {email}
         </DropdownMenuLabel>
@@ -53,7 +53,7 @@ export function AccountMenu({ email }: { email: string }) {
           <KeyRoundIcon />
           Add a passkey
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={signOut}>
+        <DropdownMenuItem variant='destructive' onSelect={signOut}>
           <LogOutIcon />
           Sign out
         </DropdownMenuItem>
