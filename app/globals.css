@@ -47,7 +47,7 @@
   --leading-control: normal;
   /* How long a log line gets before wrapping: past the panel, with some
      scrolling, so only the really long ones break */
-  --container-log-line: 160ch;
+  --container-log-line: 240ch;
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);

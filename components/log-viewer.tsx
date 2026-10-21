@@ -257,7 +257,7 @@ function dayLabel(time: Date) {
   });
 }
 
-/** One line: its time, then its text, wrapping (past 160 characters) under the text, not the time. */
+/** One line: its time, then its text, wrapping (past 240 characters) under the text, not the time. */
 function LogLine({ line, wrap }: { line: Line; wrap: boolean }) {
   return (
     <div className='flex gap-3'>
