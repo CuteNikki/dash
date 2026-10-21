@@ -117,11 +117,16 @@ function DiskUsage() {
         <div className='flex flex-wrap items-center gap-2'>
           <h3 className='mr-auto font-medium'>Folders</h3>
           <span
-            title={scan.state === 'scanning' ? scan.current : undefined}
-            className='min-w-0 truncate text-muted-foreground'
+            // The folder it's just done, for the curious
+            title={
+              scan.state === 'scanning' && scan.current
+                ? `Just did ${scan.current}`
+                : undefined
+            }
+            className='min-w-0 truncate text-muted-foreground tabular-nums'
           >
             {scan.state === 'scanning'
-              ? `Measuring: ${scan.folders.toLocaleString()} folders so far${scan.current ? `, just did ${scan.current}` : ''}`
+              ? `Measuring… ${scan.folders.toLocaleString()} folders`
               : scan.state === 'done'
                 ? `Measured ${ago(data.seconds)}`
                 : scan.state === 'failed'
