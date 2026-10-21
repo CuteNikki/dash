@@ -31,6 +31,19 @@ export function hasAnsi(text: string) {
   return text.includes(ESC);
 }
 
+/**
+ * What a terminal ends up showing of a line: a carriage return goes back to
+ * its start, and what follows is drawn over what came before. Programs with
+ * an interactive console (a Minecraft server's ">" prompt) redraw their
+ * prompt that way before every line.
+ */
+export function afterCarriageReturn(line: string) {
+  const parts = line.replace(/\r+$/, '').split('\r');
+  return (
+    parts.findLast((part) => part.replace(OTHER_CONTROLS, '') !== '') ?? ''
+  );
+}
+
 export function parseAnsi(input: string): Segment[] {
   const text = input.replace(OTHER_CONTROLS, '');
   const segments: Segment[] = [];

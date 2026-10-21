@@ -11,7 +11,13 @@ import {
 
 import { ListEndIcon, SearchIcon } from 'lucide-react';
 
-import { hasAnsi, parseAnsi, type Segment, type Tone } from '@/lib/ansi';
+import {
+  afterCarriageReturn,
+  hasAnsi,
+  parseAnsi,
+  type Segment,
+  type Tone,
+} from '@/lib/ansi';
 import { cn } from '@/lib/utils';
 
 import { Button } from '@/components/ui/button';
@@ -77,7 +83,7 @@ function segmentsOf(text: string): Segment[] {
 function parse(id: number, entry: { stream: string; line: string }): Line {
   const match = entry.line.match(TIMESTAMP);
   const segments = segmentsOf(
-    match ? entry.line.slice(match[0].length) : entry.line
+    afterCarriageReturn(match ? entry.line.slice(match[0].length) : entry.line)
   );
   return {
     id,
