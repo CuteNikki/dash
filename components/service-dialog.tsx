@@ -191,8 +191,9 @@ function ServiceBody({
         </div>
       </DialogHeader>
 
-      <Tabs defaultValue='logs' className='min-h-0 flex-1 gap-4 p-4'>
+      <Tabs defaultValue='usage' className='min-h-0 flex-1 gap-4 p-4'>
         <TabsList>
+          <TabsTrigger value='usage'>Usage</TabsTrigger>
           <TabsTrigger value='logs'>Logs</TabsTrigger>
           {service.stack && <TabsTrigger value='files'>Files</TabsTrigger>}
           {git && (
@@ -205,7 +206,6 @@ function ServiceBody({
               )}
             </TabsTrigger>
           )}
-          <TabsTrigger value='usage'>Usage</TabsTrigger>
         </TabsList>
         <TabsContent value='logs' className='flex min-h-0 flex-col'>
           <LogViewer
