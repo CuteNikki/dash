@@ -60,10 +60,8 @@ export function ScrollFade({
     return () => observer.disconnect();
   });
 
-  // Solid for its first quarter, so what's cut off at the edge is hidden
-  // rather than faintly there, then fading to what's further in
   const fade =
-    'pointer-events-none absolute left-0 h-[2lh] from-25% to-transparent transition-opacity';
+    'pointer-events-none absolute left-0 h-[2lh] to-transparent transition-opacity';
   return (
     <div className={cn('relative min-h-0', fill && 'h-full')}>
       <div ref={scroller} onScroll={measure} className={className}>
