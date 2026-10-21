@@ -1,6 +1,6 @@
 import { EyeOffIcon, PencilIcon } from 'lucide-react';
 
-import { formatAddress, formatBytes, formatCpu } from '@/lib/format';
+import { formatAddress, formatBytes, formatCpu, MEASURES } from '@/lib/format';
 import { isRunning, stateLabel } from '@/lib/status';
 import type { Service } from '@/lib/types';
 
@@ -69,6 +69,7 @@ export function ServiceTile({
               <span>{formatBytes(service.usage.memory)}</span>
               <Sparkline
                 values={service.usage.history.cpu}
+                measure={MEASURES.cpu}
                 className='ml-auto'
               />
             </>

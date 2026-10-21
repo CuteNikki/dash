@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 
+import type { Measure } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 import {
@@ -10,15 +11,13 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-/** The smallest top of the scale, so an idle line stays flat rather than filling the height. */
-const MIN_SCALE = 1;
 /** Room above the highest reading, so a steady line doesn't run along the top edge. */
 const HEADROOM = 1.25;
 
 export type ChartSeries = {
   label: string;
   values: number[];
-  format: (value: number) => string;
+  measure: Measure;
   /** Drawn dashed and fainter, to tell it from a solid one beside it */
   dashed?: boolean;
 };
@@ -45,7 +44,10 @@ export function HistoryChart({
   if (count < 2) return null;
 
   const top =
-    Math.max(...series.flatMap((s) => s.values), MIN_SCALE) * HEADROOM;
+    Math.max(
+      ...series.flatMap((s) => s.values),
+      ...series.map((s) => s.measure.floor)
+    ) * HEADROOM;
   // Positions in percent of the chart, so the line and markers stretch with it
   const x = (i: number) => (i / (count - 1)) * 100;
   const y = (v: number) => 100 - (v / top) * 100;
@@ -138,7 +140,7 @@ export function HistoryChart({
                       )}
                     />
                     <span className='font-mono font-medium tabular-nums'>
-                      {s.format(s.values[shown])}
+                      {s.measure.format(s.values[shown])}
                     </span>
                     {series.length > 1 && (
                       <span className='opacity-70'>{s.label}</span>

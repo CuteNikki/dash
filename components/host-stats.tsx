@@ -18,6 +18,7 @@ import {
   formatDuration,
   formatRate,
   formatShare,
+  MEASURES,
 } from '@/lib/format';
 import type { HostStats } from '@/lib/types';
 
@@ -89,7 +90,7 @@ function LiveStats({ host }: { host: HostStats }) {
           label='CPU over the last ten minutes'
           times={host.history.at}
           series={[
-            { label: 'CPU', values: host.history.cpu, format: formatCpu },
+            { label: 'CPU', values: host.history.cpu, measure: MEASURES.cpu },
           ]}
         />
       </Stat>
@@ -122,12 +123,12 @@ function NetworkStat({ host }: { host: HostStats }) {
   const down = {
     label: 'Download',
     values: host.history.received,
-    format: formatRate,
+    measure: MEASURES.network,
   };
   const up = {
     label: 'Upload',
     values: host.history.sent,
-    format: formatRate,
+    measure: MEASURES.network,
   };
   const series = {
     down: [down],

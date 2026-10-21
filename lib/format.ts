@@ -54,3 +54,25 @@ export function formatAddress(address: string) {
     ? address.replace(SCHEME, '').replace(/\/$/, '')
     : address;
 }
+
+/** A kind of reading: how it's written, and how far a chart of it zooms in. */
+export type Measure = {
+  format: (value: number) => string;
+  /**
+   * The least the top of a chart's scale goes to. Changes below it are too
+   * small to matter, so a line of them stays low instead of filling the
+   * chart, as going from 0% to 2% of a CPU would.
+   */
+  floor: number;
+};
+
+const KB = 1024;
+const MB = 1024 * KB;
+
+export const MEASURES = {
+  /** A tenth of a core */
+  cpu: { format: formatCpu, floor: 10 },
+  memory: { format: formatBytes, floor: 64 * MB },
+  /** About what an idle server sends and receives anyway */
+  network: { format: formatRate, floor: 128 * KB },
+} satisfies Record<string, Measure>;

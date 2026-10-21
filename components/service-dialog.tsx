@@ -15,7 +15,7 @@ import {
 import { runContainerAction } from '@/actions/containers';
 import type { ContainerAction } from '@/lib/docker';
 import { fetcher } from '@/lib/fetcher';
-import { formatBytes, formatCpu } from '@/lib/format';
+import { MEASURES, type Measure } from '@/lib/format';
 import type { GitStatus } from '@/lib/git';
 import { isRunning, stateLabel } from '@/lib/status';
 import type { Service } from '@/lib/types';
@@ -268,25 +268,25 @@ function UsageChart({
   value,
   values,
   times,
-  format,
+  measure,
 }: {
   label: string;
   value?: number;
   values?: number[];
   times?: number[];
-  format: (value: number) => string;
+  measure: Measure;
 }) {
   return (
     <div className='flex flex-col gap-2'>
       <span className='text-muted-foreground'>{label}, last ten minutes</span>
       <span className='font-mono text-lg tabular-nums'>
-        {value === undefined ? '–' : format(value)}
+        {value === undefined ? '–' : measure.format(value)}
       </span>
       {values && times && (
         <HistoryChart
           label={`${label} over the last ten minutes`}
           times={times}
-          series={[{ label, values, format }]}
+          series={[{ label, values, measure }]}
           className='h-24 text-foreground'
         />
       )}
@@ -318,14 +318,14 @@ function UsagePanel({ service }: { service: Service }) {
           value={usage?.cpu}
           values={usage?.history.cpu}
           times={usage?.history.at}
-          format={formatCpu}
+          measure={MEASURES.cpu}
         />
         <UsageChart
           label='Memory'
           value={usage?.memory}
           values={usage?.history.memory}
           times={usage?.history.at}
-          format={formatBytes}
+          measure={MEASURES.memory}
         />
       </div>
     </div>
