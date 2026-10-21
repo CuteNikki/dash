@@ -18,6 +18,7 @@ import { isRunning, stateLabel } from '@/lib/status';
 import type { Service } from '@/lib/types';
 
 import { AddressList } from '@/components/address-list';
+import { FilesPanel } from '@/components/files-panel';
 import { HistoryChart } from '@/components/history-chart';
 import { LogViewer } from '@/components/log-viewer';
 import { ServiceIcon } from '@/components/service-icon';
@@ -183,6 +184,7 @@ function ServiceBody({
       <Tabs defaultValue='logs' className='min-h-0 flex-1 gap-4 p-4'>
         <TabsList>
           <TabsTrigger value='logs'>Logs</TabsTrigger>
+          {service.stack && <TabsTrigger value='files'>Files</TabsTrigger>}
           <TabsTrigger value='usage'>Usage</TabsTrigger>
         </TabsList>
         <TabsContent value='logs' className='flex min-h-0 flex-col'>
@@ -191,6 +193,16 @@ function ServiceBody({
             containerId={service.containerId}
           />
         </TabsContent>
+        {service.stack && (
+          <TabsContent value='files' className='flex min-h-0 flex-col'>
+            {/* By stack, so unsaved edits survive the container being recreated */}
+            <FilesPanel
+              key={service.stack.dir}
+              containerId={service.containerId}
+              onDeployed={onChanged}
+            />
+          </TabsContent>
+        )}
         <TabsContent value='usage'>
           <UsagePanel service={service} />
         </TabsContent>

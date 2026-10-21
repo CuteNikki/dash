@@ -2,7 +2,7 @@ import { searchIcons } from '@/lib/icon-search';
 import { unauthorized } from '@/lib/session';
 
 /** Matches sent for one search; typing more narrows them down. */
-const LIMIT = 48;
+const LIMIT = 48 * 4;
 
 /** Icons from every set matching ?q=, best first. */
 export async function GET(request: Request) {
