@@ -145,20 +145,25 @@ function variantsIn(names: Set<string>, name: string) {
   } satisfies IconVariants;
 }
 
+export type IconInfo = { variants?: IconVariants; missing?: boolean };
+
 /**
- * The light and dark versions of each of these icons that has them, by icon.
- * Only dashboard-icons draws icons for either background; one from another
- * set, or any while its index can't be fetched, is drawn as it is.
+ * What's known about each of these dashboard-icons names: whether it has
+ * light and dark versions, and whether there's an icon by that name at all,
+ * so a page can show the letter instead from the start rather than asking
+ * for an image that isn't there. Icons from other sets, and any while the
+ * index can't be fetched, are left to the browser.
  */
-export async function themeVariants(icons: string[]) {
-  const found = new Map<string, IconVariants>();
-  const names = await dashboardFiles().catch(() => new Set<string>());
+export async function iconInfo(icons: string[]) {
+  const found = new Map<string, IconInfo>();
+  const names = await dashboardFiles().catch(() => undefined);
+  if (!names) return found;
   for (const icon of icons) {
     if (/^https:\/\//.test(icon) || parseIcon(icon).set !== 'dashboard') {
       continue;
     }
-    const variants = variantsIn(names, icon);
-    if (variants) found.set(icon, variants);
+    if (!names.has(icon)) found.set(icon, { missing: true });
+    else found.set(icon, { variants: variantsIn(names, icon) });
   }
   return found;
 }

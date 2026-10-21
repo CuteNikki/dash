@@ -108,6 +108,7 @@ function ServiceBody({
           <ServiceIcon
             icon={service.icon}
             variants={service.iconVariants}
+            missing={service.iconMissing}
             name={service.name}
             className='size-10'
           />

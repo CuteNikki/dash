@@ -3,7 +3,7 @@ import 'server-only';
 import { db } from '@/lib/db';
 import { listContainers, type Container } from '@/lib/docker';
 import { DEFAULT_GROUP } from '@/lib/groups';
-import { themeVariants } from '@/lib/icon-search';
+import { iconInfo } from '@/lib/icon-search';
 import type { Dashboard, Service } from '@/lib/types';
 import { currentUsage } from '@/lib/usage';
 
@@ -76,9 +76,11 @@ export async function getDashboard(): Promise<Dashboard> {
         : undefined,
     };
   });
-  const variants = await themeVariants(services.map((s) => s.icon));
+  const icons = await iconInfo(services.map((s) => s.icon));
   for (const service of services) {
-    service.iconVariants = variants.get(service.icon);
+    const info = icons.get(service.icon);
+    service.iconVariants = info?.variants;
+    service.iconMissing = info?.missing;
   }
   return { services, groupOrder: groups.map((g) => g.name) };
 }

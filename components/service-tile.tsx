@@ -36,6 +36,7 @@ export function ServiceTile({
           <ServiceIcon
             icon={service.icon}
             variants={service.iconVariants}
+            missing={service.iconMissing}
             name={service.name}
           />
           <div className='min-w-0 flex-1'>

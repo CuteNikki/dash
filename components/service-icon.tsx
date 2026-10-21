@@ -40,13 +40,19 @@ export function ServiceIcon({
   icon,
   name,
   variants,
+  missing,
   className,
 }: {
   icon: string;
   name: string;
   variants?: IconVariants;
+  /** Known not to exist, so the letter shows without trying the image */
+  missing?: boolean;
   className?: string;
 }) {
+  if (missing) {
+    return <SingleIcon icon='' name={name} className={className} />;
+  }
   if (!variants)
     return <SingleIcon icon={icon} name={name} className={className} />;
   return (
@@ -103,6 +109,11 @@ function SingleIcon({
         alt=''
         loading='lazy'
         onError={() => setFailed(icon)}
+        // An image that failed before the page took over (on a reload) sent
+        // its error to nobody; it's caught here, as the image is attached
+        ref={(img) => {
+          if (img?.complete && img.naturalWidth === 0) setFailed(icon);
+        }}
         className={cn(box, 'object-contain', display)}
       />
     );

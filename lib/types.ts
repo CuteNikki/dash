@@ -12,6 +12,8 @@ export type Service = {
   icon: string;
   /** When the icon comes in versions for light and dark backgrounds */
   iconVariants?: IconVariants;
+  /** When there's no icon by that name, so the letter shows from the start */
+  iconMissing?: boolean;
   url?: string;
   description?: string;
   /** Order within its group, when it's been placed; otherwise by name */
