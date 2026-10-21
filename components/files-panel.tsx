@@ -21,7 +21,9 @@ import type { OpenedFile, StackInfo } from '@/lib/stack-files';
 import { cn } from '@/lib/utils';
 
 import { CodeEditor } from '@/components/code-editor';
+import { MarkdownPreview } from '@/components/markdown-preview';
 import { Button } from '@/components/ui/button';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 type DeployLine = { line?: string; exitCode?: number };
 
@@ -47,6 +49,8 @@ export function FilesPanel({
   const [problem, setProblem] = useState<string>();
   const [output, setOutput] = useState<string[]>();
   const [pending, startTransition] = useTransition();
+  // Markdown files being edited rather than previewed
+  const [editing, setEditing] = useState<Set<string>>(new Set());
 
   const path = chosen ?? info?.compose[0];
   const { data: opened, mutate } = useSWR<OpenedFile>(
@@ -65,6 +69,9 @@ export function FilesPanel({
   const text = edits[path] ?? saved ?? '';
   const changed = edits[path] !== undefined && edits[path] !== saved;
   const unsaved = new Set(Object.keys(edits));
+  // Markdown opens as it reads, until switched to editing
+  const isMarkdown = /\.(md|markdown)$/i.test(name);
+  const previewing = isMarkdown && !editing.has(path);
 
   function save(then?: 'deploy' | 'build') {
     startTransition(async () => {
@@ -140,22 +147,48 @@ export function FilesPanel({
             }}
           />
         </nav>
-        <div className='flex min-h-0 min-w-0 flex-1 flex-col'>
-          {opened === undefined ? (
-            <p className='text-muted-foreground'>Opening {name}…</p>
-          ) : opened.content === undefined ? (
-            <p className='rounded-lg bg-muted p-3 text-muted-foreground'>
-              {name}: {opened.reason}
-            </p>
-          ) : (
-            <CodeEditor
-              key={path}
-              value={text}
-              onChange={(value) => setEdits((e) => ({ ...e, [path]: value }))}
-              fileName={name}
-              label={name}
-            />
+        <div className='flex min-h-0 min-w-0 flex-1 flex-col gap-2'>
+          {isMarkdown && opened?.content !== undefined && (
+            <ToggleGroup
+              type='single'
+              variant='outline'
+              size='sm'
+              value={previewing ? 'preview' : 'edit'}
+              onValueChange={(v) =>
+                v &&
+                setEditing((e) => {
+                  const next = new Set(e);
+                  if (v === 'edit') next.add(path);
+                  else next.delete(path);
+                  return next;
+                })
+              }
+              aria-label='Show'
+              className='self-start'
+            >
+              <ToggleGroupItem value='preview'>Preview</ToggleGroupItem>
+              <ToggleGroupItem value='edit'>Edit</ToggleGroupItem>
+            </ToggleGroup>
           )}
+          <div className='min-h-0 flex-1'>
+            {opened === undefined ? (
+              <p className='text-muted-foreground'>Opening {name}…</p>
+            ) : opened.content === undefined ? (
+              <p className='rounded-lg bg-muted p-3 text-muted-foreground'>
+                {name}: {opened.reason}
+              </p>
+            ) : previewing ? (
+              <MarkdownPreview text={text} />
+            ) : (
+              <CodeEditor
+                key={path}
+                value={text}
+                onChange={(value) => setEdits((e) => ({ ...e, [path]: value }))}
+                fileName={name}
+                label={name}
+              />
+            )}
+          </div>
         </div>
       </div>
 
