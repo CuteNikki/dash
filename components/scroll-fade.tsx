@@ -60,10 +60,8 @@ export function ScrollFade({
     return () => observer.disconnect();
   });
 
-  // Solid for a sliver at the edge, a few pixels, so the tops of letters cut
-  // off there don't show through, then fading to what's further in
   const fade =
-    'pointer-events-none absolute left-0 h-[2lh] from-10% to-transparent transition-opacity';
+    'pointer-events-none absolute left-0 h-[2lh] to-transparent transition-opacity';
   return (
     <div className={cn('relative min-h-0', fill && 'h-full')}>
       <div ref={scroller} onScroll={measure} className={className}>
