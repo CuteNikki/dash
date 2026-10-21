@@ -1,0 +1,9 @@
+dist/
+node_modules/
+.next/
+.turbo/
+coverage/
+pnpm-lock.yaml
+.pnpm-store/
+lib/generated/
+prisma/migrations/
