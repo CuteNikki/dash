@@ -6,9 +6,11 @@ import useSWR from 'swr';
 
 import {
   ChevronRightIcon,
+  EyeIcon,
   FileIcon,
   FolderIcon,
   HammerIcon,
+  PencilIcon,
   RocketIcon,
   SaveIcon,
   Undo2Icon,
@@ -24,7 +26,6 @@ import { CodeEditor } from '@/components/code-editor';
 import { MarkdownPreview } from '@/components/markdown-preview';
 import { CodeSkeleton, TreeSkeleton } from '@/components/skeletons';
 import { Button } from '@/components/ui/button';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 type DeployLine = { line?: string; exitCode?: number };
 
@@ -166,25 +167,22 @@ export function FilesPanel({
               />
             )}
             {isMarkdown && opened?.content !== undefined && (
-              <ToggleGroup
-                type='single'
+              // Names the other view, the one it switches to
+              <Button
                 variant='outline'
-                value={previewing ? 'preview' : 'edit'}
-                onValueChange={(v) =>
-                  v &&
+                className='absolute top-3 right-4 bg-background'
+                onClick={() =>
                   setEditing((e) => {
                     const next = new Set(e);
-                    if (v === 'edit') next.add(path);
+                    if (previewing) next.add(path);
                     else next.delete(path);
                     return next;
                   })
                 }
-                aria-label='Show'
-                className='absolute top-3 right-4 bg-background'
               >
-                <ToggleGroupItem value='preview'>Preview</ToggleGroupItem>
-                <ToggleGroupItem value='edit'>Edit</ToggleGroupItem>
-              </ToggleGroup>
+                {previewing ? <PencilIcon /> : <EyeIcon />}
+                {previewing ? 'Edit' : 'Preview'}
+              </Button>
             )}
           </div>
         </div>
