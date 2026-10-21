@@ -70,7 +70,11 @@ type Tree = {
   draft?: Draft;
   /** Starts typing a name, opening the folder a new entry goes in */
   startDraft: (draft: Draft) => void;
-  finishDraft: (name?: string) => void;
+  /**
+   * Keeps the name, or drops it without one. From Enter or Escape, focus goes
+   * back to the entry's row, as in VS Code, so F2 works again straight away.
+   */
+  finishDraft: (name: string | undefined, fromKey: boolean) => void;
   askDelete: (path: string, kind: Kind) => void;
   /** Whether Docker finds the stack by this path, so it can't be renamed or deleted */
   isFixed: (path: string) => boolean;
@@ -131,6 +135,19 @@ export function FileTree({
   // While a name's on its way to the server, as Enter and then leaving the
   // field would otherwise send it twice
   const sending = useRef(false);
+  // The row to focus once it's drawn, after a name's been typed from the keyboard
+  const focusNext = useRef<string>(undefined);
+  useEffect(() => {
+    const path = focusNext.current;
+    if (path === undefined) return;
+    const row = keysFrom.current?.querySelector<HTMLElement>(
+      `[data-path="${CSS.escape(path)}"]`
+    );
+    if (row) {
+      row.focus();
+      focusNext.current = undefined;
+    }
+  });
 
   const folderKey = (folder: string) =>
     `${base}/tree?path=${encodeURIComponent(folder)}`;
@@ -158,7 +175,7 @@ export function FileTree({
     setDraft(next);
   }
 
-  function finishDraft(name?: string) {
+  function finishDraft(name: string | undefined, fromKey: boolean) {
     const current = draft;
     const trimmed = name?.trim();
     // Nothing typed, or the name unchanged, leaves things as they were
@@ -167,6 +184,10 @@ export function FileTree({
       !trimmed ||
       (current.action === 'rename' && trimmed === nameOf(current.path))
     ) {
+      if (fromKey && current) {
+        focusNext.current =
+          current.action === 'rename' ? current.path : current.folder;
+      }
       setDraft(undefined);
       return;
     }
@@ -174,15 +195,22 @@ export function FileTree({
     sending.current = true;
     startTransition(async () => {
       try {
-        await sendDraft(current, trimmed);
+        const path = await sendDraft(current, trimmed);
+        if (fromKey && path) focusNext.current = path;
       } finally {
         sending.current = false;
       }
     });
   }
 
-  /** Creates or renames the entry; on failure, says why and keeps the name to fix. */
-  async function sendDraft(current: Draft, name: string) {
+  /**
+   * Creates or renames the entry, giving its path; on failure, says why and
+   * keeps the name to fix.
+   */
+  async function sendDraft(
+    current: Draft,
+    name: string
+  ): Promise<string | undefined> {
     if (current.action === 'create') {
       const result = await createEntry(
         containerId,
@@ -196,7 +224,7 @@ export function FileTree({
       setDraft(undefined);
       if (current.kind === 'file') onChoose(path);
       else setOpen((o) => new Set(o).add(path));
-      return;
+      return path;
     }
     const result = await renameEntry(containerId, current.path, name);
     if (!result.ok) return void toast.error(result.error);
@@ -214,6 +242,7 @@ export function FileTree({
         )
     );
     onRenamed(current.path, path);
+    return path;
   }
 
   // Listens afresh after each render, so F2 always goes to the current file
@@ -625,8 +654,9 @@ function NameInput({
 }) {
   const { finishDraft } = useTree();
   const field = useRef<HTMLInputElement>(null);
-  // Once dropped, the blur as the field goes away mustn't keep the name after all
-  const dropped = useRef(false);
+  // Once Enter or Escape has finished it, the blur as the field goes away
+  // mustn't finish it again
+  const finished = useRef(false);
 
   // Escape drops the name rather than closing the dialog the tree is in. The
   // dialog hears Escape on the document before the field does, so the field
@@ -636,8 +666,8 @@ function NameInput({
       if (e.key !== 'Escape' || e.target !== field.current) return;
       e.preventDefault();
       e.stopPropagation();
-      dropped.current = true;
-      finishDraft();
+      finished.current = true;
+      finishDraft(undefined, true);
     }
     window.addEventListener('keydown', onKeyDown, { capture: true });
     return () =>
@@ -661,11 +691,20 @@ function NameInput({
           );
         }}
         onKeyDown={(e) => {
+          // Typing again, as after a name the server refused, starts afresh
+          finished.current = e.key === 'Enter';
           if (e.key !== 'Enter') return;
           e.preventDefault();
-          finishDraft(e.currentTarget.value);
+          finishDraft(e.currentTarget.value, true);
         }}
-        onBlur={(e) => !dropped.current && finishDraft(e.currentTarget.value)}
+        onBlur={(e) => {
+          if (finished.current) return;
+          const name = e.currentTarget.value;
+          // Once focus has landed where it was going: taking the field away
+          // while focus is still on its way out leaves nothing focused, and
+          // the dialog the tree is in then takes focus back to itself
+          setTimeout(() => finishDraft(name, false));
+        }}
         className='min-w-0 flex-1 rounded-sm bg-background px-1 outline-1 outline-ring'
       />
     </div>
