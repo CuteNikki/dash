@@ -239,6 +239,11 @@ export type DockerInfo = Awaited<ReturnType<typeof dockerInfo>>;
 
 /** Runs a command in a running container and returns what it printed. */
 export async function execOutput(container: string, cmd: string[]) {
+  return (await execRun(container, cmd)).stdout;
+}
+
+/** Runs a command in a running container: exactly what it printed, and how it exited. */
+export async function execRun(container: string, cmd: string[]) {
   const { Id } = await dockerJson<{ Id: string }>(
     'POST',
     `/containers/${encodeURIComponent(container)}/exec`,
@@ -248,11 +253,33 @@ export async function execOutput(container: string, cmd: string[]) {
     Detach: false,
     Tty: false,
   });
-  let stdout = '';
-  for await (const { stream, line } of logLines(res, false)) {
-    if (stream === 'stdout') stdout += line + '\n';
+  const { stdout, stderr } = await demux(res);
+  const { ExitCode } = await dockerJson<{ ExitCode: number }>(
+    'GET',
+    `/exec/${Id}/json`
+  );
+  return { stdout, stderr, exitCode: ExitCode };
+}
+
+/**
+ * Everything a stream without a TTY sent, as stdout and stderr: frames with
+ * an 8-byte header each, the stream (1 or 2) then the length.
+ */
+async function demux(res: http.IncomingMessage) {
+  const chunks: Buffer[] = [];
+  for await (const chunk of res) chunks.push(chunk as Buffer);
+  const all = Buffer.concat(chunks);
+  const out: Buffer[] = [];
+  const err: Buffer[] = [];
+  for (let at = 0; at + 8 <= all.length;) {
+    const size = all.readUInt32BE(at + 4);
+    (all[at] === 2 ? err : out).push(all.subarray(at + 8, at + 8 + size));
+    at += 8 + size;
   }
-  return stdout;
+  return {
+    stdout: Buffer.concat(out).toString('utf8'),
+    stderr: Buffer.concat(err).toString('utf8'),
+  };
 }
 
 /** The log stream of a container, from the last `tail` lines on. */
