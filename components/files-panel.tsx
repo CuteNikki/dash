@@ -51,8 +51,8 @@ export function FilesPanel({
   const [problem, setProblem] = useState<string>();
   const [output, setOutput] = useState<string[]>();
   const [pending, startTransition] = useTransition();
-  // Markdown files being edited rather than previewed
-  const [editing, setEditing] = useState<Set<string>>(new Set());
+  // Markdown files being previewed rather than edited
+  const [previewed, setPreviewed] = useState<Set<string>>(new Set());
 
   const path = chosen ?? info?.compose[0];
   const { data: opened, mutate } = useSWR<OpenedFile>(
@@ -69,9 +69,9 @@ export function FilesPanel({
   const text = edits[path] ?? saved ?? '';
   const changed = edits[path] !== undefined && edits[path] !== saved;
   const unsaved = new Set(Object.keys(edits));
-  // Markdown opens as it reads, until switched to editing
+  // Markdown opens for editing, like any file, until switched to its preview
   const isMarkdown = /\.(md|markdown)$/i.test(name);
-  const previewing = isMarkdown && !editing.has(path);
+  const previewing = isMarkdown && previewed.has(path);
 
   function save(then?: 'deploy' | 'build') {
     startTransition(async () => {
@@ -174,10 +174,10 @@ export function FilesPanel({
                 <Button
                   variant='outline'
                   onClick={() =>
-                    setEditing((e) => {
+                    setPreviewed((e) => {
                       const next = new Set(e);
-                      if (previewing) next.add(path);
-                      else next.delete(path);
+                      if (previewing) next.delete(path);
+                      else next.add(path);
                       return next;
                     })
                   }
