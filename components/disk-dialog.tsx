@@ -442,16 +442,8 @@ function Folders({ scanning }: { scanning: boolean }) {
  * or that it's being measured.
  */
 function Size({ size }: { size: MeasuredSize & { elsewhere?: boolean } }) {
-  if (size.elsewhere) {
-    return (
-      <span
-        title='Another disk’s, or the system’s or memory’s, so not counted here'
-        className='opacity-50'
-      >
-        elsewhere
-      </span>
-    );
-  }
+  // Not on this disk: nothing of it to count
+  if (size.elsewhere) return null;
   if (size.size !== undefined) return formatBytes(size.size);
   if (size.before !== undefined) {
     return (
@@ -556,7 +548,17 @@ function Entry({
       {content}
     </button>
   ) : (
-    // A file: nothing to open, and quieter than the folders beside it
-    <div className={cn(ROW, 'text-muted-foreground')}>{content}</div>
+    // A file, or a folder that isn't on this disk: nothing to open, and
+    // quieter than the folders beside it
+    <div
+      title={
+        entry.elsewhere
+          ? 'Not on this disk: the system’s, memory’s, or another disk’s'
+          : undefined
+      }
+      className={cn(ROW, 'text-muted-foreground')}
+    >
+      {content}
+    </div>
   );
 }
