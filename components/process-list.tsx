@@ -8,6 +8,7 @@ import { formatBytes, formatCpu } from '@/lib/format';
 import type { HostProcess, Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
+import { ScrollFade } from '@/components/scroll-fade';
 import { ServiceIcon } from '@/components/service-icon';
 import { Card } from '@/components/ui/card';
 import {
@@ -75,8 +76,10 @@ export function ProcessList({
       {processes.length === 0 ? (
         <p className='text-muted-foreground'>Measuring…</p>
       ) : (
-        // Nine lines: the headings and the busiest eight, the rest a scroll away
-        <div className='max-h-[9lh] overflow-auto'>
+        // Nine lines: the headings and the busiest eight, the rest a scroll
+        // away, faded at the edges while there's more; the headings stay put,
+        // so the top fade starts a line down
+        <ScrollFade className='max-h-[9lh] overflow-auto' fadeTop='top-[1lh]'>
           <table className='w-full table-fixed'>
             <thead className='sticky top-0 bg-card text-left text-muted-foreground'>
               <tr>
@@ -135,7 +138,7 @@ export function ProcessList({
           {shown.length === 0 && (
             <p className='text-muted-foreground'>No processes match.</p>
           )}
-        </div>
+        </ScrollFade>
       )}
     </Card>
   );
