@@ -255,6 +255,8 @@ export type SiteCheck = {
   status?: number;
   /** Why it couldn't be reached */
   error?: string;
+  /** The icon its page names, as an address, once it's answered with one */
+  icon?: string;
   /** How long it took to answer, or to fail, in milliseconds */
   ms: number;
   /** When, in milliseconds since 1970 */

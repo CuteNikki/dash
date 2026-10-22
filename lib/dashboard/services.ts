@@ -63,8 +63,9 @@ function siteService(
     containerName: url?.host ?? 'No address',
     name: tile.name || url?.host || 'Site',
     group: tile.group || DEFAULT_GROUP,
-    // Its own favicon until it's given one, the letter if it has none
-    icon: tile.icon || (url ? `${url.origin}/favicon.ico` : ''),
+    // The icon its page names until it's given one; its /favicon.ico before
+    // the page has been read, and the letter if there's none
+    icon: tile.icon || check?.icon || (url ? `${url.origin}/favicon.ico` : ''),
     addresses: tile.addresses,
     url: url?.href,
     description: tile.description || undefined,

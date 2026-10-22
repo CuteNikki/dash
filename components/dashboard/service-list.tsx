@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
 import {
+  ExternalLinkIcon,
   EyeOffIcon,
   PlayIcon,
   RotateCwIcon,
@@ -13,10 +14,16 @@ import {
 
 import { runContainerAction } from '@/actions/containers';
 import type { ServiceGroup } from '@/lib/dashboard/groups';
-import { isRunning } from '@/lib/dashboard/status';
+import { isRunning, labelOf } from '@/lib/dashboard/status';
 import type { ListFilter } from '@/lib/dashboard/view';
 import type { ContainerAction } from '@/lib/docker/docker';
-import { formatAddress, formatBytes, formatCpu, MEASURES } from '@/lib/format';
+import {
+  formatAddress,
+  formatBytes,
+  formatCpu,
+  formatMs,
+  MEASURES,
+} from '@/lib/format';
 import type { Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -275,6 +282,8 @@ function Row({
 }) {
   const running = isRunning(service.state);
   const usage = running ? service.usage : undefined;
+  // A website's response time, in place of a container's CPU
+  const check = service.site?.check;
   const stats = widgetStats(service);
   const address = service.addresses[0];
   // Under its name: what it is, or where to reach it, or its container
@@ -333,10 +342,19 @@ function Row({
         </div>
       </td>
       <td className='hidden px-2 py-2.5 sm:table-cell'>
-        <StatePill state={service.state} />
+        <StatePill state={service.state} label={labelOf(service)} />
       </td>
       <td className='px-2 py-2.5 font-mono tabular-nums'>
-        {usage ? (
+        {check ? (
+          <span className='flex items-center gap-3'>
+            <span className='w-10 shrink-0'>{formatMs(check.ms)}</span>
+            <Sparkline
+              values={check.history.ms}
+              measure={MEASURES.response}
+              className='hidden min-w-0 flex-1 lg:block'
+            />
+          </span>
+        ) : usage ? (
           <span className='flex items-center gap-3'>
             <span className='w-10 shrink-0'>{formatCpu(usage.cpu)}</span>
             <Sparkline
@@ -366,20 +384,40 @@ function Row({
           className='flex justify-end gap-0.5'
           onClick={(e) => e.stopPropagation()}
         >
-          <ActionButton label='Logs' onClick={() => onLogs(service)}>
-            <ScrollTextIcon />
-          </ActionButton>
-          <ActionButton label='Restart' onClick={() => onRun('restart')}>
-            <RotateCwIcon />
-          </ActionButton>
-          {running ? (
-            <ActionButton label='Stop' onClick={() => onRun('stop')}>
-              <SquareIcon />
-            </ActionButton>
+          {service.site ? (
+            // Nothing to start or stop: only somewhere to go
+            service.url && (
+              <Button
+                variant='ghost'
+                size='icon-sm'
+                aria-label='Open'
+                title='Open'
+                className='text-muted-foreground hover:text-foreground'
+                asChild
+              >
+                <a href={service.url} target='_blank' rel='noreferrer'>
+                  <ExternalLinkIcon />
+                </a>
+              </Button>
+            )
           ) : (
-            <ActionButton label='Start' onClick={() => onRun('start')}>
-              <PlayIcon />
-            </ActionButton>
+            <>
+              <ActionButton label='Logs' onClick={() => onLogs(service)}>
+                <ScrollTextIcon />
+              </ActionButton>
+              <ActionButton label='Restart' onClick={() => onRun('restart')}>
+                <RotateCwIcon />
+              </ActionButton>
+              {running ? (
+                <ActionButton label='Stop' onClick={() => onRun('stop')}>
+                  <SquareIcon />
+                </ActionButton>
+              ) : (
+                <ActionButton label='Start' onClick={() => onRun('start')}>
+                  <PlayIcon />
+                </ActionButton>
+              )}
+            </>
           )}
         </div>
       </td>

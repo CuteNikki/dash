@@ -50,10 +50,64 @@ function reason(error: unknown) {
   return String(error);
 }
 
-/** Asks a site for its page, following redirects, and notes how it went. */
+/**
+ * The icon a page names in its head, as an address: an SVG if it has one,
+ * else its biggest icon, else its home-screen one; its /favicon.ico if it
+ * names none, as browsers look for then. Many sites have no /favicon.ico
+ * and name an icon elsewhere, such as Next.js's /icon.svg?….
+ */
+export function pageIcon(html: string, page: string) {
+  const attr = (tag: string, name: string) =>
+    tag.match(new RegExp(`\\s${name}\\s*=\\s*["']([^"']*)["']`, 'i'))?.[1];
+  const links = (html.match(/<link\b[^>]*>/gi) ?? []).flatMap((tag) => {
+    const rel = attr(tag, 'rel')?.toLowerCase().split(/\s+/) ?? [];
+    const href = attr(tag, 'href');
+    if (!href || !rel.some((r) => r === 'icon' || r === 'apple-touch-icon')) {
+      return [];
+    }
+    const svg =
+      attr(tag, 'type') === 'image/svg+xml' || /\.svg(\?|$)/i.test(href);
+    const size = Number(attr(tag, 'sizes')?.match(/^(\d+)x/)?.[1] ?? 0);
+    // An SVG first, then rel="icon" over a home-screen one, bigger first
+    const rank = (svg ? 1e6 : 0) + (rel.includes('icon') ? 1e4 : 0) + size;
+    return [{ href, rank }];
+  });
+  const best = links.sort((a, b) => b.rank - a.rank)[0];
+  try {
+    return new URL(best?.href ?? '/favicon.ico', page).href;
+  } catch {
+    return undefined;
+  }
+}
+
+/** The most of a page read to find its icon, which is in its head. */
+const HEAD_BYTES = 64 * 1024;
+
+/** Up to the first so many bytes of a page, as text. */
+async function readHead(res: Response) {
+  const reader = res.body?.getReader();
+  if (!reader) return '';
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  while (size < HEAD_BYTES) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    size += value.length;
+  }
+  await reader.cancel();
+  return Buffer.concat(chunks).toString('utf8');
+}
+
+/**
+ * Asks a site for its page, following redirects, and notes how it went. Its
+ * icon is found the first time it answers with a page, and kept.
+ */
 async function check(url: string) {
   const start = performance.now();
-  let result: Pick<SiteCheck, 'ok' | 'status' | 'error'>;
+  const before = checker.checks.get(url);
+  let result: Pick<SiteCheck, 'ok' | 'status' | 'error' | 'icon'>;
+  let ms: number;
   try {
     const res = await fetch(url, {
       redirect: 'follow',
@@ -61,15 +115,22 @@ async function check(url: string) {
       signal: AbortSignal.timeout(TIMEOUT_MS),
       headers: { 'user-agent': 'dash (status check)' },
     });
-    // Only whether and how fast it answers, not the page itself
-    await res.body?.cancel();
-    result = { ok: res.status < 400, status: res.status };
+    // How fast it answers, not how long its page takes to arrive
+    ms = performance.now() - start;
+    const ok = res.status < 400;
+    let icon = before?.icon;
+    if (!icon && ok && res.headers.get('content-type')?.includes('html')) {
+      icon = pageIcon(await readHead(res).catch(() => ''), res.url || url);
+    } else {
+      await res.body?.cancel();
+    }
+    result = { ok, status: res.status, icon };
   } catch (error) {
-    result = { ok: false, error: reason(error) };
+    ms = performance.now() - start;
+    result = { ok: false, error: reason(error), icon: before?.icon };
   }
-  const ms = performance.now() - start;
   const at = Date.now();
-  const last = checker.checks.get(url)?.history;
+  const last = before?.history;
   checker.checks.set(url, {
     ...result,
     ms,

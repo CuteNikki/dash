@@ -15,13 +15,14 @@ import {
 } from 'lucide-react';
 
 import { reloadCaddyConfig, runContainerAction } from '@/actions/containers';
-import { isRunning } from '@/lib/dashboard/status';
+import { resetTile, restoreTile } from '@/actions/tiles';
+import { isRunning, labelOf } from '@/lib/dashboard/status';
 import type { ContainerAction } from '@/lib/docker/docker';
 import { fetcher } from '@/lib/fetcher';
 import { MEASURES, type Measure } from '@/lib/format';
 import type { GitStatus } from '@/lib/git';
 import { isCaddy } from '@/lib/stacks/caddy';
-import type { Service } from '@/lib/types';
+import type { DetailCell, Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 import { HistoryChart } from '@/components/charts/history-chart';
@@ -130,6 +131,8 @@ function ServiceBody({
   const [confirmStop, setConfirmStop] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const running = isRunning(service.state);
+  // A website elsewhere: nothing to start or stop, only how it answers
+  const site = !!service.site;
   // The repository its stack is in, if any: a Git tab shows once it's known
   const { data: git, mutate: rereadGit } = useSWR<GitStatus | null>(
     service.stack ? `/api/containers/${service.containerId}/git` : null,
@@ -146,6 +149,24 @@ function ServiceBody({
           description: result.error,
         });
       onChanged();
+    });
+  }
+
+  /** A website is only its tile: removing it forgets that, with Undo. */
+  function removeSite() {
+    startTransition(async () => {
+      const before = await resetTile(service.key);
+      toast.success(`Removed ${service.name}`, {
+        action: before && {
+          label: 'Undo',
+          onClick: async () => {
+            await restoreTile(before);
+            toast.success(`Restored ${service.name}`);
+            onChanged();
+          },
+        },
+      });
+      onRemoved();
     });
   }
 
@@ -173,7 +194,8 @@ function ServiceBody({
             <DialogTitle className='truncate text-base'>
               {service.name}
             </DialogTitle>
-            {/* Its container alone, its state being with what changes it */}
+            {/* Its container, or a website's host, alone, its state being
+                with what changes it */}
             <DialogDescription className='truncate font-mono'>
               {service.containerName}
             </DialogDescription>
@@ -186,9 +208,10 @@ function ServiceBody({
           {/* As tall as the buttons beside it, its text level with theirs */}
           <StatePill
             state={service.state}
+            label={labelOf(service)}
             className='mr-1 h-7 items-center px-2'
           />
-          {running ? (
+          {site ? null : running ? (
             <Button
               variant='destructive'
               disabled={pending}
@@ -207,14 +230,16 @@ function ServiceBody({
               Start
             </Button>
           )}
-          <Button
-            variant='warning'
-            disabled={pending || !running}
-            onClick={() => run('restart')}
-          >
-            <RotateCwIcon />
-            Restart
-          </Button>
+          {!site && (
+            <Button
+              variant='warning'
+              disabled={pending || !running}
+              onClick={() => run('restart')}
+            >
+              <RotateCwIcon />
+              Restart
+            </Button>
+          )}
           {isCaddy(service.image) && (
             <Button
               variant='outline'
@@ -230,11 +255,11 @@ function ServiceBody({
             <PencilIcon />
             Edit tile
           </Button>
-          {service.removable && (
+          {(service.removable || site) && (
             <Button
               variant='outline'
               disabled={pending}
-              onClick={() => setConfirmRemove(true)}
+              onClick={() => (site ? removeSite() : setConfirmRemove(true))}
               className='text-destructive hover:text-destructive'
             >
               <Trash2Icon />
@@ -252,62 +277,74 @@ function ServiceBody({
         </div>
       </DialogHeader>
 
-      <Tabs defaultValue={tab} className='min-h-0 flex-1 gap-4 p-4'>
-        <TabsList>
-          <TabsTrigger value='usage'>Usage</TabsTrigger>
-          <TabsTrigger value='logs'>
-            {service.console ? 'Console' : 'Logs'}
-          </TabsTrigger>
-          {service.stack && <TabsTrigger value='files'>Files</TabsTrigger>}
-          {git && (
-            <TabsTrigger value='git'>
-              Git
-              {git.changes.length > 0 && (
-                <span className='font-mono text-muted-foreground tabular-nums'>
-                  {git.changes.length}
-                </span>
-              )}
-            </TabsTrigger>
-          )}
-        </TabsList>
-        <TabsContent value='logs' className='flex min-h-0 flex-col'>
-          <LogViewer
-            key={service.containerId}
-            containerId={service.containerId}
-            commands={service.console ? { running } : undefined}
-          />
-        </TabsContent>
-        {service.stack && (
-          <TabsContent value='files' className='flex min-h-0 flex-col'>
-            {/* By stack, so unsaved edits survive the container being recreated */}
-            <FilesPanel
-              key={service.stack.dir}
-              containerId={service.containerId}
-              onDeployed={onChanged}
-            />
-          </TabsContent>
-        )}
-        {git && (
-          <TabsContent value='git' className='flex min-h-0 flex-col'>
-            <GitPanel
-              key={git.root}
-              containerId={service.containerId}
-              status={git}
-              onChanged={rereadGit}
-            />
-          </TabsContent>
-        )}
-        {/* Scrolls within the window, as the other tabs' panels do */}
-        <TabsContent value='usage' className='min-h-0'>
+      {site ? (
+        <div className='min-h-0 flex-1 p-4'>
           <ScrollFade
             fill
             className='h-full overflow-x-hidden overflow-y-auto'
             fadeFrom='from-popover'
           >
-            <UsagePanel service={service} memoryTotal={memoryTotal} />
+            <SitePanel service={service} />
           </ScrollFade>
-        </TabsContent>
-      </Tabs>
+        </div>
+      ) : (
+        <Tabs defaultValue={tab} className='min-h-0 flex-1 gap-4 p-4'>
+          <TabsList>
+            <TabsTrigger value='usage'>Usage</TabsTrigger>
+            <TabsTrigger value='logs'>
+              {service.console ? 'Console' : 'Logs'}
+            </TabsTrigger>
+            {service.stack && <TabsTrigger value='files'>Files</TabsTrigger>}
+            {git && (
+              <TabsTrigger value='git'>
+                Git
+                {git.changes.length > 0 && (
+                  <span className='font-mono text-muted-foreground tabular-nums'>
+                    {git.changes.length}
+                  </span>
+                )}
+              </TabsTrigger>
+            )}
+          </TabsList>
+          <TabsContent value='logs' className='flex min-h-0 flex-col'>
+            <LogViewer
+              key={service.containerId}
+              containerId={service.containerId}
+              commands={service.console ? { running } : undefined}
+            />
+          </TabsContent>
+          {service.stack && (
+            <TabsContent value='files' className='flex min-h-0 flex-col'>
+              {/* By stack, so unsaved edits survive the container being recreated */}
+              <FilesPanel
+                key={service.stack.dir}
+                containerId={service.containerId}
+                onDeployed={onChanged}
+              />
+            </TabsContent>
+          )}
+          {git && (
+            <TabsContent value='git' className='flex min-h-0 flex-col'>
+              <GitPanel
+                key={git.root}
+                containerId={service.containerId}
+                status={git}
+                onChanged={rereadGit}
+              />
+            </TabsContent>
+          )}
+          {/* Scrolls within the window, as the other tabs' panels do */}
+          <TabsContent value='usage' className='min-h-0'>
+            <ScrollFade
+              fill
+              className='h-full overflow-x-hidden overflow-y-auto'
+              fadeFrom='from-popover'
+            >
+              <UsagePanel service={service} memoryTotal={memoryTotal} />
+            </ScrollFade>
+          </TabsContent>
+        </Tabs>
+      )}
 
       {service.removable && (
         <RemoveServiceDialog
@@ -384,6 +421,32 @@ function UsageChart({
         )}
       </div>
     </Panel>
+  );
+}
+
+/** A website's response time over the last ten minutes, and how it last answered. */
+function SitePanel({ service }: { service: Service }) {
+  const check = service.site?.check;
+  const facts: { label: string; value: DetailCell }[] = [
+    { label: 'Status', value: service.status },
+    { label: 'Address', value: service.url ?? 'None to check' },
+    ...(check ? [{ label: 'Last checked', value: { at: check.at } }] : []),
+    { label: 'Checked', value: 'Every 30 seconds, while dash is open' },
+  ];
+  return (
+    <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
+      <UsageChart
+        label='Response time'
+        value={check?.ms}
+        values={check?.history.ms}
+        times={check?.history.at}
+        measure={MEASURES.response}
+        measuring={!check && !!service.url}
+      />
+      <Panel title='Website'>
+        <Facts facts={facts} />
+      </Panel>
+    </div>
   );
 }
 
