@@ -202,37 +202,39 @@ export function Dashboard({
     // Wider screens get more columns of tiles, up to a width past which the
     // page would only spread out: then it's centered
     <div className='mx-auto flex w-full max-w-[2200px] flex-col gap-8 px-4 py-6 sm:px-6'>
-      <header className='flex items-center gap-3'>
-        <h1 className='mr-auto min-w-0'>
+      {/* The heading and the buttons on one line where they fit; on a
+          narrow screen, the buttons on a line of their own below */}
+      <header className='flex flex-wrap items-center justify-between gap-3'>
+        <h1>
           <Brand />
         </h1>
-        <ToggleGroup
-          type='single'
-          variant='outline'
-          value={view}
-          // Picking the shown one again would unpick it; keep one picked
-          onValueChange={(v) => v && pickView(v as View)}
-          aria-label='Show services as'
-        >
-          <ToggleGroupItem value='tiles' aria-label='Tiles'>
-            <LayoutGridIcon />
-          </ToggleGroupItem>
-          <ToggleGroupItem value='list' aria-label='List'>
-            <ListIcon />
-          </ToggleGroupItem>
-        </ToggleGroup>
-        <Button
-          variant={editing ? 'default' : 'outline'}
-          aria-pressed={editing}
-          aria-label={editing ? 'Done editing' : 'Edit'}
-          onClick={() => setEditing(!editing)}
-        >
-          <PencilIcon />
-          {/* Its word where there's room; on a phone, its pencil alone */}
-          <span className='hidden sm:inline'>{editing ? 'Done' : 'Edit'}</span>
-        </Button>
-        <ThemeButton />
-        <AccountMenu email={email} />
+        <div className='flex items-center gap-3'>
+          <ToggleGroup
+            type='single'
+            variant='outline'
+            value={view}
+            // Picking the shown one again would unpick it; keep one picked
+            onValueChange={(v) => v && pickView(v as View)}
+            aria-label='Show services as'
+          >
+            <ToggleGroupItem value='tiles' aria-label='Tiles'>
+              <LayoutGridIcon />
+            </ToggleGroupItem>
+            <ToggleGroupItem value='list' aria-label='List'>
+              <ListIcon />
+            </ToggleGroupItem>
+          </ToggleGroup>
+          <Button
+            variant={editing ? 'default' : 'outline'}
+            aria-pressed={editing}
+            onClick={() => setEditing(!editing)}
+          >
+            <PencilIcon />
+            {editing ? 'Done' : 'Edit'}
+          </Button>
+          <ThemeButton />
+          <AccountMenu email={email} />
+        </div>
       </header>
       <Board
         sections={sections}
