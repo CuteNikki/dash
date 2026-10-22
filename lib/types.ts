@@ -43,7 +43,15 @@ export type Service = {
     memory: number;
     history: UsageHistory;
   };
+  /** Live numbers from the app itself, for those dash knows: Sonarr's queue and so on */
+  widget?: Widget;
 };
+
+/** One of an app's numbers, ready to show: "Queued" and "3", "Down" and "2.1 MB/s". */
+export type WidgetStat = { label: string; value: string };
+
+/** An app's numbers, or why they couldn't be read. */
+export type Widget = { stats: WidgetStat[] } | { error: string };
 
 /** A container's recent readings, oldest first */
 export type UsageHistory = {

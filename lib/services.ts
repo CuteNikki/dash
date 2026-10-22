@@ -8,6 +8,7 @@ import { arrangeHostTiles } from '@/lib/host-tiles';
 import { iconInfo } from '@/lib/icon-search';
 import type { Dashboard, Service } from '@/lib/types';
 import { currentUsage } from '@/lib/usage';
+import { readWidgets } from '@/lib/widgets';
 
 /**
  * A container's tile key: its compose project and service, which survive the
@@ -85,7 +86,10 @@ export async function getDashboard(): Promise<Dashboard> {
     db.tileLayout.findMany(),
   ]);
   const edited = new Map(tiles.map((t) => [t.key, t]));
-  const consoles = await takingInput(containers);
+  const [consoles, widgets] = await Promise.all([
+    takingInput(containers),
+    readWidgets(containers),
+  ]);
 
   // The development helper that reads the server's stats isn't a service
   const helper = process.env.HOST_HELPER_CONTAINER;
@@ -127,6 +131,7 @@ export async function getDashboard(): Promise<Dashboard> {
         usage: u
           ? { cpu: u.cpu, memory: u.memory, history: u.history }
           : undefined,
+        widget: widgets.get(c.id),
       };
     });
   const icons = await iconInfo(services.map((s) => s.icon));

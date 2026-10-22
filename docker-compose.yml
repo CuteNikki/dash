@@ -25,8 +25,13 @@ services:
       - /home/nikki:/home/nikki
     networks:
       - caddy
+      - arr-stack
 
 networks:
   # Behind Caddy, which serves it at dash.niso.moe
   caddy:
+    external: true
+  # Beside Sonarr, Jellyfin and the rest, to read their numbers for their tiles
+  arr-stack:
+    name: arr-stack_default
     external: true

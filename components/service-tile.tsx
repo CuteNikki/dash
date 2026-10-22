@@ -2,7 +2,7 @@ import { EyeOffIcon } from 'lucide-react';
 
 import { formatAddress, formatBytes, formatCpu, MEASURES } from '@/lib/format';
 import { isRunning, stateLabel } from '@/lib/status';
-import type { Service } from '@/lib/types';
+import type { Service, Widget } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 import { ServiceIcon } from '@/components/service-icon';
@@ -24,6 +24,10 @@ export function ServiceTile({
   const usage = running ? service.usage : undefined;
   // A taller tile has room for its CPU as a graph of its own
   const graph = service.height > 1;
+  const widget = running ? service.widget : undefined;
+  // An app's own numbers take the place of its CPU and memory, unless the
+  // tile is tall enough for both
+  const showUsage = !widget || graph;
   return (
     <button
       type='button'
@@ -80,28 +84,68 @@ export function ServiceTile({
             />
           </div>
         )}
-        <div className='mt-auto flex items-center gap-3 font-mono text-muted-foreground tabular-nums'>
-          {usage ? (
-            <>
-              <span>{formatCpu(usage.cpu)}</span>
-              <span>{formatBytes(usage.memory)}</span>
-              {!graph && (
-                <Sparkline
-                  values={usage.history.cpu}
-                  measure={MEASURES.cpu}
-                  // A wider tile draws it wider
-                  className={cn(
-                    'ml-auto',
-                    service.width > 1 && 'w-auto max-w-64 flex-1'
-                  )}
-                />
-              )}
-            </>
-          ) : (
-            <span>{stateLabel(service.state)}</span>
-          )}
-        </div>
+        {widget && (
+          <WidgetStats
+            widget={widget}
+            className={cn(!showUsage && 'mt-auto')}
+          />
+        )}
+        {showUsage && (
+          <div className='mt-auto flex items-center gap-3 font-mono text-muted-foreground tabular-nums'>
+            {usage ? (
+              <>
+                <span>{formatCpu(usage.cpu)}</span>
+                <span>{formatBytes(usage.memory)}</span>
+                {!graph && (
+                  <Sparkline
+                    values={usage.history.cpu}
+                    measure={MEASURES.cpu}
+                    // A wider tile draws it wider
+                    className={cn(
+                      'ml-auto',
+                      service.width > 1 && 'w-auto max-w-64 flex-1'
+                    )}
+                  />
+                )}
+              </>
+            ) : (
+              <span>{stateLabel(service.state)}</span>
+            )}
+          </div>
+        )}
       </Card>
     </button>
+  );
+}
+
+/** An app's numbers in a row, each its value over its label, or why there are none. */
+function WidgetStats({
+  widget,
+  className,
+}: {
+  widget: Widget;
+  className?: string;
+}) {
+  if ('error' in widget) {
+    return (
+      <div
+        className={cn('truncate text-muted-foreground', className)}
+        title={widget.error}
+      >
+        Couldn&apos;t read its numbers
+      </div>
+    );
+  }
+  return (
+    <dl className={cn('flex gap-4 overflow-hidden', className)}>
+      {widget.stats.map((stat) => (
+        <div key={stat.label} className='flex min-w-0 flex-col-reverse'>
+          <dt className='truncate text-muted-foreground'>{stat.label}</dt>
+          <dd className='truncate font-mono font-medium tabular-nums'>
+            {stat.value}
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 }
