@@ -1,8 +1,9 @@
-import { EyeOffIcon, PencilIcon } from 'lucide-react';
+import { EyeOffIcon } from 'lucide-react';
 
 import { formatAddress, formatBytes, formatCpu, MEASURES } from '@/lib/format';
 import { isRunning, stateLabel } from '@/lib/status';
 import type { Service } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 import { ServiceIcon } from '@/components/service-icon';
 import { Sparkline } from '@/components/sparkline';
@@ -20,12 +21,15 @@ export function ServiceTile({
   onOpen: (service: Service) => void;
 }) {
   const running = isRunning(service.state);
+  const usage = running ? service.usage : undefined;
+  // A taller tile has room for its CPU as a graph of its own
+  const graph = service.height > 1;
   return (
     <button
       type='button'
       onClick={() => onOpen(service)}
       aria-label={editing ? `Edit ${service.name}` : undefined}
-      className='group/tile rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-ring'
+      className='group/tile size-full rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-ring'
     >
       <Card
         size='sm'
@@ -52,26 +56,48 @@ export function ServiceTile({
             ))}
           </div>
           {editing ? (
-            <span className='mt-0.5 flex items-center gap-2 self-start text-muted-foreground'>
+            // The handle to drag it by sits here, over the tile
+            <span className='mt-0.5 flex items-center gap-2 self-start pr-6 text-muted-foreground'>
               {service.hidden && (
                 <EyeOffIcon aria-label='Hidden' className='size-4' />
               )}
-              <PencilIcon className='size-4' />
             </span>
           ) : (
             <StatusDot state={service.state} className='mt-1.5 self-start' />
           )}
         </div>
-        <div className='mt-auto flex items-center gap-3 font-mono text-muted-foreground tabular-nums'>
-          {running && service.usage ? (
+        {graph && usage && (
+          // Fills the room the tile has, without asking for any of its own
+          <div className='relative min-h-8 flex-1'>
+            <Sparkline
+              values={usage.history.cpu}
+              measure={MEASURES.cpu}
+              className='absolute inset-0 size-full'
+            />
+          </div>
+        )}
+        <div
+          className={cn(
+            'mt-auto flex items-center gap-3 font-mono text-muted-foreground tabular-nums',
+            // Clear of the handle to resize it by, in the corner
+            editing && 'pr-4'
+          )}
+        >
+          {usage ? (
             <>
-              <span>{formatCpu(service.usage.cpu)}</span>
-              <span>{formatBytes(service.usage.memory)}</span>
-              <Sparkline
-                values={service.usage.history.cpu}
-                measure={MEASURES.cpu}
-                className='ml-auto'
-              />
+              <span>{formatCpu(usage.cpu)}</span>
+              <span>{formatBytes(usage.memory)}</span>
+              {!graph && (
+                <Sparkline
+                  values={usage.history.cpu}
+                  measure={MEASURES.cpu}
+                  // A wider tile draws it wider
+                  className={cn(
+                    'ml-auto',
+                    service.width > 1 && 'w-auto max-w-64 flex-1'
+                  )}
+                />
+              )}
             </>
           ) : (
             <span>{stateLabel(service.state)}</span>

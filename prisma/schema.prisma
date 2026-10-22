@@ -21,6 +21,9 @@ model Tile {
   group     String?
   /// Order within its group, lowest first
   position  Int?
+  /// Columns and rows it spans in its group's grid
+  width     Int      @default(1)
+  height    Int      @default(1)
   hidden    Boolean  @default(false)
   updatedAt DateTime @updatedAt
 }

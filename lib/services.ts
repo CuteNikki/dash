@@ -26,6 +26,37 @@ function prettyName(c: Container) {
     .join(' ');
 }
 
+/** Addresses from a container's Homepage link label, before it's edited. */
+function labelAddresses(c: Container) {
+  const href = c.labels['homepage.href'];
+  return href ? [href] : [];
+}
+
+/**
+ * Gives tiles that haven't been edited a row, so they can be placed or
+ * sized. Since an edited tile has its own addresses, each starts with the
+ * one from its labels.
+ */
+export async function ensureTiles(keys: string[]) {
+  const have = new Set(
+    (
+      await db.tile.findMany({
+        where: { key: { in: keys } },
+        select: { key: true },
+      })
+    ).map((t) => t.key)
+  );
+  const missing = new Set(keys.filter((k) => !have.has(k)));
+  if (!missing.size) return;
+  const containers = await listContainers();
+  await db.tile.createMany({
+    data: containers
+      .filter((c) => missing.has(serviceKey(c)))
+      .map((c) => ({ key: serviceKey(c), addresses: labelAddresses(c) })),
+    skipDuplicates: true,
+  });
+}
+
 /** Homepage's icon labels name dashboard-icons files, e.g. "jellyfin.svg". */
 function iconName(label?: string) {
   return label?.replace(/\.(svg|png|webp)$/, '') || undefined;
@@ -57,8 +88,7 @@ export async function getDashboard(): Promise<Dashboard> {
       const tile = edited.get(key);
       const u = usage.get(c.id);
       // A tile edited here has its own addresses, even none
-      const href = l['homepage.href'];
-      const addresses = tile ? tile.addresses : href ? [href] : [];
+      const addresses = tile ? tile.addresses : labelAddresses(c);
       return {
         key,
         containerId: c.id,
@@ -74,6 +104,8 @@ export async function getDashboard(): Promise<Dashboard> {
         url: addresses.find(isLink),
         description: l['homepage.description'] || undefined,
         position: tile?.position ?? undefined,
+        width: tile?.width ?? 1,
+        height: tile?.height ?? 1,
         hidden: tile?.hidden ?? false,
         edited: !!tile,
         image: c.image,

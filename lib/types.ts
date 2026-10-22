@@ -21,6 +21,9 @@ export type Service = {
   description?: string;
   /** Order within its group, when it's been placed; otherwise by name */
   position?: number;
+  /** Columns and rows its tile spans */
+  width: number;
+  height: number;
   /** Left off the dashboard, except while editing it */
   hidden: boolean;
   /** Whether its tile has been edited here, rather than from labels */
