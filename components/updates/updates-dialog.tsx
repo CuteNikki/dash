@@ -10,6 +10,7 @@ import { formatAgo } from '@/lib/format';
 import type { Service } from '@/lib/types';
 import { updateLabel } from '@/lib/updates/describe';
 
+import { RunOutput } from '@/components/common/run-output';
 import { ServiceIcon } from '@/components/service/service-icon';
 import { Button } from '@/components/ui/button';
 import {
@@ -118,7 +119,8 @@ export function UpdatesDialog({
         setOutcomes((o) => ({ ...o, [row.key]: 'running' }));
         setOutput((lines) => [
           ...(lines ?? []),
-          `${lines?.length ? '\n' : ''}— ${row.name}`,
+          ...(lines?.length ? [''] : []),
+          `— ${row.name}`,
         ]);
         const exitCode = await runUpdate(row.service, (line) =>
           setOutput((lines) => [...(lines ?? []), line])
@@ -216,14 +218,7 @@ export function UpdatesDialog({
           </div>
         )}
 
-        {output && (
-          <pre
-            aria-live='polite'
-            className='max-h-48 shrink-0 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs/relaxed whitespace-pre-wrap text-muted-foreground'
-          >
-            {output.join('\n')}
-          </pre>
-        )}
+        {output && <RunOutput lines={output} />}
 
         <DialogFooter>
           <Button

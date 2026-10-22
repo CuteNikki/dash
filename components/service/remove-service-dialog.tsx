@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { readRunStream } from '@/lib/docker/read-run-stream';
 import type { Service } from '@/lib/types';
 
+import { RunOutput } from '@/components/common/run-output';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -98,14 +99,7 @@ export function RemoveServiceDialog({
             Also delete {folder} and its volumes, with everything it keeps
           </Label>
         </div>
-        {output && (
-          <pre
-            aria-live='polite'
-            className='max-h-40 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs/relaxed whitespace-pre-wrap text-muted-foreground'
-          >
-            {output.length ? output.join('\n') : 'Starting…'}
-          </pre>
-        )}
+        {output && <RunOutput lines={output} />}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={running}>Cancel</AlertDialogCancel>
           <Button

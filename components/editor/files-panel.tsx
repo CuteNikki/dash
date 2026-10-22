@@ -19,6 +19,7 @@ import type { OpenedFile, StackInfo } from '@/lib/docker/stack-files';
 import { fetcher } from '@/lib/fetcher';
 import { cn } from '@/lib/utils';
 
+import { RunOutput } from '@/components/common/run-output';
 import {
   CodeSkeleton,
   TextSkeleton,
@@ -207,15 +208,7 @@ export function FilesPanel({
           {problem}
         </pre>
       )}
-      {output && (
-        <pre
-          data-slot='deploy-output'
-          aria-live='polite'
-          className='max-h-40 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs/relaxed whitespace-pre-wrap text-muted-foreground'
-        >
-          {output.length ? output.join('\n') : 'Redeploying…'}
-        </pre>
-      )}
+      {output && <RunOutput lines={output} placeholder='Redeploying…' />}
 
       <div className='flex flex-wrap items-center gap-2'>
         <span className='mr-auto truncate font-mono text-muted-foreground'>

@@ -16,6 +16,7 @@ import {
   type ServiceTemplate,
 } from '@/lib/templates/service-templates';
 
+import { RunOutput } from '@/components/common/run-output';
 import { GroupField } from '@/components/dashboard/fields/group-field';
 import { CodeEditor } from '@/components/editor/code-editor';
 import { AddressField } from '@/components/new-service/address-field';
@@ -362,14 +363,7 @@ function NewServiceForm({
           </div>
         </div>
         {error && <p className='text-destructive'>{error}</p>}
-        {output && (
-          <pre
-            aria-live='polite'
-            className='max-h-40 shrink-0 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs/relaxed whitespace-pre-wrap text-muted-foreground'
-          >
-            {output.length ? output.join('\n') : 'Starting…'}
-          </pre>
-        )}
+        {output && <RunOutput lines={output} />}
       </fieldset>
 
       <DialogFooter>

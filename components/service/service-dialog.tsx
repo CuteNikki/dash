@@ -20,7 +20,7 @@ import { resetTile, restoreTile } from '@/actions/tiles';
 import { isRunning, labelOf } from '@/lib/dashboard/status';
 import type { ContainerAction } from '@/lib/docker/docker';
 import { fetcher } from '@/lib/fetcher';
-import { MEASURES, type Measure } from '@/lib/format';
+import { formatAddress, MEASURES, type Measure } from '@/lib/format';
 import type { GitStatus } from '@/lib/git';
 import { isCaddy } from '@/lib/stacks/caddy';
 import type { DetailCell, Service } from '@/lib/types';
@@ -362,17 +362,13 @@ function ServiceBody({
         </Tabs>
       )}
 
-      {service.update && (
-        <UpdateDialog
-          service={service}
-          open={confirmUpdate}
-          onOpenChange={setConfirmUpdate}
-          onUpdated={() => {
-            setConfirmUpdate(false);
-            onChanged();
-          }}
-        />
-      )}
+      {/* Kept once its update is done, to show how it went until closed */}
+      <UpdateDialog
+        service={service}
+        open={confirmUpdate}
+        onOpenChange={setConfirmUpdate}
+        onUpdated={onChanged}
+      />
       {service.removable && (
         <RemoveServiceDialog
           service={service}
@@ -456,9 +452,12 @@ function SitePanel({ service }: { service: Service }) {
   const check = service.site?.check;
   const facts: { label: string; value: DetailCell }[] = [
     { label: 'Status', value: service.status },
-    { label: 'Address', value: service.url ?? 'None to check' },
+    {
+      label: 'Address',
+      value: service.url ? formatAddress(service.url) : 'None to check',
+    },
     ...(check ? [{ label: 'Last checked', value: { at: check.at } }] : []),
-    { label: 'Checked', value: 'Every 30 seconds, while dash is open' },
+    { label: 'Checked', value: 'Every 30 seconds' },
   ];
   return (
     <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
