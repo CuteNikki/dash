@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
+  <defs>
+    <!-- A ring cut out around the die, so whatever's behind shows between it and the board -->
+    <mask id="ring">
+      <rect width="40" height="40" fill="#fff"/>
+      <circle cx="20" cy="20" r="9" fill="#000"/>
+    </mask>
+  </defs>
+  <g mask="url(#ring)">
+    <rect x="1" y="1" width="17" height="17" rx="4.5" fill="#ff5252"/>
+    <rect x="22" y="1" width="17" height="17" rx="4.5" fill="#3d7bff"/>
+    <rect x="1" y="22" width="17" height="17" rx="4.5" fill="#ffc82c"/>
+    <rect x="22" y="22" width="17" height="17" rx="4.5" fill="#2dbd6e"/>
+  </g>
+  <circle cx="20" cy="20" r="6" fill="#fff" stroke="#1e1533" stroke-width="1.6"/>
+  <circle cx="20" cy="20" r="2.2" fill="#1e1533"/>
+</svg>

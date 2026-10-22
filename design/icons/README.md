@@ -18,3 +18,7 @@ Icons for the stream relay's tile, uploaded in its Edit tile rather than used by
 - `relay/c-red.svg`: the fork in white on a red tile.
 - `relay/b2-grey.svg`: the waves without a tile, in a grey both themes show.
 - `relay/b3-theme.svg`, the pick: the waves without a tile, dark on a light theme and light on a dark one (it follows the device's setting, not dash's theme button).
+
+## Ludo
+
+`ludo/ludo.svg`, for Ludo's tile: Ludo's own icon (the four-colour board with a die, from its `apps/web/src/app/icon.svg`) without its purple tile. A ring is cut out around the die, so the card shows between it and the board on either theme, and the die has a thin outline so it doesn't vanish on a white card. Ludo's site keeps its icon as it is.
