@@ -25,9 +25,6 @@ export function ServiceTile({
   // A taller tile has room for its CPU as a graph of its own
   const graph = service.height > 1;
   const widget = running ? service.widget : undefined;
-  // An app's own numbers take the place of its CPU and memory, unless the
-  // tile is tall enough for both
-  const showUsage = !widget || graph;
   return (
     <button
       type='button'
@@ -74,6 +71,7 @@ export function ServiceTile({
             <StatusDot state={service.state} className='mt-1.5 self-start' />
           )}
         </div>
+        {widget && <WidgetStats widget={widget} />}
         {graph && usage && (
           // Fills the room the tile has, without asking for any of its own
           <div className='relative min-h-8 flex-1'>
@@ -84,35 +82,27 @@ export function ServiceTile({
             />
           </div>
         )}
-        {widget && (
-          <WidgetStats
-            widget={widget}
-            className={cn(!showUsage && 'mt-auto')}
-          />
-        )}
-        {showUsage && (
-          <div className='mt-auto flex items-center gap-3 font-mono text-muted-foreground tabular-nums'>
-            {usage ? (
-              <>
-                <span>{formatCpu(usage.cpu)}</span>
-                <span>{formatBytes(usage.memory)}</span>
-                {!graph && (
-                  <Sparkline
-                    values={usage.history.cpu}
-                    measure={MEASURES.cpu}
-                    // A wider tile draws it wider
-                    className={cn(
-                      'ml-auto',
-                      service.width > 1 && 'w-auto max-w-64 flex-1'
-                    )}
-                  />
-                )}
-              </>
-            ) : (
-              <span>{stateLabel(service.state)}</span>
-            )}
-          </div>
-        )}
+        <div className='mt-auto flex items-center gap-3 font-mono text-muted-foreground tabular-nums'>
+          {usage ? (
+            <>
+              <span>{formatCpu(usage.cpu)}</span>
+              <span>{formatBytes(usage.memory)}</span>
+              {!graph && (
+                <Sparkline
+                  values={usage.history.cpu}
+                  measure={MEASURES.cpu}
+                  // A wider tile draws it wider
+                  className={cn(
+                    'ml-auto',
+                    service.width > 1 && 'w-auto max-w-64 flex-1'
+                  )}
+                />
+              )}
+            </>
+          ) : (
+            <span>{stateLabel(service.state)}</span>
+          )}
+        </div>
       </Card>
     </button>
   );
