@@ -11,6 +11,7 @@ import {
   type ContainerAction,
 } from '@/lib/docker/docker';
 import { isCaddy, RELOAD_CADDY, reloadError } from '@/lib/stacks/caddy';
+import { checkUpdatesNow } from '@/lib/updates/check';
 
 /** Longer than any command a console takes, to keep a paste from flooding one. */
 const MAX_COMMAND = 1_000;
@@ -84,6 +85,17 @@ export async function reloadCaddyConfig(id: string): Promise<ActionResult> {
     return exitCode === 0
       ? { ok: true }
       : { ok: false, error: reloadError(stderr) };
+  } catch (error) {
+    return { ok: false, error: (error as Error).message };
+  }
+}
+
+/** Looks for updates everywhere now, rather than when they're next due. */
+export async function checkUpdates(): Promise<ActionResult> {
+  await requireUser();
+  try {
+    await checkUpdatesNow(await listContainers());
+    return { ok: true };
   } catch (error) {
     return { ok: false, error: (error as Error).message };
   }

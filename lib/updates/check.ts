@@ -129,7 +129,10 @@ function start(containers: Container[], force: boolean) {
 }
 
 /** What each container could be updated to, as last found. */
-function updateOf(c: Container): { update?: ServiceUpdate; error?: string } {
+export function updateOf(c: Container): {
+  update?: ServiceUpdate;
+  error?: string;
+} {
   if (isBuilt(c)) {
     const repo = checker.repos.get(c.stack!.dir);
     if (repo?.error) return { error: repo.error };
