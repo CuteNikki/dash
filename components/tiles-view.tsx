@@ -123,22 +123,16 @@ function layoutOf(groups: ServiceGroup[]): Layout {
   }));
 }
 
-/** How near a snap a resized tile's edge is pulled to it, as a share of a column or row. */
-const SNAP_SHARE = 0.3;
-/** How long a resized tile takes to ease into the room it snapped to. */
-const SETTLE_MS = 150;
-/** The smallest a tile's drawn while resized, as a share of one column or row. */
-const MIN_SHRINK = 0.6;
+/** The smallest the outline following a resize gets, as a share of a column or row. */
+const MIN_SHRINK = 0.5;
 
 type Resizing = {
-  /** Drawn size, in pixels */
+  /** The outline following the pointer, in pixels */
   w: number;
   h: number;
-  /** Columns and rows it snaps to */
+  /** Columns and rows the tile takes meanwhile */
   width: number;
   height: number;
-  /** Let go, and easing into place */
-  settling?: boolean;
 };
 
 const GROUP_ID = 'group:';
@@ -421,8 +415,8 @@ function SortableTile({
   // Enter on the tile still opens its editor
   const { onKeyDown, ...pointer } = listeners ?? {};
   const node = useRef<HTMLDivElement>(null);
-  // While its corner's dragged: the size it's drawn at, following the
-  // pointer, and the columns and rows it'll snap to, before it's saved
+  // While its corner's dragged: the columns and rows it takes, nearest the
+  // pointer, and the outline following the pointer, before it's saved
   const [resizing, setResizing] = useState<Resizing>();
   const shown = resizing
     ? { ...service, width: resizing.width, height: resizing.height }
@@ -452,20 +446,16 @@ function SortableTile({
       height: service.height,
     };
 
-    /** A free length, its snap, and the length drawn: pulled to the snap when near it. */
+    /** The columns or rows nearest a length, and the length the outline's drawn. */
     function axis(free: number, unit: number, gapSize: number, most: number) {
       const span = Math.min(
         Math.max(Math.round((free + gapSize) / (unit + gapSize)), 1),
         most
       );
-      const snapped = span * unit + (span - 1) * gapSize;
-      const smallest = unit * MIN_SHRINK;
       const largest = most * unit + (most - 1) * gapSize;
-      const drawn = Math.min(Math.max(free, smallest), largest);
       return {
         span,
-        snapped,
-        drawn: Math.abs(drawn - snapped) < unit * SNAP_SHARE ? snapped : drawn,
+        drawn: Math.min(Math.max(free, unit * MIN_SHRINK), largest),
       };
     }
 
@@ -492,10 +482,7 @@ function SortableTile({
       if (next.width !== service.width || next.height !== service.height) {
         onResize(service, next.width, next.height);
       }
-      // It eases into the room it snapped to, then takes it
-      const room = tile.getBoundingClientRect();
-      setResizing({ ...next, w: room.width, h: room.height, settling: true });
-      setTimeout(() => setResizing(undefined), SETTLE_MS);
+      setResizing(undefined);
     };
     // The resize cursor stays wherever the pointer goes, until it's let go
     document.body.style.cursor = 'nwse-resize';
@@ -518,58 +505,45 @@ function SortableTile({
       )}
       {...pointer}
     >
-      <div
-        className={cn(
-          resizing ? 'absolute top-0 left-0 shadow-lg' : 'size-full',
-          'rounded-lg'
-        )}
-        style={
-          resizing && {
-            width: resizing.w,
-            height: resizing.h,
-            transition: resizing.settling
-              ? `width ${SETTLE_MS}ms ease-out, height ${SETTLE_MS}ms ease-out`
-              : undefined,
-          }
-        }
+      <ServiceTile service={shown} editing onOpen={onOpen} />
+      <button
+        type='button'
+        ref={setActivatorNodeRef}
+        aria-label={`Drag to move ${service.name}`}
+        className='absolute top-2.5 right-2.5 cursor-grab touch-none rounded-sm p-0.5 text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring'
+        {...attributes}
+        onKeyDown={onKeyDown as KeyboardEventHandler}
       >
-        <ServiceTile service={shown} editing onOpen={onOpen} />
-        <button
-          type='button'
-          ref={setActivatorNodeRef}
-          aria-label={`Drag to move ${service.name}`}
-          className='absolute top-2.5 right-2.5 cursor-grab touch-none rounded-sm p-0.5 text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring'
-          {...attributes}
-          onKeyDown={onKeyDown as KeyboardEventHandler}
-        >
-          <GripVerticalIcon className='size-4' />
-        </button>
-        <button
-          type='button'
-          tabIndex={-1}
-          aria-hidden
-          title='Drag to resize'
-          onPointerDown={startResize}
-          // Not a press that drags the tile
-          onMouseDown={(e) => e.stopPropagation()}
-          onTouchStart={(e) => e.stopPropagation()}
-          className='absolute right-0.5 bottom-0.5 flex size-5 cursor-nwse-resize touch-none items-end justify-end p-1 text-muted-foreground hover:text-foreground'
-        >
-          {/* Two lines across the corner */}
-          <svg viewBox='0 0 8 8' className='size-2.5' aria-hidden>
-            <path
-              d='M7 1 1 7M7 4.5 4.5 7'
-              stroke='currentColor'
-              strokeWidth='1.2'
-              strokeLinecap='round'
-            />
-          </svg>
-        </button>
-      </div>
-      {/* Where it'll snap to, over everything, while the tiles around it make
-          room; gone as it eases into place */}
-      {resizing && !resizing.settling && (
-        <div className='pointer-events-none absolute -inset-1.5 rounded-xl border-2 border-dashed border-primary bg-primary/10' />
+        <GripVerticalIcon className='size-4' />
+      </button>
+      <button
+        type='button'
+        tabIndex={-1}
+        aria-hidden
+        title='Drag to resize'
+        onPointerDown={startResize}
+        // Not a press that drags the tile
+        onMouseDown={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+        className='absolute right-0.5 bottom-0.5 flex size-5 cursor-nwse-resize touch-none items-end justify-end p-1 text-muted-foreground hover:text-foreground'
+      >
+        {/* Two lines across the corner */}
+        <svg viewBox='0 0 8 8' className='size-2.5' aria-hidden>
+          <path
+            d='M7 1 1 7M7 4.5 4.5 7'
+            stroke='currentColor'
+            strokeWidth='1.2'
+            strokeLinecap='round'
+          />
+        </svg>
+      </button>
+      {/* Where the pointer's dragged the corner to; the tile itself takes
+          whole columns and rows, and the tiles around it make room */}
+      {resizing && (
+        <div
+          className='pointer-events-none absolute top-0 left-0 rounded-lg border-2 border-dashed border-primary/60'
+          style={{ width: resizing.w, height: resizing.h }}
+        />
       )}
     </div>
   );
