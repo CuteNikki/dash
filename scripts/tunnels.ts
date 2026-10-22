@@ -1,9 +1,13 @@
-// In development: tunnels to the apps whose numbers show on their tiles, which
-// on the server are only reached by name on the networks dash shares with
-// them. Each is looked up when it starts, since a recreated container has a
-// new address, and is then on this machine at the port SONARR_URL and the
-// rest name.
+// In development: a tunnel to the server's Docker, at DOCKER_HOST, which
+// everything dash shows comes through; and tunnels to the apps whose numbers
+// show on their tiles, which on the server are only reached by name on the
+// networks dash shares with them. Each app is looked up when it starts, since
+// a recreated container has a new address, and is then on this machine at the
+// port SONARR_URL and the rest name.
 const SERVER = 'vps.niso.moe';
+
+/** Where DOCKER_HOST in .env.local expects the server's Docker. */
+const DOCKER = '127.0.0.1:2375';
 
 /** Each app's container, its port there, and its port here. */
 const APPS = [
@@ -43,13 +47,16 @@ const forwards = APPS.flatMap((a) => {
   console.log(`${a.container}: http://127.0.0.1:${a.local}`);
   return ['-L', `127.0.0.1:${a.local}:${ip}:${a.port}`];
 });
-if (!forwards.length) process.exit(1);
+console.log(`Docker: tcp://${DOCKER}`);
 
 console.log('Open until stopped (Ctrl+C)');
-const tunnel = Bun.spawn(['ssh', '-N', ...forwards, SERVER], {
-  stdout: 'inherit',
-  stderr: 'inherit',
-});
+const tunnel = Bun.spawn(
+  ['ssh', '-N', '-L', `${DOCKER}:/var/run/docker.sock`, ...forwards, SERVER],
+  {
+    stdout: 'inherit',
+    stderr: 'inherit',
+  }
+);
 process.exit(await tunnel.exited);
 
 export {};
