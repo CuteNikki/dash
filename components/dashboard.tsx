@@ -10,7 +10,13 @@ import { renameGroup, saveLayout, type TileResult } from '@/actions/tiles';
 import { fetcher } from '@/lib/fetcher';
 import { groupNames, groupServices } from '@/lib/groups';
 import type { Dashboard as DashboardData, Service } from '@/lib/types';
-import { VIEW_COOKIE, type View } from '@/lib/view';
+import {
+  FILTER_COOKIE,
+  filterToCookie,
+  VIEW_COOKIE,
+  type ListFilter,
+  type View,
+} from '@/lib/view';
 
 import { AccountMenu } from '@/components/account-menu';
 import {
@@ -35,6 +41,7 @@ export function Dashboard({
   initial,
   initialColumns,
   initialView,
+  initialFilter,
   email,
 }: {
   initial: DashboardData;
@@ -42,6 +49,8 @@ export function Dashboard({
   initialColumns: number;
   /** Tiles or the list, as picked last time */
   initialView: View;
+  /** The list's filter, as picked last time */
+  initialFilter: ListFilter;
   email: string;
 }) {
   const columns = useColumns(initialColumns);
@@ -50,6 +59,12 @@ export function Dashboard({
   function pickView(next: View) {
     setView(next);
     document.cookie = `${VIEW_COOKIE}=${next}; path=/; max-age=31536000; samesite=lax`;
+  }
+  const [filter, setFilter] = useState(initialFilter);
+
+  function pickFilter(next: ListFilter) {
+    setFilter(next);
+    document.cookie = `${FILTER_COOKIE}=${filterToCookie(next)}; path=/; max-age=31536000; samesite=lax`;
   }
   const { data = initial, mutate } = useSWR<DashboardData>(
     '/api/services',
@@ -225,6 +240,8 @@ export function Dashboard({
       {view === 'list' && (
         <ServiceList
           groups={groups}
+          filter={filter}
+          onFilter={pickFilter}
           editing={editing}
           onOpen={open}
           onLogs={(service) => {

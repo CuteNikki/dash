@@ -3,7 +3,12 @@ import { cookies } from 'next/headers';
 import { COLUMNS_COOKIE, columnsFromCookie } from '@/lib/layout';
 import { getDashboard } from '@/lib/services';
 import { requireUser } from '@/lib/session';
-import { VIEW_COOKIE, viewFromCookie } from '@/lib/view';
+import {
+  FILTER_COOKIE,
+  filterFromCookie,
+  VIEW_COOKIE,
+  viewFromCookie,
+} from '@/lib/view';
 
 import { Dashboard } from '@/components/dashboard';
 
@@ -25,6 +30,7 @@ export default async function Home() {
       initial={await getDashboard()}
       initialColumns={columns}
       initialView={viewFromCookie(cookieStore.get(VIEW_COOKIE)?.value)}
+      initialFilter={filterFromCookie(cookieStore.get(FILTER_COOKIE)?.value)}
       email={user.email}
     />
   );

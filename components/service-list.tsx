@@ -18,6 +18,7 @@ import type { ServiceGroup } from '@/lib/groups';
 import { healthOf, isRunning, stateLabel } from '@/lib/status';
 import type { Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import type { ListFilter } from '@/lib/view';
 
 import { ServiceIcon } from '@/components/service-icon';
 import { Sparkline } from '@/components/sparkline';
@@ -35,10 +36,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { WidgetStats, widgetStats } from '@/components/widget-stats';
 
-/** Which services the list shows: all, one group's, or the stopped ones. */
-type Filter =
-  { kind: 'all' } | { kind: 'group'; name: string } | { kind: 'stopped' };
-
 const DONE: Record<ContainerAction, string> = {
   start: 'Started',
   stop: 'Stopped',
@@ -53,19 +50,27 @@ const DONE: Record<ContainerAction, string> = {
  */
 export function ServiceList({
   groups,
+  filter: picked,
+  onFilter,
   editing,
   onOpen,
   onLogs,
   onChanged,
 }: {
   groups: ServiceGroup[];
+  filter: ListFilter;
+  onFilter: (filter: ListFilter) => void;
   editing: boolean;
   onOpen: (service: Service) => void;
   onLogs: (service: Service) => void;
   /** After an action, so the dashboard refreshes right away */
   onChanged: () => void;
 }) {
-  const [filter, setFilter] = useState<Filter>({ kind: 'all' });
+  // A group since renamed or emptied shows them all
+  const filter: ListFilter =
+    picked.kind === 'group' && !groups.some((g) => g.name === picked.name)
+      ? { kind: 'all' }
+      : picked;
   const [stopping, setStopping] = useState<Service>();
   const [, startTransition] = useTransition();
 
@@ -94,7 +99,7 @@ export function ServiceList({
     });
   }
 
-  const same = (f: Filter) =>
+  const same = (f: ListFilter) =>
     f.kind === filter.kind &&
     (f.kind !== 'group' || filter.kind !== 'group' || f.name === filter.name);
 
@@ -110,7 +115,7 @@ export function ServiceList({
           label='All'
           count={all.length}
           active={same({ kind: 'all' })}
-          onPick={() => setFilter({ kind: 'all' })}
+          onPick={() => onFilter({ kind: 'all' })}
         />
         {groups.map((g) => (
           <FilterItem
@@ -118,7 +123,7 @@ export function ServiceList({
             label={g.name}
             count={g.services.length}
             active={same({ kind: 'group', name: g.name })}
-            onPick={() => setFilter({ kind: 'group', name: g.name })}
+            onPick={() => onFilter({ kind: 'group', name: g.name })}
           />
         ))}
         <div className='mx-1 my-0 w-px shrink-0 bg-border lg:mx-0 lg:my-2 lg:h-px lg:w-auto' />
@@ -126,7 +131,7 @@ export function ServiceList({
           label='Stopped'
           count={stopped.length}
           active={same({ kind: 'stopped' })}
-          onPick={() => setFilter({ kind: 'stopped' })}
+          onPick={() => onFilter({ kind: 'stopped' })}
         />
       </nav>
 
