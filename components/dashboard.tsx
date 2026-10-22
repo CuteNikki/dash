@@ -6,24 +6,23 @@ import useSWR from 'swr';
 
 import { PencilIcon } from 'lucide-react';
 
-import {
-  arrangeHostTilesTo,
-  arrangeTiles,
-  resizeHostTile,
-  resizeTile,
-  type TileResult,
-} from '@/actions/tiles';
+import { arrangeGroups, saveLayout, type TileResult } from '@/actions/tiles';
 import { fetcher } from '@/lib/fetcher';
 import { groupNames, groupServices } from '@/lib/groups';
 import type { Dashboard as DashboardData, Service } from '@/lib/types';
 
 import { AccountMenu } from '@/components/account-menu';
-import type { TileSize } from '@/components/arrange';
+import {
+  Board,
+  useColumns,
+  type BoardSection,
+  type LayoutChange,
+} from '@/components/board';
 import { EditTileDialog } from '@/components/edit-tile-dialog';
-import { HostStatsBar } from '@/components/host-stats';
+import { HostTileContent } from '@/components/host-stats';
 import { ServiceDialog } from '@/components/service-dialog';
+import { ServiceTile } from '@/components/service-tile';
 import { ThemeButton } from '@/components/theme-button';
-import { TilesView, type Layout } from '@/components/tiles-view';
 import { Button } from '@/components/ui/button';
 
 /** How often the dashboard asks for fresh status and usage. */
@@ -31,11 +30,15 @@ const REFRESH_MS = 5_000;
 
 export function Dashboard({
   initial,
+  initialColumns,
   email,
 }: {
   initial: DashboardData;
+  /** The columns the screen had last time, so the first paint has them */
+  initialColumns: number;
   email: string;
 }) {
+  const columns = useColumns(initialColumns);
   const { data = initial, mutate } = useSWR<DashboardData>(
     '/api/services',
     fetcher,
@@ -72,74 +75,79 @@ export function Dashboard({
     void mutate();
   }
 
-  function arrange(layout: Layout) {
-    const placed = new Map(
-      layout.flatMap((g) => g.keys.map((key, i) => [key, { group: g.name, i }]))
-    );
-    // Only groups whose tiles changed are saved, so the rest keep their labels' order
-    const before = new Map(
-      groups.map((g) => [g.name, g.services.map((s) => s.key)])
-    );
-    const moved = layout.filter(
-      (g) => before.get(g.name)?.join('\n') !== g.keys.join('\n')
-    );
+  function saveCells({ cells, moved }: LayoutChange) {
+    const keys = new Set(cells.map((c) => c.key));
+    const groupOf = new Map(moved.map((m) => [m.key, m.group]));
     void change(
       (d) => ({
         ...d,
-        groupOrder: layout.map((g) => g.name),
-        services: d.services.map((s) => {
-          const p = placed.get(s.key);
-          return p ? { ...s, group: p.group, position: p.i } : s;
-        }),
+        layouts: [
+          ...d.layouts.filter(
+            (l) => !(l.columns === columns && keys.has(l.key))
+          ),
+          ...cells.map((c) => ({ ...c, columns })),
+        ],
+        services: d.services.map((s) =>
+          groupOf.has(s.key) ? { ...s, group: groupOf.get(s.key)! } : s
+        ),
       }),
-      () =>
-        arrangeTiles({
-          groups: layout.map((g) => g.name),
-          tiles: moved.map((g) => ({ group: g.name, keys: g.keys })),
-        }),
+      () => saveLayout({ columns, cells, moved }),
       "Couldn't save where tiles go"
     );
   }
 
-  function resize(service: Service, width: number, height: number) {
+  function saveGroups(names: string[]) {
     void change(
-      (d) => ({
-        ...d,
-        services: d.services.map((s) =>
-          s.key === service.key ? { ...s, width, height } : s
-        ),
-      }),
-      () => resizeTile(service.key, width, height),
-      `Couldn't resize ${service.name}`
+      (d) => ({ ...d, groupOrder: names }),
+      () => arrangeGroups(names),
+      "Couldn't save the groups' order"
     );
   }
 
-  function arrangeHost(keys: string[]) {
-    void change(
-      (d) => ({
-        ...d,
-        hostTiles: keys.flatMap(
-          (k) => d.hostTiles.find((t) => t.key === k) ?? []
+  const sections: BoardSection[] = [
+    ...(host || hostComing
+      ? [
+          {
+            id: 'host',
+            kind: 'host' as const,
+            label: 'Server',
+            tiles: data.hostTiles.map((t) => ({
+              key: `host:${t.key}`,
+              name: t.name,
+              w: t.width,
+              h: t.height,
+              inert: true,
+              render: () => (
+                <HostTileContent
+                  tile={t.key}
+                  host={host}
+                  services={services}
+                  onOpen={open}
+                />
+              ),
+            })),
+          },
+        ]
+      : []),
+    ...groups.map((g) => ({
+      id: `group:${g.name}`,
+      kind: 'group' as const,
+      label: g.name,
+      tiles: g.services.map((service) => ({
+        key: service.key,
+        name: service.name,
+        w: service.width,
+        h: service.height,
+        render: (cell: { w: number; h: number }) => (
+          <ServiceTile
+            service={{ ...service, width: cell.w, height: cell.h }}
+            editing={editing}
+            onOpen={open}
+          />
         ),
-      }),
-      () => arrangeHostTilesTo(keys),
-      "Couldn't save where the server's tiles go"
-    );
-  }
-
-  function resizeHost(key: string, size: TileSize) {
-    const tile = data.hostTiles.find((t) => t.key === key);
-    void change(
-      (d) => ({
-        ...d,
-        hostTiles: d.hostTiles.map((t) =>
-          t.key === key ? { ...t, ...size } : t
-        ),
-      }),
-      () => resizeHostTile(key, size.width, size.height),
-      `Couldn't resize ${tile?.name ?? key}`
-    );
-  }
+      })),
+    })),
+  ];
 
   function open(service: Service) {
     if (editing) setEditKey(service.key);
@@ -162,23 +170,13 @@ export function Dashboard({
         <ThemeButton />
         <AccountMenu email={email} />
       </header>
-      {(host || hostComing) && (
-        <HostStatsBar
-          host={host}
-          tiles={data.hostTiles}
-          services={services}
-          editing={editing}
-          onOpen={open}
-          onArrange={arrangeHost}
-          onResize={resizeHost}
-        />
-      )}
-      <TilesView
-        groups={groups}
+      <Board
+        sections={sections}
+        columns={columns}
         editing={editing}
-        onOpen={open}
-        onArrange={arrange}
-        onResize={resize}
+        saved={data.layouts}
+        onLayout={saveCells}
+        onGroups={saveGroups}
       />
       <ServiceDialog
         service={find(openKey)}

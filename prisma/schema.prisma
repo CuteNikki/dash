@@ -38,6 +38,21 @@ model HostTile {
   height   Int
 }
 
+/// Where a tile sits once it's been arranged at a number of columns: its
+/// first column and row, from 0, and the columns and rows it spans. Each
+/// number of columns has its own; one not arranged comes from the nearest.
+model TileLayout {
+  /// A service's tile key, or "host:cpu" and so on for the server's
+  key     String
+  columns Int
+  x       Int
+  y       Int
+  w       Int
+  h       Int
+
+  @@id([key, columns])
+}
+
 /// The order groups are shown in. Groups exist as long as a tile is in them.
 model Group {
   name     String @id

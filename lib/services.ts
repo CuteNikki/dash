@@ -75,12 +75,14 @@ export async function getDashboard(): Promise<Dashboard> {
     tiles,
     groups,
     hostTiles,
+    layouts,
   ] = await Promise.all([
     listContainers(),
     currentUsage(),
     db.tile.findMany(),
     db.group.findMany({ orderBy: { position: 'asc' } }),
     db.hostTile.findMany(),
+    db.tileLayout.findMany(),
   ]);
   const edited = new Map(tiles.map((t) => [t.key, t]));
   const consoles = await takingInput(containers);
@@ -135,6 +137,7 @@ export async function getDashboard(): Promise<Dashboard> {
     services,
     groupOrder: groups.map((g) => g.name),
     hostTiles: arrangeHostTiles(hostTiles),
+    layouts,
     host,
     hostComing,
   };

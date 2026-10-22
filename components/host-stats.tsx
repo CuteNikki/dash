@@ -22,15 +22,9 @@ import {
   MEASURES,
   type Measure,
 } from '@/lib/format';
-import type { HostTile, HostTileKey } from '@/lib/host-tiles';
+import type { HostTileKey } from '@/lib/host-tiles';
 import type { Capacity, HostStats, Service } from '@/lib/types';
 
-import {
-  ArrangeGrid,
-  GridTile,
-  TILE_GRID,
-  type TileSize,
-} from '@/components/arrange';
 import { DiskDialog } from '@/components/disk-dialog';
 import { HistoryChart } from '@/components/history-chart';
 import { ProcessList } from '@/components/process-list';
@@ -40,34 +34,27 @@ import { Progress } from '@/components/ui/progress';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 /**
- * The server itself: what it is, then its CPU and processes, memory, disk
- * and network, as tiles moved and resized like the services'. Until it's
- * been measured, each is there with placeholders where its numbers go, so
- * nothing moves when they come.
+ * One of the server's tiles: what it is, its CPU, processes, memory, disk
+ * or network. Until it's been measured, each is there with placeholders
+ * where its numbers go, so nothing moves when they come.
  */
-export function HostStatsBar({
+export function HostTileContent({
+  tile,
   host,
-  tiles,
   services,
-  editing,
   onOpen,
-  onArrange,
-  onResize,
 }: {
+  tile: HostTileKey;
   /** None while it's first measured */
   host?: HostStats;
-  /** Its tiles, in order, at their sizes */
-  tiles: HostTile[];
   /** For each process's container */
   services: Service[];
-  /** While editing, its tiles are dragged to move and resize them */
-  editing: boolean;
   onOpen: (service: Service) => void;
-  onArrange: (keys: string[]) => void;
-  onResize: (key: string, size: TileSize) => void;
 }) {
-  function render(key: string) {
-    switch (key as HostTileKey) {
+  return render(tile);
+
+  function render(key: HostTileKey) {
+    switch (key) {
       case 'server':
         return <ServerDetails host={host} />;
       case 'cpu':
@@ -146,27 +133,6 @@ export function HostStatsBar({
         );
     }
   }
-
-  return (
-    <section aria-label='Server' aria-busy={!host}>
-      {editing ? (
-        <ArrangeGrid
-          items={tiles}
-          onArrange={onArrange}
-          onResize={onResize}
-          render={render}
-        />
-      ) : (
-        <div className={TILE_GRID}>
-          {tiles.map((tile) => (
-            <GridTile key={tile.key} size={tile}>
-              {render(tile.key)}
-            </GridTile>
-          ))}
-        </div>
-      )}
-    </section>
-  );
 }
 
 /** What the server is, label by label. */

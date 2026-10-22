@@ -1,6 +1,7 @@
 import type { ContainerState, DockerInfo } from '@/lib/docker';
 import type { HostTile } from '@/lib/host-tiles';
 import type { IconVariants } from '@/lib/icon-sets';
+import type { SavedCell } from '@/lib/layout';
 
 /** A container as the dashboard shows it, safe to send to the browser. */
 export type Service = {
@@ -22,7 +23,7 @@ export type Service = {
   description?: string;
   /** Order within its group, when it's been placed; otherwise by name */
   position?: number;
-  /** Columns and rows its tile spans */
+  /** Columns and rows its tile spans where it hasn't been arranged */
   width: number;
   height: number;
   /** Left off the dashboard, except while editing it */
@@ -58,8 +59,10 @@ export type Dashboard = {
   services: Service[];
   /** Groups in the order they've been placed; others follow by name */
   groupOrder: string[];
-  /** The server's tiles, in order, at their sizes */
+  /** The server's tiles, in their first order, at their first sizes */
   hostTiles: HostTile[];
+  /** Where tiles sit at each number of columns they've been arranged at */
+  layouts: SavedCell[];
   /** The server itself, once it's been measured twice */
   host?: HostStats;
   /** No stats yet, but they're coming: they take two readings, a few seconds apart */

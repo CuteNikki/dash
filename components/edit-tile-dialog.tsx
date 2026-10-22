@@ -4,7 +4,6 @@ import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
 import { resetTile, restoreTile, saveTile } from '@/actions/tiles';
-import { MAX_HEIGHT, MAX_WIDTH } from '@/lib/tile-size';
 import type { Service } from '@/lib/types';
 
 import { AddressesField, toItems } from '@/components/addresses-field';
@@ -22,9 +21,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
-/** How a service's tile looks: its name, icon, addresses, group and size. */
+/** How a service's tile looks: its name, icon, addresses and group. */
 export function EditTileDialog({
   service,
   groups,
@@ -68,8 +66,6 @@ function EditTileForm({
   const [icon, setIcon] = useState(service.icon);
   const [addresses, setAddresses] = useState(() => toItems(service.addresses));
   const [group, setGroup] = useState(service.group);
-  const [width, setWidth] = useState(service.width);
-  const [height, setHeight] = useState(service.height);
   const [hidden, setHidden] = useState(service.hidden);
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
@@ -82,8 +78,6 @@ function EditTileForm({
         icon,
         addresses: addresses.map((a) => a.value),
         group,
-        width,
-        height,
         hidden,
       });
       if (result?.error) {
@@ -100,7 +94,7 @@ function EditTileForm({
       const before = await resetTile(service.key);
       toast.success(`Reset ${service.name}`, {
         description:
-          'Its name, icon, addresses, group, size and place are back to defaults.',
+          'Its name, icon, addresses and group are back to defaults.',
         action: before && {
           label: 'Undo',
           onClick: async () => {
@@ -165,20 +159,6 @@ function EditTileForm({
             onChange={setGroup}
           />
         </div>
-        <div className='flex flex-wrap gap-x-6 gap-y-4'>
-          <SizeField
-            label='Width'
-            max={MAX_WIDTH}
-            value={width}
-            onChange={setWidth}
-          />
-          <SizeField
-            label='Height'
-            max={MAX_HEIGHT}
-            value={height}
-            onChange={setHeight}
-          />
-        </div>
         <div className='flex items-center gap-2'>
           <Switch
             id='tile-hidden'
@@ -207,42 +187,5 @@ function EditTileForm({
         </Button>
       </DialogFooter>
     </form>
-  );
-}
-
-/** How many columns or rows the tile spans, also changed by dragging its corner. */
-function SizeField({
-  label,
-  max,
-  value,
-  onChange,
-}: {
-  label: string;
-  max: number;
-  value: number;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <div className='flex flex-col gap-2'>
-      <Label>{label}</Label>
-      <ToggleGroup
-        type='single'
-        variant='outline'
-        value={String(value)}
-        // Picking the shown one again would unpick it; keep one picked
-        onValueChange={(v) => v && onChange(Number(v))}
-        aria-label={label}
-      >
-        {Array.from({ length: max }, (_, i) => (
-          <ToggleGroupItem
-            key={i}
-            value={String(i + 1)}
-            className='font-mono tabular-nums'
-          >
-            {i + 1}
-          </ToggleGroupItem>
-        ))}
-      </ToggleGroup>
-    </div>
   );
 }

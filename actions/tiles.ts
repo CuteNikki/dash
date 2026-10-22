@@ -3,23 +3,18 @@
 import { z } from 'zod';
 
 import { db } from '@/lib/db';
-import {
-  arrangeHostTiles,
-  isHostTileKey,
-  type HostTile,
-} from '@/lib/host-tiles';
+import { MAX_COLUMNS, MAX_ROWS } from '@/lib/layout';
 import { ensureTiles } from '@/lib/services';
 import { requireUser } from '@/lib/session';
-import { MAX_HEIGHT, MAX_WIDTH } from '@/lib/tile-size';
 
 const MAX_NAME = 80;
 const MAX_GROUP = 60;
 const MAX_ICON = 500;
 const MAX_ADDRESS = 300;
 const MAX_ADDRESSES = 10;
+/** Rows down a grid a tile can be put, far past any real one */
+const MAX_ROW = 1000;
 
-const Width = z.number().int().min(1).max(MAX_WIDTH);
-const Height = z.number().int().min(1).max(MAX_HEIGHT);
 const Group = z.string().trim().min(1, 'Pick or type a group').max(MAX_GROUP);
 
 const TileInput = z.object({
@@ -34,8 +29,6 @@ const TileInput = z.object({
       z.array(z.string()).max(MAX_ADDRESSES, `Up to ${MAX_ADDRESSES} addresses`)
     ),
   group: Group,
-  width: Width,
-  height: Height,
   hidden: z.boolean(),
 });
 
@@ -56,52 +49,67 @@ export async function saveTile(input: TileInput): Promise<TileResult> {
   });
 }
 
-const Arrangement = z.object({
-  /** Every group, in order */
-  groups: z.array(Group),
-  /** Groups whose tiles moved, each with its tiles' keys in order */
-  tiles: z.array(z.object({ group: Group, keys: z.array(z.string().min(1)) })),
-});
+const LayoutInput = z
+  .object({
+    columns: z.number().int().min(1).max(MAX_COLUMNS),
+    /** Where each tile in the grids that changed now sits */
+    cells: z.array(
+      z.object({
+        key: z.string().min(1),
+        x: z
+          .number()
+          .int()
+          .min(0)
+          .max(MAX_COLUMNS - 1),
+        y: z.number().int().min(0).max(MAX_ROW),
+        w: z.number().int().min(1).max(MAX_COLUMNS),
+        h: z.number().int().min(1).max(MAX_ROWS),
+      })
+    ),
+    /** Services dragged into another group */
+    moved: z.array(z.object({ key: z.string().min(1), group: Group })),
+  })
+  .refine((l) => l.cells.every((c) => c.x + c.w <= l.columns), {
+    message: 'A tile goes past the last column',
+  });
 
-export type Arrangement = z.input<typeof Arrangement>;
+export type LayoutInput = z.input<typeof LayoutInput>;
 
-/** Saves where groups and tiles were dragged to. */
-export async function arrangeTiles(input: Arrangement): Promise<TileResult> {
+/** Saves where tiles were dragged to, or resized, at this number of columns. */
+export async function saveLayout(input: LayoutInput): Promise<TileResult> {
   await requireUser();
-  const parsed = Arrangement.safeParse(input);
+  const parsed = LayoutInput.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
-  const { groups, tiles } = parsed.data;
-  await ensureTiles(tiles.flatMap((g) => g.keys));
+  const { columns, cells, moved } = parsed.data;
+  await ensureTiles(moved.map((m) => m.key));
   await db.$transaction([
-    ...groups.map((name, position) =>
+    ...cells.map(({ key, ...cell }) =>
+      db.tileLayout.upsert({
+        where: { key_columns: { key, columns } },
+        create: { key, columns, ...cell },
+        update: cell,
+      })
+    ),
+    ...moved.map(({ key, group }) =>
+      db.tile.update({ where: { key }, data: { group } })
+    ),
+  ]);
+}
+
+/** Saves the order groups were dragged into. */
+export async function arrangeGroups(names: string[]): Promise<TileResult> {
+  await requireUser();
+  const parsed = z.array(Group).safeParse(names);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  await db.$transaction(
+    parsed.data.map((name, position) =>
       db.group.upsert({
         where: { name },
         create: { name, position },
         update: { position },
       })
-    ),
-    ...tiles.flatMap(({ group, keys }) =>
-      keys.map((key, position) =>
-        db.tile.update({ where: { key }, data: { group, position } })
-      )
-    ),
-  ]);
-}
-
-/** Saves how many columns and rows a tile spans. */
-export async function resizeTile(
-  key: string,
-  width: number,
-  height: number
-): Promise<TileResult> {
-  await requireUser();
-  const size = z.object({ width: Width, height: Height }).safeParse({
-    width,
-    height,
-  });
-  if (!size.success) return { error: size.error.issues[0].message };
-  await ensureTiles([key]);
-  await db.tile.update({ where: { key }, data: size.data });
+    )
+  );
 }
 
 export type TileSnapshot = NonNullable<
@@ -138,50 +146,4 @@ export async function restoreTile(tile: TileSnapshot): Promise<TileResult> {
     create: { key, ...data },
     update: data,
   });
-}
-
-/**
- * Saves the server's tiles in their order, at their sizes, once they've been
- * moved or resized: all of them, so their order holds whichever change.
- */
-async function saveHostTiles(tiles: HostTile[]) {
-  await db.$transaction(
-    tiles.map(({ key, width, height }, position) =>
-      db.hostTile.upsert({
-        where: { key },
-        create: { key, position, width, height },
-        update: { position, width, height },
-      })
-    )
-  );
-}
-
-/** Saves the order the server's tiles were dragged into. */
-export async function arrangeHostTilesTo(keys: string[]): Promise<TileResult> {
-  await requireUser();
-  const tiles = arrangeHostTiles(await db.hostTile.findMany());
-  if (keys.length !== tiles.length || !keys.every(isHostTileKey)) {
-    return { error: "Those aren't the server's tiles" };
-  }
-  await saveHostTiles(keys.map((k) => tiles.find((t) => t.key === k)!));
-}
-
-/** Saves how many columns and rows one of the server's tiles spans. */
-export async function resizeHostTile(
-  key: string,
-  width: number,
-  height: number
-): Promise<TileResult> {
-  await requireUser();
-  const size = z.object({ width: Width, height: Height }).safeParse({
-    width,
-    height,
-  });
-  if (!size.success) return { error: size.error.issues[0].message };
-  if (!isHostTileKey(key))
-    return { error: "That isn't one of the server's tiles" };
-  const tiles = arrangeHostTiles(await db.hostTile.findMany());
-  await saveHostTiles(
-    tiles.map((t) => (t.key === key ? { ...t, ...size.data } : t))
-  );
 }
