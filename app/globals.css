@@ -9,6 +9,7 @@
   --color-warning: var(--warning);
   --color-background: var(--background);
   --color-surface: var(--surface);
+  --color-field: var(--field);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-jetbrains-mono);
@@ -90,6 +91,8 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
+  /* What a field or an outline button is filled with: a tint of --input */
+  --field: color-mix(in oklch, var(--input) 20%, transparent);
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
@@ -107,7 +110,7 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
-/* A dialog the shade of the page, with its panels, tiles and chips white on it,
+/* A dialog the shade of the page, with its panels, tiles, chips and fields white on it,
    as in the dark they're lighter than the dialog; what's picked in a white panel
    goes a shade darker, as it goes darker in the dark */
 :root:not(.dark)
@@ -120,6 +123,7 @@
   --muted: oklch(1 0 0);
   --secondary: oklch(1 0 0);
   --surface: oklch(0.94 0 0);
+  --field: oklch(1 0 0);
 }
 
 .dark {
@@ -148,6 +152,7 @@
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
+  --field: color-mix(in oklch, var(--input) 30%, transparent);
   --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);

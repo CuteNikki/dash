@@ -33,7 +33,7 @@ export function Panel({
     <section
       aria-label={title}
       className={cn(
-        'flex min-w-0 flex-col gap-3 rounded-lg border border-foreground/10 bg-muted/40 p-3',
+        'flex min-w-0 flex-col gap-3 rounded-lg border border-foreground/10 bg-muted p-3 dark:bg-muted/40',
         className
       )}
     >
