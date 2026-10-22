@@ -1,8 +1,15 @@
 'use client';
 
-import { MergeView } from '@codemirror/merge';
-import { EditorState } from '@codemirror/state';
-import { EditorView, lineNumbers } from '@codemirror/view';
+import { getChunks, MergeView } from '@codemirror/merge';
+import { EditorState, RangeSetBuilder } from '@codemirror/state';
+import {
+  Decoration,
+  EditorView,
+  lineNumbers,
+  ViewPlugin,
+  type DecorationSet,
+  type ViewUpdate,
+} from '@codemirror/view';
 import { useEffect, useRef, useState } from 'react';
 
 import type { FileDiff } from '@/lib/git';
@@ -52,7 +59,69 @@ const splitTheme = EditorView.theme({
     color: 'var(--muted-foreground)',
     background: tint('--foreground', 5),
   },
+  // A rewritten chunk is all changed text; marking it word by word would only
+  // stripe every line, so its lines' tint says it alone
+  '&.cm-merge-a.cm-merge-a .cm-rewrittenLine .cm-changedText, &.cm-merge-b.cm-merge-b .cm-rewrittenLine .cm-changedText':
+    { background: 'none' },
 });
+
+/** How much of a chunk's text can change before it counts as rewritten. */
+const REWRITTEN_SHARE = 0.5;
+
+const rewrittenLine = Decoration.line({ class: 'cm-rewrittenLine' });
+
+/** How many characters of some text aren't spaces. */
+const visible = (text: string) => text.replace(/\s/g, '').length;
+
+/**
+ * Marks the lines of each chunk that's more changed than not on this side,
+ * from the merge view's own chunks, so its changes aren't marked word by word.
+ */
+function rewrittenLines(state: EditorState) {
+  const found = getChunks(state);
+  const builder = new RangeSetBuilder<Decoration>();
+  if (!found?.side) return builder.finish();
+  const a = found.side === 'a';
+  for (const chunk of found.chunks) {
+    const from = a ? chunk.fromA : chunk.fromB;
+    const to = a ? chunk.toA : chunk.toB;
+    const total = visible(state.doc.sliceString(from, to));
+    const changed = chunk.changes.reduce(
+      (sum, c) =>
+        sum +
+        visible(
+          state.doc.sliceString(
+            from + (a ? c.fromA : c.fromB),
+            from + (a ? c.toA : c.toB)
+          )
+        ),
+      0
+    );
+    if (!total || changed / total <= REWRITTEN_SHARE) continue;
+    for (let pos = from; pos < to;) {
+      const line = state.doc.lineAt(pos);
+      builder.add(line.from, line.from, rewrittenLine);
+      pos = line.to + 1;
+    }
+  }
+  return builder.finish();
+}
+
+const rewritten = ViewPlugin.fromClass(
+  class {
+    decorations: DecorationSet;
+    constructor(view: EditorView) {
+      this.decorations = rewrittenLines(view.state);
+    }
+    update(update: ViewUpdate) {
+      if (
+        getChunks(update.state)?.chunks !== getChunks(update.startState)?.chunks
+      )
+        this.decorations = rewrittenLines(update.state);
+    }
+  },
+  { decorations: (plugin) => plugin.decorations }
+);
 
 /** The diff layout picked last in this browser, and picking another. */
 export function useDiffLayout() {
@@ -153,6 +222,7 @@ function SplitDiff({
     const side = [
       ...codeLooks(name),
       splitTheme,
+      rewritten,
       lineNumbers(),
       EditorState.readOnly.of(true),
       EditorView.editable.of(false),
