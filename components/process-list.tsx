@@ -9,7 +9,7 @@ import type { HostProcess, Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 import { ProcessDialog } from '@/components/process-dialog';
-import { OVERLAY_BAR_PX, ScrollFade } from '@/components/scroll-fade';
+import { ScrollFade } from '@/components/scroll-fade';
 import { ServiceIcon } from '@/components/service-icon';
 import { TextSkeleton } from '@/components/skeletons';
 import { Card } from '@/components/ui/card';
@@ -25,6 +25,24 @@ type SortKey = 'cpu' | 'memory';
 const SKELETON_ROWS = 6;
 /** Name lengths that look like processes', never all alike. */
 const NAME_WIDTHS = ['w-40', 'w-24', 'w-56', 'w-32', 'w-48', 'w-28'];
+
+/**
+ * Each column's width, the process's being what's left: on the headings and
+ * on the rows alike, as the headings are a table of their own.
+ */
+const COLUMN = {
+  pid: 'hidden w-20 @2xl:table-cell',
+  container: 'w-8 @lg:w-40',
+  cpu: 'w-16',
+  memory: 'w-18',
+};
+
+/**
+ * Both tables: a gap after every column but the last, so none run into the
+ * next, and room at each row's ends for its rounded highlight.
+ */
+const TABLE =
+  'w-full table-fixed [&_td:first-child]:rounded-l-md [&_td:first-child]:pl-2 [&_td:last-child]:rounded-r-md [&_td:last-child]:pr-2 [&_td:not(:last-child)]:pr-4 [&_th:first-child]:pl-2 [&_th:last-child]:pr-2 [&_th:not(:last-child)]:pr-4';
 
 /**
  * The server's processes, busiest first: what each is, the container it runs
@@ -102,42 +120,25 @@ export function ProcessList({
         // Seven lines whatever the filter leaves, so the page doesn't shift
         // while typing, or as many as a taller tile has room for: the
         // headings and the processes, the rest a scroll away, faded at the
-        // edges while there's more. The scrollbar's room is kept when it's
-        // gone, so the columns stay put too; the headings do, so the top fade
-        // starts a line down
+        // edges while there's more. The headings stand above the scrolling
+        // rows rather than stuck over them, where an iPhone showed rows
+        // through their top edge. The scrollbar's room is kept beside both,
+        // even when it's gone, so the columns line up and stay put
         <div className='flex min-h-[7lh] flex-1 basis-0 flex-col'>
-          <ScrollFade
-            fill
-            className='h-full [scrollbar-gutter:stable] overflow-auto'
-            fadeTop='top-[1lh]'
-          >
-            {/* A gap after every column but the last, so none run into the
-              next, and room at each row's ends for its rounded highlight */}
-            <table className='w-full table-fixed [&_td:first-child]:rounded-l-md [&_td:first-child]:pl-2 [&_td:last-child]:rounded-r-md [&_td:last-child]:pr-2 [&_td:not(:last-child)]:pr-4 [&_th:first-child]:pl-2 [&_th:last-child]:pr-2 [&_th:not(:last-child)]:pr-4'>
-              <thead
-                // Its background stops short of the right edge, only padding
-                // there, where an iPhone draws its scrollbar inside the list
-                // and would otherwise draw it under the headings. Each heading
-                // reaches a little above itself too, so a row scrolled past
-                // can't show through where the list's top and the headings
-                // round to different pixels: as an element, since a table's
-                // parts draw no shadow with its borders collapsed
-                style={{ clipPath: `inset(-2px ${OVERLAY_BAR_PX}px 0 0)` }}
-                className='sticky top-0 bg-card text-left text-muted-foreground [&_th]:relative [&_th]:before:absolute [&_th]:before:inset-x-0 [&_th]:before:-top-0.5 [&_th]:before:h-0.5 [&_th]:before:bg-card'
-              >
+          <div className='[scrollbar-gutter:stable] overflow-hidden'>
+            <table className={TABLE}>
+              <thead className='text-left text-muted-foreground'>
                 <tr>
                   <th className='font-normal'>Process</th>
-                  <th className='hidden w-20 font-normal @2xl:table-cell'>
-                    PID
-                  </th>
-                  <th className='w-8 font-normal @lg:w-40'>
+                  <th className={cn('font-normal', COLUMN.pid)}>PID</th>
+                  <th className={cn('font-normal', COLUMN.container)}>
                     <span className='hidden @lg:inline'>Container</span>
                   </th>
                   <SortHeading
                     by='cpu'
                     sort={sort}
                     onSort={setSort}
-                    className='w-16'
+                    className={COLUMN.cpu}
                   >
                     CPU
                   </SortHeading>
@@ -145,105 +146,121 @@ export function ProcessList({
                     by='memory'
                     sort={sort}
                     onSort={setSort}
-                    className='w-18'
+                    className={COLUMN.memory}
                   >
                     Memory
                   </SortHeading>
                 </tr>
               </thead>
-              <tbody className='tabular-nums'>
-                {/* Rows to come, as the first measurement's under way */}
-                {measuring &&
-                  Array.from({ length: SKELETON_ROWS }, (_, i) => (
-                    <tr key={i} aria-hidden>
-                      <td>
-                        <TextSkeleton
-                          className={NAME_WIDTHS[i % NAME_WIDTHS.length]}
-                        />
-                      </td>
-                      <td className='hidden @2xl:table-cell'>
-                        <TextSkeleton className='w-12' />
-                      </td>
-                      <td />
-                      <td>
-                        <span className='flex justify-end'>
-                          <TextSkeleton className='w-8' />
-                        </span>
-                      </td>
-                      <td>
-                        <span className='flex justify-end'>
-                          <TextSkeleton className='w-10' />
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                {shown.map((p) => {
-                  const service = serviceOf(p);
-                  return (
-                    <tr
-                      key={p.pid}
-                      tabIndex={0}
-                      aria-label={`${p.name} ${p.pid}`}
-                      onClick={() => setPicked(p.pid)}
-                      onKeyDown={(e) => {
-                        if (e.key !== 'Enter' && e.key !== ' ') return;
-                        e.preventDefault();
-                        setPicked(p.pid);
-                      }}
-                      className='cursor-pointer outline-none hover:bg-muted focus-visible:bg-muted'
-                    >
-                      <td className='truncate' title={p.command || p.name}>
-                        <span className='font-mono'>{p.name}</span>
-                        {p.command && (
-                          <span className='ml-2 text-muted-foreground'>
-                            {p.command}
-                          </span>
-                        )}
-                      </td>
-                      <td className='hidden font-mono text-muted-foreground @2xl:table-cell'>
-                        {p.pid}
-                      </td>
-                      <td>
-                        {service && (
-                          <button
-                            type='button'
-                            title={service.name}
-                            aria-label={`Open ${service.name}`}
-                            onClick={(e) => {
-                              // Its service, not the process's details
-                              e.stopPropagation();
-                              onOpen(service);
-                            }}
-                            className='flex max-w-full items-center gap-1.5 rounded-sm hover:underline'
-                          >
-                            <ServiceIcon
-                              icon={service.icon}
-                              name={service.name}
-                              variants={service.iconVariants}
-                              missing={service.iconMissing}
-                              className='size-3.5 shrink-0'
-                            />
-                            <span className='hidden truncate @lg:inline'>
-                              {service.name}
-                            </span>
-                          </button>
-                        )}
-                      </td>
-                      <td className='text-right font-mono'>
-                        {formatCpu(p.cpu)}
-                      </td>
-                      <td className='text-right font-mono'>
-                        {formatBytes(p.memory)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
             </table>
-            {!measuring && shown.length === 0 && (
-              <p className='text-muted-foreground'>No processes match.</p>
-            )}
-          </ScrollFade>
+          </div>
+          <div className='min-h-0 flex-1 basis-0'>
+            <ScrollFade
+              fill
+              className='h-full [scrollbar-gutter:stable] overflow-auto'
+            >
+              <table className={TABLE}>
+                <tbody className='tabular-nums'>
+                  {/* Rows to come, as the first measurement's under way */}
+                  {measuring &&
+                    Array.from({ length: SKELETON_ROWS }, (_, i) => (
+                      <tr key={i} aria-hidden>
+                        <td>
+                          <TextSkeleton
+                            className={NAME_WIDTHS[i % NAME_WIDTHS.length]}
+                          />
+                        </td>
+                        <td className={COLUMN.pid}>
+                          <TextSkeleton className='w-12' />
+                        </td>
+                        <td className={COLUMN.container} />
+                        <td className={COLUMN.cpu}>
+                          <span className='flex justify-end'>
+                            <TextSkeleton className='w-8' />
+                          </span>
+                        </td>
+                        <td className={COLUMN.memory}>
+                          <span className='flex justify-end'>
+                            <TextSkeleton className='w-10' />
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  {shown.map((p) => {
+                    const service = serviceOf(p);
+                    return (
+                      <tr
+                        key={p.pid}
+                        tabIndex={0}
+                        aria-label={`${p.name} ${p.pid}`}
+                        onClick={() => setPicked(p.pid)}
+                        onKeyDown={(e) => {
+                          if (e.key !== 'Enter' && e.key !== ' ') return;
+                          e.preventDefault();
+                          setPicked(p.pid);
+                        }}
+                        className='cursor-pointer outline-none hover:bg-muted focus-visible:bg-muted'
+                      >
+                        <td className='truncate' title={p.command || p.name}>
+                          <span className='font-mono'>{p.name}</span>
+                          {p.command && (
+                            <span className='ml-2 text-muted-foreground'>
+                              {p.command}
+                            </span>
+                          )}
+                        </td>
+                        <td
+                          className={cn(
+                            'font-mono text-muted-foreground',
+                            COLUMN.pid
+                          )}
+                        >
+                          {p.pid}
+                        </td>
+                        <td className={COLUMN.container}>
+                          {service && (
+                            <button
+                              type='button'
+                              title={service.name}
+                              aria-label={`Open ${service.name}`}
+                              onClick={(e) => {
+                                // Its service, not the process's details
+                                e.stopPropagation();
+                                onOpen(service);
+                              }}
+                              className='flex max-w-full items-center gap-1.5 rounded-sm hover:underline'
+                            >
+                              <ServiceIcon
+                                icon={service.icon}
+                                name={service.name}
+                                variants={service.iconVariants}
+                                missing={service.iconMissing}
+                                className='size-3.5 shrink-0'
+                              />
+                              <span className='hidden truncate @lg:inline'>
+                                {service.name}
+                              </span>
+                            </button>
+                          )}
+                        </td>
+                        <td className={cn('text-right font-mono', COLUMN.cpu)}>
+                          {formatCpu(p.cpu)}
+                        </td>
+                        <td
+                          className={cn('text-right font-mono', COLUMN.memory)}
+                        >
+                          {formatBytes(p.memory)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {!measuring && shown.length === 0 && (
+                <p className='text-muted-foreground'>No processes match.</p>
+              )}
+            </ScrollFade>
+          </div>
         </div>
       }
       <ProcessDialog
