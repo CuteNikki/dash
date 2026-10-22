@@ -9,7 +9,7 @@ import type { HostProcess, Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 import { ProcessDialog } from '@/components/process-dialog';
-import { ScrollFade } from '@/components/scroll-fade';
+import { OVERLAY_BAR_PX, ScrollFade } from '@/components/scroll-fade';
 import { ServiceIcon } from '@/components/service-icon';
 import { TextSkeleton } from '@/components/skeletons';
 import { Card } from '@/components/ui/card';
@@ -117,8 +117,12 @@ export function ProcessList({
               <thead
                 // Its background stops short of the right edge, only padding
                 // there, where an iPhone draws its scrollbar inside the list
-                // and would otherwise draw it under the headings
-                className='sticky top-0 bg-card text-left text-muted-foreground [clip-path:inset(0_6px_0_0)]'
+                // and would otherwise draw it under the headings. It reaches
+                // a little above them too, as a shadow, so a row scrolled
+                // past can't show through where the list's top and the
+                // headings round to different pixels
+                style={{ clipPath: `inset(-2px ${OVERLAY_BAR_PX}px 0 0)` }}
+                className='sticky top-0 bg-card text-left text-muted-foreground shadow-[0_-2px_0_var(--card)]'
               >
                 <tr>
                   <th className='font-normal'>Process</th>

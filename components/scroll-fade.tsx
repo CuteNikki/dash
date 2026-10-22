@@ -8,6 +8,12 @@ import { cn } from '@/lib/utils';
 const EDGE_SLACK_PX = 2;
 
 /**
+ * Room kept at the right edge for a scrollbar drawn over the list, as an
+ * iPhone's is, which takes no width of its own to measure.
+ */
+export const OVERLAY_BAR_PX = 6;
+
+/**
  * A scrolling area whose edges fade out while there's more to scroll to that
  * way, so it shows it scrolls. The fades are in the color of what's behind
  * it: the card's, unless told otherwise.
@@ -40,7 +46,8 @@ export function ScrollFade({
   const own = useRef<HTMLDivElement>(null);
   const scroller = ref ?? own;
   const [more, setMore] = useState({ above: false, below: false });
-  // The scrollbar's width, which the fades stop short of
+  // The scrollbar's width, which the fades stop short of; one drawn over the
+  // list measures nothing, so they keep its room regardless
   const [bar, setBar] = useState(0);
 
   function measure() {
@@ -82,7 +89,7 @@ export function ScrollFade({
       </div>
       <div
         aria-hidden
-        style={{ right: bar }}
+        style={{ right: Math.max(bar, OVERLAY_BAR_PX) }}
         className={cn(
           fade,
           fadeFrom,
@@ -93,7 +100,7 @@ export function ScrollFade({
       />
       <div
         aria-hidden
-        style={{ right: bar }}
+        style={{ right: Math.max(bar, OVERLAY_BAR_PX) }}
         className={cn(
           fade,
           fadeFrom,
