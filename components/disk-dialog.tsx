@@ -311,6 +311,13 @@ function DockerSection({
 
 /** A folder or file's row in the list, and its placeholder's */
 const ROW = 'flex w-full items-center gap-3 rounded-md px-2 py-1 text-left';
+/** A row's bar of its share */
+const BAR = 'w-12 shrink-0 sm:w-24';
+/**
+ * A row's size, as wide as the longest ("1023 MB"), so its bar sits beside
+ * it; and "measuring…" where there's room
+ */
+const SIZE = 'w-[7ch] shrink-0 font-mono sm:w-[10ch]';
 /** The line of folders above the list, and its placeholder's */
 const BREADCRUMBS = 'flex flex-wrap items-center gap-1 font-mono';
 
@@ -456,7 +463,13 @@ function Size({ size }: { size: MeasuredSize & { elsewhere?: boolean } }) {
       </span>
     );
   }
-  return <span className='animate-pulse opacity-50'>measuring…</span>;
+  return (
+    <span title='Being measured' className='animate-pulse opacity-50'>
+      {/* A phone's size column only fits a size */}
+      <span className='sm:hidden'>…</span>
+      <span className='max-sm:hidden'>measuring…</span>
+    </span>
+  );
 }
 
 /** How many placeholder rows fill the list while it's looked up; the rest is hidden. */
@@ -490,8 +503,8 @@ function EntriesSkeleton() {
             <span className='min-w-0 flex-1'>
               <TextSkeleton className={NAME_WIDTHS[i % NAME_WIDTHS.length]} />
             </span>
-            <span className='w-16 shrink-0 sm:w-32' />
-            <span className='flex w-24 shrink-0 justify-end'>
+            <span className={BAR} />
+            <span className={cn(SIZE, 'flex justify-end')}>
               <TextSkeleton className='w-12' />
             </span>
           </div>
@@ -527,7 +540,7 @@ function Entry({
         {entry.name}
       </span>
       {/* Its room kept while it's measured, so the sizes line up */}
-      <span className='w-16 shrink-0 sm:w-32'>
+      <span className={BAR}>
         {share !== undefined && (
           <Progress
             value={share}
@@ -535,7 +548,7 @@ function Entry({
           />
         )}
       </span>
-      <span className='w-24 shrink-0 text-right font-mono tabular-nums'>
+      <span className={cn(SIZE, 'text-right tabular-nums')}>
         <Size size={entry} />
       </span>
     </>
