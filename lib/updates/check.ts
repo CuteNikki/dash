@@ -4,7 +4,12 @@ import { imageDetails, type Container } from '@/lib/docker/docker';
 import { imageName } from '@/lib/format';
 import { gitFetch, gitStatus } from '@/lib/git';
 import type { ServiceUpdate } from '@/lib/types';
-import { listTags, parseRef, remoteDigest } from '@/lib/updates/registry';
+import {
+  listTags,
+  parseRef,
+  remoteDigest,
+  remoteImageDetails,
+} from '@/lib/updates/registry';
 import { newerVersion, parseVersion } from '@/lib/updates/versions';
 
 /** How long a registry's or repository's answer is trusted before it's asked again. */
@@ -18,7 +23,12 @@ type Checker = {
   /** By image reference: the digest its tag points at, or the newest version after it */
   remote: Map<
     string,
-    Found<{ digest?: string; newer?: { tag: string; major: boolean } }>
+    Found<{
+      digest?: string;
+      /** The version the newer image under its tag says it is, once it's one Docker hasn't got */
+      version?: string;
+      newer?: { tag: string; major: boolean };
+    }>
   >;
   /** By stack folder: how far its repository is behind its branch on the remote */
   repos: Map<
@@ -89,7 +99,7 @@ async function refresh(containers: Container[], force: boolean) {
           await find(async () =>
             isFixed(image)
               ? { newer: newerVersion(ref.tag, await listTags(ref)) }
-              : { digest: await remoteDigest(ref) }
+              : await withVersion(image, await remoteDigest(ref), containers)
           )
         );
       }),
@@ -137,6 +147,46 @@ const VERSION_NAMES: Record<string, string> = { postgres: 'PG' };
 const LOOKS_LIKE_VERSION = /\d+\.\d+/;
 
 /**
+ * The version an image says it is, from its version label or its
+ * environment's <NAME>_VERSION, as PG_VERSION=16.15, if either looks like
+ * one: the same for one Docker has and one still in the registry.
+ */
+function versionFrom(
+  details: { versionLabel?: string; versions: Record<string, string> },
+  image: string
+) {
+  const name = imageName(image);
+  const fromEnv =
+    details.versions[
+      VERSION_NAMES[name] ?? name.toUpperCase().replace(/\W/g, '_')
+    ];
+  return [details.versionLabel, fromEnv].find(
+    (v) => v && LOOKS_LIKE_VERSION.test(v)
+  );
+}
+
+/**
+ * A tag's digest, and when it's an image Docker hasn't got, the version
+ * that image says it is, to tell a new release from a rebuild of the same.
+ */
+async function withVersion(
+  image: string,
+  digest: string,
+  containers: Container[]
+) {
+  const isNew = containers.some(
+    (c) =>
+      c.image === image &&
+      !checker.images.get(c.imageId)?.digests.includes(digest)
+  );
+  if (!isNew) return { digest };
+  const details = await remoteImageDetails(parseRef(image)!, digest).catch(
+    () => undefined
+  );
+  return { digest, version: details && versionFrom(details, image) };
+}
+
+/**
  * The version a container runs, as its image says: its tag, for one fixed
  * to a version; else its version label, or its environment's
  * <NAME>_VERSION, as PG_VERSION=16.15, if either looks like one. None for
@@ -147,15 +197,7 @@ export function versionOf(c: Container) {
   const tag = parseRef(c.image)?.tag;
   if (tag && parseVersion(tag)) return tag;
   const image = checker.images.get(c.imageId);
-  if (!image) return undefined;
-  const name = imageName(c.image);
-  const fromEnv =
-    image.versions[
-      VERSION_NAMES[name] ?? name.toUpperCase().replace(/\W/g, '_')
-    ];
-  return [image.versionLabel, fromEnv].find(
-    (v) => v && LOOKS_LIKE_VERSION.test(v)
-  );
+  return image && versionFrom(image, c.image);
 }
 
 export function updateOf(c: Container): {
@@ -187,7 +229,15 @@ export function updateOf(c: Container): {
     };
   }
   if (digest && !image.digests.includes(digest)) {
-    return { update: { kind: 'image', tag: parseRef(c.image)!.tag } };
+    const to = found.value?.version;
+    return {
+      update: {
+        kind: 'image',
+        tag: parseRef(c.image)!.tag,
+        to,
+        rebuilt: !!to && to === versionOf(c),
+      },
+    };
   }
   return {};
 }

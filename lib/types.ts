@@ -154,7 +154,14 @@ export type SystemUpdates = {
  * one built here from a repository, commits on its branch not yet pulled.
  */
 export type ServiceUpdate =
-  | { kind: 'image'; tag: string }
+  | {
+      kind: 'image';
+      tag: string;
+      /** The version the newer image says it is, when it says one */
+      to?: string;
+      /** The same version as now, built again, as on a newer base system */
+      rebuilt?: boolean;
+    }
   | {
       kind: 'version';
       from: string;

@@ -118,6 +118,49 @@ export async function remoteDigest(ref: ImageRef) {
   return digest;
 }
 
+type Manifest = {
+  manifests?: {
+    digest: string;
+    platform?: { os: string; architecture: string };
+  }[];
+  config?: { digest: string };
+};
+
+/**
+ * What an image says of itself, as Docker's image inspect does: its labels
+ * and its environment's *_VERSION settings. From its manifest (a GET, which
+ * Docker Hub counts as a pull, so this is only asked for an update) and the
+ * small config it points to, for linux/amd64 where it's built for several.
+ */
+export async function remoteImageDetails(ref: ImageRef, digest: string) {
+  const get = async <T>(path: string, accept?: string) =>
+    (await (
+      await registryFetch(ref, path, accept ? { headers: { accept } } : {})
+    ).json()) as T;
+  let manifest = await get<Manifest>(`manifests/${digest}`, ACCEPT);
+  if (manifest.manifests) {
+    const one =
+      manifest.manifests.find(
+        (m) => m.platform?.os === 'linux' && m.platform.architecture === 'amd64'
+      ) ?? manifest.manifests[0];
+    manifest = await get<Manifest>(`manifests/${one.digest}`, ACCEPT);
+  }
+  if (!manifest.config) throw new Error(`${ref.registry} sent no image config`);
+  const config = await get<{
+    config?: { Labels?: Record<string, string> | null; Env?: string[] | null };
+  }>(`blobs/${manifest.config.digest}`);
+  const labels = config.config?.Labels ?? {};
+  return {
+    versionLabel: labels['org.opencontainers.image.version'] || undefined,
+    versions: Object.fromEntries(
+      (config.config?.Env ?? []).flatMap((e) => {
+        const match = e.match(/^([A-Z0-9_]+)_VERSION=(.+)$/);
+        return match ? [[match[1], match[2]]] : [];
+      })
+    ) as Record<string, string>,
+  };
+}
+
 /** Every tag of a repository, up to a limit, following the registry's pages. */
 export async function listTags(ref: ImageRef) {
   const tags: string[] = [];
