@@ -6,7 +6,7 @@ import { db } from '@/lib/db';
 import { MAX_COLUMNS, MAX_ROWS } from '@/lib/layout';
 import { ensureTiles } from '@/lib/services';
 import { requireUser } from '@/lib/session';
-import { MAX_DESCRIPTION } from '@/lib/tiles';
+import { MAX_DESCRIPTION, SITE_PREFIX } from '@/lib/tiles';
 
 const MAX_NAME = 80;
 const MAX_GROUP = 60;
@@ -49,6 +49,60 @@ export async function saveTile(input: TileInput): Promise<TileResult> {
     where: { key },
     create: { key, ...data },
     update: data,
+  });
+}
+
+/** A web address as typed, "https://" assumed when it has none. */
+const SiteAddress = z
+  .string()
+  .trim()
+  .min(1, 'Give it an address')
+  .max(MAX_ADDRESS)
+  .transform((a, ctx) => {
+    try {
+      const url = new URL(
+        /^[a-z][a-z0-9+.-]*:\/\//i.test(a) ? a : `https://${a}`
+      );
+      if (/^https?:$/.test(url.protocol) && url.hostname.includes('.')) {
+        return url.href;
+      }
+    } catch {}
+    ctx.addIssue({ code: 'custom', message: 'That isn’t a web address' });
+    return z.NEVER;
+  });
+
+const SiteInput = z.object({
+  name: z.string().trim().min(1, 'Give it a name').max(MAX_NAME),
+  address: SiteAddress,
+  description: z.string().trim().max(MAX_DESCRIPTION),
+  // Empty for none, which puts it in Other
+  group: z.string().trim().max(MAX_GROUP),
+});
+
+export type SiteInput = z.input<typeof SiteInput>;
+
+/**
+ * Adds a website hosted elsewhere as a tile, which the dashboard then checks
+ * over HTTP: its favicon for an icon until it's given one in Edit tile.
+ */
+export async function addSite(input: SiteInput): Promise<TileResult> {
+  await requireUser();
+  const parsed = SiteInput.safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const { name, address, description, group } = parsed.data;
+  const same = await db.tile.findFirst({
+    where: { key: { startsWith: SITE_PREFIX }, addresses: { has: address } },
+  });
+  if (same)
+    return { error: `${same.name ?? address} already has that address` };
+  await db.tile.create({
+    data: {
+      key: SITE_PREFIX + crypto.randomUUID(),
+      name,
+      description: description || null,
+      addresses: [address],
+      group: group || null,
+    },
   });
 }
 

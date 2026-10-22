@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 
 import type { ConvertedRun } from '@/lib/docker-run';
@@ -16,6 +16,7 @@ import { GroupField } from '@/components/dashboard/fields/group-field';
 import { CodeEditor } from '@/components/editor/code-editor';
 import { AddressField } from '@/components/new-service/address-field';
 import { DockerRunImport } from '@/components/new-service/docker-run-import';
+import { NewWebsiteForm } from '@/components/new-service/new-website-form';
 import { TemplatePicker } from '@/components/new-service/template-picker';
 import { Button } from '@/components/ui/button';
 import {
@@ -55,7 +56,7 @@ export function NewServiceDialog({
     <Dialog open={open} onOpenChange={(o) => !o && !running && onClose()}>
       <DialogContent className='flex flex-col sm:max-w-3xl'>
         {open && (
-          <NewServiceForm
+          <NewServiceBody
             groups={groups}
             running={running}
             setRunning={setRunning}
@@ -70,6 +71,59 @@ export function NewServiceDialog({
   );
 }
 
+type Source = 'template' | 'run' | 'website';
+
+/**
+ * A service, or a website hosted elsewhere: both forms stay, one hidden, so
+ * switching between them keeps what's been typed into each.
+ */
+function NewServiceBody({
+  groups,
+  running,
+  setRunning,
+  onCreated,
+}: {
+  groups: string[];
+  running: boolean;
+  setRunning: (running: boolean) => void;
+  onCreated: () => void;
+}) {
+  const [source, setSource] = useState<Source>('template');
+  const picker = (
+    <ToggleGroup
+      type='single'
+      variant='segmented'
+      value={source}
+      // Picking the shown one again would unpick it; keep one picked
+      onValueChange={(v) => v && setSource(v as Source)}
+      aria-label='Start from'
+    >
+      <ToggleGroupItem value='template'>Template</ToggleGroupItem>
+      <ToggleGroupItem value='run'>docker run</ToggleGroupItem>
+      <ToggleGroupItem value='website'>Website</ToggleGroupItem>
+    </ToggleGroup>
+  );
+  return (
+    <>
+      <NewServiceForm
+        hidden={source === 'website'}
+        fromRun={source === 'run'}
+        picker={picker}
+        groups={groups}
+        running={running}
+        setRunning={setRunning}
+        onCreated={onCreated}
+      />
+      <NewWebsiteForm
+        hidden={source !== 'website'}
+        picker={picker}
+        groups={groups}
+        onCreated={onCreated}
+      />
+    </>
+  );
+}
+
 /** The name a template suggests: its own, or its image's, as Compose takes it. */
 function suggestedName(template: ServiceTemplate) {
   const name =
@@ -79,11 +133,18 @@ function suggestedName(template: ServiceTemplate) {
 }
 
 function NewServiceForm({
+  hidden,
+  fromRun,
+  picker,
   groups,
   running,
   setRunning,
   onCreated,
 }: {
+  hidden: boolean;
+  /** Starting from a pasted docker run command, rather than a template */
+  fromRun: boolean;
+  picker: ReactNode;
   groups: string[];
   running: boolean;
   setRunning: (running: boolean) => void;
@@ -102,8 +163,6 @@ function NewServiceForm({
   // The name and port last filled in for you, which another fills in again;
   // one typed in stays
   const [filled, setFilled] = useState({ name: '', port: '' });
-  // Where it starts from: a template, or a pasted docker run command
-  const [source, setSource] = useState<'template' | 'run'>('template');
   const [error, setError] = useState<string>();
   const [output, setOutput] = useState<string[]>();
 
@@ -128,7 +187,7 @@ function NewServiceForm({
   }
 
   /** Its compose file from a docker run command, as it stands, not following the name. */
-  function fromRun(converted: ConvertedRun) {
+  function convert(converted: ConvertedRun) {
     fill(converted.name, converted.port);
     setTemplate(blankTemplate());
     setCompose(converted.compose);
@@ -174,6 +233,7 @@ function NewServiceForm({
 
   return (
     <form
+      hidden={hidden}
       className='contents'
       onSubmit={(e) => {
         e.preventDefault();
@@ -193,21 +253,11 @@ function NewServiceForm({
           form and the fieldset, which disables every field while it's adding,
           are boxes of no size of their own */}
       <fieldset disabled={running} className='contents'>
-        <ToggleGroup
-          type='single'
-          variant='segmented'
-          value={source}
-          // Picking the shown one again would unpick it; keep one picked
-          onValueChange={(v) => v && setSource(v as typeof source)}
-          aria-label='Start from'
-        >
-          <ToggleGroupItem value='template'>Template</ToggleGroupItem>
-          <ToggleGroupItem value='run'>docker run</ToggleGroupItem>
-        </ToggleGroup>
-        {source === 'template' ? (
-          <TemplatePicker picked={template} onPick={pick} />
+        {picker}
+        {fromRun ? (
+          <DockerRunImport onConvert={convert} />
         ) : (
-          <DockerRunImport onConvert={fromRun} />
+          <TemplatePicker picked={template} onPick={pick} />
         )}
         <div className='grid gap-4 sm:grid-cols-2'>
           <div className='flex flex-col gap-2'>

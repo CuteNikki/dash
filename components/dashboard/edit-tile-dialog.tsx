@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
 import { resetTile, restoreTile, saveTile } from '@/actions/tiles';
-import { MAX_DESCRIPTION } from '@/lib/tiles';
+import { isSiteKey, MAX_DESCRIPTION } from '@/lib/tiles';
 import type { Service } from '@/lib/types';
 
 import {
@@ -95,12 +95,16 @@ function EditTileForm({
     });
   }
 
+  // A website elsewhere is nothing but its tile, so resetting it removes it
+  const site = isSiteKey(service.key);
+
   function reset() {
     startTransition(async () => {
       const before = await resetTile(service.key);
-      toast.success(`Reset ${service.name}`, {
-        description:
-          'Its name, description, icon, addresses and group are back to defaults.',
+      toast.success(`${site ? 'Removed' : 'Reset'} ${service.name}`, {
+        description: site
+          ? 'Its tile is gone from the dashboard.'
+          : 'Its name, description, icon, addresses and group are back to defaults.',
         action: before && {
           label: 'Undo',
           onClick: async () => {
@@ -190,12 +194,12 @@ function EditTileForm({
         {service.edited && (
           <Button
             type='button'
-            variant='ghost'
+            variant={site ? 'destructive' : 'ghost'}
             disabled={pending}
             onClick={reset}
             className='mr-auto'
           >
-            Reset
+            {site ? 'Remove' : 'Reset'}
           </Button>
         )}
         <Button type='submit' disabled={pending}>
