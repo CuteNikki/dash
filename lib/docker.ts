@@ -466,4 +466,8 @@ export async function* logLines(res: http.IncomingMessage, tty: boolean) {
       for (const line of lines) yield { stream, line };
     }
   }
+  // A last line with no newline after it, as `compose config`'s closing brace
+  for (const stream of ['stdout', 'stderr'] as const) {
+    if (partial[stream]) yield { stream, line: partial[stream] };
+  }
 }
