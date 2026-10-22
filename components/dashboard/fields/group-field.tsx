@@ -4,7 +4,6 @@ import { useState } from 'react';
 
 import { CheckIcon, ChevronsUpDownIcon, PlusIcon } from 'lucide-react';
 
-import { DEFAULT_GROUP } from '@/lib/groups';
 import { cn } from '@/lib/utils';
 
 import { Button } from '@/components/ui/button';
@@ -33,7 +32,7 @@ export function GroupField({
   value: string;
   groups: string[];
   onChange: (group: string) => void;
-  /** Can be left without a group: Other, at the top of the list, as it's where one goes */
+  /** Can be left without a group, by None at the top of the list */
   optional?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -60,9 +59,9 @@ export function GroupField({
           className='w-full justify-between font-normal'
         >
           {/* Always something, so the arrow keeps to the end: with none
-              picked, the group it'll be in, faintly */}
+              picked, None, faintly */}
           <span className={cn('truncate', !value && 'text-muted-foreground')}>
-            {value || DEFAULT_GROUP}
+            {value || 'None'}
           </span>
           <ChevronsUpDownIcon className='text-muted-foreground' />
         </Button>
@@ -79,11 +78,11 @@ export function GroupField({
           />
           <CommandList>
             <CommandGroup>
-              {/* Other is where one with no group goes, so it's none */}
-              {optional && !groups.includes(DEFAULT_GROUP) && (
-                <CommandItem value={DEFAULT_GROUP} onSelect={() => pick('')}>
+              {/* No group, wherever the dashboard then puts it */}
+              {optional && (
+                <CommandItem value='None' onSelect={() => pick('')}>
                   <CheckIcon className={cn(value && 'invisible')} />
-                  {DEFAULT_GROUP}
+                  None
                 </CommandItem>
               )}
               {groups.map((group) => (
