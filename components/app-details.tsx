@@ -134,49 +134,53 @@ function DetailTable({
   const align = (i: number) =>
     section.columns[i].numeric ? 'pl-6 text-right' : i ? 'pl-6' : '';
   return (
-    <table className='w-full tabular-nums'>
-      <thead className='text-muted-foreground'>
-        <tr className='border-b border-foreground/10'>
-          {section.columns.map((column, i) => (
-            <th
-              key={column.label}
-              className={cn(
-                'pb-1.5 text-left font-normal whitespace-nowrap',
-                align(i),
-                i === 0 && 'w-full'
-              )}
-            >
-              {column.label}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody className='font-mono'>
-        {section.rows.map((row, r) => (
-          <tr
-            key={r}
-            className={cn(
-              'border-b border-foreground/5 last:border-0',
-              row.dim && 'text-muted-foreground'
-            )}
-          >
-            {row.cells.map((cell, i) => (
-              <td
-                key={i}
+    // Wider than its card, as on a phone, it scrolls sideways within it
+    <div className='overflow-x-auto'>
+      <table className='w-full tabular-nums'>
+        <thead className='text-muted-foreground'>
+          <tr className='border-b border-foreground/10'>
+            {section.columns.map((column, i) => (
+              <th
+                key={column.label}
                 className={cn(
-                  'py-1.5',
+                  'pb-1.5 text-left font-normal whitespace-nowrap',
                   align(i),
-                  i === 0 ? 'max-w-0 truncate' : 'whitespace-nowrap'
+                  // Taking what's left, though never so little its names vanish
+                  i === 0 && 'w-full min-w-28'
                 )}
-                title={i === 0 && typeof cell === 'string' ? cell : undefined}
               >
-                <Cell cell={cell} />
-              </td>
+                {column.label}
+              </th>
             ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody className='font-mono'>
+          {section.rows.map((row, r) => (
+            <tr
+              key={r}
+              className={cn(
+                'border-b border-foreground/5 last:border-0',
+                row.dim && 'text-muted-foreground'
+              )}
+            >
+              {row.cells.map((cell, i) => (
+                <td
+                  key={i}
+                  className={cn(
+                    'py-1.5',
+                    align(i),
+                    i === 0 ? 'max-w-0 truncate' : 'whitespace-nowrap'
+                  )}
+                  title={i === 0 && typeof cell === 'string' ? cell : undefined}
+                >
+                  <Cell cell={cell} />
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

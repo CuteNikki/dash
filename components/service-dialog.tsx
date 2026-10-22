@@ -272,7 +272,7 @@ function ServiceBody({
         <TabsContent value='usage' className='min-h-0'>
           <ScrollFade
             fill
-            className='h-full overflow-y-auto'
+            className='h-full overflow-x-hidden overflow-y-auto'
             fadeFrom='from-popover'
           >
             <UsagePanel service={service} />
@@ -373,7 +373,8 @@ function UsagePanel({ service }: { service: Service }) {
   return (
     <div
       className={cn(
-        'grid gap-3',
+        // Columns no wider than the window, whatever's in them
+        'grid grid-cols-1 gap-3',
         app && 'lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start'
       )}
     >
@@ -383,7 +384,12 @@ function UsagePanel({ service }: { service: Service }) {
         </div>
       )}
       {/* Side by side below it, or one above another in the column beside it */}
-      <div className={cn('grid gap-3 sm:grid-cols-2', app && 'lg:grid-cols-1')}>
+      <div
+        className={cn(
+          'grid grid-cols-1 gap-3 sm:grid-cols-2',
+          app && 'lg:grid-cols-1'
+        )}
+      >
         <UsageChart
           label='CPU'
           value={usage?.cpu}
