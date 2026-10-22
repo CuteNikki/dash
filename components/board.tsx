@@ -17,13 +17,17 @@ import {
   COLUMNS_COOKIE,
   columnsFor,
   fit,
-  layoutAt,
+  FLOW,
+  flowOrder,
+  MAX_COLUMNS,
   MAX_ROWS,
+  pack,
   place,
   readingOrder,
   rowsOf,
   withoutEmptyRows,
   type Cell,
+  type Flowing,
   type Layout,
   type SavedCell,
 } from '@/lib/layout';
@@ -239,6 +243,29 @@ function sectionRows(
 const same = (a: Cell, b: Cell) =>
   a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h;
 
+/** Tiles' own sizes by their keys, which a narrow screen may draw narrower. */
+function sizesOf(flow: Flowing[]) {
+  return new Map(flow.map((t) => [t.key, t]));
+}
+
+/**
+ * A layout as the order every width shares: each tile's place in it, read
+ * row by row, and its own size. Only what was resized takes the size it's
+ * drawn at; the rest keep theirs, which a narrow screen draws narrower but
+ * a wider one can draw again.
+ */
+function flowCells(
+  layout: Layout,
+  sizes: Map<string, Flowing>,
+  drag: Drag
+): LayoutChange['cells'] {
+  return readingOrder(layout).map(([key, c], i) => {
+    const resized = key === drag.key && drag.mode === 'resize';
+    const size = resized ? c : (sizes.get(key) ?? c);
+    return { key, columns: FLOW, x: 0, y: i, w: size.w, h: size.h };
+  });
+}
+
 /** Every grid's layout with a drag's tile where it's been dragged to. */
 function withDrag(grids: Grid[], drag: Drag): Map<string, Layout> {
   const out = new Map(grids.map((g) => [g.id, g.layout]));
@@ -247,9 +274,18 @@ function withDrag(grids: Grid[], drag: Drag): Map<string, Layout> {
   if (drag.from !== drag.to) out.set(drag.from, from);
   const to: Layout = new Map(drag.from === drag.to ? from : out.get(drag.to));
   out.set(drag.to, place(to, drag.key, drag.cell));
-  // Sections leave no empty rows behind them
+  // Where it lands is its place in the order, the rest laid out again after
+  // it as every width lays them out, with no room left where it was
   for (const g of grids) {
-    if (g.sections) out.set(g.id, withoutEmptyRows(out.get(g.id)!));
+    if (g.id !== drag.from && g.id !== drag.to) continue;
+    const order = readingOrder(out.get(g.id)!).map(([key, c]) => ({
+      key,
+      w: c.w,
+      h: c.h,
+    }));
+    const packed = pack(order, g.columns);
+    // Sections leave no empty rows behind them
+    out.set(g.id, g.sections ? withoutEmptyRows(packed) : packed);
   }
   return out;
 }
@@ -498,7 +534,7 @@ function useArrange(
     if (same(cell, c)) return;
     const d: Drag = {
       key,
-      mode: 'move',
+      mode: e.shiftKey ? 'resize' : 'move',
       from: grid.id,
       to: grid.id,
       cell,
@@ -523,8 +559,9 @@ function useArrange(
  * anywhere, beside another one if there's room, and resized by the one at
  * its heading's end: wider or narrower, or taller, to span the rows of the
  * sections stacked beside it; a tile's dragged anywhere in its section
- * or into another group, leaving room where it was, and resized by its
- * corner. The tiles or sections something lands on move down. The keyboard
+ * or into another group, and resized by its corner. Where something lands
+ * is its place in one order every width shares, laid out row by row, the
+ * rest following it, so arranging once arranges every screen. The keyboard
  * does all of it from a handle: the arrow keys move, with Shift resize.
  */
 export function Board({
@@ -543,7 +580,12 @@ export function Board({
   /** A group renamed while editing */
   onRename: (section: BoardSection, name: string) => void;
 }) {
-  // Each section full width, one under another, until they're arranged
+  // Sections in one order every width shares, each as wide as it's made or
+  // the screen is: full width, one under another, until they're arranged
+  const pageFlow = flowOrder(
+    sections.map((s) => ({ key: SECTION + s.id, w: MAX_COLUMNS, h: 1 })),
+    saved
+  );
   const page = useArrange(
     [
       {
@@ -551,53 +593,44 @@ export function Board({
         kind: PAGE,
         columns,
         sections: true,
-        layout: withoutEmptyRows(
-          layoutAt(
-            sections.map((s) => ({ key: SECTION + s.id, w: columns, h: 1 })),
-            saved,
-            columns
-          )
-        ),
+        layout: withoutEmptyRows(pack(pageFlow, columns)),
       },
     ],
-    (layouts) =>
+    (layouts, d) =>
       onLayout({
-        cells: [...layouts.get(PAGE)!].map(([key, c]) => ({
-          key,
-          columns,
-          ...c,
-        })),
+        cells: flowCells(layouts.get(PAGE)!, sizesOf(pageFlow), d),
         moved: [],
       })
   );
   const placed = page.shown.get(PAGE)!;
   const heights = useSectionHeights();
 
-  // A section's tiles in as many columns as it's wide
+  // A section's tiles in as many columns as it's wide, in their order
+  const tileFlows = new Map(
+    sections.map((s) => [
+      s.id,
+      flowOrder(
+        s.tiles.map((t) => ({ key: t.key, w: t.w, h: t.h })),
+        saved
+      ),
+    ])
+  );
+  const tileSizes = sizesOf([...tileFlows.values()].flat());
   const grids: Grid[] = sections.map((s) => {
     const width = placed.get(SECTION + s.id)?.w ?? columns;
     return {
       id: s.id,
       kind: s.kind,
       columns: width,
-      layout: layoutAt(
-        s.tiles.map((t) => ({ key: t.key, w: t.w, h: t.h })),
-        saved,
-        width
-      ),
+      layout: pack(tileFlows.get(s.id)!, width),
     };
   });
   const tiles = useArrange(grids, (layouts, d) => {
     const to = sections.find((s) => s.id === d.to)!;
     onLayout({
-      cells: [...new Set([d.from, d.to])].flatMap((id) => {
-        const n = grids.find((g) => g.id === id)!.columns;
-        return [...layouts.get(id)!].map(([key, c]) => ({
-          key,
-          columns: n,
-          ...c,
-        }));
-      }),
+      cells: [...new Set([d.from, d.to])].flatMap((id) =>
+        flowCells(layouts.get(id)!, tileSizes, d)
+      ),
       moved:
         d.from !== d.to && to.kind === 'group'
           ? [{ key: d.key, group: to.label }]

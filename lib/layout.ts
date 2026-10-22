@@ -1,7 +1,8 @@
 /**
- * Where tiles sit in a grid: each at a column and row, so there can be room
- * between them. Every number of columns has its own layout, arranged there;
- * one that hasn't been comes from the nearest that has, packed to fit.
+ * Where tiles sit in a grid: each at a column and row. Every width lays them
+ * out from one order and their sizes (see FLOW), row by row. The layouts
+ * each number of columns once had of its own, arranged there, now only seed
+ * that order until it's first arranged.
  */
 
 /** A tile's place: its first column and row, from 0, and the columns and rows it spans. */
@@ -192,4 +193,44 @@ export function layoutAt(
     ...keys.filter((k) => !from.has(k.key)),
   ];
   return pack(ordered, columns);
+}
+
+/**
+ * The columns the one layout every width shares is kept under: not places,
+ * but an order, each tile's place in it as its row, and each tile's size.
+ */
+export const FLOW = 0;
+
+/** A tile in the order every width lays out, at its size. */
+export type Flowing = { key: string; w: number; h: number };
+
+/**
+ * Some tiles in the order every width lays them out, at their sizes: as
+ * arranged, or until they have been, as the old layouts have them at the
+ * widest, so nothing moves when this way of arranging starts. Tiles in
+ * neither come after, at their first sizes.
+ */
+export function flowOrder(keys: Flowing[], saved: SavedCell[]): Flowing[] {
+  const wanted = new Set(keys.map((k) => k.key));
+  const kept = saved
+    .filter((s) => s.columns === FLOW && wanted.has(s.key))
+    .sort((a, b) => a.y - b.y);
+  const ordered: Flowing[] = kept.length
+    ? kept.map(({ key, w, h }) => ({ key, w, h }))
+    : readingOrder(layoutAt(keys, saved, MAX_COLUMNS)).map(([key, c]) => ({
+        key,
+        w: c.w,
+        h: c.h,
+      }));
+  const placed = new Set(ordered.map((t) => t.key));
+  return [...ordered, ...keys.filter((k) => !placed.has(k.key))];
+}
+
+/** Some tiles laid out at a number of columns from the order they share, each as wide as fits. */
+export function flowAt(
+  keys: Flowing[],
+  saved: SavedCell[],
+  columns: number
+): Layout {
+  return pack(flowOrder(keys, saved), columns);
 }
