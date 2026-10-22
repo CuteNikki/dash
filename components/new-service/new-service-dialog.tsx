@@ -53,7 +53,7 @@ export function NewServiceDialog({
   return (
     // Not closed while it's adding, so its outcome isn't missed
     <Dialog open={open} onOpenChange={(o) => !o && !running && onClose()}>
-      <DialogContent className='sm:max-w-3xl'>
+      <DialogContent className='flex flex-col overflow-hidden sm:max-w-3xl'>
         {open && (
           <NewServiceForm
             groups={groups}
@@ -174,7 +174,7 @@ function NewServiceForm({
 
   return (
     <form
-      className='flex min-h-0 flex-col gap-6'
+      className='flex min-h-0 flex-1 flex-col gap-4'
       onSubmit={(e) => {
         e.preventDefault();
         void create();
@@ -190,7 +190,7 @@ function NewServiceForm({
 
       <fieldset
         disabled={running}
-        className='-mx-1 flex min-h-0 flex-col gap-4 overflow-y-auto px-1'
+        className='-mx-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-1'
       >
         <ToggleGroup
           type='single'
@@ -231,9 +231,11 @@ function NewServiceForm({
             />
           </div>
         </div>
-        <div className='flex flex-col gap-2'>
+        {/* The one part that gives way when the window is short, down to half
+            its height, rather than the form scrolling: it scrolls itself */}
+        <div className='flex min-h-39 flex-col gap-2'>
           <span className='text-xs/relaxed font-medium'>Compose file</span>
-          <div className='h-64'>
+          <div className='min-h-32 flex-1 basis-64'>
             <CodeEditor
               value={input.compose}
               onChange={setCompose}
