@@ -95,7 +95,7 @@ export function ProcessList({
           <ListIcon />
           Processes
         </span>
-        <InputGroup className='order-last col-span-2 h-6 @md:order-none @md:col-span-1 @md:w-48'>
+        <InputGroup className='order-last col-span-2 h-6 @md:order-0 @md:col-span-1 @md:w-48'>
           <InputGroupAddon>
             <SearchIcon />
           </InputGroupAddon>
@@ -125,7 +125,7 @@ export function ProcessList({
         // through their top edge. The scrollbar's room is kept beside both,
         // even when it's gone, so the columns line up and stay put
         <div className='flex min-h-[7lh] flex-1 basis-0 flex-col'>
-          <div className='[scrollbar-gutter:stable] overflow-hidden'>
+          <div className='scrollbar-gutter-stable overflow-hidden'>
             <table className={TABLE}>
               <thead className='text-left text-muted-foreground'>
                 <tr>
@@ -157,7 +157,7 @@ export function ProcessList({
           <div className='min-h-0 flex-1 basis-0'>
             <ScrollFade
               fill
-              className='h-full [scrollbar-gutter:stable] overflow-auto'
+              className='h-full scrollbar-gutter-stable overflow-auto'
             >
               <table className={TABLE}>
                 <tbody className='tabular-nums'>

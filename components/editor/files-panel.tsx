@@ -118,7 +118,7 @@ export function FilesPanel({
           aria-label='Files'
           // Its scrollbar's room kept whether it scrolls or not, as is its
           // placeholder's, so the rows are the same width either way
-          className='max-h-40 shrink-0 [scrollbar-gutter:stable] overflow-auto rounded-lg bg-muted p-1 sm:max-h-none sm:w-56'
+          className='max-h-40 shrink-0 scrollbar-gutter-stable overflow-auto rounded-lg bg-muted p-1 sm:max-h-none sm:w-56'
         >
           <FileTree
             containerId={containerId}
@@ -287,7 +287,7 @@ function FilesSkeleton() {
   return (
     <div className='flex min-h-0 flex-1 flex-col gap-3'>
       <div className='flex min-h-0 flex-1 flex-col gap-3 sm:flex-row'>
-        <div className='max-h-40 shrink-0 [scrollbar-gutter:stable] overflow-hidden rounded-lg bg-muted p-1 sm:max-h-none sm:w-56'>
+        <div className='max-h-40 shrink-0 scrollbar-gutter-stable overflow-hidden rounded-lg bg-muted p-1 sm:max-h-none sm:w-56'>
           <TreeToolbar />
           <TreeSkeleton />
         </div>

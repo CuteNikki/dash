@@ -44,7 +44,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
       className={cn(
         // The scrollbar keeps its room when there's nothing to scroll, so a
         // shorter view, the list after the tiles, doesn't shift everything
-        'h-full [scrollbar-gutter:stable] antialiased',
+        'h-full scrollbar-gutter-stable antialiased',
         geistSans.variable,
         jetbrainsMono.variable
       )}

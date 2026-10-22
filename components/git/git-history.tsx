@@ -90,7 +90,7 @@ export function GitHistory({
         className='flex h-48 shrink-0 flex-col overflow-hidden rounded-lg bg-muted sm:h-auto sm:w-72'
       >
         <ScrollFade
-          className='h-full [scrollbar-gutter:stable] overflow-auto p-1'
+          className='h-full scrollbar-gutter-stable overflow-auto p-1'
           fadeFrom='from-muted'
           fill
         >
@@ -258,7 +258,7 @@ function CommitView({
           className='shrink-0 overflow-hidden rounded-lg bg-muted'
         >
           <ScrollFade
-            className={`${FILES} [scrollbar-gutter:stable] overflow-auto p-1`}
+            className={`${FILES} scrollbar-gutter-stable overflow-auto p-1`}
             fadeFrom='from-muted'
           >
             <ul className='flex flex-col gap-1'>

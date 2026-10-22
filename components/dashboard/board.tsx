@@ -751,7 +751,7 @@ function Floating({
     <div
       className={cn(
         'pointer-events-none fixed z-50 grid cursor-grabbing grid-cols-1 rounded-lg',
-        section ? '[&_[data-slot=card]]:shadow-lg' : 'shadow-lg'
+        section ? '**:data-[slot=card]:shadow-lg' : 'shadow-lg'
       )}
       style={{
         left: drag.pointer.x - drag.grab.x,

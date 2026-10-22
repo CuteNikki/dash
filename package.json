@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "lint:classes": "bun scripts/check-classes.ts",
     "format": "prettier --write \"**/*.{ts,tsx,css}\"",
     "typecheck": "next typegen && tsc --noEmit && tsc --noEmit -p scripts",
     "db:diff": "prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script",
@@ -59,6 +60,8 @@
   },
   "devDependencies": {
     "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
+    "@tailwindcss/node": "4.3.3",
+    "@tailwindcss/oxide": "4.3.3",
     "@tailwindcss/turbopack": "^4",
     "@types/bun": "^1.4.3",
     "@types/node": "^20",

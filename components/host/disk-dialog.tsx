@@ -404,7 +404,7 @@ function Folders({ scanning }: { scanning: boolean }) {
       ) : (
         <div className='min-h-0 flex-1 overflow-hidden rounded-lg bg-muted'>
           <ScrollFade
-            className='h-full [scrollbar-gutter:stable] overflow-auto p-1'
+            className='h-full scrollbar-gutter-stable overflow-auto p-1'
             fadeFrom='from-muted'
             fill
           >
@@ -496,7 +496,7 @@ function EntriesSkeleton() {
       className='min-h-0 flex-1 overflow-hidden rounded-lg bg-muted'
     >
       {/* With the room the list keeps for its scrollbar, so the rows match */}
-      <div className='h-full [scrollbar-gutter:stable] overflow-hidden p-1'>
+      <div className='h-full scrollbar-gutter-stable overflow-hidden p-1'>
         {Array.from({ length: SKELETON_ROWS }, (_, i) => (
           <div key={i} className={ROW}>
             <Skeleton className='size-3.5 shrink-0 bg-foreground/10' />

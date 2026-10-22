@@ -109,7 +109,7 @@ export function ServiceList({
         aria-label='Show'
         // A row of chips, swiped edge to edge without a scrollbar, until
         // there's room for a column beside the table
-        className='-mx-4 flex [scrollbar-width:none] gap-1 overflow-x-auto px-4 sm:-mx-6 sm:px-6 lg:sticky lg:top-6 lg:mx-0 lg:w-44 lg:shrink-0 lg:flex-col lg:overflow-visible lg:px-0'
+        className='-mx-4 flex scrollbar-none gap-1 overflow-x-auto px-4 sm:-mx-6 sm:px-6 lg:sticky lg:top-6 lg:mx-0 lg:w-44 lg:shrink-0 lg:flex-col lg:overflow-visible lg:px-0'
       >
         <FilterItem
           label='All'
