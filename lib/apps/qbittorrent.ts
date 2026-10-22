@@ -8,7 +8,7 @@ import {
   TIMEOUT_MS,
   type App,
 } from '@/lib/apps/app';
-import { formatRate } from '@/lib/format';
+import { formatDuration, formatRate } from '@/lib/format';
 
 /** qBittorrent's session, kept until it stops being accepted. */
 let qbitCookie: string | undefined;
@@ -52,6 +52,23 @@ async function qbitJson<T>(url: string, path: string): Promise<T> {
   }
 }
 
+type Torrent = {
+  name: string;
+  /** From 0 to 1 */
+  progress: number;
+  /** Bytes per second */
+  dlspeed: number;
+  upspeed: number;
+  /** Seconds, or 8640000 for never */
+  eta: number;
+  ratio: number;
+  /** "downloading", "uploading", "stalledDL"… */
+  state: string;
+};
+
+/** What qBittorrent says when it can't tell when a torrent will finish. */
+const NEVER = 8_640_000;
+
 export const qbittorrent: App = {
   port: 8080,
   ready: () => !!env('QBITTORRENT_USERNAME') && !!env('QBITTORRENT_PASSWORD'),
@@ -75,6 +92,52 @@ export const qbittorrent: App = {
             )
           ).length,
       ],
+      // Moving data either way: downloading, or seeding to someone
+      [
+        'Active',
+        async () =>
+          (
+            await qbitJson<unknown[]>(
+              url,
+              '/api/v2/torrents/info?filter=active'
+            )
+          ).length,
+      ],
     ]);
+  },
+  details: async ({ url }) => {
+    const torrents = await qbitJson<Torrent[]>(
+      url,
+      '/api/v2/torrents/info?filter=active&sort=dlspeed&reverse=true'
+    );
+    return [
+      {
+        kind: 'table',
+        title: 'Active',
+        columns: [
+          { label: 'Name' },
+          { label: 'Progress', numeric: true },
+          { label: 'Speed', numeric: true },
+          { label: 'Left', numeric: true },
+          { label: 'Ratio', numeric: true },
+        ],
+        rows: torrents.map((t) => {
+          const done = t.progress >= 1;
+          return {
+            cells: [
+              t.name,
+              { progress: t.progress },
+              // Finished ones only send
+              done
+                ? `↑ ${formatRate(t.upspeed)}`
+                : `↓ ${formatRate(t.dlspeed)}`,
+              done ? 'done' : t.eta >= NEVER ? '∞' : formatDuration(t.eta),
+              t.ratio.toFixed(2),
+            ],
+          };
+        }),
+        empty: 'Nothing’s moving',
+      },
+    ];
   },
 };
