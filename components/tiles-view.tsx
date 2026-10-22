@@ -123,17 +123,8 @@ function layoutOf(groups: ServiceGroup[]): Layout {
   }));
 }
 
-/** The smallest the outline following a resize gets, as a share of a column or row. */
-const MIN_SHRINK = 0.5;
-
-type Resizing = {
-  /** The outline following the pointer, in pixels */
-  w: number;
-  h: number;
-  /** Columns and rows the tile takes meanwhile */
-  width: number;
-  height: number;
-};
+/** The columns and rows a tile takes while its corner's dragged. */
+type Resizing = { width: number; height: number };
 
 const GROUP_ID = 'group:';
 const GRID_ID = 'grid:';
@@ -415,8 +406,8 @@ function SortableTile({
   // Enter on the tile still opens its editor
   const { onKeyDown, ...pointer } = listeners ?? {};
   const node = useRef<HTMLDivElement>(null);
-  // While its corner's dragged: the columns and rows it takes, nearest the
-  // pointer, and the outline following the pointer, before it's saved
+  // While its corner's dragged, the columns and rows nearest the pointer,
+  // before they're saved
   const [resizing, setResizing] = useState<Resizing>();
   const shown = resizing
     ? { ...service, width: resizing.width, height: resizing.height }
@@ -439,39 +430,30 @@ function SortableTile({
       (start.height - rowGap * (service.height - 1)) / service.height;
     const from = { x: e.clientX, y: e.clientY };
     const widest = Math.min(columns, MAX_WIDTH);
-    let next: Resizing = {
-      w: start.width,
-      h: start.height,
-      width: service.width,
-      height: service.height,
-    };
+    let next: Resizing = { width: service.width, height: service.height };
 
-    /** The columns or rows nearest a length, and the length the outline's drawn. */
-    function axis(free: number, unit: number, gapSize: number, most: number) {
-      const span = Math.min(
-        Math.max(Math.round((free + gapSize) / (unit + gapSize)), 1),
+    /** The columns or rows nearest a length. */
+    function span(length: number, unit: number, gapSize: number, most: number) {
+      return Math.min(
+        Math.max(Math.round((length + gapSize) / (unit + gapSize)), 1),
         most
       );
-      const largest = most * unit + (most - 1) * gapSize;
-      return {
-        span,
-        drawn: Math.min(Math.max(free, unit * MIN_SHRINK), largest),
-      };
     }
 
     const move = (m: PointerEvent) => {
-      const y = axis(
-        start.height + m.clientY - from.y,
-        rowHeight,
-        rowGap,
-        MAX_HEIGHT
-      );
-      // On one column there's no width to change, so it keeps what it has
-      const x =
-        columns > 1
-          ? axis(start.width + m.clientX - from.x, columnWidth, gap, widest)
-          : { span: service.width, drawn: start.width };
-      next = { w: x.drawn, h: y.drawn, width: x.span, height: y.span };
+      next = {
+        // On one column there's no width to change, so it keeps what it has
+        width:
+          columns > 1
+            ? span(start.width + m.clientX - from.x, columnWidth, gap, widest)
+            : service.width,
+        height: span(
+          start.height + m.clientY - from.y,
+          rowHeight,
+          rowGap,
+          MAX_HEIGHT
+        ),
+      };
       setResizing(next);
     };
     const end = () => {
@@ -499,9 +481,9 @@ function SortableTile({
       }}
       data-dragging={isDragging}
       className={cn(
-        'relative cursor-grab data-[dragging=true]:opacity-40',
+        'relative cursor-grab rounded-lg data-[dragging=true]:opacity-40',
         spanClasses(shown.width, shown.height),
-        resizing && 'z-10'
+        resizing && 'z-10 ring-2 ring-primary'
       )}
       {...pointer}
     >
@@ -537,13 +519,11 @@ function SortableTile({
           />
         </svg>
       </button>
-      {/* Where the pointer's dragged the corner to; the tile itself takes
-          whole columns and rows, and the tiles around it make room */}
+      {/* Its size as it's resized, in columns and rows */}
       {resizing && (
-        <div
-          className='pointer-events-none absolute top-0 left-0 rounded-lg border-2 border-dashed border-primary/60'
-          style={{ width: resizing.w, height: resizing.h }}
-        />
+        <span className='pointer-events-none absolute right-6 bottom-1.5 rounded-md bg-primary px-1.5 font-mono text-xs/5 text-primary-foreground tabular-nums'>
+          {resizing.width} × {resizing.height}
+        </span>
       )}
     </div>
   );
