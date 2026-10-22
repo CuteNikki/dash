@@ -144,8 +144,11 @@ export type SystemUpdates = {
   reboot: boolean;
   /** The packages it's for, as it lists them */
   rebootFor: string[];
-  /** Services that have failed, which systemd calls the system degraded for */
-  failedUnits: string[];
+  /**
+   * Services that have failed, which systemd calls the system degraded for:
+   * "logrotate", and what systemd says it does, "Rotate log files"
+   */
+  failedUnits: { name: string; description?: string }[];
   /** An upgrade from dash is running now */
   upgrading: boolean;
   /** How the last one ended, while the server's been up */

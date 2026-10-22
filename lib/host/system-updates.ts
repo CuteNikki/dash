@@ -58,7 +58,7 @@ stamp=/var/lib/apt/periodic/update-success-stamp
 echo "refreshed=$(stat -c %Y $stamp)"
 systemctl is-active -q ${UNIT} && echo upgrading=1
 [ -e ${STATUS} ] && echo "lastexit=$(cat ${STATUS})"
-systemctl list-units --failed --plain --no-legend | awk '{print "failed="$1}'
+systemctl list-units --failed --plain --no-legend | awk '{d = ""; for (i = 5; i <= NF; i++) d = d (i > 5 ? " " : "") $i; print "failed=" $1 "|" d}'
 apt list --upgradable 2>/dev/null | grep upgradable | sed 's/^/pkg=/'
 apt-get -s upgrade 2>/dev/null | sed -n '/deferred due to phasing/,/^[^ ]/p' | grep '^ ' | tr ' ' '\\n' | sed '/^$/d; s/^/phased=/'
 true`;
@@ -89,8 +89,14 @@ function parse(lines: string[]): SystemUpdates {
     else if (key === 'refreshed') found.refreshedAt = Number(value) * 1000;
     else if (key === 'upgrading') found.upgrading = true;
     else if (key === 'lastexit') found.lastExit = Number(value);
-    else if (key === 'failed') found.failedUnits.push(value);
-    else if (key === 'phased') phased.add(value);
+    else if (key === 'failed') {
+      // "logrotate.service|Rotate log files"
+      const [unit, description] = value.split('|');
+      found.failedUnits.push({
+        name: unit.replace(/\.service$/, ''),
+        description: description || undefined,
+      });
+    } else if (key === 'phased') phased.add(value);
     else if (key === 'pkg') {
       const match = value.match(PACKAGE);
       if (!match) continue;

@@ -179,8 +179,16 @@ export function SystemDialog({
           </p>
         )}
         {system && system.failedUnits.length > 0 && (
-          <p className='text-muted-foreground'>
-            Failed on the server: {system.failedUnits.join(', ')}
+          <p className='text-warning'>
+            {system.failedUnits.length === 1
+              ? 'A system service has failed: '
+              : 'System services have failed: '}
+            {system.failedUnits
+              .map((u) =>
+                u.description ? `${u.name} (${u.description})` : u.name
+              )
+              .join(', ')}
+            . It runs again by itself as it’s due; its log says why it failed.
           </p>
         )}
         {system?.lastExit !== undefined &&
