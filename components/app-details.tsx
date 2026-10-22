@@ -50,7 +50,9 @@ export function Panel({
 
 /**
  * Labelled values as a grid, each its label above it, as many across as
- * there's room for, rather than a column of label and value far apart.
+ * there's room for, rather than a column of label and value far apart. Those
+ * there are share the width, so one alone has it all; a value wraps between
+ * words, splitting one only when it's too long to fit, as a path can be.
  */
 export function Facts({
   facts,
@@ -58,11 +60,11 @@ export function Facts({
   facts: { label: string; value: DetailCell }[];
 }) {
   return (
-    <dl className='grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-x-4 gap-y-3'>
+    <dl className='grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] gap-x-4 gap-y-3'>
       {facts.map(({ label, value }) => (
         <div key={label} className='flex min-w-0 flex-col'>
           <dt className='text-muted-foreground'>{label}</dt>
-          <dd className='font-mono break-all'>
+          <dd className='font-mono wrap-break-word'>
             <Cell cell={value} />
           </dd>
         </div>
