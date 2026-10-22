@@ -3,7 +3,7 @@
 import { z } from 'zod';
 
 import { db } from '@/lib/db';
-import { FLOW, MAX_COLUMNS, MAX_ROWS } from '@/lib/layout';
+import { MAX_COLUMNS, MAX_ROWS } from '@/lib/layout';
 import { ensureTiles } from '@/lib/services';
 import { requireUser } from '@/lib/session';
 import { MAX_DESCRIPTION } from '@/lib/tiles';
@@ -58,8 +58,7 @@ const LayoutInput = z.object({
     z
       .object({
         key: z.string().min(1),
-        // Or FLOW, for the order every width shares
-        columns: z.number().int().min(FLOW).max(MAX_COLUMNS),
+        columns: z.number().int().min(1).max(MAX_COLUMNS),
         x: z
           .number()
           .int()
@@ -69,7 +68,7 @@ const LayoutInput = z.object({
         w: z.number().int().min(1).max(MAX_COLUMNS),
         h: z.number().int().min(1).max(MAX_ROWS),
       })
-      .refine((c) => c.columns === FLOW || c.x + c.w <= c.columns, {
+      .refine((c) => c.x + c.w <= c.columns, {
         message: 'A tile goes past the last column',
       })
   ),
