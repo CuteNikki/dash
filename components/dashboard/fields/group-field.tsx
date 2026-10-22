@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { CheckIcon, ChevronsUpDownIcon, PlusIcon } from 'lucide-react';
 
+import { DEFAULT_GROUP } from '@/lib/groups';
 import { cn } from '@/lib/utils';
 
 import { Button } from '@/components/ui/button';
@@ -55,7 +56,11 @@ export function GroupField({
           aria-expanded={open}
           className='w-full justify-between font-normal'
         >
-          {value}
+          {/* Always something, so the arrow keeps to the end: with none
+              picked, the group it'll be in, faintly */}
+          <span className={cn('truncate', !value && 'text-muted-foreground')}>
+            {value || DEFAULT_GROUP}
+          </span>
           <ChevronsUpDownIcon className='text-muted-foreground' />
         </Button>
       </PopoverTrigger>
