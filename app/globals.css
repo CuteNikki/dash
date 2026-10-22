@@ -6,6 +6,7 @@
 
 @theme inline {
   --color-success: var(--success);
+  --color-update: var(--update);
   --color-warning: var(--warning);
   --color-background: var(--background);
   --color-surface: var(--surface);
@@ -70,6 +71,8 @@
   /* Black and white like Vercel; color only says how something is doing */
   --success: oklch(0.53 0.14 150);
   --warning: oklch(0.56 0.13 62);
+  /* Something newer to update to */
+  --update: oklch(0.55 0.16 255);
   /* Code in the file editor: muted hues, each at least 4.5:1 on --muted, and
      on a diff's changed text, its line and text tints together */
   --syntax-keyword: oklch(0.36 0.14 330);
@@ -140,6 +143,7 @@
 .dark {
   --success: oklch(0.72 0.17 150);
   --warning: oklch(0.8 0.15 75);
+  --update: oklch(0.74 0.13 250);
   --syntax-keyword: oklch(0.8 0.11 330);
   --syntax-string: oklch(0.8 0.11 145);
   --syntax-number: oklch(0.8 0.11 60);

@@ -42,6 +42,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { UpdateBadge } from '@/components/updates/update-badge';
 
 const DONE: Record<ContainerAction, string> = {
   start: 'Started',
@@ -333,6 +334,7 @@ function Row({
                   className='size-3.5 shrink-0 text-muted-foreground'
                 />
               )}
+              {service.update && <UpdateBadge update={service.update} />}
             </div>
             <div className='truncate text-muted-foreground' title={detail}>
               {detail}

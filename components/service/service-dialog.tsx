@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import useSWR from 'swr';
 
 import {
+  ArrowUpCircleIcon,
   ExternalLinkIcon,
   PencilIcon,
   PlayIcon,
@@ -23,6 +24,7 @@ import { MEASURES, type Measure } from '@/lib/format';
 import type { GitStatus } from '@/lib/git';
 import { isCaddy } from '@/lib/stacks/caddy';
 import type { DetailCell, Service } from '@/lib/types';
+import { updateLabel } from '@/lib/updates/describe';
 import { cn } from '@/lib/utils';
 
 import { HistoryChart } from '@/components/charts/history-chart';
@@ -55,6 +57,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { UpdateDialog } from '@/components/updates/update-dialog';
 
 const DONE: Record<ContainerAction, string> = {
   start: 'Started',
@@ -130,6 +133,7 @@ function ServiceBody({
   const [pending, startTransition] = useTransition();
   const [confirmStop, setConfirmStop] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [confirmUpdate, setConfirmUpdate] = useState(false);
   const running = isRunning(service.state);
   // A website elsewhere: nothing to start or stop, only how it answers
   const site = !!service.site;
@@ -255,6 +259,18 @@ function ServiceBody({
             <PencilIcon />
             Edit tile
           </Button>
+          {service.update && (
+            <Button
+              variant='outline'
+              disabled={pending}
+              onClick={() => setConfirmUpdate(true)}
+              className='text-update hover:text-update'
+            >
+              <ArrowUpCircleIcon />
+              Update
+              <span className='font-mono'>{updateLabel(service.update)}</span>
+            </Button>
+          )}
           {(service.removable || site) && (
             <Button
               variant='outline'
@@ -346,6 +362,17 @@ function ServiceBody({
         </Tabs>
       )}
 
+      {service.update && (
+        <UpdateDialog
+          service={service}
+          open={confirmUpdate}
+          onOpenChange={setConfirmUpdate}
+          onUpdated={() => {
+            setConfirmUpdate(false);
+            onChanged();
+          }}
+        />
+      )}
       {service.removable && (
         <RemoveServiceDialog
           service={service}
@@ -474,6 +501,14 @@ function UsagePanel({
     {
       label: 'Stack',
       value: service.stack?.dir ?? 'Not part of a compose stack',
+    },
+    {
+      label: 'Updates',
+      value: service.update
+        ? `${updateLabel(service.update)} available`
+        : service.updateError
+          ? `Couldn't check: ${service.updateError}`
+          : 'None found',
     },
   ];
   return (

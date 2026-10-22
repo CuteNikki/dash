@@ -17,6 +17,7 @@ import { WidgetStats, widgetStats } from '@/components/charts/widget-stats';
 import { ServiceIcon } from '@/components/service/service-icon';
 import { StatusDot } from '@/components/service/status-dot';
 import { Card } from '@/components/ui/card';
+import { UpdateBadge } from '@/components/updates/update-badge';
 
 export function ServiceTile({
   service,
@@ -76,11 +77,12 @@ export function ServiceTile({
               )}
             </span>
           ) : (
-            <StatusDot
-              state={service.state}
-              label={labelOf(service)}
-              className='mt-1.5 self-start'
-            />
+            // An update waiting, beside how it's doing
+            // As tall as the name's line, so both sit level with it
+            <span className='flex h-5 items-center gap-1.5 self-start'>
+              {service.update && <UpdateBadge update={service.update} />}
+              <StatusDot state={service.state} label={labelOf(service)} />
+            </span>
           )}
         </div>
         {stats && <WidgetStats stats={stats} />}

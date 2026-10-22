@@ -4,7 +4,13 @@ import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 
-import { LayoutGridIcon, ListIcon, PencilIcon, PlusIcon } from 'lucide-react';
+import {
+  ArrowUpCircleIcon,
+  LayoutGridIcon,
+  ListIcon,
+  PencilIcon,
+  PlusIcon,
+} from 'lucide-react';
 
 import { renameGroup, saveLayout, type TileResult } from '@/actions/tiles';
 import { groupNames, groupServices } from '@/lib/dashboard/groups';
@@ -17,6 +23,7 @@ import {
 } from '@/lib/dashboard/view';
 import { fetcher } from '@/lib/fetcher';
 import type { Dashboard as DashboardData, Service } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 import { AccountMenu } from '@/components/chrome/account-menu';
 import { Brand } from '@/components/chrome/brand';
@@ -35,6 +42,7 @@ import { NewServiceDialog } from '@/components/new-service/new-service-dialog';
 import { ServiceDialog } from '@/components/service/service-dialog';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { UpdatesDialog } from '@/components/updates/updates-dialog';
 
 /** How often the dashboard asks for fresh status and usage. */
 const REFRESH_MS = 5_000;
@@ -75,6 +83,7 @@ export function Dashboard({
   );
   const [editing, setEditing] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [showUpdates, setShowUpdates] = useState(false);
   // By key, so these follow the live data and survive a recreated container
   const [openKey, setOpenKey] = useState<string>();
   const [openTab, setOpenTab] = useState<'usage' | 'logs'>('usage');
@@ -91,6 +100,7 @@ export function Dashboard({
     [services, groupOrder]
   );
   const find = (key?: string) => services.find((s) => s.key === key);
+  const updateCount = services.filter((s) => s.update).length;
 
   /** Shows a change at once, saves it, then shows what was saved. */
   async function change(
@@ -228,6 +238,21 @@ export function Dashboard({
           </ToggleGroup>
           <Button
             variant='outline'
+            aria-label={
+              updateCount ? `Updates, ${updateCount} waiting` : 'Updates'
+            }
+            onClick={() => setShowUpdates(true)}
+            className={cn(updateCount > 0 && 'text-update hover:text-update')}
+          >
+            <ArrowUpCircleIcon />
+            {/* Its icon alone on a phone, with how many are waiting */}
+            <span className='max-sm:hidden'>Updates</span>
+            {updateCount > 0 && (
+              <span className='font-mono tabular-nums'>{updateCount}</span>
+            )}
+          </Button>
+          <Button
+            variant='outline'
             aria-label='New service'
             onClick={() => setAdding(true)}
           >
@@ -285,6 +310,14 @@ export function Dashboard({
         groups={allGroups}
         onClose={() => setEditKey(undefined)}
         onSaved={() => void mutate()}
+      />
+      <UpdatesDialog
+        open={showUpdates}
+        services={services}
+        checkedAt={data.updates?.checkedAt}
+        checking={data.updates?.checking ?? false}
+        onClose={() => setShowUpdates(false)}
+        onChanged={() => void mutate()}
       />
       <NewServiceDialog
         open={adding}
