@@ -20,7 +20,6 @@ export const OVERLAY_BAR_PX = 6;
  */
 export function ScrollFade({
   className,
-  fadeTop = 'top-0',
   fadeFrom = 'from-card',
   fill,
   ref,
@@ -29,8 +28,6 @@ export function ScrollFade({
 }: {
   /** The scrolling area's own, such as its height and overflow */
   className?: string;
-  /** Where the top fade starts, such as below headings that stay put */
-  fadeTop?: string;
   /** The color behind it, which the fades are in, as a gradient's from- class */
   fadeFrom?: string;
   /**
@@ -73,6 +70,9 @@ export function ScrollFade({
     return () => observer.disconnect();
   });
 
+  // Each a little past its edge of the area, over what's next to it in the
+  // same color, as an iPhone can round the two to different pixels and leave
+  // the area's outermost line of pixels bare beyond the fade
   const fade =
     'pointer-events-none absolute left-0 h-[2lh] to-transparent transition-opacity';
   return (
@@ -93,8 +93,7 @@ export function ScrollFade({
         className={cn(
           fade,
           fadeFrom,
-          'bg-linear-to-b',
-          fadeTop,
+          '-top-0.5 bg-linear-to-b',
           more.above ? 'opacity-100' : 'opacity-0'
         )}
       />
@@ -104,9 +103,6 @@ export function ScrollFade({
         className={cn(
           fade,
           fadeFrom,
-          // A little past the area's bottom, over what's behind it in the
-          // same color, as an iPhone can round the two to different pixels
-          // and leave the area's last line of pixels bare below the fade
           '-bottom-0.5 bg-linear-to-t',
           more.below ? 'opacity-100' : 'opacity-0'
         )}
