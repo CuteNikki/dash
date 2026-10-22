@@ -15,14 +15,14 @@ import { runContainerAction } from '@/actions/containers';
 import type { ContainerAction } from '@/lib/docker';
 import { formatAddress, formatBytes, formatCpu, MEASURES } from '@/lib/format';
 import type { ServiceGroup } from '@/lib/groups';
-import { healthOf, isRunning, stateLabel } from '@/lib/status';
+import { isRunning, stateLabel } from '@/lib/status';
 import type { Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import type { ListFilter } from '@/lib/view';
 
 import { ServiceIcon } from '@/components/service-icon';
 import { Sparkline } from '@/components/sparkline';
-import { StatusDot } from '@/components/status-dot';
+import { StatePill, StatusDot } from '@/components/status-dot';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -255,23 +255,6 @@ function FilterItem({
   );
 }
 
-/** Its state as a word in a pill, colored as its dot would be. */
-function StatePill({ service }: { service: Service }) {
-  const health = healthOf(service.state);
-  return (
-    <span
-      className={cn(
-        'inline-flex rounded-md px-1.5 py-0.5 font-medium',
-        health === 'ok' && 'bg-success/15 text-success',
-        health === 'attention' && 'bg-warning/15 text-warning',
-        health === 'off' && 'bg-muted text-muted-foreground'
-      )}
-    >
-      {stateLabel(service.state).toLowerCase()}
-    </span>
-  );
-}
-
 /** "/home/nikki/services/ludo" as "~/services/ludo". */
 function shortPath(dir: string) {
   return dir.replace(/^\/home\/[^/]+/, '~');
@@ -350,7 +333,7 @@ function Row({
         </div>
       </td>
       <td className='hidden px-2 py-2.5 sm:table-cell'>
-        <StatePill service={service} />
+        <StatePill state={service.state} />
       </td>
       <td className='px-2 py-2.5 font-mono tabular-nums'>
         {usage ? (

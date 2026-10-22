@@ -30,3 +30,27 @@ export function StatusDot({
     />
   );
 }
+
+/** Its state as a word in a pill, colored as its dot would be. */
+export function StatePill({
+  state,
+  className,
+}: {
+  state: ContainerState;
+  className?: string;
+}) {
+  const health = healthOf(state);
+  return (
+    <span
+      className={cn(
+        'inline-flex rounded-md px-1.5 py-0.5 font-medium',
+        health === 'ok' && 'bg-success/15 text-success',
+        health === 'attention' && 'bg-warning/15 text-warning',
+        health === 'off' && 'bg-muted text-muted-foreground',
+        className
+      )}
+    >
+      {stateLabel(state).toLowerCase()}
+    </span>
+  );
+}

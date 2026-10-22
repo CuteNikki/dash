@@ -19,7 +19,7 @@ import type { ContainerAction } from '@/lib/docker';
 import { fetcher } from '@/lib/fetcher';
 import { MEASURES, type Measure } from '@/lib/format';
 import type { GitStatus } from '@/lib/git';
-import { isRunning, stateLabel } from '@/lib/status';
+import { isRunning } from '@/lib/status';
 import type { Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -32,7 +32,7 @@ import { LogViewer } from '@/components/log-viewer';
 import { ScrollFade } from '@/components/scroll-fade';
 import { ServiceIcon } from '@/components/service-icon';
 import { TextSkeleton } from '@/components/skeletons';
-import { StatusDot } from '@/components/status-dot';
+import { StatePill } from '@/components/status-dot';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -157,12 +157,9 @@ function ServiceBody({
             <DialogTitle className='truncate text-base'>
               {service.name}
             </DialogTitle>
-            <DialogDescription className='flex items-center gap-2'>
-              <StatusDot state={service.state} />
-              {stateLabel(service.state)}
-              <span className='truncate font-mono'>
-                {service.containerName}
-              </span>
+            {/* Its container alone, its state being with what changes it */}
+            <DialogDescription className='truncate font-mono'>
+              {service.containerName}
             </DialogDescription>
           </div>
         </div>
@@ -170,6 +167,7 @@ function ServiceBody({
           <AddressList addresses={service.addresses} />
         )}
         <div className='flex flex-wrap items-center gap-2'>
+          <StatePill state={service.state} className='mr-1' />
           {running ? (
             <Button
               variant='destructive'
