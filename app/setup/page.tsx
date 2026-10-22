@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
 import { hasAccount } from '@/lib/session';
@@ -5,6 +6,8 @@ import { setupCode } from '@/lib/setup';
 
 import { AuthCard } from '@/components/auth-card';
 import { SetupForm } from '@/components/setup-form';
+
+export const metadata: Metadata = { title: 'Set up' };
 
 // Checks the account and session before anything shows, and may redirect,
 // so the page waits for them rather than streaming a placeholder first

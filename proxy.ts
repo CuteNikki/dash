@@ -15,5 +15,8 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!login|setup|api/auth|_next/|favicon.ico).*)'],
+  // The icons, manifest and robots.txt too, which a browser fetches before signing in
+  matcher: [
+    '/((?!login|setup|api/auth|_next/|favicon.ico|icon.svg|apple-icon.png|manifest.webmanifest|robots.txt).*)',
+  ],
 };

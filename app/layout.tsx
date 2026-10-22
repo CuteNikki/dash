@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Geist, JetBrains_Mono } from 'next/font/google';
 
 import { cn } from '@/lib/utils';
@@ -16,8 +16,24 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'dash',
+  // Where it's reached, so the icons and manifest are linked in full
+  metadataBase: new URL(process.env.BETTER_AUTH_URL ?? 'https://dash.niso.moe'),
+  title: { default: 'dash', template: '%s · dash' },
   description: 'Services, containers and files on the VPS',
+  applicationName: 'dash',
+  // Behind a sign-in, and nothing for a search engine to show
+  robots: { index: false, follow: false },
+  // Added to a phone's home screen, it opens on its own, named dash
+  appleWebApp: { title: 'dash', capable: true },
+};
+
+export const viewport: Viewport = {
+  // A phone's browser bar in the page's background, light or dark
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
+  ],
+  colorScheme: 'light dark',
 };
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
