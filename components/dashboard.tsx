@@ -6,7 +6,7 @@ import useSWR from 'swr';
 
 import { LayoutGridIcon, ListIcon, PencilIcon } from 'lucide-react';
 
-import { saveLayout, type TileResult } from '@/actions/tiles';
+import { renameGroup, saveLayout, type TileResult } from '@/actions/tiles';
 import { fetcher } from '@/lib/fetcher';
 import { groupNames, groupServices } from '@/lib/groups';
 import type { Dashboard as DashboardData, Service } from '@/lib/types';
@@ -107,6 +107,26 @@ export function Dashboard({
     );
   }
 
+  function rename(section: BoardSection, name: string) {
+    const from = section.label;
+    const keys = section.tiles.map((t) => t.key);
+    const sectionKey = (group: string) => `section:group:${group}`;
+    void change(
+      (d) => ({
+        ...d,
+        services: d.services.map((s) =>
+          keys.includes(s.key) ? { ...s, group: name } : s
+        ),
+        groupOrder: d.groupOrder.map((g) => (g === from ? name : g)),
+        layouts: d.layouts.map((l) =>
+          l.key === sectionKey(from) ? { ...l, key: sectionKey(name) } : l
+        ),
+      }),
+      () => renameGroup(from, name, keys),
+      `Couldn't rename ${from}`
+    );
+  }
+
   const sections: BoardSection[] = [
     ...(host || hostComing
       ? [
@@ -195,6 +215,7 @@ export function Dashboard({
         editing={editing}
         saved={data.layouts}
         onLayout={saveCells}
+        onRename={rename}
       />
       {view === 'list' && (
         <ServiceList groups={groups} editing={editing} onOpen={open} />

@@ -145,3 +145,46 @@ export async function restoreTile(tile: TileSnapshot): Promise<TileResult> {
     update: data,
   });
 }
+
+const SECTION_KEY = 'section:group:';
+
+/**
+ * Renames a group: its services, its place among the groups and where its
+ * section's been put. Renamed to one there already is, the two become one,
+ * where that one was.
+ */
+export async function renameGroup(
+  from: string,
+  to: string,
+  /** The services in it now, some of which may only be in it by their labels */
+  keys: string[]
+): Promise<TileResult> {
+  await requireUser();
+  const names = z.object({ from: Group, to: Group }).safeParse({ from, to });
+  if (!names.success) return { error: names.error.issues[0].message };
+  const { from: old, to: name } = names.data;
+  if (old === name) return;
+  await ensureTiles(keys);
+  const [existing, layouts] = await Promise.all([
+    db.group.findUnique({ where: { name } }),
+    db.tileLayout.findMany({ where: { key: SECTION_KEY + name } }),
+  ]);
+  await db.$transaction([
+    db.tile.updateMany({
+      where: { OR: [{ key: { in: keys } }, { group: old }] },
+      data: { group: name },
+    }),
+    // Its place among the groups, unless it's joined one that has its own
+    ...(existing
+      ? [db.group.deleteMany({ where: { name: old } })]
+      : [db.group.updateMany({ where: { name: old }, data: { name } })]),
+    ...(layouts.length
+      ? [db.tileLayout.deleteMany({ where: { key: SECTION_KEY + old } })]
+      : [
+          db.tileLayout.updateMany({
+            where: { key: SECTION_KEY + old },
+            data: { key: SECTION_KEY + name },
+          }),
+        ]),
+  ]);
+}

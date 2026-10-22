@@ -476,12 +476,15 @@ export function Board({
   editing,
   saved,
   onLayout,
+  onRename,
 }: {
   sections: BoardSection[];
   columns: number;
   editing: boolean;
   saved: SavedCell[];
   onLayout: (change: LayoutChange) => void;
+  /** A group renamed while editing */
+  onRename: (section: BoardSection, name: string) => void;
 }) {
   // Each section full width, one under another, until they're arranged
   const page = useArrange(
@@ -628,6 +631,7 @@ export function Board({
                   width={cell.w}
                   onPress={(e, mode, node) => page.press(e, key, mode, node, 0)}
                   onNudge={(e) => page.nudge(e, key)}
+                  onRename={(name) => onRename(section, name)}
                 >
                   {tileGrid(section, editing)}
                 </SectionBlock>
@@ -768,6 +772,7 @@ function SectionBlock({
   width,
   onPress,
   onNudge,
+  onRename,
   children,
 }: {
   section: BoardSection;
@@ -781,6 +786,7 @@ function SectionBlock({
     node: HTMLElement
   ) => void;
   onNudge?: (e: ReactKeyboardEvent) => void;
+  onRename?: (name: string) => void;
   children: ReactNode;
 }) {
   const node = useRef<HTMLElement>(null);
@@ -796,7 +802,11 @@ function SectionBlock({
     >
       <h2 className='relative flex items-center text-xs font-medium tracking-wide text-muted-foreground uppercase'>
         <span className='relative flex items-center gap-2'>
-          {section.label}
+          {arranging && onRename && section.kind === 'group' ? (
+            <GroupName name={section.label} onRename={onRename} />
+          ) : (
+            section.label
+          )}
           {section.kind === 'group' && (
             <span className='font-mono tracking-normal tabular-nums'>
               {section.tiles.length}
@@ -926,5 +936,53 @@ function EditTile({
         </span>
       )}
     </div>
+  );
+}
+
+/**
+ * A group's name as a field, in the heading's own type and no taller, so
+ * renaming it moves nothing: saved on Enter or leaving it, put back on
+ * Escape or if it's left empty.
+ */
+function GroupName({
+  name,
+  onRename,
+}: {
+  name: string;
+  onRename: (name: string) => void;
+}) {
+  const [value, setValue] = useState(name);
+  // A rename saved, or made elsewhere, shows here
+  const [shown, setShown] = useState(name);
+  if (shown !== name) {
+    setShown(name);
+    setValue(name);
+  }
+
+  function commit() {
+    const next = value.trim();
+    if (next && next !== name) onRename(next);
+    else setValue(name);
+  }
+
+  return (
+    <input
+      aria-label={`Rename ${name}`}
+      value={value}
+      maxLength={60}
+      spellCheck={false}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') e.currentTarget.blur();
+        if (e.key === 'Escape') {
+          setValue(name);
+          // Left once it's as it was, so leaving it saves nothing
+          const field = e.currentTarget;
+          requestAnimationFrame(() => field.blur());
+        }
+      }}
+      className='field-sizing-content h-4 min-w-8 rounded-none border-b border-dashed border-foreground/30 bg-transparent p-0 leading-4 tracking-wide text-foreground uppercase outline-none hover:border-foreground/60 focus:border-solid focus:border-primary'
+    />
   );
 }
