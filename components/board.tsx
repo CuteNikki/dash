@@ -44,7 +44,8 @@ export type BoardTile = {
 /**
  * A section of tiles, the server's or a group's, itself placed on the page
  * as a tile is in it: anywhere, as many columns wide as it's made, its
- * tiles in that many columns. Tiles move between groups, but not between
+ * tiles in that many columns, and as many rows tall, beside sections
+ * stacked as many deep. Tiles move between groups, but not between
  * those and the server's.
  */
 export type BoardSection = {
@@ -103,8 +104,11 @@ type Grid = {
   kind: string;
   columns: number;
   layout: Layout;
-  /** Its tiles are a row tall whatever: sections, which are as tall as they hold */
-  fixedHeight?: boolean;
+  /**
+   * Sections': each row as tall as what ends in it, so none is left empty,
+   * and a section moved by where the pointer is rather than its top
+   */
+  sections?: boolean;
 };
 
 type Drag = {
@@ -170,6 +174,68 @@ function nearestRow(m: Measure, y: number) {
   return best;
 }
 
+/**
+ * Each section's own height on the page as it changes, by its key, and the
+ * gap between the page's rows: what its rows are sized from.
+ */
+function useSectionHeights() {
+  const [heights, setHeights] = useState(new Map<string, number>());
+  const [gap, setGap] = useState(0);
+  // One observer for them all, made once there's something to watch
+  const observer = useRef<ResizeObserver>(null);
+  const keys = useRef(new WeakMap<Element, string>());
+
+  const ref = (key: string) => (el: HTMLDivElement | null) => {
+    if (!el) return;
+    observer.current ??= new ResizeObserver((entries) =>
+      setHeights((m) => {
+        let next = m;
+        for (const e of entries) {
+          const k = keys.current.get(e.target);
+          const px = e.borderBoxSize[0].blockSize;
+          if (k && next.get(k) !== px) next = new Map(next).set(k, px);
+        }
+        return next;
+      })
+    );
+    keys.current.set(el, key);
+    observer.current.observe(el);
+    return () => observer.current?.unobserve(el);
+  };
+  const gridRef = (el: HTMLDivElement | null) => {
+    if (el) setGap(parseFloat(getComputedStyle(el).rowGap) || 0);
+  };
+  return { heights, gap, ref, gridRef };
+}
+
+/**
+ * The page's rows, each as tall as the tallest section ending in it needs
+ * past the rows above that it spans too: so a tall section's extra height
+ * goes in its last row, and those stacked beside it sit as close as any,
+ * rather than the grid spreading it over every row it spans. Each at least
+ * that, and more if what's in it has grown since it was measured. None
+ * while every section is a row tall, as the grid sizes those right itself.
+ */
+function sectionRows(
+  layout: Layout,
+  heights: Map<string, number>,
+  gap: number
+) {
+  if ([...layout.values()].every((c) => c.h === 1)) return undefined;
+  const rows: number[] = [];
+  for (let r = 0; r < rowsOf(layout); r++) {
+    let row = 0;
+    for (const [key, c] of layout) {
+      if (c.y + c.h - 1 !== r) continue;
+      const above =
+        rows.slice(c.y, r).reduce((a, b) => a + b, 0) + gap * (c.h - 1);
+      row = Math.max(row, (heights.get(key) ?? 0) - above);
+    }
+    rows.push(row);
+  }
+  return rows.map((px) => `minmax(${px}px, auto)`).join(' ');
+}
+
 const same = (a: Cell, b: Cell) =>
   a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h;
 
@@ -183,7 +249,7 @@ function withDrag(grids: Grid[], drag: Drag): Map<string, Layout> {
   out.set(drag.to, place(to, drag.key, drag.cell));
   // Sections leave no empty rows behind them
   for (const g of grids) {
-    if (g.fixedHeight) out.set(g.id, withoutEmptyRows(out.get(g.id)!));
+    if (g.sections) out.set(g.id, withoutEmptyRows(out.get(g.id)!));
   }
   return out;
 }
@@ -261,12 +327,10 @@ function useArrange(
         );
         // As many rows as ends nearest the pointer
         let h = 1;
-        if (!grid.fixedHeight) {
-          for (let n = 1; n <= MAX_ROWS; n++) {
-            const end = (m.rowStarts[from.y + n] ?? 0) - m.rowGap;
-            const best = (m.rowStarts[from.y + h] ?? 0) - m.rowGap;
-            if (Math.abs(end - bottom) < Math.abs(best - bottom)) h = n;
-          }
+        for (let n = 1; n <= MAX_ROWS; n++) {
+          const end = (m.rowStarts[from.y + n] ?? 0) - m.rowGap;
+          const best = (m.rowStarts[from.y + h] ?? 0) - m.rowGap;
+          if (Math.abs(end - bottom) < Math.abs(best - bottom)) h = n;
         }
         current = {
           ...current,
@@ -302,7 +366,7 @@ function useArrange(
           cell: fit(
             {
               x: Math.round((x - current.grab.x - m.left) / (m.column + m.gap)),
-              y: grid.fixedHeight
+              y: grid.sections
                 ? nearestRow(m, y - m.top)
                 : nearestRow(m, y - current.grab.y - m.top),
               w: from.w,
@@ -364,15 +428,7 @@ function useArrange(
       setCursor('');
       if (dragging) t.finish();
     };
-    setCursor(
-      mode === 'resize'
-        ? grids[0]?.fixedHeight
-          ? 'ew-resize'
-          : 'nwse-resize'
-        : at === 0
-          ? 'grabbing'
-          : ''
-    );
+    setCursor(mode === 'resize' ? 'nwse-resize' : at === 0 ? 'grabbing' : '');
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
     window.addEventListener('pointercancel', up);
@@ -434,7 +490,7 @@ function useArrange(
         ? {
             ...c,
             w: Math.min(c.w + dx, grid.columns - c.x),
-            h: grid.fixedHeight ? 1 : c.h + dy,
+            h: c.h + dy,
           }
         : { ...c, x: c.x + dx, y: c.y + dy },
       grid.columns
@@ -464,8 +520,9 @@ function useArrange(
 /**
  * The server's section and the groups', placed on the page as tiles are in
  * them. While editing, a section's dragged by the handle beside its name,
- * anywhere, beside another one if there's room, and made wider or narrower
- * by the one at its heading's end; a tile's dragged anywhere in its section
+ * anywhere, beside another one if there's room, and resized by the one at
+ * its heading's end: wider or narrower, or taller, to span the rows of the
+ * sections stacked beside it; a tile's dragged anywhere in its section
  * or into another group, leaving room where it was, and resized by its
  * corner. The tiles or sections something lands on move down. The keyboard
  * does all of it from a handle: the arrow keys move, with Shift resize.
@@ -493,7 +550,7 @@ export function Board({
         id: PAGE,
         kind: PAGE,
         columns,
-        fixedHeight: true,
+        sections: true,
         layout: withoutEmptyRows(
           layoutAt(
             sections.map((s) => ({ key: SECTION + s.id, w: columns, h: 1 })),
@@ -514,6 +571,7 @@ export function Board({
       })
   );
   const placed = page.shown.get(PAGE)!;
+  const heights = useSectionHeights();
 
   // A section's tiles in as many columns as it's wide
   const grids: Grid[] = sections.map((s) => {
@@ -610,32 +668,43 @@ export function Board({
   return (
     <>
       <div
-        ref={page.ref(PAGE)}
+        ref={(el) => {
+          page.ref(PAGE)(el);
+          heights.gridRef(el);
+        }}
         // Sections' columns line up with the page's, so their tiles are as
         // wide in a narrow section as a wide one
         className='grid gap-x-3 gap-y-8'
-        style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+        style={{
+          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+          gridTemplateRows: sectionRows(placed, heights.heights, heights.gap),
+        }}
       >
         {readingOrder(placed).map(([key, cell]) => {
           const section = sectionByKey.get(key);
           if (!section) return null;
           return (
-            <GridCell key={key} cell={cell}>
-              {pd?.key === key && pd.mode === 'move' ? (
-                <DropPlace height={pd.box.height} />
-              ) : (
-                <SectionBlock
-                  section={section}
-                  editing={editing}
-                  resizing={pd?.key === key && pd.mode === 'resize'}
-                  width={cell.w}
-                  onPress={(e, mode, node) => page.press(e, key, mode, node, 0)}
-                  onNudge={(e) => page.nudge(e, key)}
-                  onRename={(name) => onRename(section, name)}
-                >
-                  {tileGrid(section, editing)}
-                </SectionBlock>
-              )}
+            <GridCell key={key} cell={cell} top>
+              {/* As tall as it is, not as its rows, to measure them by */}
+              <div ref={heights.ref(key)} className='grid min-w-0 grid-cols-1'>
+                {pd?.key === key && pd.mode === 'move' ? (
+                  <DropPlace height={pd.box.height} />
+                ) : (
+                  <SectionBlock
+                    section={section}
+                    editing={editing}
+                    resizing={pd?.key === key && pd.mode === 'resize'}
+                    cell={cell}
+                    onPress={(e, mode, node) =>
+                      page.press(e, key, mode, node, 0)
+                    }
+                    onNudge={(e) => page.nudge(e, key)}
+                    onRename={(name) => onRename(section, name)}
+                  >
+                    {tileGrid(section, editing)}
+                  </SectionBlock>
+                )}
+              </div>
             </GridCell>
           );
         })}
@@ -655,11 +724,7 @@ export function Board({
       )}
       {draggedSection && pd.mode === 'move' && (
         <Floating drag={pd} section>
-          <SectionBlock
-            section={draggedSection}
-            editing={false}
-            width={pd.cell.w}
-          >
+          <SectionBlock section={draggedSection} editing={false} cell={pd.cell}>
             {tileGrid(draggedSection, false)}
           </SectionBlock>
         </Floating>
@@ -745,11 +810,20 @@ function TileGrid({
   );
 }
 
-function GridCell({ cell, children }: { cell: Cell; children: ReactNode }) {
+function GridCell({
+  cell,
+  top,
+  children,
+}: {
+  cell: Cell;
+  /** What's in it at its top, as tall as it is, rather than filling its rows */
+  top?: boolean;
+  children: ReactNode;
+}) {
   return (
     <div
       // One column its own width, whatever its tile holds
-      className='grid min-w-0 grid-cols-1'
+      className={cn('grid min-w-0 grid-cols-1', top && 'items-start')}
       style={{
         gridColumn: `${cell.x + 1} / span ${cell.w}`,
         gridRow: `${cell.y + 1} / span ${cell.h}`,
@@ -769,7 +843,7 @@ function SectionBlock({
   section,
   editing,
   resizing,
-  width,
+  cell,
   onPress,
   onNudge,
   onRename,
@@ -778,8 +852,8 @@ function SectionBlock({
   section: BoardSection;
   editing: boolean;
   resizing?: boolean;
-  /** Columns it spans, shown while it's resized */
-  width: number;
+  /** Its place, its columns and rows shown while it's resized */
+  cell: Cell;
   onPress?: (
     e: ReactPointerEvent,
     mode: Drag['mode'],
@@ -817,12 +891,12 @@ function SectionBlock({
           <span className='absolute top-1/2 right-0 flex -translate-y-1/2 items-center gap-0.5'>
             {resizing && (
               <span className='mr-1 rounded-md bg-primary px-1.5 font-mono text-xs/5 tracking-normal whitespace-nowrap text-primary-foreground normal-case tabular-nums'>
-                {width} wide
+                {cell.w} × {cell.h}
               </span>
             )}
             <button
               type='button'
-              aria-label={`Move ${section.label}: arrow keys move it, with Shift they make it wider or narrower`}
+              aria-label={`Move ${section.label}: arrow keys move it, with Shift they resize it`}
               className='cursor-grab touch-none rounded-sm p-0.5 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring'
               onPointerDown={(e) => onPress(e, 'move', node.current!)}
               onKeyDown={onNudge}
@@ -833,14 +907,14 @@ function SectionBlock({
               type='button'
               tabIndex={-1}
               aria-hidden
-              title='Drag to make it wider or narrower'
-              className='cursor-ew-resize touch-none rounded-sm p-0.5 hover:text-foreground'
+              title='Drag to resize: wider or narrower, or down beside the sections next to it'
+              className='cursor-nwse-resize touch-none rounded-sm p-0.5 hover:text-foreground'
               onPointerDown={(e) => onPress(e, 'resize', node.current!)}
             >
-              {/* Arrows out to either side */}
+              {/* Arrows out to opposite corners */}
               <svg viewBox='0 0 16 16' className='size-4' aria-hidden>
                 <path
-                  d='M2 8h12M2 8l3-3M2 8l3 3M14 8l-3-3M14 8l-3 3'
+                  d='M3 3l10 10M3 3h4M3 3v4M13 13H9M13 13V9'
                   fill='none'
                   stroke='currentColor'
                   strokeWidth='1.3'
