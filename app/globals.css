@@ -107,6 +107,21 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* A dialog the shade of the page, with its panels, tiles and chips white on it,
+   as in the dark they're lighter than the dialog; what's picked in a white panel
+   goes a shade darker, as it goes darker in the dark */
+:root:not(.dark)
+  :is(
+    [data-slot='dialog-content'],
+    [data-slot='alert-dialog-content'],
+    [data-slot='sheet-content']
+  ) {
+  --popover: var(--background);
+  --muted: oklch(1 0 0);
+  --secondary: oklch(1 0 0);
+  --surface: oklch(0.94 0 0);
+}
+
 .dark {
   --success: oklch(0.72 0.17 150);
   --warning: oklch(0.8 0.15 75);
