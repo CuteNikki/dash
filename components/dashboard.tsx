@@ -59,6 +59,7 @@ export function Dashboard({
   const [editing, setEditing] = useState(false);
   // By key, so these follow the live data and survive a recreated container
   const [openKey, setOpenKey] = useState<string>();
+  const [openTab, setOpenTab] = useState<'usage' | 'logs'>('usage');
   const [editKey, setEditKey] = useState<string>();
 
   const { services, groupOrder, host, hostComing } = data;
@@ -175,7 +176,10 @@ export function Dashboard({
 
   function open(service: Service) {
     if (editing) setEditKey(service.key);
-    else setOpenKey(service.key);
+    else {
+      setOpenTab('usage');
+      setOpenKey(service.key);
+    }
   }
 
   return (
@@ -218,10 +222,20 @@ export function Dashboard({
         onRename={rename}
       />
       {view === 'list' && (
-        <ServiceList groups={groups} editing={editing} onOpen={open} />
+        <ServiceList
+          groups={groups}
+          editing={editing}
+          onOpen={open}
+          onLogs={(service) => {
+            setOpenTab('logs');
+            setOpenKey(service.key);
+          }}
+          onChanged={() => void mutate()}
+        />
       )}
       <ServiceDialog
         service={find(openKey)}
+        tab={openTab}
         onClose={() => setOpenKey(undefined)}
         onChanged={() => void mutate()}
         onEdit={(service) => {

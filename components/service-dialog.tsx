@@ -62,12 +62,15 @@ export function ServiceDialog({
   onClose,
   onChanged,
   onEdit,
+  tab = 'usage',
 }: {
   service?: Service;
   onClose: () => void;
   /** Called after an action, so the dashboard refreshes right away */
   onChanged: () => void;
   onEdit: (service: Service) => void;
+  /** The tab it opens on */
+  tab?: 'usage' | 'logs';
 }) {
   return (
     <Dialog open={!!service} onOpenChange={(open) => !open && onClose()}>
@@ -86,6 +89,7 @@ export function ServiceDialog({
             service={service}
             onChanged={onChanged}
             onEdit={onEdit}
+            tab={tab}
           />
         )}
       </DialogContent>
@@ -97,10 +101,12 @@ function ServiceBody({
   service,
   onChanged,
   onEdit,
+  tab,
 }: {
   service: Service;
   onChanged: () => void;
   onEdit: (service: Service) => void;
+  tab: 'usage' | 'logs';
 }) {
   const [pending, startTransition] = useTransition();
   const [confirmStop, setConfirmStop] = useState(false);
@@ -214,7 +220,7 @@ function ServiceBody({
         </div>
       </DialogHeader>
 
-      <Tabs defaultValue='usage' className='min-h-0 flex-1 gap-4 p-4'>
+      <Tabs defaultValue={tab} className='min-h-0 flex-1 gap-4 p-4'>
         <TabsList>
           <TabsTrigger value='usage'>Usage</TabsTrigger>
           <TabsTrigger value='logs'>
