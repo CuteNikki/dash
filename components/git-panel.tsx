@@ -13,10 +13,14 @@ import {
 
 import { commitChanges, runGit, switchBranch } from '@/actions/git';
 import { fetcher } from '@/lib/fetcher';
-import type { GitStatus } from '@/lib/git';
+import type { FileDiff, GitStatus } from '@/lib/git';
 
 import { BranchPicker } from '@/components/branch-picker';
-import { CodeEditor } from '@/components/code-editor';
+import {
+  DiffLayoutToggle,
+  DiffView,
+  useDiffLayout,
+} from '@/components/diff-view';
 import { ChangeStatus } from '@/components/git-change';
 import { GitHistory } from '@/components/git-history';
 import { CodeSkeleton } from '@/components/skeletons';
@@ -64,6 +68,7 @@ export function GitPanel({
   const [view, setView] = useState(
     status.changes.length ? 'changes' : 'history'
   );
+  const [layout, setLayout] = useDiffLayout();
   const [pending, startTransition] = useTransition();
   const { mutate } = useSWRConfig();
 
@@ -71,7 +76,7 @@ export function GitPanel({
   const chosen = [...changed].filter((p) => !skipped.has(p));
   const diffPath =
     shown && changed.has(shown) ? shown : status.changes[0]?.path;
-  const { data: diff } = useSWR<{ diff: string }>(
+  const { data: diff } = useSWR<FileDiff>(
     diffPath
       ? `/api/containers/${containerId}/git/diff?path=${encodeURIComponent(diffPath)}`
       : null,
@@ -178,6 +183,7 @@ export function GitPanel({
           {status.behind}
         </span>
         <span className='ml-auto flex flex-wrap gap-2'>
+          <DiffLayoutToggle layout={layout} onPick={setLayout} />
           <Button
             variant='outline'
             disabled={pending}
@@ -188,7 +194,8 @@ export function GitPanel({
           </Button>
           <Button
             variant='outline'
-            disabled={pending || !status.upstream}
+            // Once a fetch has found something to pull
+            disabled={pending || !status.upstream || status.behind === 0}
             onClick={() => act(() => runGit(containerId, 'pull'), 'Pulled')}
           >
             <ArrowDownIcon />
@@ -283,12 +290,12 @@ export function GitPanel({
 
             <div className='flex min-h-0 min-w-0 flex-1 flex-col'>
               {diff && diffPath ? (
-                <CodeEditor
+                <DiffView
                   key={diffPath}
-                  value={diff.diff}
-                  fileName='changes.diff'
+                  diff={diff}
+                  path={diffPath}
+                  layout={layout}
                   label={`Changes to ${diffPath}`}
-                  readOnly
                 />
               ) : (
                 <CodeSkeleton />
@@ -299,7 +306,11 @@ export function GitPanel({
       </TabsContent>
 
       <TabsContent value='history' className='flex min-h-0 flex-col'>
-        <GitHistory containerId={containerId} head={status.head} />
+        <GitHistory
+          containerId={containerId}
+          head={status.head}
+          layout={layout}
+        />
       </TabsContent>
     </Tabs>
   );

@@ -18,5 +18,5 @@ export async function GET(
   if (!stack || !path) {
     return Response.json({ error: 'Not found' }, { status: 404 });
   }
-  return Response.json({ diff: await gitCommitDiff(stack.dir, hash, path) });
+  return Response.json(await gitCommitDiff(stack.dir, hash, path));
 }

@@ -1,5 +1,7 @@
 import 'server-only';
 
+import { randomUUID } from 'node:crypto';
+
 import { hostOwner } from '@/lib/host-files';
 import { runToEnd, STACKS_ROOT, type Run } from '@/lib/runner';
 
@@ -84,10 +86,10 @@ function parseCommit(line: string): GitCommit {
 }
 
 /** Splits a script's output at the marks between its parts. */
-function partsOf(stdout: string[]) {
+function partsOf(stdout: string[], mark = MARK) {
   const parts: string[][] = [[]];
   for (const line of stdout) {
-    if (line === MARK) parts.push([]);
+    if (line === mark) parts.push([]);
     else parts.at(-1)!.push(line);
   }
   return parts;
@@ -198,17 +200,78 @@ export async function gitCommit(
   );
 }
 
-/** What changed in one file, as a unified diff; a new file shows all its lines. */
+/** What changed in one file: a unified diff, and the file before and after. */
+export type FileDiff = {
+  diff: string;
+  /** Both in full, when both are text and small enough to show whole */
+  sides?: { before: string; after: string };
+};
+
+/** The largest file shown whole beside its other version, in bytes. */
+const MAX_SIDE = 512 * 1024;
+
+/**
+ * A shell function printing one side of a change: "absent" for a file that
+ * isn't there on that side, "large" for one too big to show whole, or
+ * "present" then its contents and an x, so where they end shows even
+ * without a last line break. `side <rev>:<path> blob` or `side <path> file`.
+ */
+const SIDE = `side() {
+  if [ "$2" = blob ]; then size=$(git cat-file -s "$1" 2>/dev/null) || { echo absent; return; }
+  else [ -f "$1" ] || { echo absent; return; }; size=$(wc -c < "$1"); fi
+  [ "$size" -le ${MAX_SIDE} ] || { echo large; return; }
+  echo present
+  if [ "$2" = blob ]; then git cat-file blob "$1"; else cat -- "$1"; fi
+  printf 'x\\n'
+}`;
+
+/**
+ * A mark between a script's parts no file's line will match, as the file's
+ * own contents come between them.
+ */
+function uniqueMark() {
+  return `--dash-${randomUUID()}--`;
+}
+
+/** A diff, then each side as \`SIDE\` printed it, each after the mark. */
+function fileDiffOf(stdout: string[], mark: string): FileDiff {
+  const [diff, before, after] = partsOf(stdout, mark);
+  const unified = (diff ?? []).join('\n');
+  const side = (part?: string[]) => {
+    if (!part?.length || part[0] === 'large') return undefined;
+    if (part[0] === 'absent') return '';
+    return part.slice(1).join('\n').replace(/x$/, '');
+  };
+  const [b, a] = [side(before), side(after)];
+  const binary = /^Binary files /m.test(unified);
+  return {
+    diff: unified,
+    sides:
+      !binary && b !== undefined && a !== undefined
+        ? { before: b, after: a }
+        : undefined,
+  };
+}
+
+/**
+ * What changed in one file since the last commit; a new file shows all its
+ * lines. Run at the repository's top, which the path is relative to.
+ */
 export async function gitDiff(root: string, path: string) {
+  const mark = uniqueMark();
   const { stdout } = await gitScript(
     root,
-    `if git ls-files --error-unmatch -- "$1" >/dev/null 2>&1
+    `${SIDE}
+if git ls-files --error-unmatch -- "$1" >/dev/null 2>&1
 then git diff HEAD -- "$1"
-else git diff --no-index -- /dev/null "$1"; true
-fi`,
-    path
+else git diff --no-index -- /dev/null "$1"
+fi
+echo "$2"; side "HEAD:$1" blob
+echo "$2"; side "$1" file`,
+    path,
+    mark
   );
-  return stdout.join('\n');
+  return fileDiffOf(stdout, mark);
 }
 
 /** A commit's own name: its hash, or the start of it. */
@@ -293,15 +356,27 @@ echo ${MARK}; ${SHOW} --numstat "$1"`,
   };
 }
 
-/** What one commit changed in one file, as a unified diff. */
-export async function gitCommitDiff(dir: string, hash: string, path: string) {
-  if (!HASH.test(hash)) return '';
+/**
+ * What one commit changed in one file: a unified diff, and the file before
+ * (in its first parent) and after.
+ */
+export async function gitCommitDiff(
+  dir: string,
+  hash: string,
+  path: string
+): Promise<FileDiff> {
+  if (!HASH.test(hash)) return { diff: '' };
+  const mark = uniqueMark();
   const { stdout } = await gitScript(
     dir,
     `${AT_ROOT}
-${SHOW} "$1" -- "$2"`,
+${SIDE}
+${SHOW} "$1" -- "$2"
+echo "$3"; side "$1^:$2" blob
+echo "$3"; side "$1:$2" blob`,
     hash,
-    path
+    path,
+    mark
   );
-  return stdout.join('\n');
+  return fileDiffOf(stdout, mark);
 }

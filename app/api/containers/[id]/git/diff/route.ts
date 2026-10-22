@@ -16,5 +16,5 @@ export async function GET(
   if (!status?.changes.some((c) => c.path === path)) {
     return Response.json({ error: 'Not a changed file' }, { status: 404 });
   }
-  return Response.json({ diff: await gitDiff(status.root, path) });
+  return Response.json(await gitDiff(status.root, path));
 }

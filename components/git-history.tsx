@@ -9,9 +9,9 @@ import { CopyIcon } from 'lucide-react';
 
 import { fetcher } from '@/lib/fetcher';
 import { formatAgo } from '@/lib/format';
-import type { GitCommit, GitCommitDetails } from '@/lib/git';
+import type { FileDiff, GitCommit, GitCommitDetails } from '@/lib/git';
 
-import { CodeEditor } from '@/components/code-editor';
+import { DiffView, type DiffLayout } from '@/components/diff-view';
 import { ChangeStatus } from '@/components/git-change';
 import { ScrollFade } from '@/components/scroll-fade';
 import { CodeSkeleton, TextSkeleton } from '@/components/skeletons';
@@ -47,10 +47,12 @@ const ROW = 'flex w-full flex-col rounded-md px-2 py-1 text-left';
 export function GitHistory({
   containerId,
   head,
+  layout,
 }: {
   containerId: string;
   /** The commit checked out, to read the history again once it moves */
   head: string;
+  layout: DiffLayout;
 }) {
   const { data, setSize, isValidating } = useSWRInfinite<LogPage>(
     // Every page before the last is full, so its size says where the next starts
@@ -132,7 +134,12 @@ export function GitHistory({
       </section>
       {/* By commit, so the file picked in one doesn't carry over */}
       {shown && (
-        <CommitView key={shown} containerId={containerId} hash={shown} />
+        <CommitView
+          key={shown}
+          containerId={containerId}
+          hash={shown}
+          layout={layout}
+        />
       )}
     </div>
   );
@@ -161,9 +168,11 @@ function CommitsSkeleton() {
 function CommitView({
   containerId,
   hash,
+  layout,
 }: {
   containerId: string;
   hash: string;
+  layout: DiffLayout;
 }) {
   const base = `/api/containers/${containerId}/git/commits/${hash}`;
   const { data: commit, error } = useSWR<GitCommitDetails>(base, fetcher, {
@@ -171,7 +180,7 @@ function CommitView({
   });
   const [picked, setPicked] = useState<string>();
   const file = picked ?? commit?.files[0]?.path;
-  const { data: diff } = useSWR<{ diff: string }>(
+  const { data: diff } = useSWR<FileDiff>(
     file ? `${base}/diff?path=${encodeURIComponent(file)}` : null,
     fetcher,
     { revalidateOnFocus: false }
@@ -196,7 +205,8 @@ function CommitView({
 
   return (
     <div className='flex min-h-0 min-w-0 flex-1 flex-col gap-3'>
-      <div className='flex flex-col gap-1'>
+      {/* A card, as the files and their changes under it are */}
+      <div className='flex flex-col gap-1 rounded-lg bg-muted px-3 py-2'>
         {commit ? (
           <>
             <p className='font-medium'>{commit.subject}</p>
@@ -284,12 +294,12 @@ function CommitView({
 
       <div className='flex min-h-0 flex-1 flex-col'>
         {diff && file ? (
-          <CodeEditor
+          <DiffView
             key={file}
-            value={diff.diff}
-            fileName='changes.diff'
+            diff={diff}
+            path={file}
+            layout={layout}
             label={`Changes to ${file} in ${hash}`}
-            readOnly
           />
         ) : commit && !file ? null : (
           <CodeSkeleton />

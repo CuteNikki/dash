@@ -26,7 +26,6 @@ import CodeMirror from '@uiw/react-codemirror';
 /** Drawn with the page's own colors, so it follows the theme. */
 const theme = EditorView.theme({
   '&': {
-    height: '100%',
     fontSize: 'inherit',
     color: 'var(--foreground)',
     backgroundColor: 'var(--muted)',
@@ -102,6 +101,9 @@ const highlight = HighlightStyle.define([
   },
 ]);
 
+/** Filling the box it's in, scrolling inside it. */
+const fill = EditorView.theme({ '&': { height: '100%' } });
+
 /** How a file is read, from its name; anything else is plain text. */
 function languageFor(name: string): Extension[] {
   const lower = name.toLowerCase();
@@ -128,6 +130,14 @@ function languageFor(name: string): Extension[] {
   return [];
 }
 
+/**
+ * The page's colors and a file's highlighting, as every editor here has them,
+ * the side-by-side diff's included.
+ */
+export function codeLooks(fileName: string): Extension[] {
+  return [theme, syntaxHighlighting(highlight), ...languageFor(fileName)];
+}
+
 export function CodeEditor({
   value,
   onChange,
@@ -148,15 +158,19 @@ export function CodeEditor({
     <CodeMirror
       value={value}
       onChange={onChange}
-      theme={theme}
+      theme={fill}
       height='100%'
       className='h-full overflow-hidden rounded-lg font-mono text-xs/relaxed'
       aria-label={label}
       editable={!readOnly}
-      basicSetup={{ foldGutter: false, highlightActiveLine: !readOnly }}
+      // Where the cursor is only matters to editing
+      basicSetup={{
+        foldGutter: false,
+        highlightActiveLine: !readOnly,
+        highlightActiveLineGutter: !readOnly,
+      }}
       extensions={[
-        syntaxHighlighting(highlight),
-        ...languageFor(fileName),
+        ...codeLooks(fileName),
         ...(readOnly ? [EditorState.readOnly.of(true)] : []),
       ]}
     />
