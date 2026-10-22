@@ -1,6 +1,6 @@
 /** The server's tiles, in their first order and at their first sizes. */
 export const HOST_TILES = [
-  { key: 'server', name: 'Server', width: 4, height: 1 },
+  { key: 'server', name: 'Server', width: 8, height: 1 },
   // CPU beside the processes using it
   { key: 'cpu', name: 'CPU', width: 1, height: 1 },
   { key: 'processes', name: 'Processes', width: 3, height: 1 },

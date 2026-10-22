@@ -147,7 +147,8 @@ export function Dashboard({
   }
 
   return (
-    <div className='mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6'>
+    // As wide as the screen: wider screens get more columns of tiles
+    <div className='flex w-full flex-col gap-8 px-4 py-6 sm:px-6'>
       <header className='flex items-center gap-3'>
         <h1 className='mr-auto text-base font-semibold tracking-tight'>dash</h1>
         <Button

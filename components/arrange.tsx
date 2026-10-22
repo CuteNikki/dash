@@ -29,13 +29,10 @@ import {
 
 import { GripHorizontalIcon } from 'lucide-react';
 
-import { MAX_HEIGHT, MAX_WIDTH, spanClasses } from '@/lib/tile-size';
+import { MAX_HEIGHT, MAX_WIDTH, spanClasses, TILE_GRID } from '@/lib/tile-size';
 import { cn } from '@/lib/utils';
 
-/** The grid tiles sit in: the server's stats and each group's services. */
-export const TILE_GRID =
-  // Each row at least a tile's height, so a taller tile is that many tall
-  'grid auto-rows-[minmax(6rem,auto)] grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
+export { TILE_GRID };
 
 export type TileSize = { width: number; height: number };
 

@@ -201,7 +201,7 @@ function ServerDetails({ host }: { host?: HostStats }) {
           {host ? host.system.hostname : <TextSkeleton className='w-16' />}
         </span>
       </div>
-      <dl className='grid grid-cols-1 gap-x-6 gap-y-3 @md:grid-cols-2 @3xl:grid-cols-4'>
+      <dl className='grid grid-cols-1 gap-x-6 gap-y-3 @md:grid-cols-2 @3xl:grid-cols-4 @7xl:grid-cols-8'>
         {SERVER_DETAILS.map(([label, value]) => (
           <div key={label} className='flex min-w-0 flex-col'>
             <dt className='text-muted-foreground'>{label}</dt>
