@@ -52,6 +52,10 @@ export function ScrollFade({
   // The scrollbar's width, which the fades stop short of; one drawn over the
   // list measures nothing, so they keep its room regardless
   const [bar, setBar] = useState(0);
+  // Likewise the sideways scrollbar's height, which the bottom fade stops
+  // short of while the area scrolls sideways; when it doesn't, the fade
+  // overlaps the bottom edge as the top one does
+  const [sideBar, setSideBar] = useState<number>();
 
   function measure() {
     const el = scroller.current;
@@ -63,6 +67,11 @@ export function ScrollFade({
       m.above === above && m.below === below ? m : { above, below }
     );
     setBar(el.offsetWidth - el.clientWidth);
+    setSideBar(
+      el.scrollWidth - el.clientWidth > EDGE_SLACK_PX
+        ? Math.max(el.offsetHeight - el.clientHeight, OVERLAY_BAR_PX)
+        : undefined
+    );
   }
 
   // Again whenever the area or what's in it changes size, as when a filter
@@ -111,7 +120,7 @@ export function ScrollFade({
       />
       <div
         aria-hidden
-        style={{ right: Math.max(bar, OVERLAY_BAR_PX) }}
+        style={{ right: Math.max(bar, OVERLAY_BAR_PX), bottom: sideBar }}
         className={cn(
           fade,
           fadeFrom,
