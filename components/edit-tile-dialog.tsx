@@ -197,7 +197,7 @@ function EditTileForm({
             variant='ghost'
             disabled={pending}
             onClick={reset}
-            className='sm:mr-auto'
+            className='mr-auto'
           >
             Reset
           </Button>
