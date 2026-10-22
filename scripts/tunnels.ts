@@ -1,7 +1,8 @@
 // In development: tunnels to the apps whose numbers show on their tiles, which
-// on the server are only reached by name on the arr stack's network. Each is
-// looked up when it starts, since a recreated container has a new address,
-// and is then on this machine at the port SONARR_URL and the rest name.
+// on the server are only reached by name on the networks dash shares with
+// them. Each is looked up when it starts, since a recreated container has a
+// new address, and is then on this machine at the port SONARR_URL and the
+// rest name.
 const SERVER = 'vps.niso.moe';
 
 /** Each app's container, its port there, and its port here. */
@@ -12,6 +13,7 @@ const APPS = [
   { container: 'jellyfin', port: 8096, local: 18096 },
   { container: 'jellyseerr', port: 5055, local: 15055 },
   { container: 'flaresolverr', port: 8191, local: 18191 },
+  { container: 'stalwart', port: 8080, local: 18088 },
   // qBittorrent shares the VPN container's network, so it's reached through
   // it, at its own port: it turns away a request whose address has another
   { container: 'gluetun', port: 8080, local: 8080 },
@@ -20,7 +22,7 @@ const APPS = [
 const lookup = Bun.spawn([
   'ssh',
   SERVER,
-  `docker inspect -f '{{.Name}} {{(index .NetworkSettings.Networks "arr-stack_default").IPAddress}}' ${APPS.map((a) => a.container).join(' ')}`,
+  `docker inspect -f '{{.Name}}{{range .NetworkSettings.Networks}} {{.IPAddress}}{{end}}' ${APPS.map((a) => a.container).join(' ')}`,
 ]);
 const addresses = new Map(
   (await new Response(lookup.stdout).text())

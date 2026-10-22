@@ -13,6 +13,7 @@ import { prowlarr } from '@/lib/apps/prowlarr';
 import { qbittorrent } from '@/lib/apps/qbittorrent';
 import { relay } from '@/lib/apps/relay';
 import { seerr } from '@/lib/apps/seerr';
+import { stalwart } from '@/lib/apps/stalwart';
 
 /** The apps dash can read, by their image's name, "lscr.io/linuxserver/sonarr" → sonarr, or by a dash.app label. */
 export const APPS: Record<string, App> = {
@@ -31,4 +32,5 @@ export const APPS: Record<string, App> = {
   caddy,
   // Labelled dash.app: relay in its compose file, its image being named for its folder
   relay,
+  stalwart,
 };
