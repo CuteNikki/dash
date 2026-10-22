@@ -229,6 +229,7 @@ function NewServiceForm({
               value={group}
               groups={groups}
               onChange={setGroup}
+              optional
             />
           </div>
         </div>
