@@ -18,7 +18,12 @@ export type ServiceTemplate = {
   /** The port it serves on, for Caddy */
   port: string;
   volumes?: string[];
-  /** KEY=value; {name} is the stack's name, as a sidecar's address takes it */
+  /**
+   * KEY=value; {name} is the stack's name, as a sidecar's address takes it.
+   * {url} and {host} are its address, "https://git.example.com" and
+   * "git.example.com", which apps want to make links to themselves; a
+   * setting with either is left out until it has one
+   */
   environment?: string[];
   command?: string;
   /** Other settings of its service, such as shm_size */
@@ -47,6 +52,7 @@ export const CURATED: ServiceTemplate[] = [
     image: 'vaultwarden/server:latest',
     port: '80',
     volumes: ['./data:/data'],
+    environment: ['DOMAIN={url}'],
   },
   {
     id: 'gitea',
@@ -57,7 +63,13 @@ export const CURATED: ServiceTemplate[] = [
     image: 'gitea/gitea:latest',
     port: '3000',
     volumes: ['./data:/data'],
-    environment: ['USER_UID=1000', 'USER_GID=1000'],
+    environment: [
+      'USER_UID=1000',
+      'USER_GID=1000',
+      'GITEA__server__ROOT_URL={url}/',
+      'GITEA__server__DOMAIN={host}',
+      'GITEA__service__DISABLE_REGISTRATION=true',
+    ],
   },
   {
     id: 'navidrome',
@@ -96,7 +108,10 @@ export const CURATED: ServiceTemplate[] = [
       './media:/usr/src/paperless/media',
       './consume:/usr/src/paperless/consume',
     ],
-    environment: ['PAPERLESS_REDIS=redis://{name}-broker:6379'],
+    environment: [
+      'PAPERLESS_REDIS=redis://{name}-broker:6379',
+      'PAPERLESS_URL={url}',
+    ],
     broker: true,
   },
   {
@@ -108,6 +123,7 @@ export const CURATED: ServiceTemplate[] = [
     image: 'ghcr.io/mealie-recipes/mealie:latest',
     port: '9000',
     volumes: ['./data:/app/data'],
+    environment: ['BASE_URL={url}', 'ALLOW_SIGNUP=false'],
   },
   {
     id: 'actual',
@@ -138,6 +154,7 @@ export const CURATED: ServiceTemplate[] = [
     image: 'sissbruecker/linkding:latest',
     port: '9090',
     volumes: ['./data:/etc/linkding/data'],
+    environment: ['LD_CSRF_TRUSTED_ORIGINS={url}'],
   },
   {
     id: 'excalidraw',
@@ -168,6 +185,11 @@ export const CURATED: ServiceTemplate[] = [
     // A volume rather than a folder: it runs as a user who couldn't write to
     // a folder Docker makes as root
     volumes: ['data:/home/node/.n8n'],
+    environment: [
+      'N8N_HOST={host}',
+      'N8N_PROTOCOL=https',
+      'WEBHOOK_URL={url}/',
+    ],
   },
   {
     id: 'it-tools',
@@ -188,6 +210,7 @@ export const CURATED: ServiceTemplate[] = [
     port: '80',
     command: 'serve',
     volumes: ['./cache:/var/cache/ntfy'],
+    environment: ['NTFY_BASE_URL={url}', 'NTFY_BEHIND_PROXY=true'],
   },
   {
     id: 'gotify',
@@ -209,6 +232,7 @@ export const CURATED: ServiceTemplate[] = [
     port: '3000',
     // A volume: it runs as a user of its own, who couldn't write to a folder
     volumes: ['data:/var/lib/grafana'],
+    environment: ['GF_SERVER_ROOT_URL={url}'],
   },
   {
     id: 'changedetection',
@@ -219,6 +243,7 @@ export const CURATED: ServiceTemplate[] = [
     image: 'ghcr.io/dgtlmoon/changedetection.io:latest',
     port: '5000',
     volumes: ['./data:/datastore'],
+    environment: ['BASE_URL={url}'],
   },
   {
     id: 'searxng',
@@ -229,6 +254,7 @@ export const CURATED: ServiceTemplate[] = [
     image: 'searxng/searxng:latest',
     port: '8080',
     volumes: ['./config:/etc/searxng'],
+    environment: ['SEARXNG_BASE_URL={url}/'],
   },
   {
     id: 'vikunja',
@@ -243,6 +269,7 @@ export const CURATED: ServiceTemplate[] = [
     environment: [
       'VIKUNJA_DATABASE_TYPE=sqlite',
       'VIKUNJA_DATABASE_PATH=/db/vikunja.db',
+      'VIKUNJA_SERVICE_PUBLICURL={url}/',
     ],
   },
   {
@@ -301,9 +328,12 @@ const list = (key: string, items: string[]) =>
 export function composeFor(
   template: ServiceTemplate,
   name: string,
-  group: string
+  group: string,
+  /** The domain Caddy will serve it on, if any, e.g. "git.example.com" */
+  host = ''
 ) {
   const service = name || 'app';
+  const url = host && `https://${host}`;
   const volumes = template.volumes ?? [];
   const named = volumes
     .map((v) => v.split(':')[0])
@@ -312,6 +342,8 @@ export function composeFor(
     ['homepage.name', template.name || service],
     ['homepage.icon', template.icon],
     ['homepage.group', group],
+    // Its tile's link
+    ['homepage.href', url],
   ].filter(([, value]) => value);
 
   let yaml = `services:
@@ -327,9 +359,16 @@ export function composeFor(
   // Quoted, as a value can have a # or : in it that YAML would read otherwise
   yaml += list(
     'environment',
-    (template.environment ?? []).map((e) =>
-      JSON.stringify(e.replaceAll('{name}', service))
-    )
+    (template.environment ?? [])
+      .filter((e) => host || !/\{(url|host)\}/.test(e))
+      .map((e) =>
+        JSON.stringify(
+          e
+            .replaceAll('{name}', service)
+            .replaceAll('{url}', url)
+            .replaceAll('{host}', host)
+        )
+      )
   );
   yaml += list('volumes', volumes);
   // With a sidecar, its own network too, to reach it

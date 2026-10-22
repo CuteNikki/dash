@@ -4,7 +4,11 @@ import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 
 import { readRunStream } from '@/lib/docker/read-run-stream';
-import { NewService, type NewServiceInput } from '@/lib/stacks/new-service';
+import {
+  DOMAIN_PATTERN,
+  NewService,
+  type NewServiceInput,
+} from '@/lib/stacks/new-service';
 import type { ConvertedRun } from '@/lib/templates/docker-run';
 import {
   blankTemplate,
@@ -33,10 +37,11 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 /**
  * Adds a service: picked from a template or an image, with a name, a group,
- * a compose file (the template's, following the name and group until it's
- * edited) and .env, and optionally a domain for Caddy to send to one of its
- * services. What the server does shows as it goes; if it fails, the form
- * stays as it was, to fix and try again.
+ * a compose file (the template's, following the name, group and address
+ * until it's edited) and .env, and optionally a domain for Caddy to send to
+ * one of its services. What the server does shows as it goes; if it fails,
+ * the form stays as it was, to fix and try again. Or a website hosted
+ * elsewhere, as a tile.
  */
 export function NewServiceDialog({
   open,
@@ -166,9 +171,18 @@ function NewServiceForm({
   const [error, setError] = useState<string>();
   const [output, setOutput] = useState<string[]>();
 
+  // The address, once it's a whole one, for the settings that make links
+  const host = domain.trim().toLowerCase();
   const input: NewServiceInput = {
     name,
-    compose: compose ?? composeFor(template, name.trim(), group.trim()),
+    compose:
+      compose ??
+      composeFor(
+        template,
+        name.trim(),
+        group.trim(),
+        DOMAIN_PATTERN.test(host) ? host : ''
+      ),
     env,
     domain,
     service: service ?? name.trim(),
