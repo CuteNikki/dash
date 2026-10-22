@@ -490,7 +490,7 @@ function EntriesSkeleton() {
             <span className='min-w-0 flex-1'>
               <TextSkeleton className={NAME_WIDTHS[i % NAME_WIDTHS.length]} />
             </span>
-            <span className='hidden w-32 shrink-0 sm:block' />
+            <span className='w-16 shrink-0 sm:w-32' />
             <span className='flex w-24 shrink-0 justify-end'>
               <TextSkeleton className='w-12' />
             </span>
@@ -527,7 +527,7 @@ function Entry({
         {entry.name}
       </span>
       {/* Its room kept while it's measured, so the sizes line up */}
-      <span className='hidden w-32 shrink-0 sm:block'>
+      <span className='w-16 shrink-0 sm:w-32'>
         {share !== undefined && (
           <Progress
             value={share}
