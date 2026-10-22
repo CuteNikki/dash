@@ -3,14 +3,17 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-import {
-  composeTemplate,
-  NewService,
-  type NewServiceInput,
-} from '@/lib/new-service';
+import { NewService, type NewServiceInput } from '@/lib/new-service';
 import { readRunStream } from '@/lib/read-run-stream';
+import {
+  blankTemplate,
+  composeFor,
+  type ServiceTemplate,
+} from '@/lib/service-templates';
 
 import { CodeEditor } from '@/components/code-editor';
+import { GroupField } from '@/components/group-field';
+import { TemplatePicker } from '@/components/template-picker';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -24,17 +27,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 /**
- * Adds a service: a name, a compose file (a template to start from, following
- * the name until it's edited) and .env, and optionally a domain for Caddy to
- * send to one of its services. What the server does shows as it goes; if it
- * fails, the form stays as it was, to fix and try again.
+ * Adds a service: picked from a template or an image, with a name, a group,
+ * a compose file (the template's, following the name and group until it's
+ * edited) and .env, and optionally a domain for Caddy to send to one of its
+ * services. What the server does shows as it goes; if it fails, the form
+ * stays as it was, to fix and try again.
  */
 export function NewServiceDialog({
   open,
+  groups,
   onClose,
   onCreated,
 }: {
   open: boolean;
+  /** The dashboard's groups, to put it in one */
+  groups: string[];
   onClose: () => void;
   onCreated: () => void;
 }) {
@@ -45,6 +52,7 @@ export function NewServiceDialog({
       <DialogContent className='max-h-[calc(100%-2rem)] sm:max-w-3xl'>
         {open && (
           <NewServiceForm
+            groups={groups}
             running={running}
             setRunning={setRunning}
             onCreated={() => {
@@ -58,17 +66,32 @@ export function NewServiceDialog({
   );
 }
 
+/** The name a template suggests: its own, or its image's, as Compose takes it. */
+function suggestedName(template: ServiceTemplate) {
+  return (
+    template.id ||
+    (template.image.split('/').at(-1) ?? '')
+      .split(':')[0]
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]/g, '-')
+  );
+}
+
 function NewServiceForm({
+  groups,
   running,
   setRunning,
   onCreated,
 }: {
+  groups: string[];
   running: boolean;
   setRunning: (running: boolean) => void;
   onCreated: () => void;
 }) {
+  const [template, setTemplate] = useState(blankTemplate);
   const [name, setName] = useState('');
-  // The template's, following the name, until edited
+  const [group, setGroup] = useState('');
+  // The template's, following the name and group, until edited
   const [compose, setCompose] = useState<string>();
   const [env, setEnv] = useState('');
   const [domain, setDomain] = useState('');
@@ -80,12 +103,26 @@ function NewServiceForm({
 
   const input: NewServiceInput = {
     name,
-    compose: compose ?? composeTemplate(name.trim()),
+    compose: compose ?? composeFor(template, name.trim(), group.trim()),
     env,
     domain,
     service: service ?? name.trim(),
     port,
   };
+
+  /**
+   * Starts from another template: its compose file afresh, and its name,
+   * group and port where they're still the last one's, not typed in
+   */
+  function pick(next: ServiceTemplate) {
+    if (!name.trim() || name.trim() === suggestedName(template)) {
+      setName(suggestedName(next));
+    }
+    if (!group.trim() || group.trim() === template.group) setGroup(next.group);
+    if (!port.trim() || port.trim() === template.port) setPort(next.port);
+    setCompose(undefined);
+    setTemplate(next);
+  }
 
   async function create() {
     const parsed = NewService.safeParse(input);
@@ -138,17 +175,29 @@ function NewServiceForm({
         disabled={running}
         className='-mx-1 flex min-h-0 flex-col gap-4 overflow-y-auto px-1'
       >
-        <div className='flex flex-col gap-2'>
-          <Label htmlFor='service-name'>Name</Label>
-          <Input
-            id='service-name'
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder='my-app'
-            className='font-mono'
-            autoComplete='off'
-            required
-          />
+        <TemplatePicker picked={template} onPick={pick} />
+        <div className='grid gap-4 sm:grid-cols-2'>
+          <div className='flex flex-col gap-2'>
+            <Label htmlFor='service-name'>Name</Label>
+            <Input
+              id='service-name'
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder='my-app'
+              className='font-mono'
+              autoComplete='off'
+              required
+            />
+          </div>
+          <div className='flex flex-col gap-2'>
+            <Label htmlFor='service-group'>Group</Label>
+            <GroupField
+              id='service-group'
+              value={group}
+              groups={groups}
+              onChange={setGroup}
+            />
+          </div>
         </div>
         <div className='flex flex-col gap-2'>
           <span className='text-xs/relaxed font-medium'>Compose file</span>

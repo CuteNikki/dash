@@ -288,6 +288,7 @@ export function Dashboard({
       />
       <NewServiceDialog
         open={adding}
+        groups={allGroups}
         onClose={() => setAdding(false)}
         onCreated={() => void mutate()}
       />

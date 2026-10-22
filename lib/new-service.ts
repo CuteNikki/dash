@@ -59,23 +59,3 @@ export const NewService = z
 
 export type NewServiceInput = z.input<typeof NewService>;
 export type NewServiceData = z.output<typeof NewService>;
-
-/**
- * A compose file to start from: one service named after the stack, on
- * Caddy's network so a domain can reach it.
- */
-export function composeTemplate(name: string) {
-  const service = name || 'app';
-  return `services:
-  ${service}:
-    image:
-    container_name: ${service}
-    restart: unless-stopped
-    networks:
-      - ${CADDY_NETWORK}
-
-networks:
-  ${CADDY_NETWORK}:
-    external: true
-`;
-}
