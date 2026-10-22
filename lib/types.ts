@@ -45,7 +45,29 @@ export type Service = {
   };
   /** Live numbers from the app itself, for those dash knows: Sonarr's queue and so on */
   widget?: Widget;
+  /** Whether the app has more to show in its window, from /api/containers/[id]/details */
+  details?: boolean;
 };
+
+/**
+ * One cell of a details table: text; how far along something is, from 0 to
+ * 1; or a moment, in milliseconds since 1970, shown in the viewer's own time.
+ */
+export type DetailCell = string | { progress: number } | { at: number };
+
+/** Part of what an app has to say in its window. */
+export type DetailSection =
+  | {
+      kind: 'table';
+      title: string;
+      /** Numeric ones line up on the right */
+      columns: { label: string; numeric?: boolean }[];
+      /** Dimmed ones are there but quiet: a database no one's using */
+      rows: { cells: DetailCell[]; dim?: boolean }[];
+      /** What to say when there are no rows: "No one's watching" */
+      empty: string;
+    }
+  | { kind: 'facts'; title: string; facts: { label: string; value: string }[] };
 
 /**
  * One of an app's numbers, ready to show: "Queued" and "3", "Down" and
