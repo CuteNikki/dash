@@ -53,7 +53,7 @@ export function NewServiceDialog({
   return (
     // Not closed while it's adding, so its outcome isn't missed
     <Dialog open={open} onOpenChange={(o) => !o && !running && onClose()}>
-      <DialogContent className='flex flex-col overflow-hidden sm:max-w-3xl'>
+      <DialogContent className='flex flex-col sm:max-w-3xl sm:overflow-hidden'>
         {open && (
           <NewServiceForm
             groups={groups}
@@ -174,7 +174,7 @@ function NewServiceForm({
 
   return (
     <form
-      className='flex min-h-0 flex-1 flex-col gap-4'
+      className='flex flex-col gap-4 sm:min-h-0 sm:flex-1'
       onSubmit={(e) => {
         e.preventDefault();
         void create();
@@ -191,7 +191,7 @@ function NewServiceForm({
       {/* The fields laid out by a div: a fieldset lays its own out in a box of
           its content's height, so nothing in it could give way. The fieldset
           only disables them all while it's adding */}
-      <div className='-mx-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-1'>
+      <div className='-mx-1 flex flex-col gap-4 px-1 sm:min-h-0 sm:flex-1 sm:overflow-y-auto'>
         <fieldset disabled={running} className='contents'>
           <ToggleGroup
             type='single'
@@ -232,9 +232,11 @@ function NewServiceForm({
               />
             </div>
           </div>
-          {/* The one part that gives way when the window is short, down to half
-            its height, rather than the form scrolling: it scrolls itself */}
-          <div className='flex min-h-39 flex-col gap-2'>
+          {/* From a tablet's width up, the one part that gives way when the
+              window is short, down to half its height, rather than the form
+              scrolling: it scrolls itself. On a phone the window scrolls
+              whole, its heading with it, rather than pinning it */}
+          <div className='flex shrink-0 flex-col gap-2 sm:min-h-39 sm:shrink'>
             <span className='text-xs/relaxed font-medium'>Compose file</span>
             <div className='min-h-32 flex-1 basis-64'>
               <CodeEditor
