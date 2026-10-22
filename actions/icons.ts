@@ -3,7 +3,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { requireUser } from '@/lib/session';
-import { putFile, STORAGE_PREFIX } from '@/lib/storage';
+import { putFile } from '@/lib/storage';
 
 /** Plenty for an icon; bigger is almost certainly a photo. */
 const MAX_BYTES = 512 * 1024;
@@ -29,7 +29,7 @@ export async function uploadIcon(form: FormData): Promise<UploadResult> {
   }
   try {
     const url = await putFile(
-      `${STORAGE_PREFIX}icons/${randomUUID()}.${extension}`,
+      `icons/${randomUUID()}.${extension}`,
       await file.arrayBuffer(),
       file.type
     );
