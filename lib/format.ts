@@ -128,10 +128,11 @@ export const MEASURES = {
   /** A tenth of a core */
   cpu: { format: formatCpu, floor: 10 },
   /**
-   * The server's CPU, a share of all of it, on the whole scale: a few percent
-   * more on an idle server is a ripple, not a spike
+   * The server's CPU, a share of all of it: idling at a few percent, it fills
+   * a third of the chart, so a few more is a ripple rather than a spike, and
+   * still shows
    */
-  serverCpu: { format: formatCpu, floor: 100 },
+  serverCpu: { format: formatCpu, floor: 25 },
   memory: { format: formatBytes, floor: 64 * MB },
   /** A page that takes a second is slow; one that takes a tenth isn't worth a line */
   response: { format: formatMs, floor: 1000 },
