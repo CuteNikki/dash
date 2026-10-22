@@ -34,6 +34,26 @@ async function json<T>(method: string, path: string, body?: unknown) {
   return (text ? JSON.parse(text) : undefined) as T;
 }
 
+/**
+ * Pulls an image onto the server. Docker answers with its progress, a JSON
+ * object a line, until it's done; a failure partway is one with an error, as
+ * the answer itself has already said OK.
+ */
+async function pull(image: string) {
+  const [name, tag] = image.split(':');
+  const res = await dockerRequest(
+    'POST',
+    `/images/create?fromImage=${encodeURIComponent(name)}&tag=${encodeURIComponent(tag ?? 'latest')}`
+  );
+  let text = '';
+  for await (const chunk of res) text += chunk;
+  for (const line of text.split('\n').filter((l) => l.trim())) {
+    const progress = JSON.parse(line) as { error?: string };
+    if (progress.error)
+      throw new Error(`Couldn't pull ${image}: ${progress.error}`);
+  }
+}
+
 async function create(run: Run) {
   const body = {
     Image: run.image,
@@ -56,9 +76,9 @@ async function create(run: Run) {
     return await json<{ Id: string }>('POST', '/containers/create', body);
   } catch (error) {
     if ((error as { status?: number }).status !== 404) throw error;
-    // The image isn't on the server yet: pull it, then try again
-    const [name, tag] = run.image.split(':');
-    await json('POST', `/images/create?fromImage=${name}&tag=${tag}`);
+    // The image isn't on the server, as when unused ones were removed: pull
+    // it, then try again
+    await pull(run.image);
     return await json<{ Id: string }>('POST', '/containers/create', body);
   }
 }
