@@ -25,8 +25,11 @@ type Checker = {
     string,
     Found<{
       digest?: string;
-      /** The version the newer image under its tag says it is, once it's one Docker hasn't got */
-      version?: string;
+      /**
+       * The version the newer image under its tag says it is, once it's one
+       * Docker hasn't got: null when it says none, undefined until it's read
+       */
+      version?: string | null;
       newer?: { tag: string; major: boolean };
     }>
   >;
@@ -91,7 +94,11 @@ async function refresh(containers: Container[], force: boolean) {
   const dirs = new Set(containers.filter(isBuilt).map((c) => c.stack!.dir));
   await Promise.all([
     ...[...refs]
-      .filter((image) => stale(checker.remote.get(image), force))
+      .filter(
+        (image) =>
+          stale(checker.remote.get(image), force) ||
+          versionUnread(image, containers)
+      )
       .map(async (image) => {
         const ref = parseRef(image)!;
         checker.remote.set(
@@ -174,16 +181,37 @@ async function withVersion(
   digest: string,
   containers: Container[]
 ) {
-  const isNew = containers.some(
+  if (!isNewTo(image, digest, containers)) return { digest };
+  const details = await remoteImageDetails(parseRef(image)!, digest).catch(
+    () => undefined
+  );
+  return {
+    digest,
+    version: (details && versionFrom(details, image)) ?? null,
+  };
+}
+
+/** Whether a tag's image is one Docker hasn't got, for a container that runs it. */
+function isNewTo(image: string, digest: string, containers: Container[]) {
+  return containers.some(
     (c) =>
       c.image === image &&
       !checker.images.get(c.imageId)?.digests.includes(digest)
   );
-  if (!isNew) return { digest };
-  const details = await remoteImageDetails(parseRef(image)!, digest).catch(
-    () => undefined
+}
+
+/**
+ * A tag's image that's new to Docker but whose version hasn't been read,
+ * as one found before it was, or once a container's image went back to an
+ * older one: read without waiting for the next look.
+ */
+function versionUnread(image: string, containers: Container[]) {
+  const value = checker.remote.get(image)?.value;
+  return (
+    !!value?.digest &&
+    value.version === undefined &&
+    isNewTo(image, value.digest, containers)
   );
-  return { digest, version: details && versionFrom(details, image) };
 }
 
 /**
@@ -229,7 +257,7 @@ export function updateOf(c: Container): {
     };
   }
   if (digest && !image.digests.includes(digest)) {
-    const to = found.value?.version;
+    const to = found.value?.version ?? undefined;
     return {
       update: {
         kind: 'image',
@@ -250,7 +278,8 @@ export function updateOf(c: Container): {
 export function currentUpdates(containers: Container[]) {
   const unknown = containers.some((c) => !checker.images.has(c.imageId));
   const old = !checker.checkedAt || Date.now() - checker.checkedAt > STALE_MS;
-  if (unknown || old) void start(containers, false);
+  const unread = containers.some((c) => versionUnread(c.image, containers));
+  if (unknown || old || unread) void start(containers, false);
   return {
     byContainer: new Map(
       containers.map((c) => [c.id, { ...updateOf(c), version: versionOf(c) }])
