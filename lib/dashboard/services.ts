@@ -97,6 +97,22 @@ function siteService(
   };
 }
 
+/**
+ * The ports a container publishes on the server, each once though Docker
+ * lists it for IPv4 and IPv6 apart, with its protocols together: 19132 on
+ * udp and tcp.
+ */
+function publishedPorts(c: Container) {
+  const byPort = new Map<number, Set<string>>();
+  for (const p of c.ports) {
+    if (!p.public) continue;
+    byPort.set(p.public, (byPort.get(p.public) ?? new Set()).add(p.type));
+  }
+  return [...byPort]
+    .sort(([a], [b]) => a - b)
+    .map(([port, protocols]) => ({ port, protocols: [...protocols].sort() }));
+}
+
 /** "poke-helper" or "papermc-minecraft-paper-1" as a name to show. */
 function prettyName(c: Container) {
   const base = c.stack?.service ?? c.name;
@@ -217,6 +233,7 @@ export async function getDashboard(): Promise<Dashboard> {
       update: updates.byContainer.get(c.id)?.update,
       updateError: updates.byContainer.get(c.id)?.error,
       version: updates.byContainer.get(c.id)?.version,
+      ports: publishedPorts(c),
       console: consoles.has(c.id),
       usage: u
         ? { cpu: u.cpu, memory: u.memory, history: u.history }

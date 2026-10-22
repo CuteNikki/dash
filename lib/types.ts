@@ -42,6 +42,8 @@ export type Service = {
   updateError?: string;
   /** The version it runs, as its image says, when it says one: "16.15", "v2.11.7" */
   version?: string;
+  /** The ports it publishes on the server, each once, with every protocol it's on */
+  ports?: { port: number; protocols: string[] }[];
   /** Takes commands typed into its console, as a game server does */
   console: boolean;
   usage?: {

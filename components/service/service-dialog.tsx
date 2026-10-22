@@ -35,6 +35,7 @@ import { GitPanel } from '@/components/git/git-panel';
 import { AddressList } from '@/components/service/address-list';
 import { AppDetails, Facts, Panel } from '@/components/service/app-details';
 import { LogViewer } from '@/components/service/log-viewer';
+import { PortList } from '@/components/service/port-list';
 import { RemoveServiceDialog } from '@/components/service/remove-service-dialog';
 import { ServiceIcon } from '@/components/service/service-icon';
 import { StatePill } from '@/components/service/status-dot';
@@ -560,6 +561,14 @@ function UsagePanel({
         >
           <Facts facts={facts} />
         </Panel>
+        {service.ports && service.ports.length > 0 && (
+          <Panel
+            title='Ports'
+            className={cn('sm:col-span-2', app && 'lg:col-span-1')}
+          >
+            <PortList service={service} />
+          </Panel>
+        )}
       </div>
     </div>
   );
