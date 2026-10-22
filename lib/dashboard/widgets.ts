@@ -28,7 +28,8 @@ function contextOf(app: string, c: Container): AppContext {
   return {
     container: c,
     url:
-      env(`${app.toUpperCase()}_URL`)?.replace(/\/$/, '') ??
+      // "ludo-server" → LUDO_SERVER_URL
+      env(`${app.toUpperCase().replace(/\W/g, '_')}_URL`)?.replace(/\/$/, '') ??
       (port ? `http://${c.name}:${port}` : ''),
   };
 }

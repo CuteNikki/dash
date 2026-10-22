@@ -18,6 +18,7 @@ const APPS = [
   { container: 'jellyseerr', port: 5055, local: 15055 },
   { container: 'flaresolverr', port: 8191, local: 18191 },
   { container: 'stalwart', port: 8080, local: 18088 },
+  { container: 'ludo-server', port: 3001, local: 13001 },
   // qBittorrent shares the VPN container's network, so it's reached through
   // it, at its own port: it turns away a request whose address has another
   { container: 'gluetun', port: 8080, local: 8080 },
