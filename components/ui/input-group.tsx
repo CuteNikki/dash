@@ -27,8 +27,12 @@ const inputGroupAddonVariants = cva(
   {
     variants: {
       align: {
-        'inline-start': 'order-first pl-2 has-[>button]:-ml-1 has-[>kbd]:-ml-1',
-        'inline-end': 'order-last pr-2 has-[>button]:-mr-1 has-[>kbd]:-mr-1',
+        // Beside the field, as tall as it: no padding above and below, which
+        // would make it taller, as the addons above and below it have
+        'inline-start':
+          'order-first py-0 pl-2 has-[>button]:-ml-1 has-[>kbd]:-ml-1',
+        'inline-end':
+          'order-last py-0 pr-2 has-[>button]:-mr-1 has-[>kbd]:-mr-1',
         'block-start':
           'order-first w-full justify-start px-2 pt-2 group-has-[>input]/input-group:pt-2 [.border-b]:pb-2',
         'block-end':
