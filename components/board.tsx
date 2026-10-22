@@ -222,6 +222,24 @@ function useArrange(
         return el ? [[g.id, measure(el, g.columns)] as const] : [];
       })
     );
+    // Where each grid of its kind was, on the page rather than the screen so
+    // scrolling doesn't move them: one growing to take a tile can't then
+    // draw the pointer to it
+    const startBoxes = grids.flatMap((g) => {
+      const el = els.current.get(g.id);
+      if (g.kind !== grid.kind || !el) return [];
+      const r = el.getBoundingClientRect();
+      return [
+        {
+          grid: g,
+          left: r.left + scrollX,
+          right: r.right + scrollX,
+          top: r.top + scrollY,
+          // Half a row past its last, to drop a tile below it
+          bottom: r.bottom + scrollY + ROW_PX / 2,
+        },
+      ];
+    });
     let current: Drag = {
       key,
       mode,
@@ -259,22 +277,18 @@ function useArrange(
           ),
         };
       } else {
-        // Over the grid of the same kind the pointer's nearest
+        // Into the grid the pointer's over, or the nearest one to it
         let to = grid;
         let distance = Infinity;
-        for (const g of grids) {
-          const el = els.current.get(g.id);
-          if (g.kind !== grid.kind || !el) continue;
-          const r = el.getBoundingClientRect();
-          const d =
-            y < r.top
-              ? r.top - y
-              : y > r.bottom + ROW_PX
-                ? y - r.bottom - ROW_PX
-                : 0;
+        const px = x + scrollX;
+        const py = y + scrollY;
+        for (const b of startBoxes) {
+          const dx = Math.max(b.left - px, 0, px - b.right);
+          const dy = Math.max(b.top - py, 0, py - b.bottom);
+          const d = Math.hypot(dx, dy);
           if (d < distance) {
             distance = d;
-            to = g;
+            to = b.grid;
           }
         }
         const m =
