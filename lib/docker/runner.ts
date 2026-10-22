@@ -23,6 +23,11 @@ export type Run = {
    * otherwise keeps a container to its own
    */
   signalsHost?: boolean;
+  /**
+   * Runs as the server itself, entering its namespaces with nsenter, as
+   * root: for what only the server can do, such as installing its updates
+   */
+  asHost?: boolean;
 };
 
 /** Marks the containers dash runs for a moment, as for measuring the disk, which aren't services. */
@@ -71,8 +76,9 @@ async function create(run: Run) {
       // By Docker once it exits, so none is left behind even when the
       // dashboard stops partway through a run
       AutoRemove: true,
-      PidMode: run.hostProcesses ? 'host' : undefined,
+      PidMode: run.hostProcesses || run.asHost ? 'host' : undefined,
       SecurityOpt: run.signalsHost ? ['apparmor=unconfined'] : undefined,
+      Privileged: run.asHost || undefined,
     },
   };
   try {

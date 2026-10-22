@@ -5,7 +5,9 @@ import { useState } from 'react';
 import {
   ActivityIcon,
   ArrowDownIcon,
+  ArrowUpCircleIcon,
   ArrowUpIcon,
+  CheckIcon,
   ChevronRightIcon,
   CpuIcon,
   HardDriveIcon,
@@ -23,12 +25,14 @@ import {
   type Measure,
 } from '@/lib/format';
 import type { HostTileKey } from '@/lib/host/host-tiles';
-import type { Capacity, HostStats, Service } from '@/lib/types';
+import type { Capacity, HostStats, Service, SystemUpdates } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 import { HistoryChart } from '@/components/charts/history-chart';
 import { TextSkeleton } from '@/components/common/skeletons';
 import { DiskDialog } from '@/components/host/disk-dialog';
 import { ProcessList } from '@/components/host/process-list';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -43,6 +47,8 @@ export function HostTileContent({
   host,
   services,
   onOpen,
+  system,
+  onSystem,
 }: {
   tile: HostTileKey;
   /** None while it's first measured */
@@ -50,13 +56,18 @@ export function HostTileContent({
   /** For each process's container */
   services: Service[];
   onOpen: (service: Service) => void;
+  /** Its own updates, Ubuntu's, once they've been looked at */
+  system?: SystemUpdates;
+  onSystem: () => void;
 }) {
   return render(tile);
 
   function render(key: HostTileKey) {
     switch (key) {
       case 'server':
-        return <ServerDetails host={host} />;
+        return (
+          <ServerDetails host={host} system={system} onSystem={onSystem} />
+        );
       case 'cpu':
         return <CpuStat host={host} />;
       case 'processes':
@@ -157,7 +168,15 @@ const SERVER_DETAILS: [string, (host: HostStats) => string][] = [
   ],
 ];
 
-function ServerDetails({ host }: { host?: HostStats }) {
+function ServerDetails({
+  host,
+  system,
+  onSystem,
+}: {
+  host?: HostStats;
+  system?: SystemUpdates;
+  onSystem: () => void;
+}) {
   return (
     // Its details in as many columns as its own width has room for
     <Card size='sm' className='@container px-3'>
@@ -166,6 +185,7 @@ function ServerDetails({ host }: { host?: HostStats }) {
         <span className='text-sm font-medium'>
           {host ? host.system.hostname : <TextSkeleton className='w-16' />}
         </span>
+        {system && <SystemButton system={system} onClick={onSystem} />}
       </div>
       <dl className='grid grid-cols-1 gap-x-6 gap-y-3 @md:grid-cols-2 @3xl:grid-cols-4 @7xl:grid-cols-8'>
         {SERVER_DETAILS.map(([label, value]) => (
@@ -178,6 +198,48 @@ function ServerDetails({ host }: { host?: HostStats }) {
         ))}
       </dl>
     </Card>
+  );
+}
+
+/**
+ * The server's own updates in a few words, to open them: "30 updates, 2
+ * security", "restart needed", or that it's up to date.
+ */
+function SystemButton({
+  system,
+  onClick,
+}: {
+  system: SystemUpdates;
+  onClick: () => void;
+}) {
+  const count = system.packages.length;
+  const security = system.packages.filter((p) => p.security).length;
+  const words = [
+    system.upgrading
+      ? 'Upgrading…'
+      : count
+        ? `${count} update${count === 1 ? '' : 's'}`
+        : 'Up to date',
+    security > 0 && `${security} security`,
+    system.reboot && 'restart needed',
+  ].filter(Boolean);
+  return (
+    <Button
+      variant='ghost'
+      size='xs'
+      onClick={onClick}
+      className={cn(
+        'ml-auto',
+        system.reboot
+          ? 'text-warning hover:text-warning'
+          : count
+            ? 'text-update hover:text-update'
+            : 'text-muted-foreground'
+      )}
+    >
+      {count > 0 || system.reboot ? <ArrowUpCircleIcon /> : <CheckIcon />}
+      {words.join(', ')}
+    </Button>
   );
 }
 

@@ -121,6 +121,29 @@ export type Dashboard = {
   hostComing: boolean;
   /** When updates were last looked for, and whether they're being looked for now */
   updates: { checkedAt?: number; checking: boolean };
+  /** The server's own updates, Ubuntu's packages, once they've been looked at */
+  system?: SystemUpdates;
+};
+
+/** The server's packages waiting to be updated, and what else Ubuntu says about it. */
+export type SystemUpdates = {
+  /** "Ubuntu 26.04.1 LTS" */
+  os: string;
+  /** Security fixes first */
+  packages: { name: string; from: string; to: string; security: boolean }[];
+  /** Ubuntu asks for a restart, to finish what's been installed */
+  reboot: boolean;
+  /** The packages it's for, as it lists them */
+  rebootFor: string[];
+  /** Services that have failed, which systemd calls the system degraded for */
+  failedUnits: string[];
+  /** An upgrade from dash is running now */
+  upgrading: boolean;
+  /** How the last one ended, while the server's been up */
+  lastExit?: number;
+  /** When apt last fetched what there is, in milliseconds since 1970 */
+  refreshedAt?: number;
+  checkedAt: number;
 };
 
 /**

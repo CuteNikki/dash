@@ -13,6 +13,7 @@ import {
 import { RUN_LABEL } from '@/lib/docker/runner';
 import { formatMs, isLink } from '@/lib/format';
 import { arrangeHostTiles } from '@/lib/host/host-tiles';
+import { currentSystemUpdates } from '@/lib/host/system-updates';
 import { currentUsage } from '@/lib/host/usage';
 import { iconInfo } from '@/lib/icons/icon-search';
 import { removable } from '@/lib/stacks/service-stacks';
@@ -243,5 +244,6 @@ export async function getDashboard(): Promise<Dashboard> {
     host,
     hostComing,
     updates: { checkedAt: updates.checkedAt, checking: updates.checking },
+    system: currentSystemUpdates(),
   };
 }

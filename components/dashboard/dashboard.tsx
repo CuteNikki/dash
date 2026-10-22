@@ -38,6 +38,7 @@ import { EditTileDialog } from '@/components/dashboard/edit-tile-dialog';
 import { ServiceList } from '@/components/dashboard/service-list';
 import { ServiceTile } from '@/components/dashboard/service-tile';
 import { HostTileContent } from '@/components/host/host-stats';
+import { SystemDialog } from '@/components/host/system-dialog';
 import { NewServiceDialog } from '@/components/new-service/new-service-dialog';
 import { ServiceDialog } from '@/components/service/service-dialog';
 import { Button } from '@/components/ui/button';
@@ -84,6 +85,7 @@ export function Dashboard({
   const [editing, setEditing] = useState(false);
   const [adding, setAdding] = useState(false);
   const [showUpdates, setShowUpdates] = useState(false);
+  const [showSystem, setShowSystem] = useState(false);
   // By key, so these follow the live data and survive a recreated container
   const [openKey, setOpenKey] = useState<string>();
   const [openTab, setOpenTab] = useState<'usage' | 'logs'>('usage');
@@ -175,6 +177,8 @@ export function Dashboard({
                   host={host}
                   services={services}
                   onOpen={open}
+                  system={data.system}
+                  onSystem={() => setShowSystem(true)}
                 />
               ),
             })),
@@ -310,6 +314,12 @@ export function Dashboard({
         groups={allGroups}
         onClose={() => setEditKey(undefined)}
         onSaved={() => void mutate()}
+      />
+      <SystemDialog
+        open={showSystem}
+        system={data.system}
+        onClose={() => setShowSystem(false)}
+        onChanged={() => void mutate()}
       />
       <UpdatesDialog
         open={showUpdates}
