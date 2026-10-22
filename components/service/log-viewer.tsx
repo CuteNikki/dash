@@ -21,9 +21,9 @@ import {
 } from '@/lib/ansi';
 import { cn } from '@/lib/utils';
 
-import { ConsoleInput } from '@/components/console-input';
-import { ScrollFade } from '@/components/scroll-fade';
-import { CodeSkeleton } from '@/components/skeletons';
+import { ScrollFade } from '@/components/common/scroll-fade';
+import { CodeSkeleton } from '@/components/common/skeletons';
+import { ConsoleInput } from '@/components/service/console-input';
 import { Button } from '@/components/ui/button';
 import {
   InputGroup,

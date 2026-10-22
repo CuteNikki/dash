@@ -3,8 +3,8 @@ import { redirect } from 'next/navigation';
 
 import { getUser, hasAccount } from '@/lib/session';
 
-import { AuthCard } from '@/components/auth-card';
-import { LoginForm } from '@/components/login-form';
+import { AuthCard } from '@/components/auth/auth-card';
+import { LoginForm } from '@/components/auth/login-form';
 
 export const metadata: Metadata = { title: 'Sign in' };
 

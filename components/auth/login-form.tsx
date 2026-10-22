@@ -7,7 +7,7 @@ import { KeyRoundIcon } from 'lucide-react';
 
 import { authClient } from '@/lib/auth-client';
 
-import { FormField } from '@/components/form-field';
+import { FormField } from '@/components/auth/form-field';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 

@@ -11,10 +11,10 @@ import { fetcher } from '@/lib/fetcher';
 import { formatAgo } from '@/lib/format';
 import type { FileDiff, GitCommit, GitCommitDetails } from '@/lib/git';
 
-import { DiffView, type DiffLayout } from '@/components/diff-view';
-import { ChangeStatus } from '@/components/git-change';
-import { ScrollFade } from '@/components/scroll-fade';
-import { CodeSkeleton, TextSkeleton } from '@/components/skeletons';
+import { ScrollFade } from '@/components/common/scroll-fade';
+import { CodeSkeleton, TextSkeleton } from '@/components/common/skeletons';
+import { DiffView, type DiffLayout } from '@/components/git/diff-view';
+import { ChangeStatus } from '@/components/git/git-change';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,

@@ -20,9 +20,10 @@ import type { Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import type { ListFilter } from '@/lib/view';
 
-import { ServiceIcon } from '@/components/service-icon';
-import { Sparkline } from '@/components/sparkline';
-import { StatePill, StatusDot } from '@/components/status-dot';
+import { Sparkline } from '@/components/charts/sparkline';
+import { WidgetStats, widgetStats } from '@/components/charts/widget-stats';
+import { ServiceIcon } from '@/components/service/service-icon';
+import { StatePill, StatusDot } from '@/components/service/status-dot';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,7 +35,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { WidgetStats, widgetStats } from '@/components/widget-stats';
 
 const DONE: Record<ContainerAction, string> = {
   start: 'Started',

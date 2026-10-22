@@ -18,21 +18,21 @@ import {
   type View,
 } from '@/lib/view';
 
-import { AccountMenu } from '@/components/account-menu';
+import { AccountMenu } from '@/components/chrome/account-menu';
+import { Brand } from '@/components/chrome/brand';
+import { ThemeButton } from '@/components/chrome/theme-button';
 import {
   Board,
   useColumns,
   type BoardSection,
   type LayoutChange,
-} from '@/components/board';
-import { Brand } from '@/components/brand';
-import { EditTileDialog } from '@/components/edit-tile-dialog';
-import { HostTileContent } from '@/components/host-stats';
-import { NewServiceDialog } from '@/components/new-service-dialog';
-import { ServiceDialog } from '@/components/service-dialog';
-import { ServiceList } from '@/components/service-list';
-import { ServiceTile } from '@/components/service-tile';
-import { ThemeButton } from '@/components/theme-button';
+} from '@/components/dashboard/board';
+import { EditTileDialog } from '@/components/dashboard/edit-tile-dialog';
+import { ServiceList } from '@/components/dashboard/service-list';
+import { ServiceTile } from '@/components/dashboard/service-tile';
+import { HostTileContent } from '@/components/host/host-stats';
+import { NewServiceDialog } from '@/components/new-service/new-service-dialog';
+import { ServiceDialog } from '@/components/service/service-dialog';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 

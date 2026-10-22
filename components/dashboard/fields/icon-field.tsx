@@ -11,7 +11,7 @@ import { fetcher } from '@/lib/fetcher';
 import type { IconMatch } from '@/lib/icon-search';
 import { cn } from '@/lib/utils';
 
-import { ServiceIcon } from '@/components/service-icon';
+import { ServiceIcon } from '@/components/service/service-icon';
 import {
   InputGroup,
   InputGroupAddon,

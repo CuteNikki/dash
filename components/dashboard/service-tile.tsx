@@ -12,11 +12,11 @@ import { isRunning, labelOf } from '@/lib/status';
 import type { Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-import { ServiceIcon } from '@/components/service-icon';
-import { Sparkline } from '@/components/sparkline';
-import { StatusDot } from '@/components/status-dot';
+import { Sparkline } from '@/components/charts/sparkline';
+import { WidgetStats, widgetStats } from '@/components/charts/widget-stats';
+import { ServiceIcon } from '@/components/service/service-icon';
+import { StatusDot } from '@/components/service/status-dot';
 import { Card } from '@/components/ui/card';
-import { WidgetStats, widgetStats } from '@/components/widget-stats';
 
 export function ServiceTile({
   service,

@@ -11,9 +11,9 @@ import {
   type ServiceTemplate,
 } from '@/lib/service-templates';
 
-import { CodeEditor } from '@/components/code-editor';
-import { GroupField } from '@/components/group-field';
-import { TemplatePicker } from '@/components/template-picker';
+import { GroupField } from '@/components/dashboard/fields/group-field';
+import { CodeEditor } from '@/components/editor/code-editor';
+import { TemplatePicker } from '@/components/new-service/template-picker';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,

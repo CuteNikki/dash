@@ -27,8 +27,8 @@ import type {
 } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-import { ScrollFade } from '@/components/scroll-fade';
-import { TextSkeleton } from '@/components/skeletons';
+import { ScrollFade } from '@/components/common/scroll-fade';
+import { TextSkeleton } from '@/components/common/skeletons';
 import {
   AlertDialog,
   AlertDialogAction,

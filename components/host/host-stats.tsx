@@ -25,10 +25,10 @@ import {
 import type { HostTileKey } from '@/lib/host-tiles';
 import type { Capacity, HostStats, Service } from '@/lib/types';
 
-import { DiskDialog } from '@/components/disk-dialog';
-import { HistoryChart } from '@/components/history-chart';
-import { ProcessList } from '@/components/process-list';
-import { TextSkeleton } from '@/components/skeletons';
+import { HistoryChart } from '@/components/charts/history-chart';
+import { TextSkeleton } from '@/components/common/skeletons';
+import { DiskDialog } from '@/components/host/disk-dialog';
+import { ProcessList } from '@/components/host/process-list';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';

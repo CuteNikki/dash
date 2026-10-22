@@ -4,8 +4,8 @@ import { redirect } from 'next/navigation';
 import { hasAccount } from '@/lib/session';
 import { setupCode } from '@/lib/setup';
 
-import { AuthCard } from '@/components/auth-card';
-import { SetupForm } from '@/components/setup-form';
+import { AuthCard } from '@/components/auth/auth-card';
+import { SetupForm } from '@/components/auth/setup-form';
 
 export const metadata: Metadata = { title: 'Set up' };
 

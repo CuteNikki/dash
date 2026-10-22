@@ -14,7 +14,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { FileDiff } from '@/lib/git';
 
-import { CodeEditor, codeLooks } from '@/components/code-editor';
+import { CodeEditor, codeLooks } from '@/components/editor/code-editor';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 export type DiffLayout = 'unified' | 'split';

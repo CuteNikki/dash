@@ -11,8 +11,8 @@ import { fetcher } from '@/lib/fetcher';
 import { formatBytes, formatCpu, formatDuration } from '@/lib/format';
 import type { HostProcess, ProcessDetails, Service } from '@/lib/types';
 
-import { ServiceIcon } from '@/components/service-icon';
-import { TextSkeleton } from '@/components/skeletons';
+import { TextSkeleton } from '@/components/common/skeletons';
+import { ServiceIcon } from '@/components/service/service-icon';
 import {
   AlertDialog,
   AlertDialogAction,

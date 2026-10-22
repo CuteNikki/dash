@@ -23,16 +23,16 @@ import { isRunning } from '@/lib/status';
 import type { Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-import { AddressList } from '@/components/address-list';
-import { AppDetails, Facts, Panel } from '@/components/app-details';
-import { FilesPanel } from '@/components/files-panel';
-import { GitPanel } from '@/components/git-panel';
-import { HistoryChart } from '@/components/history-chart';
-import { LogViewer } from '@/components/log-viewer';
-import { ScrollFade } from '@/components/scroll-fade';
-import { ServiceIcon } from '@/components/service-icon';
-import { TextSkeleton } from '@/components/skeletons';
-import { StatePill } from '@/components/status-dot';
+import { HistoryChart } from '@/components/charts/history-chart';
+import { ScrollFade } from '@/components/common/scroll-fade';
+import { TextSkeleton } from '@/components/common/skeletons';
+import { FilesPanel } from '@/components/editor/files-panel';
+import { GitPanel } from '@/components/git/git-panel';
+import { AddressList } from '@/components/service/address-list';
+import { AppDetails, Facts, Panel } from '@/components/service/app-details';
+import { LogViewer } from '@/components/service/log-viewer';
+import { ServiceIcon } from '@/components/service/service-icon';
+import { StatePill } from '@/components/service/status-dot';
 import {
   AlertDialog,
   AlertDialogAction,

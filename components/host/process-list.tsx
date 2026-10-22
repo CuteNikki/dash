@@ -8,10 +8,10 @@ import { formatBytes, formatCpu } from '@/lib/format';
 import type { HostProcess, Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-import { ProcessDialog } from '@/components/process-dialog';
-import { ScrollFade } from '@/components/scroll-fade';
-import { ServiceIcon } from '@/components/service-icon';
-import { TextSkeleton } from '@/components/skeletons';
+import { ScrollFade } from '@/components/common/scroll-fade';
+import { TextSkeleton } from '@/components/common/skeletons';
+import { ProcessDialog } from '@/components/host/process-dialog';
+import { ServiceIcon } from '@/components/service/service-icon';
 import { Card } from '@/components/ui/card';
 import {
   InputGroup,

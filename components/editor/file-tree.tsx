@@ -29,7 +29,7 @@ import { fetcher } from '@/lib/fetcher';
 import type { HostEntry } from '@/lib/host-files';
 import { cn } from '@/lib/utils';
 
-import { TextSkeleton, TreeSkeleton } from '@/components/skeletons';
+import { TextSkeleton, TreeSkeleton } from '@/components/common/skeletons';
 import {
   AlertDialog,
   AlertDialogAction,

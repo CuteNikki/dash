@@ -7,9 +7,12 @@ import { resetTile, restoreTile, saveTile } from '@/actions/tiles';
 import { MAX_DESCRIPTION } from '@/lib/tiles';
 import type { Service } from '@/lib/types';
 
-import { AddressesField, toItems } from '@/components/addresses-field';
-import { GroupField } from '@/components/group-field';
-import { IconField } from '@/components/icon-field';
+import {
+  AddressesField,
+  toItems,
+} from '@/components/dashboard/fields/addresses-field';
+import { GroupField } from '@/components/dashboard/fields/group-field';
+import { IconField } from '@/components/dashboard/fields/icon-field';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,

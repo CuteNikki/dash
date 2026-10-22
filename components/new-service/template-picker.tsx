@@ -14,8 +14,8 @@ import {
 } from '@/lib/service-templates';
 import { cn } from '@/lib/utils';
 
-import { ScrollFade } from '@/components/scroll-fade';
-import { ServiceIcon } from '@/components/service-icon';
+import { ScrollFade } from '@/components/common/scroll-fade';
+import { ServiceIcon } from '@/components/service/service-icon';
 import {
   InputGroup,
   InputGroupAddon,

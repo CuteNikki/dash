@@ -12,7 +12,7 @@ import {
   viewFromCookie,
 } from '@/lib/view';
 
-import { Dashboard } from '@/components/dashboard';
+import { Dashboard } from '@/components/dashboard/dashboard';
 
 /** The tab says which server it's the dashboard of, rather than dash's name. */
 export const metadata: Metadata = {

@@ -1,4 +1,4 @@
-import { Brand } from '@/components/brand';
+import { Brand } from '@/components/chrome/brand';
 import {
   Card,
   CardContent,

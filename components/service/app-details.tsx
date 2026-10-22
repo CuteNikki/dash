@@ -7,7 +7,7 @@ import { formatMoment } from '@/lib/format';
 import type { DetailCell, DetailSection } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-import { TextSkeleton } from '@/components/skeletons';
+import { TextSkeleton } from '@/components/common/skeletons';
 
 /** How often an app's details are read again while its window is open. */
 const REFRESH_MS = 10_000;

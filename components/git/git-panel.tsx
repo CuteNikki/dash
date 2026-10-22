@@ -15,15 +15,15 @@ import { commitChanges, runGit, switchBranch } from '@/actions/git';
 import { fetcher } from '@/lib/fetcher';
 import type { FileDiff, GitStatus } from '@/lib/git';
 
-import { BranchPicker } from '@/components/branch-picker';
+import { CodeSkeleton } from '@/components/common/skeletons';
+import { BranchPicker } from '@/components/git/branch-picker';
 import {
   DiffLayoutToggle,
   DiffView,
   useDiffLayout,
-} from '@/components/diff-view';
-import { ChangeStatus } from '@/components/git-change';
-import { GitHistory } from '@/components/git-history';
-import { CodeSkeleton } from '@/components/skeletons';
+} from '@/components/git/diff-view';
+import { ChangeStatus } from '@/components/git/git-change';
+import { GitHistory } from '@/components/git/git-history';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';

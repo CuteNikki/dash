@@ -19,14 +19,14 @@ import { readRunStream } from '@/lib/read-run-stream';
 import type { OpenedFile, StackInfo } from '@/lib/stack-files';
 import { cn } from '@/lib/utils';
 
-import { CodeEditor } from '@/components/code-editor';
-import { FileTree, isWithin, TreeToolbar } from '@/components/file-tree';
-import { MarkdownPreview } from '@/components/markdown-preview';
 import {
   CodeSkeleton,
   TextSkeleton,
   TreeSkeleton,
-} from '@/components/skeletons';
+} from '@/components/common/skeletons';
+import { CodeEditor } from '@/components/editor/code-editor';
+import { FileTree, isWithin, TreeToolbar } from '@/components/editor/file-tree';
+import { MarkdownPreview } from '@/components/editor/markdown-preview';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 

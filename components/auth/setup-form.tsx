@@ -5,7 +5,7 @@ import { useState, useTransition } from 'react';
 
 import { createAccount } from '@/actions/setup';
 
-import { FormField } from '@/components/form-field';
+import { FormField } from '@/components/auth/form-field';
 import { Button } from '@/components/ui/button';
 
 export function SetupForm() {
