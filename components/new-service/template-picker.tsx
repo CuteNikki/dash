@@ -59,7 +59,10 @@ export function TemplatePicker({
   );
 
   return (
-    <div className='flex flex-col gap-2'>
+    // Gives way when the window's short, before the window scrolls, down to
+    // a couple of rows, or all of them when there are fewer: calc-size()
+    // knows that height; where it isn't supported, it stays its full height
+    <div className='flex min-h-fit flex-col gap-2 supports-[height:calc-size(auto,size)]:min-h-[calc-size(fit-content,min(size,12rem))]'>
       <InputGroup>
         <InputGroupAddon>
           <SearchIcon />
@@ -73,6 +76,7 @@ export function TemplatePicker({
       </InputGroup>
       <ScrollFade
         fadeFrom='from-popover'
+        shrink
         className='grid max-h-72 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2'
       >
         {!typed && (

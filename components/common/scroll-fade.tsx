@@ -22,6 +22,7 @@ export function ScrollFade({
   className,
   fadeFrom = 'from-card',
   fill,
+  shrink,
   ref,
   onScroll,
   children,
@@ -35,6 +36,11 @@ export function ScrollFade({
    * tall as its own height says, which a parent that sizes it needs
    */
   fill?: boolean;
+  /**
+   * Gives way in a column that's short of room, scrolling within less than
+   * its own height, rather than pushing what's after it down
+   */
+  shrink?: boolean;
   /** The scrolling area itself, for one that also scrolls it */
   ref?: React.RefObject<HTMLDivElement | null>;
   onScroll?: (e: React.UIEvent<HTMLDivElement>) => void;
@@ -76,7 +82,13 @@ export function ScrollFade({
   const fade =
     'pointer-events-none absolute left-0 h-[2lh] to-transparent transition-opacity';
   return (
-    <div className={cn('relative min-h-0', fill && 'h-full')}>
+    <div
+      className={cn(
+        'relative min-h-0',
+        fill && 'h-full',
+        shrink && 'flex flex-col'
+      )}
+    >
       <div
         ref={scroller}
         onScroll={(e) => {
