@@ -73,7 +73,7 @@ export function TemplatePicker({
       </InputGroup>
       <ScrollFade
         fadeFrom='from-popover'
-        className='grid max-h-56 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-3'
+        className='grid max-h-72 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2'
       >
         {!typed && (
           <button
@@ -104,7 +104,7 @@ export function TemplatePicker({
             <ServiceIcon icon={t.icon} name={t.name} className='size-8' />
             <span className='flex min-w-0 flex-col'>
               <span className='truncate font-medium'>{t.name}</span>
-              <span className='truncate text-muted-foreground'>
+              <span className='line-clamp-2 text-muted-foreground'>
                 {t.description}
               </span>
             </span>
@@ -124,7 +124,7 @@ export function TemplatePicker({
             <button
               key={image.image}
               type='button'
-              className={cn(CHOICE, 'sm:col-span-3')}
+              className={cn(CHOICE, 'col-span-full')}
               aria-pressed={!picked.id && picked.image === image.image}
               onClick={() => onPick(blankTemplate(image.image))}
             >
