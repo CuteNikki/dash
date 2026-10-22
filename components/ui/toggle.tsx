@@ -12,10 +12,9 @@ const toggleVariants = cva(
       variant: {
         default: 'bg-transparent',
         outline: 'border border-input bg-field hover:bg-muted',
-        // One of a group's segments, drawn as a tab is: quiet until picked,
-        // when it's raised in a surface of its own
-        segmented:
-          'border border-transparent text-foreground/60 hover:bg-transparent hover:text-foreground aria-pressed:bg-surface data-[state=on]:bg-surface data-[state=on]:text-foreground dark:text-muted-foreground dark:hover:text-foreground dark:data-[state=on]:border-input dark:data-[state=on]:bg-input/30 dark:data-[state=on]:text-foreground',
+        // One of a group's segments, drawn as a tab is (see segmented.ts),
+        // which only says the text, not the background, changes on hover
+        segmented: 'hover:bg-transparent',
       },
       size: {
         default:
