@@ -50,7 +50,7 @@ export function PortList({ service }: { service: Service }) {
           <span className='w-20 shrink-0 font-mono text-muted-foreground'>
             {protocols.join(', ')}
           </span>
-          <span className='min-w-0 truncate text-muted-foreground'>
+          <span className='w-36 min-w-0 truncate text-muted-foreground'>
             {portName(port)}
           </span>
           <Button
