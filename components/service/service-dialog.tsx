@@ -501,6 +501,7 @@ function UsagePanel({
       label: 'Stack',
       value: service.stack?.dir ?? 'Not part of a compose stack',
     },
+    ...(service.version ? [{ label: 'Version', value: service.version }] : []),
     {
       label: 'Updates',
       value: service.update

@@ -209,6 +209,7 @@ export async function getDashboard(): Promise<Dashboard> {
       removable: !!c.stack && removable(c.stack, containers),
       update: updates.byContainer.get(c.id)?.update,
       updateError: updates.byContainer.get(c.id)?.error,
+      version: updates.byContainer.get(c.id)?.version,
       console: consoles.has(c.id),
       usage: u
         ? { cpu: u.cpu, memory: u.memory, history: u.history }

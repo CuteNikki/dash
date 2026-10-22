@@ -166,20 +166,30 @@ export async function listContainers() {
 
 /**
  * What Docker knows of an image: the registry digests it was pulled as,
- * none for one built here, and where its source is, from its labels.
+ * where its source is, and what it says its version is, from its labels and
+ * its environment's *_VERSION settings, as PG_VERSION=16.15.
  */
 export async function imageDetails(id: string) {
   const raw = await dockerJson<{
     RepoDigests?: string[];
-    Config?: { Labels?: Record<string, string> | null };
+    Config?: { Labels?: Record<string, string> | null; Env?: string[] | null };
   }>('GET', `/images/${encodeURIComponent(id)}/json`);
   const labels = raw.Config?.Labels ?? {};
+  const versions = Object.fromEntries(
+    (raw.Config?.Env ?? []).flatMap((e) => {
+      const match = e.match(/^([A-Z0-9_]+)_VERSION=(.+)$/);
+      return match ? [[match[1], match[2]]] : [];
+    })
+  );
   return {
     digests: (raw.RepoDigests ?? []).map((d) => d.slice(d.indexOf('@') + 1)),
     source:
       labels['org.opencontainers.image.source'] ||
       labels['org.opencontainers.image.url'] ||
       undefined,
+    versionLabel: labels['org.opencontainers.image.version'] || undefined,
+    /** By what's before _VERSION: { PG: "16.15", GOSU: "1.19" } */
+    versions,
   };
 }
 

@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { imageDetails, type Container } from '@/lib/docker/docker';
+import { imageName } from '@/lib/format';
 import { gitFetch, gitStatus } from '@/lib/git';
 import type { ServiceUpdate } from '@/lib/types';
 import { listTags, parseRef, remoteDigest } from '@/lib/updates/registry';
@@ -12,8 +13,8 @@ const STALE_MS = 6 * 60 * 60_000;
 type Found<T> = { at: number; value?: T; error?: string };
 
 type Checker = {
-  /** What Docker has of each image: the digests it was pulled as, and its source */
-  images: Map<string, { digests: string[]; source?: string }>;
+  /** What Docker has of each image: the digests it was pulled as, its source and version */
+  images: Map<string, Awaited<ReturnType<typeof imageDetails>>>;
   /** By image reference: the digest its tag points at, or the newest version after it */
   remote: Map<
     string,
@@ -129,6 +130,34 @@ function start(containers: Container[], force: boolean) {
 }
 
 /** What each container could be updated to, as last found. */
+/** What an image's environment calls its version where that isn't its own name: PG_VERSION. */
+const VERSION_NAMES: Record<string, string> = { postgres: 'PG' };
+
+/** Something like a version: "16.15", "v3.5.2", "5.3.0_v2.1.2-ls484", not "latest" or "java25". */
+const LOOKS_LIKE_VERSION = /\d+\.\d+/;
+
+/**
+ * The version a container runs, as its image says: its tag, for one fixed
+ * to a version; else its version label, or its environment's
+ * <NAME>_VERSION, as PG_VERSION=16.15, if either looks like one. None for
+ * one built here, whose labels are its base image's, or once it's unknown.
+ */
+export function versionOf(c: Container) {
+  if (isBuilt(c)) return undefined;
+  const tag = parseRef(c.image)?.tag;
+  if (tag && parseVersion(tag)) return tag;
+  const image = checker.images.get(c.imageId);
+  if (!image) return undefined;
+  const name = imageName(c.image);
+  const fromEnv =
+    image.versions[
+      VERSION_NAMES[name] ?? name.toUpperCase().replace(/\W/g, '_')
+    ];
+  return [image.versionLabel, fromEnv].find(
+    (v) => v && LOOKS_LIKE_VERSION.test(v)
+  );
+}
+
 export function updateOf(c: Container): {
   update?: ServiceUpdate;
   error?: string;
@@ -173,7 +202,9 @@ export function currentUpdates(containers: Container[]) {
   const old = !checker.checkedAt || Date.now() - checker.checkedAt > STALE_MS;
   if (unknown || old) void start(containers, false);
   return {
-    byContainer: new Map(containers.map((c) => [c.id, updateOf(c)])),
+    byContainer: new Map(
+      containers.map((c) => [c.id, { ...updateOf(c), version: versionOf(c) }])
+    ),
     checkedAt: checker.checkedAt,
     checking: !!checker.running,
   };

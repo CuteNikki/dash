@@ -66,7 +66,9 @@ function rowsOf(services: Service[]): Row[] {
       what:
         update.kind === 'version'
           ? `${update.from} → ${update.to}`
-          : updateLabel(update),
+          : update.kind === 'image' && service.version
+            ? `${service.version} → newer ${update.tag}`
+            : updateLabel(update),
       major: update.kind === 'version' && update.major,
     });
   }

@@ -90,6 +90,10 @@ export function ScrollFade({
   // the area's outermost line of pixels bare beyond the fade
   const fade =
     'pointer-events-none absolute left-0 h-[2lh] to-transparent transition-opacity';
+  // Short of the scrollbar, and of room for one drawn over the area; but
+  // while lines scroll sideways, text runs under that room, so they fade
+  // all the way to a scrollbar that takes room of its own
+  const right = sideBar === undefined ? Math.max(bar, OVERLAY_BAR_PX) : bar;
   return (
     <div
       className={cn(
@@ -110,7 +114,7 @@ export function ScrollFade({
       </div>
       <div
         aria-hidden
-        style={{ right: Math.max(bar, OVERLAY_BAR_PX) }}
+        style={{ right }}
         className={cn(
           fade,
           fadeFrom,
@@ -120,7 +124,7 @@ export function ScrollFade({
       />
       <div
         aria-hidden
-        style={{ right: Math.max(bar, OVERLAY_BAR_PX), bottom: sideBar }}
+        style={{ right, bottom: sideBar }}
         className={cn(
           fade,
           fadeFrom,

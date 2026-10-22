@@ -40,6 +40,8 @@ export type Service = {
   update?: ServiceUpdate;
   /** Why it couldn't be checked for one */
   updateError?: string;
+  /** The version it runs, as its image says, when it says one: "16.15", "v2.11.7" */
+  version?: string;
   /** Takes commands typed into its console, as a game server does */
   console: boolean;
   usage?: {
