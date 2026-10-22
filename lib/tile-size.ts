@@ -1,7 +1,7 @@
 /** The most columns a tile spans: the widest grid's. */
 export const MAX_WIDTH = 4;
 /** The most rows a tile spans. */
-export const MAX_HEIGHT = 3;
+export const MAX_HEIGHT = 6;
 
 /**
  * Column spans by width, capped at each breakpoint's columns, so a wide tile
@@ -16,7 +16,15 @@ const COLUMNS = [
   'sm:col-span-2 lg:col-span-3 xl:col-span-4',
 ];
 
-const ROWS = ['', '', 'row-span-2', 'row-span-3'];
+const ROWS = [
+  '',
+  '',
+  'row-span-2',
+  'row-span-3',
+  'row-span-4',
+  'row-span-5',
+  'row-span-6',
+];
 
 /** The classes a tile of this size takes in its group's grid. */
 export function spanClasses(width: number, height: number) {
