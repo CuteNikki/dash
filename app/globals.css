@@ -51,6 +51,12 @@
      and a half above the middle of its line, so text beside an icon looked
      too high. */
   --leading-relaxed: calc(20 / 12);
+  /* Below text-xs, for small controls' labels: 10px, on a 16px line for the
+     same reason */
+  --text-2xs: 0.625rem;
+  --text-2xs--line-height: calc(16 / 10);
+  /* Half the corner of a card: a checkbox's */
+  --radius-xs: calc(var(--radius) * 0.5);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);

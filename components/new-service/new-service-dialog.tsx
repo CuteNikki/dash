@@ -49,7 +49,7 @@ export function NewServiceDialog({
   return (
     // Not closed while it's adding, so its outcome isn't missed
     <Dialog open={open} onOpenChange={(o) => !o && !running && onClose()}>
-      <DialogContent className='max-h-[calc(100%-2rem)] sm:max-w-3xl'>
+      <DialogContent className='sm:max-w-3xl'>
         {open && (
           <NewServiceForm
             groups={groups}
