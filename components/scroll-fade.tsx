@@ -104,7 +104,10 @@ export function ScrollFade({
         className={cn(
           fade,
           fadeFrom,
-          'bottom-0 bg-linear-to-t',
+          // A little past the area's bottom, over what's behind it in the
+          // same color, as an iPhone can round the two to different pixels
+          // and leave the area's last line of pixels bare below the fade
+          '-bottom-0.5 bg-linear-to-t',
           more.below ? 'opacity-100' : 'opacity-0'
         )}
       />
