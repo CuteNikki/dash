@@ -111,7 +111,9 @@ export async function getDashboard(): Promise<Dashboard> {
           c.name,
         addresses,
         url: addresses.find(isLink),
-        description: l['homepage.description'] || undefined,
+        // Its own once edited here, if only to have none
+        description:
+          (tile?.description ?? l['homepage.description']) || undefined,
         position: tile?.position ?? undefined,
         width: tile?.width ?? 1,
         height: tile?.height ?? 1,

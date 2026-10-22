@@ -46,6 +46,11 @@ export function ServiceTile({
           />
           <div className='min-w-0 flex-1'>
             <div className='truncate text-sm font-medium'>{service.name}</div>
+            {service.description && (
+              <div className='truncate' title={service.description}>
+                {service.description}
+              </div>
+            )}
             {(service.addresses.length
               ? service.addresses
               : [service.containerName]

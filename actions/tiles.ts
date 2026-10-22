@@ -6,6 +6,7 @@ import { db } from '@/lib/db';
 import { MAX_COLUMNS, MAX_ROWS } from '@/lib/layout';
 import { ensureTiles } from '@/lib/services';
 import { requireUser } from '@/lib/session';
+import { MAX_DESCRIPTION } from '@/lib/tiles';
 
 const MAX_NAME = 80;
 const MAX_GROUP = 60;
@@ -20,6 +21,8 @@ const Group = z.string().trim().min(1, 'Pick or type a group').max(MAX_GROUP);
 const TileInput = z.object({
   key: z.string().min(1),
   name: z.string().trim().min(1, 'Give it a name').max(MAX_NAME),
+  // Empty for none, even where its labels have one
+  description: z.string().trim().max(MAX_DESCRIPTION),
   icon: z.string().trim().max(MAX_ICON),
   // Links or plain text; one per line in the editor
   addresses: z
@@ -113,10 +116,21 @@ export async function resetTile(
 /** Puts back a tile's edits as a reset found them. */
 export async function restoreTile(tile: TileSnapshot): Promise<TileResult> {
   await requireUser();
-  const { key, name, icon, addresses, group, position, width, height, hidden } =
-    tile;
+  const {
+    key,
+    name,
+    description,
+    icon,
+    addresses,
+    group,
+    position,
+    width,
+    height,
+    hidden,
+  } = tile;
   const data = {
     name,
+    description,
     icon,
     addresses,
     group,

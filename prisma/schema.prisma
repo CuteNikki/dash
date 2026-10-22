@@ -11,21 +11,23 @@ datasource db {
 /// Homepage labels, then to its name.
 model Tile {
   /// "<compose project>/<service>", or the container name outside compose
-  key       String   @id
-  name      String?
+  key         String   @id
+  name        String?
+  /// A short line under its name
+  description String?
   /// A dashboard-icons name, "mdi-…", "si-…" or an https:// address
-  icon      String?
+  icon        String?
   /// Where to reach it, one per line on the tile: links (https://…), or
   /// plain text such as a host and port for a game server
-  addresses String[] @default([])
-  group     String?
+  addresses   String[] @default([])
+  group       String?
   /// Order within its group, lowest first
-  position  Int?
+  position    Int?
   /// Columns and rows it spans in its group's grid
-  width     Int      @default(1)
-  height    Int      @default(1)
-  hidden    Boolean  @default(false)
-  updatedAt DateTime @updatedAt
+  width       Int      @default(1)
+  height      Int      @default(1)
+  hidden      Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
 }
 
 /// Where one of the server's tiles goes, and its size, once it's been moved

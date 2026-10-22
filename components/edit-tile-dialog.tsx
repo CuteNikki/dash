@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
 import { resetTile, restoreTile, saveTile } from '@/actions/tiles';
+import { MAX_DESCRIPTION } from '@/lib/tiles';
 import type { Service } from '@/lib/types';
 
 import { AddressesField, toItems } from '@/components/addresses-field';
@@ -22,7 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 
-/** How a service's tile looks: its name, icon, addresses and group. */
+/** How a service's tile looks: its name, description, icon, addresses and group. */
 export function EditTileDialog({
   service,
   groups,
@@ -63,6 +64,7 @@ function EditTileForm({
   onDone: () => void;
 }) {
   const [name, setName] = useState(service.name);
+  const [description, setDescription] = useState(service.description ?? '');
   const [icon, setIcon] = useState(service.icon);
   const [addresses, setAddresses] = useState(() => toItems(service.addresses));
   const [group, setGroup] = useState(service.group);
@@ -75,6 +77,7 @@ function EditTileForm({
       const result = await saveTile({
         key: service.key,
         name,
+        description,
         icon,
         addresses: addresses.map((a) => a.value),
         group,
@@ -94,7 +97,7 @@ function EditTileForm({
       const before = await resetTile(service.key);
       toast.success(`Reset ${service.name}`, {
         description:
-          'Its name, icon, addresses and group are back to defaults.',
+          'Its name, description, icon, addresses and group are back to defaults.',
         action: before && {
           label: 'Undo',
           onClick: async () => {
@@ -131,6 +134,16 @@ function EditTileForm({
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
+          />
+        </div>
+        <div className='flex flex-col gap-2'>
+          <Label htmlFor='tile-description'>Description</Label>
+          <Input
+            id='tile-description'
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            maxLength={MAX_DESCRIPTION}
+            placeholder='A short line under its name'
           />
         </div>
         <div className='flex flex-col gap-2'>
