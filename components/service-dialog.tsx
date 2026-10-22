@@ -28,6 +28,7 @@ import { FilesPanel } from '@/components/files-panel';
 import { GitPanel } from '@/components/git-panel';
 import { HistoryChart } from '@/components/history-chart';
 import { LogViewer } from '@/components/log-viewer';
+import { ScrollFade } from '@/components/scroll-fade';
 import { ServiceIcon } from '@/components/service-icon';
 import { TextSkeleton } from '@/components/skeletons';
 import { StatusDot } from '@/components/status-dot';
@@ -77,7 +78,7 @@ export function ServiceDialog({
     <Dialog open={!!service} onOpenChange={(open) => !open && onClose()}>
       {/* Full screen on a phone, a large window in the middle on a computer */}
       <DialogContent
-        className='flex h-full max-w-full flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-5/6 sm:max-w-7xl sm:rounded-xl'
+        className='flex h-full max-h-none max-w-full flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-5/6 sm:max-w-7xl sm:rounded-xl'
         // Focus the window itself, not its first button, whose tooltip
         // would open with it; Tab still reaches every button
         onOpenAutoFocus={(e) => {
@@ -266,8 +267,15 @@ function ServiceBody({
             />
           </TabsContent>
         )}
-        <TabsContent value='usage'>
-          <UsagePanel service={service} />
+        {/* Scrolls within the window, as the other tabs' panels do */}
+        <TabsContent value='usage' className='min-h-0'>
+          <ScrollFade
+            fill
+            className='h-full overflow-y-auto'
+            fadeFrom='from-popover'
+          >
+            <UsagePanel service={service} />
+          </ScrollFade>
         </TabsContent>
       </Tabs>
 

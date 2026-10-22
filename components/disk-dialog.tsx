@@ -78,7 +78,7 @@ export function DiskDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className='flex h-full max-w-full flex-col gap-4 rounded-none sm:h-5/6 sm:max-w-5xl sm:rounded-xl'>
+      <DialogContent className='flex h-full max-h-none max-w-full flex-col gap-4 rounded-none sm:h-5/6 sm:max-w-5xl sm:rounded-xl'>
         <DialogHeader>
           <DialogTitle>Disk usage</DialogTitle>
           <DialogDescription>
