@@ -605,7 +605,7 @@ export function Board({
           return (
             <GridCell key={key} cell={cell}>
               {pd?.key === key && pd.mode === 'move' ? (
-                <DropPlace />
+                <DropPlace height={pd.box.height} />
               ) : (
                 <SectionBlock
                   section={section}
@@ -637,7 +637,8 @@ export function Board({
       )}
       {draggedSection && pd.mode === 'move' && (
         <Floating drag={pd}>
-          <div className='rounded-lg bg-background p-3 ring-1 ring-foreground/10'>
+          {/* Exactly as it is on the page, on the page's color */}
+          <div className='rounded-lg bg-background'>
             <SectionBlock
               section={draggedSection}
               editing={false}
@@ -669,9 +670,13 @@ function Floating({ drag, children }: { drag: Drag; children: ReactNode }) {
 }
 
 /** Where a dragged tile or section will land. */
-function DropPlace() {
+function DropPlace({ height }: { height?: number }) {
   return (
-    <div className='min-h-24 rounded-lg border-2 border-dashed border-primary/50 bg-primary/5' />
+    <div
+      className='min-h-24 rounded-lg border-2 border-dashed border-primary/50 bg-primary/5'
+      // A section's as tall as it is; a tile's, as its rows
+      style={{ height }}
+    />
   );
 }
 
@@ -725,9 +730,9 @@ function GridCell({ cell, children }: { cell: Cell; children: ReactNode }) {
 }
 
 /**
- * A section: its heading, and its tiles. While editing, a handle beside its
- * name drags it and one at the heading's end resizes it; both sit outside
- * the heading's line, so it's as tall as when not editing.
+ * A section: its heading, and its tiles. While editing, handles at the
+ * heading's end drag and resize it, laid over the line rather than in it,
+ * so it's as tall as when not editing.
  */
 function SectionBlock({
   section,
@@ -770,43 +775,43 @@ function SectionBlock({
               {section.tiles.length}
             </span>
           )}
-          {arranging && (
+        </span>
+        {arranging && (
+          <span className='absolute top-1/2 right-0 flex -translate-y-1/2 items-center gap-0.5'>
+            {resizing && (
+              <span className='mr-1 rounded-md bg-primary px-1.5 font-mono text-xs/5 tracking-normal whitespace-nowrap text-primary-foreground normal-case tabular-nums'>
+                {width} wide
+              </span>
+            )}
             <button
               type='button'
               aria-label={`Move ${section.label}: arrow keys move it, with Shift they make it wider or narrower`}
-              className='absolute top-1/2 left-full ml-1.5 -translate-y-1/2 cursor-grab touch-none rounded-sm p-0.5 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring'
+              className='cursor-grab touch-none rounded-sm p-0.5 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring'
               onPointerDown={(e) => onPress(e, 'move', node.current!)}
               onKeyDown={onNudge}
             >
               <GripVerticalIcon className='size-4' />
             </button>
-          )}
-        </span>
-        {arranging && (
-          <button
-            type='button'
-            tabIndex={-1}
-            aria-hidden
-            title='Drag to make it wider or narrower'
-            className='absolute top-1/2 right-0 -translate-y-1/2 cursor-ew-resize touch-none rounded-sm p-0.5 hover:text-foreground'
-            onPointerDown={(e) => onPress(e, 'resize', node.current!)}
-          >
-            {/* Arrows out to either side */}
-            <svg viewBox='0 0 16 16' className='size-4' aria-hidden>
-              <path
-                d='M2 8h12M2 8l3-3M2 8l3 3M14 8l-3-3M14 8l-3 3'
-                fill='none'
-                stroke='currentColor'
-                strokeWidth='1.3'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-              />
-            </svg>
-          </button>
-        )}
-        {resizing && (
-          <span className='absolute top-1/2 right-7 -translate-y-1/2 rounded-md bg-primary px-1.5 font-mono text-xs/5 tracking-normal text-primary-foreground normal-case tabular-nums'>
-            {width} wide
+            <button
+              type='button'
+              tabIndex={-1}
+              aria-hidden
+              title='Drag to make it wider or narrower'
+              className='cursor-ew-resize touch-none rounded-sm p-0.5 hover:text-foreground'
+              onPointerDown={(e) => onPress(e, 'resize', node.current!)}
+            >
+              {/* Arrows out to either side */}
+              <svg viewBox='0 0 16 16' className='size-4' aria-hidden>
+                <path
+                  d='M2 8h12M2 8l3-3M2 8l3 3M14 8l-3-3M14 8l-3 3'
+                  fill='none'
+                  stroke='currentColor'
+                  strokeWidth='1.3'
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                />
+              </svg>
+            </button>
           </span>
         )}
       </h2>
