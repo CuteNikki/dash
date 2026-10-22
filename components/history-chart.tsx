@@ -78,13 +78,18 @@ export function HistoryChart({
       role='img'
       aria-label={label}
       tabIndex={0}
+      // A tap shows the moment under it too, and on a touch screen it stays
+      // once the finger lifts, until something else is tapped (the blur)
+      onPointerDown={(e) => pointAt(e.clientX, e.currentTarget)}
       onPointerMove={(e) => pointAt(e.clientX, e.currentTarget)}
-      onPointerLeave={() => setIndex(undefined)}
+      onPointerLeave={(e) => e.pointerType === 'mouse' && setIndex(undefined)}
       onFocus={() => setIndex((i) => i ?? count - 1)}
       onBlur={() => setIndex(undefined)}
       onKeyDown={onKeyDown}
+      // A finger dragging sideways moves along it rather than scrolling, up
+      // and down still scrolls the page, and holding it selects no text
       className={cn(
-        'relative h-6 w-full rounded-sm text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        'relative h-6 w-full touch-pan-y rounded-sm text-muted-foreground outline-none select-none [-webkit-touch-callout:none] focus-visible:ring-2 focus-visible:ring-ring',
         className
       )}
     >
