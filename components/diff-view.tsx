@@ -152,7 +152,7 @@ export function DiffLayoutToggle({
   return (
     <ToggleGroup
       type='single'
-      variant='outline'
+      variant='segmented'
       value={layout}
       // Picking the shown one again would unpick it; keep one picked
       onValueChange={(v) => v && onPick(v as DiffLayout)}

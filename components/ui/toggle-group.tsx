@@ -42,6 +42,10 @@ function ToggleGroup({
       style={{ '--gap': spacing } as React.CSSProperties}
       className={cn(
         'group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] rounded-md data-[size=sm]:rounded-[min(var(--radius-md),8px)] data-vertical:flex-col data-vertical:items-stretch',
+        // Segmented: one track the segments sit in, as tabs do, as tall as
+        // a button beside it
+        variant === 'segmented' &&
+          'gap-0 rounded-lg border border-border bg-muted p-0.5 data-[size=sm]:rounded-md',
         className
       )}
       {...props}
@@ -77,6 +81,11 @@ function ToggleGroupItem({
           variant: context.variant || variant,
           size: context.size || size,
         }),
+        // Within the track's padding and border, the group as tall as a button
+        context.variant === 'segmented' &&
+          (context.size === 'sm'
+            ? 'h-[18px] min-w-[18px] rounded-[calc(var(--radius-md)-3px)]'
+            : 'h-[22px] min-w-[22px] rounded-[calc(var(--radius-lg)-3px)]'),
         className
       )}
       {...props}

@@ -211,7 +211,7 @@ export function Dashboard({
         <div className='flex items-center gap-3'>
           <ToggleGroup
             type='single'
-            variant='outline'
+            variant='segmented'
             value={view}
             // Picking the shown one again would unpick it; keep one picked
             onValueChange={(v) => v && pickView(v as View)}

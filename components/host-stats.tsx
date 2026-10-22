@@ -226,7 +226,7 @@ function CpuStat({ host }: { host?: HostStats }) {
         <ToggleGroup
           type='single'
           size='sm'
-          variant='outline'
+          variant='segmented'
           value={shown}
           disabled={!host}
           // Picking the shown one again would unpick it; keep one picked
@@ -356,7 +356,7 @@ function FlowStat({
         <ToggleGroup
           type='single'
           size='sm'
-          variant='outline'
+          variant='segmented'
           value={shown}
           disabled={!measured}
           // Picking the shown one again would unpick it; keep one picked
