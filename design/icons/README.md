@@ -16,4 +16,4 @@ Icons for the stream relay's tile, uploaded in its Edit tile rather than used by
 - `relay/b-broadcast.svg`: a red live dot with waves going out either side.
 - `relay/c-red.svg`: the fork in white on a red tile.
 - `relay/b2-grey.svg`: the waves without a tile, in a grey both themes show.
-- `relay/b3-theme.svg`, in use: the waves without a tile, dark on a light theme and light on a dark one (it follows the device's setting, not dash's theme button).
+- `relay/b3-theme.svg`, the pick: the waves without a tile, dark on a light theme and light on a dark one (it follows the device's setting, not dash's theme button).
