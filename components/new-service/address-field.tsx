@@ -69,7 +69,9 @@ export function AddressField({
           autoComplete='off'
           disabled={disabled}
         />
-        <InputGroupAddon align='inline-end'>
+        {/* Its arrow as far from the edge as a select's own, the addon's
+            padding being taken up by the select's */}
+        <InputGroupAddon align='inline-end' className='pr-1'>
           <Select
             value={zone}
             onValueChange={(z) => {
