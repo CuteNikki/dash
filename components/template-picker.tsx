@@ -9,7 +9,7 @@ import { fetcher } from '@/lib/fetcher';
 import type { HubImage } from '@/lib/image-search';
 import {
   blankTemplate,
-  TEMPLATES,
+  CURATED,
   type ServiceTemplate,
 } from '@/lib/service-templates';
 import { cn } from '@/lib/utils';
@@ -27,10 +27,11 @@ const CHOICE =
   'flex min-w-0 items-center gap-3 rounded-lg border border-transparent bg-muted p-2.5 text-left outline-none hover:border-border focus-visible:ring-2 focus-visible:ring-ring aria-pressed:border-ring';
 
 /**
- * What a new service starts from: a template of a popular app, a blank one,
- * or any image on Docker Hub. Searching narrows the templates and finds
- * images on Hub too, which only fill in the image, Hub not saying what port
- * or folders one needs.
+ * What a new service starts from: a template of a popular app (LinuxServer.io's
+ * catalogue and a few big apps besides, the latter showing until the rest
+ * come), a blank one, or any image on Docker Hub. Searching narrows the
+ * templates and finds images on Hub too, which only fill in the image, Hub
+ * not saying what port or folders one needs.
  */
 export function TemplatePicker({
   picked,
@@ -48,7 +49,12 @@ export function TemplatePicker({
     fetcher,
     { keepPreviousData: true, revalidateOnFocus: false }
   );
-  const templates = TEMPLATES.filter((t) =>
+  const { data: all = CURATED } = useSWR<ServiceTemplate[]>(
+    '/api/templates',
+    fetcher,
+    { revalidateOnFocus: false }
+  );
+  const templates = all.filter((t) =>
     `${t.name} ${t.description} ${t.image}`.toLowerCase().includes(typed)
   );
 

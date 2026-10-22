@@ -122,8 +122,12 @@ export async function ensureTiles(keys: string[]) {
   });
 }
 
-/** Homepage's icon labels name dashboard-icons files, e.g. "jellyfin.svg". */
+/**
+ * Homepage's icon labels name dashboard-icons files, e.g. "jellyfin.svg", or
+ * are an image's address, which is kept whole.
+ */
 function iconName(label?: string) {
+  if (label && /^https:\/\//.test(label)) return label;
   return label?.replace(/\.(svg|png|webp)$/, '') || undefined;
 }
 

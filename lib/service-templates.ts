@@ -3,27 +3,31 @@ import { CADDY_NETWORK } from '@/lib/new-service';
 /**
  * Apps to start a new service from: each a compose file that runs it with its
  * data in the service's folder, on Caddy's network, and labelled with its
- * tile's name, icon and group. Images and icons checked to exist 2026-10-22.
+ * tile's name, icon and group. Plain data, as most come from LinuxServer.io's
+ * catalogue (lib/linuxserver.ts); those here are big apps it doesn't
+ * package, their images and icons checked to exist 2026-10-22.
  */
 export type ServiceTemplate = {
   id: string;
   name: string;
   description: string;
-  /** A dashboard-icons name, as a tile's icon */
+  /** A dashboard-icons name or an https URL, as a tile's icon */
   icon: string;
   group: string;
   image: string;
   /** The port it serves on, for Caddy */
   port: string;
   volumes?: string[];
-  /** Given the stack's name, as a sidecar's address takes it */
-  environment?: (name: string) => string[];
+  /** KEY=value; {name} is the stack's name, as a sidecar's address takes it */
+  environment?: string[];
   command?: string;
+  /** Other settings of its service, such as shm_size */
+  options?: Record<string, string>;
   /** A Redis beside it, at <name>-broker */
   broker?: boolean;
 };
 
-export const TEMPLATES: ServiceTemplate[] = [
+export const CURATED: ServiceTemplate[] = [
   {
     id: 'uptime-kuma',
     name: 'Uptime Kuma',
@@ -53,7 +57,7 @@ export const TEMPLATES: ServiceTemplate[] = [
     image: 'gitea/gitea:latest',
     port: '3000',
     volumes: ['./data:/data'],
-    environment: () => ['USER_UID=1000', 'USER_GID=1000'],
+    environment: ['USER_UID=1000', 'USER_GID=1000'],
   },
   {
     id: 'navidrome',
@@ -92,7 +96,7 @@ export const TEMPLATES: ServiceTemplate[] = [
       './media:/usr/src/paperless/media',
       './consume:/usr/src/paperless/consume',
     ],
-    environment: (name) => [`PAPERLESS_REDIS=redis://${name}-broker:6379`],
+    environment: ['PAPERLESS_REDIS=redis://{name}-broker:6379'],
     broker: true,
   },
   {
@@ -134,19 +138,6 @@ export const TEMPLATES: ServiceTemplate[] = [
     image: 'sissbruecker/linkding:latest',
     port: '9090',
     volumes: ['./data:/etc/linkding/data'],
-  },
-  {
-    id: 'freshrss',
-    name: 'FreshRSS',
-    description: 'Feed reader',
-    icon: 'freshrss',
-    group: 'Apps',
-    image: 'freshrss/freshrss:latest',
-    port: '80',
-    volumes: [
-      './data:/var/www/FreshRSS/data',
-      './extensions:/var/www/FreshRSS/extensions',
-    ],
   },
   {
     id: 'excalidraw',
@@ -230,16 +221,6 @@ export const TEMPLATES: ServiceTemplate[] = [
     volumes: ['./data:/datastore'],
   },
   {
-    id: 'nextcloud',
-    name: 'Nextcloud',
-    description: 'Files and sync',
-    icon: 'nextcloud',
-    group: 'Apps',
-    image: 'nextcloud:latest',
-    port: '80',
-    volumes: ['./html:/var/www/html'],
-  },
-  {
     id: 'searxng',
     name: 'SearXNG',
     description: 'Private search',
@@ -259,7 +240,7 @@ export const TEMPLATES: ServiceTemplate[] = [
     port: '3456',
     // Volumes: it runs as a user of its own, who couldn't write to folders
     volumes: ['files:/app/vikunja/files', 'db:/db'],
-    environment: () => [
+    environment: [
       'VIKUNJA_DATABASE_TYPE=sqlite',
       'VIKUNJA_DATABASE_PATH=/db/vikunja.db',
     ],
@@ -292,49 +273,6 @@ export const TEMPLATES: ServiceTemplate[] = [
     group: 'Apps',
     image: 'jgraph/drawio:latest',
     port: '8080',
-  },
-  {
-    id: 'kavita',
-    name: 'Kavita',
-    description: 'Books and comics',
-    icon: 'kavita',
-    group: 'Media',
-    image: 'jvmilazz0/kavita:latest',
-    port: '5000',
-    volumes: ['./config:/kavita/config', '/data/media/books:/books'],
-  },
-  {
-    id: 'calibre-web',
-    name: 'Calibre-Web',
-    description: 'E-book library',
-    icon: 'calibre-web',
-    group: 'Media',
-    image: 'lscr.io/linuxserver/calibre-web:latest',
-    port: '8083',
-    volumes: ['./config:/config', '/data/media/books:/books'],
-    environment: () => ['PUID=1000', 'PGID=1000', 'TZ=Etc/UTC'],
-  },
-  {
-    id: 'bazarr',
-    name: 'Bazarr',
-    description: 'Subtitles for Sonarr and Radarr',
-    icon: 'bazarr',
-    group: 'Downloads',
-    image: 'lscr.io/linuxserver/bazarr:latest',
-    port: '6767',
-    volumes: ['./config:/config', '/data:/data'],
-    environment: () => ['PUID=1000', 'PGID=1000', 'TZ=Etc/UTC'],
-  },
-  {
-    id: 'lidarr',
-    name: 'Lidarr',
-    description: 'Music downloads',
-    icon: 'lidarr',
-    group: 'Downloads',
-    image: 'lscr.io/linuxserver/lidarr:latest',
-    port: '8686',
-    volumes: ['./config:/config', '/data:/data'],
-    environment: () => ['PUID=1000', 'PGID=1000', 'TZ=Etc/UTC'],
   },
 ];
 
@@ -383,7 +321,16 @@ export function composeFor(
     restart: unless-stopped
 `;
   if (template.command) yaml += `    command: ${template.command}\n`;
-  yaml += list('environment', template.environment?.(service) ?? []);
+  for (const [key, value] of Object.entries(template.options ?? {})) {
+    yaml += `    ${key}: ${JSON.stringify(value)}\n`;
+  }
+  // Quoted, as a value can have a # or : in it that YAML would read otherwise
+  yaml += list(
+    'environment',
+    (template.environment ?? []).map((e) =>
+      JSON.stringify(e.replaceAll('{name}', service))
+    )
+  );
   yaml += list('volumes', volumes);
   // With a sidecar, its own network too, to reach it
   yaml += list(
@@ -392,7 +339,7 @@ export function composeFor(
   );
   if (template.broker) yaml += list('depends_on', [`${service}-broker`]);
   if (labels.length) {
-    yaml += `    labels:\n${labels.map(([k, v]) => `      ${k}: ${v}`).join('\n')}\n`;
+    yaml += `    labels:\n${labels.map(([k, v]) => `      ${k}: ${JSON.stringify(v)}`).join('\n')}\n`;
   }
   if (template.broker) {
     yaml += `

@@ -68,13 +68,10 @@ export function NewServiceDialog({
 
 /** The name a template suggests: its own, or its image's, as Compose takes it. */
 function suggestedName(template: ServiceTemplate) {
-  return (
-    template.id ||
-    (template.image.split('/').at(-1) ?? '')
-      .split(':')[0]
-      .toLowerCase()
-      .replace(/[^a-z0-9_-]/g, '-')
-  );
+  const name =
+    template.id || (template.image.split('/').at(-1) ?? '').split(':')[0];
+  // As Compose takes it: "changedetection.io" is "changedetection-io"
+  return name.toLowerCase().replace(/[^a-z0-9_-]/g, '-');
 }
 
 function NewServiceForm({

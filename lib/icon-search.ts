@@ -275,3 +275,31 @@ export async function searchIcons(query: string, limit: number) {
       variants: entry.variants,
     }));
 }
+
+/**
+ * Icons named exactly after these, by name or alias, from the best set that
+ * has one; also tried without a ".io" or dashes, as "changedetection.io" is
+ * "changedetection". Only exact, as a near one would be some other app's, and
+ * only from sets of apps' logos: Material Design's are things, so its
+ * "dolphin" is the animal, not the emulator.
+ */
+export async function iconsNamed(names: string[]) {
+  const entries = await allIcons();
+  const best = new Map<string, Entry>();
+  for (const entry of entries) {
+    if (entry.set === 'mdi') continue;
+    for (const key of [entry.name, ...entry.aliases]) {
+      const had = best.get(key);
+      if (!had || SET_ORDER.indexOf(entry.set) < SET_ORDER.indexOf(had.set)) {
+        best.set(key, entry);
+      }
+    }
+  }
+  const found = new Map<string, string>();
+  for (const name of names) {
+    const tries = [name, name.replace(/\.io$/, ''), name.replace(/[-_.]/g, '')];
+    const entry = tries.map((t) => best.get(t)).find(Boolean);
+    if (entry) found.set(name, entry.icon);
+  }
+  return found;
+}
