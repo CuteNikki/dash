@@ -215,7 +215,7 @@ function CpuStat({ host }: { host?: HostStats }) {
   const total = {
     label: 'All cores',
     values: host?.history.cpu.slice(-count) ?? [],
-    measure: MEASURES.cpu,
+    measure: MEASURES.serverCpu,
   };
 
   return (
@@ -257,7 +257,7 @@ function CpuStat({ host }: { host?: HostStats }) {
                   ...cores.map((values, i) => ({
                     label: `Core ${i}`,
                     values: values.slice(-count),
-                    measure: MEASURES.cpu,
+                    measure: MEASURES.serverCpu,
                     faint: true,
                   })),
                 ]

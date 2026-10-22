@@ -127,6 +127,11 @@ const MB = 1024 * KB;
 export const MEASURES = {
   /** A tenth of a core */
   cpu: { format: formatCpu, floor: 10 },
+  /**
+   * The server's CPU, a share of all of it, on the whole scale: a few percent
+   * more on an idle server is a ripple, not a spike
+   */
+  serverCpu: { format: formatCpu, floor: 100 },
   memory: { format: formatBytes, floor: 64 * MB },
   /** A page that takes a second is slow; one that takes a tenth isn't worth a line */
   response: { format: formatMs, floor: 1000 },
