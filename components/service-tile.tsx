@@ -110,14 +110,14 @@ export function ServiceTile({
   );
 }
 
-/** An app's numbers as chips, each its label then its value, wrapping as needed. */
+/** An app's numbers as chips, each its value then its label, wrapping as needed. */
 function WidgetStats({ stats }: { stats: WidgetStat[] }) {
   return (
     <dl className='flex flex-wrap gap-1.5'>
       {stats.map((stat) => (
         <div
           key={stat.label}
-          className='flex min-w-0 gap-1.5 rounded-md bg-muted px-1.5'
+          className='flex min-w-0 flex-row-reverse gap-1.5 rounded-md bg-muted px-1.5'
         >
           <dt className='truncate text-muted-foreground lowercase'>
             {stat.label}
