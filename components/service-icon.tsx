@@ -92,7 +92,9 @@ function SingleIcon({
 
   if (source.kind === 'mask') {
     return (
-      <span aria-hidden className={cn(box, 'p-1', display)}>
+      // Its room around it as a share of its size, 4px of a tile's 32, so a
+      // small one, as in the process list, isn't mostly room
+      <span aria-hidden className={cn(box, 'p-[12.5%]', display)}>
         <span
           className='block size-full bg-foreground mask-contain mask-center mask-no-repeat'
           style={{ maskImage: `url("${source.url}")` }}
