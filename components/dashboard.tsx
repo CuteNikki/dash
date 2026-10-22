@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 
-import { LayoutGridIcon, ListIcon, PencilIcon } from 'lucide-react';
+import { LayoutGridIcon, ListIcon, PencilIcon, PlusIcon } from 'lucide-react';
 
 import { renameGroup, saveLayout, type TileResult } from '@/actions/tiles';
 import { fetcher } from '@/lib/fetcher';
@@ -28,6 +28,7 @@ import {
 import { Brand } from '@/components/brand';
 import { EditTileDialog } from '@/components/edit-tile-dialog';
 import { HostTileContent } from '@/components/host-stats';
+import { NewServiceDialog } from '@/components/new-service-dialog';
 import { ServiceDialog } from '@/components/service-dialog';
 import { ServiceList } from '@/components/service-list';
 import { ServiceTile } from '@/components/service-tile';
@@ -73,6 +74,7 @@ export function Dashboard({
     { fallbackData: initial, refreshInterval: REFRESH_MS }
   );
   const [editing, setEditing] = useState(false);
+  const [adding, setAdding] = useState(false);
   // By key, so these follow the live data and survive a recreated container
   const [openKey, setOpenKey] = useState<string>();
   const [openTab, setOpenTab] = useState<'usage' | 'logs'>('usage');
@@ -225,6 +227,15 @@ export function Dashboard({
             </ToggleGroupItem>
           </ToggleGroup>
           <Button
+            variant='outline'
+            aria-label='New service'
+            onClick={() => setAdding(true)}
+          >
+            <PlusIcon />
+            {/* Its plus alone on a phone, where the header's room is short */}
+            <span className='max-sm:hidden'>New service</span>
+          </Button>
+          <Button
             variant={editing ? 'default' : 'outline'}
             aria-pressed={editing}
             onClick={() => setEditing(!editing)}
@@ -274,6 +285,11 @@ export function Dashboard({
         groups={allGroups}
         onClose={() => setEditKey(undefined)}
         onSaved={() => void mutate()}
+      />
+      <NewServiceDialog
+        open={adding}
+        onClose={() => setAdding(false)}
+        onCreated={() => void mutate()}
       />
     </div>
   );
