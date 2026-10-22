@@ -8,7 +8,7 @@ import { arrangeHostTiles } from '@/lib/host-tiles';
 import { iconInfo } from '@/lib/icon-search';
 import type { Dashboard, Service } from '@/lib/types';
 import { currentUsage } from '@/lib/usage';
-import { readWidgets } from '@/lib/widgets';
+import { hasDetails, readWidgets } from '@/lib/widgets';
 
 /**
  * A container's tile key: its compose project and service, which survive the
@@ -132,6 +132,7 @@ export async function getDashboard(): Promise<Dashboard> {
           ? { cpu: u.cpu, memory: u.memory, history: u.history }
           : undefined,
         widget: widgets.get(c.id),
+        details: hasDetails(c),
       };
     });
   const icons = await iconInfo(services.map((s) => s.icon));

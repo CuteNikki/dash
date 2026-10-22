@@ -17,14 +17,13 @@ import { reloadCaddyConfig, runContainerAction } from '@/actions/containers';
 import { isCaddy } from '@/lib/caddy';
 import type { ContainerAction } from '@/lib/docker';
 import { fetcher } from '@/lib/fetcher';
-import { formatBytes, imageName, MEASURES, type Measure } from '@/lib/format';
+import { MEASURES, type Measure } from '@/lib/format';
 import type { GitStatus } from '@/lib/git';
-import type { PostgresDatabase } from '@/lib/postgres';
 import { isRunning, stateLabel } from '@/lib/status';
 import type { Service } from '@/lib/types';
-import { cn } from '@/lib/utils';
 
 import { AddressList } from '@/components/address-list';
+import { AppDetails } from '@/components/app-details';
 import { FilesPanel } from '@/components/files-panel';
 import { GitPanel } from '@/components/git-panel';
 import { HistoryChart } from '@/components/history-chart';
@@ -340,72 +339,6 @@ function UsageChart({
   );
 }
 
-/** How often a Postgres server's databases are read again while its window is open. */
-const DATABASES_REFRESH_MS = 10_000;
-
-/** A Postgres server's databases, biggest first: each one's size and connections. */
-function PostgresDatabases({ containerId }: { containerId: string }) {
-  const { data, error } = useSWR<PostgresDatabase[]>(
-    `/api/containers/${containerId}/databases`,
-    fetcher,
-    { refreshInterval: DATABASES_REFRESH_MS }
-  );
-  // Rows that stand in for the databases until they're read, as tall as theirs
-  const rows: (PostgresDatabase | undefined)[] = data ?? [
-    undefined,
-    undefined,
-    undefined,
-  ];
-  return (
-    <div className='flex flex-col gap-2'>
-      <span className='text-muted-foreground'>Databases</span>
-      {error && !data ? (
-        <span className='text-muted-foreground'>
-          Couldn&apos;t read its databases: {error.message}
-        </span>
-      ) : (
-        <table className='w-full tabular-nums'>
-          <thead className='text-muted-foreground'>
-            <tr>
-              <th className='pb-1 text-left font-normal'>Name</th>
-              <th className='pb-1 text-right font-normal'>Size</th>
-              <th className='pb-1 text-right font-normal'>Connections</th>
-            </tr>
-          </thead>
-          <tbody className='font-mono'>
-            {rows.map((db, i) => (
-              <tr key={db?.name ?? i}>
-                <td className='max-w-0 truncate py-0.5 pr-4'>
-                  {db ? db.name : <TextSkeleton className='w-28' />}
-                </td>
-                <td className='py-0.5 pl-4 text-right whitespace-nowrap'>
-                  {db ? (
-                    formatBytes(db.size)
-                  ) : (
-                    <TextSkeleton className='ml-auto w-14' />
-                  )}
-                </td>
-                <td
-                  className={cn(
-                    'py-0.5 pl-4 text-right',
-                    db?.connections === 0 && 'text-muted-foreground'
-                  )}
-                >
-                  {db ? (
-                    db.connections
-                  ) : (
-                    <TextSkeleton className='ml-auto w-4' />
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
-}
-
 function UsagePanel({ service }: { service: Service }) {
   const usage = service.usage;
   // A running one that hasn't been measured yet, as just after it starts
@@ -427,8 +360,8 @@ function UsagePanel({ service }: { service: Service }) {
           </div>
         ))}
       </dl>
-      {imageName(service.image) === 'postgres' && isRunning(service.state) && (
-        <PostgresDatabases containerId={service.containerId} />
+      {service.details && isRunning(service.state) && (
+        <AppDetails containerId={service.containerId} />
       )}
       <div className='flex flex-col gap-6'>
         <UsageChart

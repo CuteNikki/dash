@@ -68,6 +68,31 @@ export function imageName(image: string) {
   return image.split('/').pop()?.split(/[:@]/)[0] ?? image;
 }
 
+/** Midnight before a moment, in the viewer's own time. */
+function dayOf(date: Date) {
+  return new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate()
+  ).getTime();
+}
+
+/** A moment to come, in the viewer's own time: "today 21:00", "Fri 21:00", "3 Nov". */
+export function formatWhen(at: number) {
+  const date = new Date(at);
+  const time = date.toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  const days = Math.round((dayOf(date) - dayOf(new Date())) / (DAY * 1000));
+  if (days === 0) return `today ${time}`;
+  if (days === 1) return `tomorrow ${time}`;
+  if (days > 1 && days < 7) {
+    return `${date.toLocaleDateString(undefined, { weekday: 'short' })} ${time}`;
+  }
+  return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+}
+
 /** Whether an address is a web link, rather than text like a host and port. */
 export function isLink(address: string) {
   return SCHEME.test(address);
@@ -103,3 +128,8 @@ export const MEASURES = {
   /** Above the logs and databases an idle server writes anyway */
   disk: { format: formatRate, floor: MB },
 } satisfies Record<string, Measure>;
+
+/** A moment either side of now: "5 min ago" once it's passed, "Fri 21:00" while it's to come. */
+export function formatMoment(at: number) {
+  return at < Date.now() ? formatAgo(at) : formatWhen(at);
+}

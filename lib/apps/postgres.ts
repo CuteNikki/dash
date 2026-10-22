@@ -2,7 +2,7 @@ import 'server-only';
 
 import { inTime, type App } from '@/lib/apps/app';
 import { formatBytes } from '@/lib/format';
-import { postgresRows } from '@/lib/postgres';
+import { postgresDatabases, postgresRows } from '@/lib/postgres';
 
 /** Its databases, each with its size and connections, are in its window. */
 export const postgres: App = {
@@ -30,4 +30,21 @@ export const postgres: App = {
       { label: 'Used', value: formatBytes(+size) },
     ];
   },
+  details: async ({ container: c }) => [
+    {
+      kind: 'table',
+      title: 'Databases',
+      columns: [
+        { label: 'Name' },
+        { label: 'Size', numeric: true },
+        { label: 'Connections', numeric: true },
+      ],
+      // Biggest first, those no one's connected to quiet
+      rows: (await inTime(postgresDatabases(c.id), 'psql')).map((db) => ({
+        cells: [db.name, formatBytes(db.size), `${db.connections}`],
+        dim: db.connections === 0,
+      })),
+      empty: 'No databases',
+    },
+  ],
 };

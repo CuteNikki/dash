@@ -88,3 +88,16 @@ export async function readWidgets(
     })
   );
 }
+
+/** Whether a container's app has more to show in its window, with its keys set to read it. */
+export function hasDetails(c: Container) {
+  const app = appOf(c);
+  return !!app && !!APPS[app].details && (APPS[app].ready?.() ?? true);
+}
+
+/** What a container's app has to say in its window, or nothing for one that has none. */
+export async function readDetails(c: Container) {
+  const app = appOf(c);
+  if (!app || !hasDetails(c)) return undefined;
+  return APPS[app].details!(contextOf(app, c));
+}
