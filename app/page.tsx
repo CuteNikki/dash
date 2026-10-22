@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { COLUMNS_COOKIE, columnsFromCookie } from '@/lib/layout';
 import { getDashboard } from '@/lib/services';
 import { requireUser } from '@/lib/session';
+import { SERVER_NAME } from '@/lib/site';
 import {
   FILTER_COOKIE,
   filterFromCookie,
@@ -15,7 +16,7 @@ import { Dashboard } from '@/components/dashboard';
 
 /** The tab says which server it's the dashboard of, rather than dash's name. */
 export const metadata: Metadata = {
-  title: { absolute: 'Dashboard · vps.niso.moe' },
+  title: { absolute: `Dashboard · ${SERVER_NAME}` },
 };
 
 /** Columns for a first visit, before the browser's said how wide it is: a laptop's. */

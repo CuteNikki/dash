@@ -203,7 +203,7 @@ export function Dashboard({
     // page would only spread out: then it's centered
     <div className='mx-auto flex w-full max-w-[2200px] flex-col gap-8 px-4 py-6 sm:px-6'>
       <header className='flex items-center gap-3'>
-        <h1 className='mr-auto'>
+        <h1 className='mr-auto min-w-0'>
           <Brand />
         </h1>
         <ToggleGroup
@@ -224,10 +224,12 @@ export function Dashboard({
         <Button
           variant={editing ? 'default' : 'outline'}
           aria-pressed={editing}
+          aria-label={editing ? 'Done editing' : 'Edit'}
           onClick={() => setEditing(!editing)}
         >
           <PencilIcon />
-          {editing ? 'Done' : 'Edit'}
+          {/* Its word where there's room; on a phone, its pencil alone */}
+          <span className='hidden sm:inline'>{editing ? 'Done' : 'Edit'}</span>
         </Button>
         <ThemeButton />
         <AccountMenu email={email} />
