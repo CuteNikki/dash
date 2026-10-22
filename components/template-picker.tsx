@@ -14,6 +14,7 @@ import {
 } from '@/lib/service-templates';
 import { cn } from '@/lib/utils';
 
+import { ScrollFade } from '@/components/scroll-fade';
 import { ServiceIcon } from '@/components/service-icon';
 import {
   InputGroup,
@@ -64,7 +65,10 @@ export function TemplatePicker({
           aria-label='Search apps and images'
         />
       </InputGroup>
-      <div className='grid max-h-56 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-3'>
+      <ScrollFade
+        fadeFrom='from-popover'
+        className='grid max-h-56 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-3'
+      >
         {!typed && (
           <button
             type='button'
@@ -139,7 +143,7 @@ export function TemplatePicker({
               </span>
             </button>
           ))}
-      </div>
+      </ScrollFade>
     </div>
   );
 }
