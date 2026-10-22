@@ -183,6 +183,13 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* A menu or dialog stops the page scrolling while it's open, and makes up
+     for the scrollbar it hides with a margin as wide; but the page keeps
+     the scrollbar's room anyway (scrollbar-gutter on <html>), so the margin
+     would shift everything left */
+  html body[data-scroll-locked] {
+    margin-right: 0 !important;
+  }
   button:not(:disabled),
   [role='button']:not(:disabled) {
     cursor: pointer;
