@@ -114,7 +114,12 @@ export function ProcessList({
             {/* A gap after every column but the last, so none run into the
               next, and room at each row's ends for its rounded highlight */}
             <table className='w-full table-fixed [&_td:first-child]:rounded-l-md [&_td:first-child]:pl-2 [&_td:last-child]:rounded-r-md [&_td:last-child]:pr-2 [&_td:not(:last-child)]:pr-4 [&_th:first-child]:pl-2 [&_th:last-child]:pr-2 [&_th:not(:last-child)]:pr-4'>
-              <thead className='sticky top-0 bg-card text-left text-muted-foreground'>
+              <thead
+                // Its background stops short of the right edge, only padding
+                // there, where an iPhone draws its scrollbar inside the list
+                // and would otherwise draw it under the headings
+                className='sticky top-0 bg-card text-left text-muted-foreground [clip-path:inset(0_6px_0_0)]'
+              >
                 <tr>
                   <th className='font-normal'>Process</th>
                   <th className='hidden w-20 font-normal @2xl:table-cell'>
