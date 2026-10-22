@@ -271,7 +271,8 @@ export function SystemDialog({
             Check now
           </Button>
           <Button
-            variant={system?.reboot ? 'warning' : 'outline'}
+            // It takes everything on the server down, dash too
+            variant='destructive'
             disabled={running}
             onClick={() => setConfirmReboot(true)}
           >
