@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import type { ConvertedRun } from '@/lib/docker-run';
 import { NewService, type NewServiceInput } from '@/lib/new-service';
 import { readRunStream } from '@/lib/read-run-stream';
 import {
@@ -14,6 +15,7 @@ import {
 import { GroupField } from '@/components/dashboard/fields/group-field';
 import { CodeEditor } from '@/components/editor/code-editor';
 import { AddressField } from '@/components/new-service/address-field';
+import { DockerRunImport } from '@/components/new-service/docker-run-import';
 import { TemplatePicker } from '@/components/new-service/template-picker';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,6 +28,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 /**
  * Adds a service: picked from a template or an image, with a name, a group,
@@ -96,6 +99,11 @@ function NewServiceForm({
   // The name's, until edited
   const [service, setService] = useState<string>();
   const [port, setPort] = useState('');
+  // The name and port last filled in for you, which another fills in again;
+  // one typed in stays
+  const [filled, setFilled] = useState({ name: '', port: '' });
+  // Where it starts from: a template, or a pasted docker run command
+  const [source, setSource] = useState<'template' | 'run'>('template');
   const [error, setError] = useState<string>();
   const [output, setOutput] = useState<string[]>();
 
@@ -113,13 +121,24 @@ function NewServiceForm({
    * group and port where they're still the last one's, not typed in
    */
   function pick(next: ServiceTemplate) {
-    if (!name.trim() || name.trim() === suggestedName(template)) {
-      setName(suggestedName(next));
-    }
+    fill(suggestedName(next), next.port);
     if (!group.trim() || group.trim() === template.group) setGroup(next.group);
-    if (!port.trim() || port.trim() === template.port) setPort(next.port);
     setCompose(undefined);
     setTemplate(next);
+  }
+
+  /** Its compose file from a docker run command, as it stands, not following the name. */
+  function fromRun(converted: ConvertedRun) {
+    fill(converted.name, converted.port);
+    setTemplate(blankTemplate());
+    setCompose(converted.compose);
+  }
+
+  /** A name and port filled in for you, where you haven't typed your own. */
+  function fill(nextName: string, nextPort: string) {
+    if (!name.trim() || name.trim() === filled.name) setName(nextName);
+    if (!port.trim() || port.trim() === filled.port) setPort(nextPort);
+    setFilled({ name: nextName, port: nextPort });
   }
 
   async function create() {
@@ -173,7 +192,22 @@ function NewServiceForm({
         disabled={running}
         className='-mx-1 flex min-h-0 flex-col gap-4 overflow-y-auto px-1'
       >
-        <TemplatePicker picked={template} onPick={pick} />
+        <ToggleGroup
+          type='single'
+          variant='segmented'
+          value={source}
+          // Picking the shown one again would unpick it; keep one picked
+          onValueChange={(v) => v && setSource(v as typeof source)}
+          aria-label='Start from'
+        >
+          <ToggleGroupItem value='template'>Template</ToggleGroupItem>
+          <ToggleGroupItem value='run'>docker run</ToggleGroupItem>
+        </ToggleGroup>
+        {source === 'template' ? (
+          <TemplatePicker picked={template} onPick={pick} />
+        ) : (
+          <DockerRunImport onConvert={fromRun} />
+        )}
         <div className='grid gap-4 sm:grid-cols-2'>
           <div className='flex flex-col gap-2'>
             <Label htmlFor='service-name'>Name</Label>

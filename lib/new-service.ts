@@ -22,7 +22,7 @@ export const NewService = z
     name: z
       .string()
       .trim()
-      .min(1, 'Give it a name')
+      .min(2, 'Give it a name of at least two characters')
       .max(MAX_NAME, `Up to ${MAX_NAME} characters`)
       .regex(
         NAME_PATTERN,
