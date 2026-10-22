@@ -19,20 +19,15 @@ const CONTEXT_LINES = 3;
 /** The fewest unchanged lines worth folding away. */
 const MIN_FOLDED = 4;
 
-/** A bar under changed text, in the color of its side. */
-const underline = (color: string) =>
-  `linear-gradient(var(${color}), var(${color})) bottom / 100% 2px no-repeat`;
-
 /** A faint wash of a theme color. */
 const tint = (color: string, percent: number) =>
   `color-mix(in oklch, var(${color}) ${percent}%, transparent)`;
 
 /**
- * The two sides' changes in the theme's colors: lines faintly tinted (the
- * tints are the theme's, as faint as keeps code in every syntax color at
- * 4.5:1), the changed text in them underlined, as a fill strong enough to
- * see would take that away. Doubled classes outrank the package's own, which
- * it keys to light and dark.
+ * The two sides' changes in the theme's colors: lines tinted (the tints are
+ * the theme's), the changed text in them more so, together no more than
+ * keeps code in every syntax color at 4.5:1. Doubled classes outrank the
+ * package's own, which it keys to light and dark.
  */
 const splitTheme = EditorView.theme({
   '&.cm-merge-a.cm-merge-a .cm-changedLine, &.cm-merge-a .cm-deletedChunk': {
@@ -42,10 +37,10 @@ const splitTheme = EditorView.theme({
     backgroundColor: 'var(--diff-added)',
   },
   '&.cm-merge-a.cm-merge-a .cm-changedText': {
-    background: underline('--destructive'),
+    background: tint('--destructive', 16),
   },
   '&.cm-merge-b.cm-merge-b .cm-changedText': {
-    background: underline('--success'),
+    background: tint('--success', 16),
   },
   '&.cm-merge-a.cm-merge-a .cm-changedLineGutter': {
     background: 'var(--destructive)',
