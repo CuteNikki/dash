@@ -131,7 +131,9 @@ export function LogBox({
   }
 
   return (
-    <div className={cn('flex min-h-0 flex-col gap-3', className)}>
+    // Never wider than where it's put, as a window's grid would let its
+    // longest unwrapped line make it: long lines scroll sideways inside it
+    <div className={cn('flex min-h-0 min-w-0 flex-col gap-3', className)}>
       <div className='flex items-center gap-2'>
         <InputGroup>
           <InputGroupAddon>
