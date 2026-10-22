@@ -650,32 +650,45 @@ export function Board({
         <Floating drag={td}>{draggedTile.render(td.cell)}</Floating>
       )}
       {draggedSection && pd.mode === 'move' && (
-        <Floating drag={pd}>
-          {/* Exactly as it is on the page, on the page's color */}
-          <div className='rounded-lg bg-background'>
-            <SectionBlock
-              section={draggedSection}
-              editing={false}
-              width={pd.cell.w}
-            >
-              {tileGrid(draggedSection, false)}
-            </SectionBlock>
-          </div>
+        <Floating drag={pd} section>
+          <SectionBlock
+            section={draggedSection}
+            editing={false}
+            width={pd.cell.w}
+          >
+            {tileGrid(draggedSection, false)}
+          </SectionBlock>
         </Floating>
       )}
     </>
   );
 }
 
-function Floating({ drag, children }: { drag: Drag; children: ReactNode }) {
+/**
+ * What's dragged, under the pointer: a tile, raised by a shadow, or a
+ * section, its heading and tiles alone, each tile raised, without the room
+ * a taller section beside it gave it.
+ */
+function Floating({
+  drag,
+  section,
+  children,
+}: {
+  drag: Drag;
+  section?: boolean;
+  children: ReactNode;
+}) {
   return (
     <div
-      className='pointer-events-none fixed z-50 grid cursor-grabbing grid-cols-1 rounded-lg shadow-lg'
+      className={cn(
+        'pointer-events-none fixed z-50 grid cursor-grabbing grid-cols-1 rounded-lg',
+        section ? '[&_[data-slot=card]]:shadow-lg' : 'shadow-lg'
+      )}
       style={{
         left: drag.pointer.x - drag.grab.x,
         top: drag.pointer.y - drag.grab.y,
         width: drag.box.width,
-        height: drag.box.height,
+        height: section ? undefined : drag.box.height,
       }}
     >
       {children}
