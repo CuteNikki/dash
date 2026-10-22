@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <style>
+    .main { fill: #27272a } .side { fill: #a1a1aa } .dot { fill: #16a34a }
+    @media (prefers-color-scheme: dark) {
+      .main { fill: #f4f4f5 } .side { fill: #71717a } .dot { fill: #4ade80 }
+    }
+  </style>
+  <rect class="main" x="5" y="5" width="25" height="25" rx="7"/>
+  <rect class="side" x="34" y="5" width="25" height="25" rx="7"/>
+  <rect class="side" x="5" y="34" width="25" height="25" rx="7"/>
+  <circle class="dot" cx="46.5" cy="46.5" r="11"/>
+</svg>

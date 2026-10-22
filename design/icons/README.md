@@ -2,7 +2,8 @@
 
 dash's icon, drawn on a 64 × 64 grid in the dashboard's own colours: neutral tiles and the green a running service's dot is.
 
-- `a-tiles.svg`, in use: a 2 × 2 grid of tiles, one of them a green status dot.
+- `a-tiles-theme.svg`, in use as `app/icon.svg`: a 2 × 2 grid of tiles, one of them a green status dot, without a tile behind it, dark on a light background and light on a dark one (by the device's setting). `components/brand.tsx` draws the same in the theme's colours, for the heading; keep the two alike.
+- `a-tiles.svg`: the same on a dark tile, which `app/favicon.ico` and `app/apple-icon.png` are made from, as neither can follow a theme and iOS wants a solid icon.
 - `b-bento.svg`: a tall tile beside two stacked ones, as sections can sit, with a dot on the tall one.
 - `c-letter.svg`: a lowercase d with the dot in its bowl.
 
