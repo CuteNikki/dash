@@ -47,6 +47,8 @@ export type Service = {
   widget?: Widget;
   /** Whether the app has more to show in its window, from /api/containers/[id]/details */
   details?: boolean;
+  /** A website elsewhere, checked over HTTP: as it was last found, once it has been */
+  site?: { check?: SiteCheck };
 };
 
 /**
@@ -241,4 +243,20 @@ export type Capacity = {
    * with what its filesystem takes for its own records
    */
   size: number;
+};
+
+/** A website elsewhere, as dash last found it when it asked for its page. */
+export type SiteCheck = {
+  /** It answered, and not with an error */
+  ok: boolean;
+  /** What it answered, when it did: 200, 404… */
+  status?: number;
+  /** Why it couldn't be reached */
+  error?: string;
+  /** How long it took to answer, or to fail, in milliseconds */
+  ms: number;
+  /** When, in milliseconds since 1970 */
+  at: number;
+  /** The last ten minutes of it, oldest first */
+  history: { at: number[]; ms: number[] };
 };

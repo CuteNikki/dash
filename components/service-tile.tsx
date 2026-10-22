@@ -1,7 +1,14 @@
 import { EyeOffIcon } from 'lucide-react';
 
-import { formatAddress, formatBytes, formatCpu, MEASURES } from '@/lib/format';
-import { isRunning, stateLabel } from '@/lib/status';
+import {
+  formatAddress,
+  formatBytes,
+  formatCpu,
+  formatMs,
+  MEASURES,
+  type Measure,
+} from '@/lib/format';
+import { isRunning, labelOf } from '@/lib/status';
 import type { Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -22,8 +29,8 @@ export function ServiceTile({
   onOpen: (service: Service) => void;
 }) {
   const running = isRunning(service.state);
-  const usage = running ? service.usage : undefined;
-  // A taller tile has room for its CPU as a graph of its own
+  const readings = readingsOf(service);
+  // A taller tile has room for its graph as one of its own
   const graph = service.height > 1;
   const stats = widgetStats(service);
   return (
@@ -69,29 +76,34 @@ export function ServiceTile({
               )}
             </span>
           ) : (
-            <StatusDot state={service.state} className='mt-1.5 self-start' />
+            <StatusDot
+              state={service.state}
+              label={labelOf(service)}
+              className='mt-1.5 self-start'
+            />
           )}
         </div>
         {stats && <WidgetStats stats={stats} />}
-        {graph && usage && (
+        {graph && readings && (
           // Fills the room the tile has, without asking for any of its own
           <div className='relative min-h-8 flex-1'>
             <Sparkline
-              values={usage.history.cpu}
-              measure={MEASURES.cpu}
+              values={readings.values}
+              measure={readings.measure}
               className='absolute inset-0 size-full'
             />
           </div>
         )}
         <div className='mt-auto flex items-center gap-3 font-mono text-muted-foreground tabular-nums'>
-          {usage ? (
+          {readings ? (
             <>
-              <span>{formatCpu(usage.cpu)}</span>
-              <span>{formatBytes(usage.memory)}</span>
+              {readings.numbers.map((n, i) => (
+                <span key={i}>{n}</span>
+              ))}
               {!graph && (
                 <Sparkline
-                  values={usage.history.cpu}
-                  measure={MEASURES.cpu}
+                  values={readings.values}
+                  measure={readings.measure}
                   // A wider tile draws it wider
                   className={cn(
                     'ml-auto',
@@ -101,10 +113,38 @@ export function ServiceTile({
               )}
             </>
           ) : (
-            <span>{stateLabel(service.state)}</span>
+            <span>{labelOf(service)}</span>
           )}
         </div>
       </Card>
     </button>
   );
+}
+
+/**
+ * What a tile shows at its foot, and graphs: a container's CPU and memory,
+ * its CPU over time; a website's response time and what it answered, its
+ * response time over time. None for a stopped container or an unchecked site.
+ */
+function readingsOf(
+  service: Service
+): { numbers: string[]; values: number[]; measure: Measure } | undefined {
+  const check = service.site?.check;
+  if (check) {
+    return {
+      numbers: [
+        formatMs(check.ms),
+        check.status ? `${check.status}` : 'no answer',
+      ],
+      values: check.history.ms,
+      measure: MEASURES.response,
+    };
+  }
+  const usage = isRunning(service.state) ? service.usage : undefined;
+  if (!usage) return undefined;
+  return {
+    numbers: [formatCpu(usage.cpu), formatBytes(usage.memory)],
+    values: usage.history.cpu,
+    measure: MEASURES.cpu,
+  };
 }

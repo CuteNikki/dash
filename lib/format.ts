@@ -56,6 +56,11 @@ export function formatShare(part: number, whole: number) {
   return `${whole > 0 ? Math.round((part / whole) * 100) : 0}%`;
 }
 
+/** A wait: "140 ms", or "1.2 s" past a second. */
+export function formatMs(ms: number) {
+  return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} s`;
+}
+
 /** Percent of one core, e.g. 0.4 → "0.4%", 182 → "182%". */
 export function formatCpu(percent: number) {
   return `${percent < 10 ? percent.toFixed(1) : Math.round(percent)}%`;
@@ -123,6 +128,8 @@ export const MEASURES = {
   /** A tenth of a core */
   cpu: { format: formatCpu, floor: 10 },
   memory: { format: formatBytes, floor: 64 * MB },
+  /** A page that takes a second is slow; one that takes a tenth isn't worth a line */
+  response: { format: formatMs, floor: 1000 },
   /** About what an idle server sends and receives anyway */
   network: { format: formatRate, floor: 128 * KB },
   /** Above the logs and databases an idle server writes anyway */

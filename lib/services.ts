@@ -2,11 +2,13 @@ import 'server-only';
 
 import { db } from '@/lib/db';
 import { listContainers, takingInput, type Container } from '@/lib/docker';
-import { isLink } from '@/lib/format';
+import { formatMs, isLink } from '@/lib/format';
 import { DEFAULT_GROUP } from '@/lib/groups';
 import { arrangeHostTiles } from '@/lib/host-tiles';
 import { iconInfo } from '@/lib/icon-search';
-import type { Dashboard, Service } from '@/lib/types';
+import { currentSites } from '@/lib/sites';
+import { isSiteKey } from '@/lib/tiles';
+import type { Dashboard, Service, SiteCheck } from '@/lib/types';
 import { currentUsage } from '@/lib/usage';
 import { hasDetails, readWidgets } from '@/lib/widgets';
 
@@ -16,6 +18,67 @@ import { hasDetails, readWidgets } from '@/lib/widgets';
  */
 export function serviceKey(c: Container) {
   return c.stack ? `${c.stack.project}/${c.stack.service}` : c.name;
+}
+
+/** A tile's first web link, as one to request, if it's a valid one. */
+function siteUrl(addresses: string[]) {
+  const link = addresses.find(isLink);
+  if (!link) return undefined;
+  try {
+    return new URL(link);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * A website elsewhere as a tile, as it was last found: up when it answers
+ * without an error, down when it doesn't answer or answers with one, which
+ * wants a look, unlike a container stopped on purpose.
+ */
+function siteService(
+  tile: NonNullable<Awaited<ReturnType<typeof db.tile.findUnique>>>,
+  check: SiteCheck | undefined
+): Service {
+  const url = siteUrl(tile.addresses);
+  const status = !url
+    ? 'No address to check'
+    : !check
+      ? 'Not checked yet'
+      : check.ok
+        ? `Answered ${check.status} in ${formatMs(check.ms)}`
+        : check.status
+          ? `Answered ${check.status}`
+          : (check.error ?? 'No answer');
+  return {
+    key: tile.key,
+    // Not a container, but where the rest of the dashboard looks for one
+    containerId: tile.key,
+    containerName: url?.host ?? 'No address',
+    name: tile.name || url?.host || 'Site',
+    group: tile.group || DEFAULT_GROUP,
+    // Its own favicon until it's given one, the letter if it has none
+    icon: tile.icon || (url ? `${url.origin}/favicon.ico` : ''),
+    addresses: tile.addresses,
+    url: url?.href,
+    description: tile.description || undefined,
+    position: tile.position ?? undefined,
+    width: tile.width,
+    height: tile.height,
+    hidden: tile.hidden,
+    edited: true,
+    image: '',
+    state: !url
+      ? 'dead'
+      : !check
+        ? 'starting'
+        : check.ok
+          ? 'running'
+          : 'unhealthy',
+    status,
+    console: false,
+    site: { check },
+  };
 }
 
 /** "poke-helper" or "papermc-minecraft-paper-1" as a name to show. */
@@ -135,6 +198,17 @@ export async function getDashboard(): Promise<Dashboard> {
         details: hasDetails(c),
       };
     });
+  // Websites elsewhere, each a tile added here, with how it last answered
+  const siteTiles = tiles.filter((t) => isSiteKey(t.key));
+  const checks = await currentSites(
+    siteTiles.flatMap((t) => siteUrl(t.addresses)?.href ?? [])
+  );
+  services.push(
+    ...siteTiles.map((t) =>
+      siteService(t, checks.get(siteUrl(t.addresses)?.href ?? ''))
+    )
+  );
+
   const icons = await iconInfo(services.map((s) => s.icon));
   for (const service of services) {
     const info = icons.get(service.icon);

@@ -1,4 +1,5 @@
 import type { ContainerState } from '@/lib/docker';
+import type { Service } from '@/lib/types';
 
 /** How a container is doing, in the three ways the dashboard shows it. */
 export type Health = 'ok' | 'attention' | 'off';
@@ -28,4 +29,12 @@ const LABELS: Record<ContainerState, string> = {
 
 export function stateLabel(state: ContainerState) {
   return LABELS[state];
+}
+
+/** What a tile's state is called: a container's, or for a website, whether it's up. */
+export function labelOf(service: Service) {
+  if (!service.site) return stateLabel(service.state);
+  if (service.state === 'dead') return 'No address';
+  const check = service.site.check;
+  return !check ? 'Checking' : check.ok ? 'Up' : 'Down';
 }
