@@ -11,6 +11,7 @@ import {
   RefreshCwIcon,
   RotateCwIcon,
   SquareIcon,
+  Trash2Icon,
 } from 'lucide-react';
 
 import { reloadCaddyConfig, runContainerAction } from '@/actions/containers';
@@ -31,6 +32,7 @@ import { GitPanel } from '@/components/git/git-panel';
 import { AddressList } from '@/components/service/address-list';
 import { AppDetails, Facts, Panel } from '@/components/service/app-details';
 import { LogViewer } from '@/components/service/log-viewer';
+import { RemoveServiceDialog } from '@/components/service/remove-service-dialog';
 import { ServiceIcon } from '@/components/service/service-icon';
 import { StatePill } from '@/components/service/status-dot';
 import {
@@ -94,6 +96,10 @@ export function ServiceDialog({
           <ServiceBody
             service={service}
             onChanged={onChanged}
+            onRemoved={() => {
+              onChanged();
+              onClose();
+            }}
             onEdit={onEdit}
             tab={tab}
             memoryTotal={memoryTotal}
@@ -107,18 +113,22 @@ export function ServiceDialog({
 function ServiceBody({
   service,
   onChanged,
+  onRemoved,
   onEdit,
   tab,
   memoryTotal,
 }: {
   service: Service;
   onChanged: () => void;
+  /** Called once its stack is removed, which closes the window */
+  onRemoved: () => void;
   onEdit: (service: Service) => void;
   tab: 'usage' | 'logs';
   memoryTotal?: number;
 }) {
   const [pending, startTransition] = useTransition();
   const [confirmStop, setConfirmStop] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const running = isRunning(service.state);
   // The repository its stack is in, if any: a Git tab shows once it's known
   const { data: git, mutate: rereadGit } = useSWR<GitStatus | null>(
@@ -220,6 +230,17 @@ function ServiceBody({
             <PencilIcon />
             Edit tile
           </Button>
+          {service.removable && (
+            <Button
+              variant='outline'
+              disabled={pending}
+              onClick={() => setConfirmRemove(true)}
+              className='text-destructive hover:text-destructive'
+            >
+              <Trash2Icon />
+              Remove
+            </Button>
+          )}
           {service.url && (
             <Button variant='outline' className='ml-auto' asChild>
               <a href={service.url} target='_blank' rel='noreferrer'>
@@ -288,6 +309,14 @@ function ServiceBody({
         </TabsContent>
       </Tabs>
 
+      {service.removable && (
+        <RemoveServiceDialog
+          service={service}
+          open={confirmRemove}
+          onOpenChange={setConfirmRemove}
+          onRemoved={onRemoved}
+        />
+      )}
       <AlertDialog open={confirmStop} onOpenChange={setConfirmStop}>
         <AlertDialogContent>
           <AlertDialogHeader>
