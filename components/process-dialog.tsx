@@ -190,7 +190,8 @@ function Details({
         </div>
       )}
 
-      <DialogFooter className='items-center'>
+      {/* On a phone the footer's a column, and its button spans it */}
+      <DialogFooter className='sm:items-center'>
         {data?.locked ? (
           // As tall as the Stop button it stands in place of, so the
           // dialog's the same height whichever it shows
