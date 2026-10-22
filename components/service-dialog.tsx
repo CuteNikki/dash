@@ -21,9 +21,10 @@ import { MEASURES, type Measure } from '@/lib/format';
 import type { GitStatus } from '@/lib/git';
 import { isRunning, stateLabel } from '@/lib/status';
 import type { Service } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 import { AddressList } from '@/components/address-list';
-import { AppDetails } from '@/components/app-details';
+import { AppDetails, Facts, Panel } from '@/components/app-details';
 import { FilesPanel } from '@/components/files-panel';
 import { GitPanel } from '@/components/git-panel';
 import { HistoryChart } from '@/components/history-chart';
@@ -303,7 +304,7 @@ function ServiceBody({
   );
 }
 
-/** One measure: its current value, and the last ten minutes of it. */
+/** One measure as a card: its current value, and the last ten minutes of it. */
 function UsageChart({
   label,
   value,
@@ -321,19 +322,21 @@ function UsageChart({
   measuring: boolean;
 }) {
   return (
-    <div className='flex flex-col gap-2'>
-      <span className='text-muted-foreground'>{label}, last ten minutes</span>
-      <span className='font-mono text-lg tabular-nums'>
-        {value !== undefined ? (
-          measure.format(value)
-        ) : measuring ? (
-          <TextSkeleton className='w-16' />
-        ) : (
-          '–'
-        )}
+    <Panel title={label}>
+      <span className='flex items-baseline justify-between gap-2'>
+        <span className='font-mono text-lg tabular-nums'>
+          {value !== undefined ? (
+            measure.format(value)
+          ) : measuring ? (
+            <TextSkeleton className='w-16' />
+          ) : (
+            '–'
+          )}
+        </span>
+        <span className='text-muted-foreground'>last ten minutes</span>
       </span>
       {/* The chart's room, kept until there are readings to draw */}
-      <div className='h-24'>
+      <div className='h-16'>
         {values && times && (
           <HistoryChart
             label={`${label} over the last ten minutes`}
@@ -343,35 +346,44 @@ function UsageChart({
           />
         )}
       </div>
-    </div>
+    </Panel>
   );
 }
 
+/**
+ * What it is and what it uses, each a card, and what its app has to say
+ * when it has something: that in the middle, as what's most its own, with
+ * the rest in a column beside it where there's room, below it where not.
+ */
 function UsagePanel({ service }: { service: Service }) {
   const usage = service.usage;
   // A running one that hasn't been measured yet, as just after it starts
   const measuring =
     !usage && ['running', 'unhealthy', 'starting'].includes(service.state);
-  const details = [
-    ['Image', service.image],
-    ['Container', service.containerName],
-    ['Stack', service.stack?.dir ?? 'Not part of a compose stack'],
-    ['Status', service.status],
+  const app = service.details && isRunning(service.state);
+  const facts = [
+    { label: 'Status', value: service.status },
+    { label: 'Image', value: service.image },
+    { label: 'Container', value: service.containerName },
+    {
+      label: 'Stack',
+      value: service.stack?.dir ?? 'Not part of a compose stack',
+    },
   ];
   return (
-    <div className='flex flex-col gap-6'>
-      <dl className='grid grid-cols-[auto_1fr] gap-x-6 gap-y-2'>
-        {details.map(([label, value]) => (
-          <div key={label} className='contents'>
-            <dt className='text-muted-foreground'>{label}</dt>
-            <dd className='font-mono break-all'>{value}</dd>
-          </div>
-        ))}
-      </dl>
-      {service.details && isRunning(service.state) && (
-        <AppDetails containerId={service.containerId} />
+    <div
+      className={cn(
+        'grid gap-3',
+        app && 'lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start'
       )}
-      <div className='flex flex-col gap-6'>
+    >
+      {app && (
+        <div className='flex min-w-0 flex-col gap-3'>
+          <AppDetails containerId={service.containerId} />
+        </div>
+      )}
+      {/* Side by side below it, or one above another in the column beside it */}
+      <div className={cn('grid gap-3 sm:grid-cols-2', app && 'lg:grid-cols-1')}>
         <UsageChart
           label='CPU'
           value={usage?.cpu}
@@ -388,6 +400,12 @@ function UsagePanel({ service }: { service: Service }) {
           measure={MEASURES.memory}
           measuring={measuring}
         />
+        <Panel
+          title='Container'
+          className={cn('sm:col-span-2', app && 'lg:col-span-1')}
+        >
+          <Facts facts={facts} />
+        </Panel>
       </div>
     </div>
   );
