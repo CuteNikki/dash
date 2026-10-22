@@ -13,6 +13,7 @@ import {
 
 import { GroupField } from '@/components/dashboard/fields/group-field';
 import { CodeEditor } from '@/components/editor/code-editor';
+import { AddressField } from '@/components/new-service/address-field';
 import { TemplatePicker } from '@/components/new-service/template-picker';
 import { Button } from '@/components/ui/button';
 import {
@@ -222,18 +223,15 @@ function NewServiceForm({
             />
           </div>
         </div>
-        <div className='grid gap-4 sm:grid-cols-[1fr_10rem_6rem]'>
+        <div className='grid items-start gap-4 sm:grid-cols-[1fr_10rem_6rem]'>
           <div className='flex flex-col gap-2'>
             <Label htmlFor='service-domain'>
-              Domain <span className='text-muted-foreground'>(optional)</span>
+              Address <span className='text-muted-foreground'>(optional)</span>
             </Label>
-            <Input
+            <AddressField
               id='service-domain'
-              value={domain}
-              onChange={(e) => setDomain(e.target.value)}
-              placeholder='app.niso.moe'
-              className='font-mono'
-              autoComplete='off'
+              onChange={setDomain}
+              disabled={running}
             />
           </div>
           <div className='flex flex-col gap-2'>
