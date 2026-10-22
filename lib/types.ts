@@ -36,6 +36,10 @@ export type Service = {
   stack?: { project: string; service: string; dir: string; files: string[] };
   /** Its stack can be removed from here: one of ~/services' own, not dash's or Caddy's */
   removable: boolean;
+  /** A newer image or version, or commits to build, once checked */
+  update?: ServiceUpdate;
+  /** Why it couldn't be checked for one */
+  updateError?: string;
   /** Takes commands typed into its console, as a game server does */
   console: boolean;
   usage?: {
@@ -113,7 +117,27 @@ export type Dashboard = {
   host?: HostStats;
   /** No stats yet, but they're coming: they take two readings, a few seconds apart */
   hostComing: boolean;
+  /** When updates were last looked for, and whether they're being looked for now */
+  updates: { checkedAt?: number; checking: boolean };
 };
+
+/**
+ * What updating a service would bring: a newer image under the tag it
+ * follows, as "latest"; a newer version than the one it's fixed to; or, for
+ * one built here from a repository, commits on its branch not yet pulled.
+ */
+export type ServiceUpdate =
+  | { kind: 'image'; tag: string }
+  | {
+      kind: 'version';
+      from: string;
+      to: string;
+      /** A new major version, which can need more than pulling it */
+      major: boolean;
+      /** Where its source is, whose releases say what's changed */
+      source?: string;
+    }
+  | { kind: 'commits'; behind: number; branch: string; upstream: string };
 
 /** The server: CPU over all its cores, memory, its disk and its internet traffic. */
 export type HostStats = {

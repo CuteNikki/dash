@@ -78,6 +78,7 @@ type RawContainer = {
   Id: string;
   Names: string[];
   Image: string;
+  ImageID: string;
   State: string;
   Status: string;
   Created: number;
@@ -104,6 +105,8 @@ export type Container = {
   id: string;
   name: string;
   image: string;
+  /** The image it was made from, as Docker has it: "sha256:…" */
+  imageId: string;
   state: ContainerState;
   /** Docker's own words, e.g. "Up 2 days (healthy)" */
   status: string;
@@ -129,6 +132,7 @@ function toContainer(raw: RawContainer): Container {
     id: raw.Id,
     name: raw.Names[0]?.replace(/^\//, '') ?? raw.Id.slice(0, 12),
     image: raw.Image,
+    imageId: raw.ImageID,
     state: stateOf(raw),
     status: raw.Status,
     created: raw.Created,
@@ -158,6 +162,25 @@ export async function listContainers() {
     '/containers/json?all=true'
   );
   return raw.map(toContainer).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * What Docker knows of an image: the registry digests it was pulled as,
+ * none for one built here, and where its source is, from its labels.
+ */
+export async function imageDetails(id: string) {
+  const raw = await dockerJson<{
+    RepoDigests?: string[];
+    Config?: { Labels?: Record<string, string> | null };
+  }>('GET', `/images/${encodeURIComponent(id)}/json`);
+  const labels = raw.Config?.Labels ?? {};
+  return {
+    digests: (raw.RepoDigests ?? []).map((d) => d.slice(d.indexOf('@') + 1)),
+    source:
+      labels['org.opencontainers.image.source'] ||
+      labels['org.opencontainers.image.url'] ||
+      undefined,
+  };
 }
 
 export type ContainerAction = 'start' | 'stop' | 'restart';

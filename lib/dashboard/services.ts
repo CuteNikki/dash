@@ -17,6 +17,7 @@ import { currentUsage } from '@/lib/host/usage';
 import { iconInfo } from '@/lib/icons/icon-search';
 import { removable } from '@/lib/stacks/service-stacks';
 import type { Dashboard, Service, SiteCheck } from '@/lib/types';
+import { currentUpdates } from '@/lib/updates/check';
 
 /**
  * A container's tile key: its compose project and service, which survive the
@@ -169,49 +170,53 @@ export async function getDashboard(): Promise<Dashboard> {
   // The development helper that reads the server's stats isn't a service, nor
   // is a container dash runs for a moment, as to measure the disk
   const helper = process.env.HOST_HELPER_CONTAINER;
-  const services = containers
-    .filter((c) => c.name !== helper && !c.labels[RUN_LABEL])
-    .map((c): Service => {
-      const l = c.labels;
-      const key = serviceKey(c);
-      const tile = edited.get(key);
-      const u = usage.get(c.id);
-      // A tile edited here has its own addresses, even none
-      const addresses = tile ? tile.addresses : labelAddresses(c);
-      return {
-        key,
-        containerId: c.id,
-        containerName: c.name,
-        name: tile?.name || l['homepage.name'] || prettyName(c),
-        group: tile?.group || l['homepage.group'] || DEFAULT_GROUP,
-        icon:
-          tile?.icon ||
-          iconName(l['homepage.icon']) ||
-          c.stack?.service ||
-          c.name,
-        addresses,
-        url: addresses.find(isLink),
-        // Its own once edited here, if only to have none
-        description:
-          (tile?.description ?? l['homepage.description']) || undefined,
-        position: tile?.position ?? undefined,
-        width: tile?.width ?? 1,
-        height: tile?.height ?? 1,
-        hidden: tile?.hidden ?? false,
-        edited: !!tile,
-        image: c.image,
-        state: c.state,
-        status: c.status,
-        stack: c.stack,
-        removable: !!c.stack && removable(c.stack, containers),
-        console: consoles.has(c.id),
-        usage: u
-          ? { cpu: u.cpu, memory: u.memory, history: u.history }
-          : undefined,
-        widget: widgets.get(c.id),
-        details: hasDetails(c),
-      };
-    });
+  const shown = containers.filter(
+    (c) => c.name !== helper && !c.labels[RUN_LABEL]
+  );
+  const updates = currentUpdates(shown);
+  const services = shown.map((c): Service => {
+    const l = c.labels;
+    const key = serviceKey(c);
+    const tile = edited.get(key);
+    const u = usage.get(c.id);
+    // A tile edited here has its own addresses, even none
+    const addresses = tile ? tile.addresses : labelAddresses(c);
+    return {
+      key,
+      containerId: c.id,
+      containerName: c.name,
+      name: tile?.name || l['homepage.name'] || prettyName(c),
+      group: tile?.group || l['homepage.group'] || DEFAULT_GROUP,
+      icon:
+        tile?.icon ||
+        iconName(l['homepage.icon']) ||
+        c.stack?.service ||
+        c.name,
+      addresses,
+      url: addresses.find(isLink),
+      // Its own once edited here, if only to have none
+      description:
+        (tile?.description ?? l['homepage.description']) || undefined,
+      position: tile?.position ?? undefined,
+      width: tile?.width ?? 1,
+      height: tile?.height ?? 1,
+      hidden: tile?.hidden ?? false,
+      edited: !!tile,
+      image: c.image,
+      state: c.state,
+      status: c.status,
+      stack: c.stack,
+      removable: !!c.stack && removable(c.stack, containers),
+      update: updates.byContainer.get(c.id)?.update,
+      updateError: updates.byContainer.get(c.id)?.error,
+      console: consoles.has(c.id),
+      usage: u
+        ? { cpu: u.cpu, memory: u.memory, history: u.history }
+        : undefined,
+      widget: widgets.get(c.id),
+      details: hasDetails(c),
+    };
+  });
   // Websites elsewhere, each a tile added here, with how it last answered
   const siteTiles = tiles.filter((t) => isSiteKey(t.key));
   const checks = await currentSites(
@@ -236,5 +241,6 @@ export async function getDashboard(): Promise<Dashboard> {
     layouts,
     host,
     hostComing,
+    updates: { checkedAt: updates.checkedAt, checking: updates.checking },
   };
 }
