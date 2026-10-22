@@ -53,7 +53,7 @@ export function NewServiceDialog({
   return (
     // Not closed while it's adding, so its outcome isn't missed
     <Dialog open={open} onOpenChange={(o) => !o && !running && onClose()}>
-      <DialogContent className='flex flex-col sm:max-w-3xl sm:overflow-hidden'>
+      <DialogContent className='flex flex-col sm:max-w-3xl'>
         {open && (
           <NewServiceForm
             groups={groups}
@@ -174,7 +174,7 @@ function NewServiceForm({
 
   return (
     <form
-      className='flex flex-col gap-4 sm:min-h-0 sm:flex-1'
+      className='contents'
       onSubmit={(e) => {
         e.preventDefault();
         void create();
@@ -188,128 +188,124 @@ function NewServiceForm({
         </DialogDescription>
       </DialogHeader>
 
-      {/* The fields laid out by a div: a fieldset lays its own out in a box of
-          its content's height, so nothing in it could give way. The fieldset
-          only disables them all while it's adding */}
-      <div className='-mx-1 flex flex-col gap-4 px-1 sm:min-h-0 sm:flex-1 sm:overflow-y-auto'>
-        <fieldset disabled={running} className='contents'>
-          <ToggleGroup
-            type='single'
-            variant='segmented'
-            value={source}
-            // Picking the shown one again would unpick it; keep one picked
-            onValueChange={(v) => v && setSource(v as typeof source)}
-            aria-label='Start from'
-          >
-            <ToggleGroupItem value='template'>Template</ToggleGroupItem>
-            <ToggleGroupItem value='run'>docker run</ToggleGroupItem>
-          </ToggleGroup>
-          {source === 'template' ? (
-            <TemplatePicker picked={template} onPick={pick} />
-          ) : (
-            <DockerRunImport onConvert={fromRun} />
-          )}
-          <div className='grid gap-4 sm:grid-cols-2'>
-            <div className='flex flex-col gap-2'>
-              <Label htmlFor='service-name'>Name</Label>
-              <Input
-                id='service-name'
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder='my-app'
-                className='font-mono'
-                autoComplete='off'
-                required
-              />
-            </div>
-            <div className='flex flex-col gap-2'>
-              <Label htmlFor='service-group'>Group</Label>
-              <GroupField
-                id='service-group'
-                value={group}
-                groups={groups}
-                onChange={setGroup}
-              />
-            </div>
-          </div>
-          {/* From a tablet's width up, the one part that gives way when the
-              window is short, down to half its height, rather than the form
-              scrolling: it scrolls itself. On a phone the window scrolls
-              whole, its heading with it, rather than pinning it */}
-          <div className='flex shrink-0 flex-col gap-2 sm:min-h-39 sm:shrink'>
-            <span className='text-xs/relaxed font-medium'>Compose file</span>
-            <div className='min-h-32 flex-1 basis-64'>
-              <CodeEditor
-                value={input.compose}
-                onChange={setCompose}
-                fileName='docker-compose.yml'
-                label='Compose file'
-                readOnly={running}
-              />
-            </div>
+      {/* The window is the one column everything's in, its heading too, so
+          that when it must scroll, all of it does and nothing's pinned; the
+          form and the fieldset, which disables every field while it's adding,
+          are boxes of no size of their own */}
+      <fieldset disabled={running} className='contents'>
+        <ToggleGroup
+          type='single'
+          variant='segmented'
+          value={source}
+          // Picking the shown one again would unpick it; keep one picked
+          onValueChange={(v) => v && setSource(v as typeof source)}
+          aria-label='Start from'
+        >
+          <ToggleGroupItem value='template'>Template</ToggleGroupItem>
+          <ToggleGroupItem value='run'>docker run</ToggleGroupItem>
+        </ToggleGroup>
+        {source === 'template' ? (
+          <TemplatePicker picked={template} onPick={pick} />
+        ) : (
+          <DockerRunImport onConvert={fromRun} />
+        )}
+        <div className='grid gap-4 sm:grid-cols-2'>
+          <div className='flex flex-col gap-2'>
+            <Label htmlFor='service-name'>Name</Label>
+            <Input
+              id='service-name'
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder='my-app'
+              className='font-mono'
+              autoComplete='off'
+              required
+            />
           </div>
           <div className='flex flex-col gap-2'>
-            <span className='text-xs/relaxed font-medium'>
-              .env <span className='text-muted-foreground'>(optional)</span>
-            </span>
-            <div className='h-24'>
-              <CodeEditor
-                value={env}
-                onChange={setEnv}
-                fileName='.env'
-                label='.env'
-                readOnly={running}
-              />
-            </div>
+            <Label htmlFor='service-group'>Group</Label>
+            <GroupField
+              id='service-group'
+              value={group}
+              groups={groups}
+              onChange={setGroup}
+            />
           </div>
-          <div className='grid items-start gap-4 sm:grid-cols-[1fr_10rem_6rem]'>
-            <div className='flex flex-col gap-2'>
-              <Label htmlFor='service-domain'>
-                Address{' '}
-                <span className='text-muted-foreground'>(optional)</span>
-              </Label>
-              <AddressField
-                id='service-domain'
-                onChange={setDomain}
-                disabled={running}
-              />
-            </div>
-            <div className='flex flex-col gap-2'>
-              <Label htmlFor='service-upstream'>Service</Label>
-              <Input
-                id='service-upstream'
-                value={input.service}
-                onChange={(e) => setService(e.target.value)}
-                disabled={!domain.trim()}
-                className='font-mono'
-                autoComplete='off'
-              />
-            </div>
-            <div className='flex flex-col gap-2'>
-              <Label htmlFor='service-port'>Port</Label>
-              <Input
-                id='service-port'
-                value={port}
-                onChange={(e) => setPort(e.target.value)}
-                disabled={!domain.trim()}
-                inputMode='numeric'
-                placeholder='3000'
-                className='font-mono'
-                autoComplete='off'
-              />
-            </div>
+        </div>
+        {/* The one part that gives way when the window is short, down to
+              half its height, before the window scrolls: it scrolls itself */}
+        <div className='flex min-h-39 flex-col gap-2'>
+          <span className='text-xs/relaxed font-medium'>Compose file</span>
+          <div className='min-h-32 flex-1 basis-64'>
+            <CodeEditor
+              value={input.compose}
+              onChange={setCompose}
+              fileName='docker-compose.yml'
+              label='Compose file'
+              readOnly={running}
+            />
           </div>
-          {error && <p className='text-destructive'>{error}</p>}
-          {output && (
-            <pre
-              aria-live='polite'
-              className='max-h-40 shrink-0 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs/relaxed whitespace-pre-wrap text-muted-foreground'
-            >
-              {output.length ? output.join('\n') : 'Starting…'}
-            </pre>
-          )}
-        </fieldset>
-      </div>
+        </div>
+        <div className='flex flex-col gap-2'>
+          <span className='text-xs/relaxed font-medium'>
+            .env <span className='text-muted-foreground'>(optional)</span>
+          </span>
+          <div className='h-24'>
+            <CodeEditor
+              value={env}
+              onChange={setEnv}
+              fileName='.env'
+              label='.env'
+              readOnly={running}
+            />
+          </div>
+        </div>
+        <div className='grid items-start gap-4 sm:grid-cols-[1fr_10rem_6rem]'>
+          <div className='flex flex-col gap-2'>
+            <Label htmlFor='service-domain'>
+              Address <span className='text-muted-foreground'>(optional)</span>
+            </Label>
+            <AddressField
+              id='service-domain'
+              onChange={setDomain}
+              disabled={running}
+            />
+          </div>
+          <div className='flex flex-col gap-2'>
+            <Label htmlFor='service-upstream'>Service</Label>
+            <Input
+              id='service-upstream'
+              value={input.service}
+              onChange={(e) => setService(e.target.value)}
+              disabled={!domain.trim()}
+              className='font-mono'
+              autoComplete='off'
+            />
+          </div>
+          <div className='flex flex-col gap-2'>
+            <Label htmlFor='service-port'>Port</Label>
+            <Input
+              id='service-port'
+              value={port}
+              onChange={(e) => setPort(e.target.value)}
+              disabled={!domain.trim()}
+              inputMode='numeric'
+              placeholder='3000'
+              className='font-mono'
+              autoComplete='off'
+            />
+          </div>
+        </div>
+        {error && <p className='text-destructive'>{error}</p>}
+        {output && (
+          <pre
+            aria-live='polite'
+            className='max-h-40 shrink-0 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs/relaxed whitespace-pre-wrap text-muted-foreground'
+          >
+            {output.length ? output.join('\n') : 'Starting…'}
+          </pre>
+        )}
+      </fieldset>
 
       <DialogFooter>
         <Button type='submit' disabled={running}>
