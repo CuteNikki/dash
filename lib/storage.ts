@@ -50,7 +50,9 @@ export async function putFile(key: string, body: ArrayBuffer, type: string) {
 export type StoredObject = { key: string; size: number };
 
 function tag(xml: string, name: string) {
-  return new RegExp(`<${name}>([\s\S]*?)</${name}>`).exec(xml)?.[1] ?? '';
+  return (
+    new RegExp(String.raw`<${name}>([\s\S]*?)</${name}>`).exec(xml)?.[1] ?? ''
+  );
 }
 
 function unescapeXml(text: string) {
