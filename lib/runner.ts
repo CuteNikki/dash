@@ -25,6 +25,9 @@ export type Run = {
   signalsHost?: boolean;
 };
 
+/** Marks the containers dash runs for a moment, as for measuring the disk, which aren't services. */
+export const RUN_LABEL = 'dash.purpose';
+
 export type RunLine = { stream: 'stdout' | 'stderr'; line: string };
 
 async function json<T>(method: string, path: string, body?: unknown) {
@@ -62,7 +65,7 @@ async function create(run: Run) {
     WorkingDir: run.workingDir,
     User: run.user,
     Env: Object.entries(run.env ?? {}).map(([k, v]) => `${k}=${v}`),
-    Labels: { 'dash.purpose': 'a short-lived run for the dashboard' },
+    Labels: { [RUN_LABEL]: 'a short-lived run for the dashboard' },
     HostConfig: {
       Binds: [`${STACKS_ROOT}:${STACKS_ROOT}`, ...(run.binds ?? [])],
       // By Docker once it exits, so none is left behind even when the

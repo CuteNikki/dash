@@ -6,6 +6,7 @@ import { formatMs, isLink } from '@/lib/format';
 import { DEFAULT_GROUP } from '@/lib/groups';
 import { arrangeHostTiles } from '@/lib/host-tiles';
 import { iconInfo } from '@/lib/icon-search';
+import { RUN_LABEL } from '@/lib/runner';
 import { removable } from '@/lib/service-stacks';
 import { currentSites } from '@/lib/sites';
 import { isSiteKey } from '@/lib/tiles';
@@ -160,10 +161,11 @@ export async function getDashboard(): Promise<Dashboard> {
     readWidgets(containers),
   ]);
 
-  // The development helper that reads the server's stats isn't a service
+  // The development helper that reads the server's stats isn't a service, nor
+  // is a container dash runs for a moment, as to measure the disk
   const helper = process.env.HOST_HELPER_CONTAINER;
   const services = containers
-    .filter((c) => c.name !== helper)
+    .filter((c) => c.name !== helper && !c.labels[RUN_LABEL])
     .map((c): Service => {
       const l = c.labels;
       const key = serviceKey(c);
