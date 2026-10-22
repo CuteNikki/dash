@@ -110,14 +110,19 @@ export function ServiceTile({
   );
 }
 
-/** An app's numbers in a row, each its value over its label. */
+/** An app's numbers as chips, each its label then its value, wrapping as needed. */
 function WidgetStats({ stats }: { stats: WidgetStat[] }) {
   return (
-    <dl className='flex gap-4 overflow-hidden'>
+    <dl className='flex flex-wrap gap-1.5'>
       {stats.map((stat) => (
-        <div key={stat.label} className='flex min-w-0 flex-col-reverse'>
-          <dt className='truncate text-muted-foreground'>{stat.label}</dt>
-          <dd className='truncate font-mono font-medium tabular-nums'>
+        <div
+          key={stat.label}
+          className='flex min-w-0 gap-1.5 rounded-md bg-muted px-1.5'
+        >
+          <dt className='truncate text-muted-foreground lowercase'>
+            {stat.label}
+          </dt>
+          <dd className='font-mono font-medium whitespace-nowrap tabular-nums'>
             {stat.value}
           </dd>
         </div>
