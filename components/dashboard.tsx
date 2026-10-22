@@ -6,7 +6,7 @@ import useSWR from 'swr';
 
 import { PencilIcon } from 'lucide-react';
 
-import { arrangeGroups, saveLayout, type TileResult } from '@/actions/tiles';
+import { saveLayout, type TileResult } from '@/actions/tiles';
 import { fetcher } from '@/lib/fetcher';
 import { groupNames, groupServices } from '@/lib/groups';
 import type { Dashboard as DashboardData, Service } from '@/lib/types';
@@ -76,31 +76,22 @@ export function Dashboard({
   }
 
   function saveCells({ cells, moved }: LayoutChange) {
-    const keys = new Set(cells.map((c) => c.key));
+    const at = (key: string, columns: number) => `${key} ${columns}`;
+    const replaced = new Set(cells.map((c) => at(c.key, c.columns)));
     const groupOf = new Map(moved.map((m) => [m.key, m.group]));
     void change(
       (d) => ({
         ...d,
         layouts: [
-          ...d.layouts.filter(
-            (l) => !(l.columns === columns && keys.has(l.key))
-          ),
-          ...cells.map((c) => ({ ...c, columns })),
+          ...d.layouts.filter((l) => !replaced.has(at(l.key, l.columns))),
+          ...cells,
         ],
         services: d.services.map((s) =>
           groupOf.has(s.key) ? { ...s, group: groupOf.get(s.key)! } : s
         ),
       }),
-      () => saveLayout({ columns, cells, moved }),
+      () => saveLayout({ cells, moved }),
       "Couldn't save where tiles go"
-    );
-  }
-
-  function saveGroups(names: string[]) {
-    void change(
-      (d) => ({ ...d, groupOrder: names }),
-      () => arrangeGroups(names),
-      "Couldn't save the groups' order"
     );
   }
 
@@ -176,7 +167,6 @@ export function Dashboard({
         editing={editing}
         saved={data.layouts}
         onLayout={saveCells}
-        onGroups={saveGroups}
       />
       <ServiceDialog
         service={find(openKey)}

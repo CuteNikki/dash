@@ -124,6 +124,23 @@ function settle(layout: Layout, first: string[] = []): Layout {
   return next;
 }
 
+/**
+ * A layout without the rows nothing's in, those below moving up: for
+ * sections, where a row of nothing would only be a wider gap.
+ */
+export function withoutEmptyRows(layout: Layout): Layout {
+  const used = new Set(
+    [...layout.values()].flatMap((c) =>
+      Array.from({ length: c.h }, (_, i) => c.y + i)
+    )
+  );
+  const above = (y: number) =>
+    Array.from({ length: y }, (_, i) => i).filter((i) => used.has(i)).length;
+  return new Map(
+    [...layout].map(([k, c]) => [k, { ...c, y: above(c.y) }] as const)
+  );
+}
+
 /** The rows a layout takes up. */
 export function rowsOf(layout: Layout) {
   return Math.max(0, ...[...layout.values()].map((c) => c.y + c.h));

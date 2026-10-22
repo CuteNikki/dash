@@ -49,13 +49,13 @@ export async function saveTile(input: TileInput): Promise<TileResult> {
   });
 }
 
-const LayoutInput = z
-  .object({
-    columns: z.number().int().min(1).max(MAX_COLUMNS),
-    /** Where each tile in the grids that changed now sits */
-    cells: z.array(
-      z.object({
+const LayoutInput = z.object({
+  /** Where each tile or section that changed now sits, in a grid of so many columns */
+  cells: z.array(
+    z
+      .object({
         key: z.string().min(1),
+        columns: z.number().int().min(1).max(MAX_COLUMNS),
         x: z
           .number()
           .int()
@@ -65,25 +65,25 @@ const LayoutInput = z
         w: z.number().int().min(1).max(MAX_COLUMNS),
         h: z.number().int().min(1).max(MAX_ROWS),
       })
-    ),
-    /** Services dragged into another group */
-    moved: z.array(z.object({ key: z.string().min(1), group: Group })),
-  })
-  .refine((l) => l.cells.every((c) => c.x + c.w <= l.columns), {
-    message: 'A tile goes past the last column',
-  });
+      .refine((c) => c.x + c.w <= c.columns, {
+        message: 'A tile goes past the last column',
+      })
+  ),
+  /** Services dragged into another group */
+  moved: z.array(z.object({ key: z.string().min(1), group: Group })),
+});
 
 export type LayoutInput = z.input<typeof LayoutInput>;
 
-/** Saves where tiles were dragged to, or resized, at this number of columns. */
+/** Saves where tiles or sections were dragged to, or resized. */
 export async function saveLayout(input: LayoutInput): Promise<TileResult> {
   await requireUser();
   const parsed = LayoutInput.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
-  const { columns, cells, moved } = parsed.data;
+  const { cells, moved } = parsed.data;
   await ensureTiles(moved.map((m) => m.key));
   await db.$transaction([
-    ...cells.map(({ key, ...cell }) =>
+    ...cells.map(({ key, columns, ...cell }) =>
       db.tileLayout.upsert({
         where: { key_columns: { key, columns } },
         create: { key, columns, ...cell },
@@ -94,22 +94,6 @@ export async function saveLayout(input: LayoutInput): Promise<TileResult> {
       db.tile.update({ where: { key }, data: { group } })
     ),
   ]);
-}
-
-/** Saves the order groups were dragged into. */
-export async function arrangeGroups(names: string[]): Promise<TileResult> {
-  await requireUser();
-  const parsed = z.array(Group).safeParse(names);
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
-  await db.$transaction(
-    parsed.data.map((name, position) =>
-      db.group.upsert({
-        where: { name },
-        create: { name, position },
-        update: { position },
-      })
-    )
-  );
 }
 
 export type TileSnapshot = NonNullable<
