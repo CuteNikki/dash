@@ -131,8 +131,15 @@ export type Dashboard = {
 export type SystemUpdates = {
   /** "Ubuntu 26.04.1 LTS" */
   os: string;
-  /** Security fixes first */
-  packages: { name: string; from: string; to: string; security: boolean }[];
+  /** Security fixes first, then what Ubuntu is still rolling out, which apt holds back for now */
+  packages: {
+    name: string;
+    from: string;
+    to: string;
+    security: boolean;
+    /** Being rolled out bit by bit, so apt installs it only once it reaches this server */
+    phased: boolean;
+  }[];
   /** Ubuntu asks for a restart, to finish what's been installed */
   reboot: boolean;
   /** The packages it's for, as it lists them */

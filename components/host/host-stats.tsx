@@ -212,8 +212,10 @@ function SystemButton({
   system: SystemUpdates;
   onClick: () => void;
 }) {
-  const count = system.packages.length;
-  const security = system.packages.filter((p) => p.security).length;
+  // What an upgrade installs, not what Ubuntu is still rolling out
+  const waiting = system.packages.filter((p) => !p.phased);
+  const count = waiting.length;
+  const security = waiting.filter((p) => p.security).length;
   const words = [
     system.upgrading
       ? 'Upgrading…'

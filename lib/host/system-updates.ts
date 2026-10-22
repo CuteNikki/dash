@@ -1,6 +1,11 @@
 import 'server-only';
 
-import { runContainer, runToEnd, type Run } from '@/lib/docker/runner';
+import {
+  runContainer,
+  runToEnd,
+  type Run,
+  type RunLine,
+} from '@/lib/docker/runner';
 import type { SystemUpdates } from '@/lib/types';
 
 /**
@@ -55,6 +60,7 @@ systemctl is-active -q ${UNIT} && echo upgrading=1
 [ -e ${STATUS} ] && echo "lastexit=$(cat ${STATUS})"
 systemctl list-units --failed --plain --no-legend | awk '{print "failed="$1}'
 apt list --upgradable 2>/dev/null | grep upgradable | sed 's/^/pkg=/'
+apt-get -s upgrade 2>/dev/null | sed -n '/deferred due to phasing/,/^[^ ]/p' | grep '^ ' | tr ' ' '\\n' | sed '/^$/d; s/^/phased=/'
 true`;
 
 /** "systemd/resolute-updates,resolute-security 259.9-0ubuntu0.1 amd64 [upgradable from: 259.5-0ubuntu3.4]" */
@@ -71,6 +77,8 @@ function parse(lines: string[]): SystemUpdates {
     upgrading: false,
     checkedAt: Date.now(),
   };
+  // Upgrades Ubuntu is rolling out bit by bit, which apt holds back here for now
+  const phased = new Set<string>();
   for (const line of lines) {
     const eq = line.indexOf('=');
     const key = line.slice(0, eq);
@@ -82,6 +90,7 @@ function parse(lines: string[]): SystemUpdates {
     else if (key === 'upgrading') found.upgrading = true;
     else if (key === 'lastexit') found.lastExit = Number(value);
     else if (key === 'failed') found.failedUnits.push(value);
+    else if (key === 'phased') phased.add(value);
     else if (key === 'pkg') {
       const match = value.match(PACKAGE);
       if (!match) continue;
@@ -91,12 +100,18 @@ function parse(lines: string[]): SystemUpdates {
         from,
         to,
         security: origins.split(',').some((o) => o.endsWith('-security')),
+        phased: false,
       });
     }
   }
+  for (const p of found.packages) p.phased = phased.has(p.name);
+  // What an upgrade installs first, security fixes leading; what Ubuntu is
+  // still rolling out after
   found.packages.sort(
     (a, b) =>
-      Number(b.security) - Number(a.security) || a.name.localeCompare(b.name)
+      Number(a.phased) - Number(b.phased) ||
+      Number(b.security) - Number(a.security) ||
+      a.name.localeCompare(b.name)
   );
   return found;
 }
@@ -150,22 +165,70 @@ echo $? > ${STATUS}'`)
   if (!ok) throw new Error(lines.map((l) => l.line).join('\n'));
 }
 
+/** How long to wait for Docker to come back, as after upgrading it, before giving up following. */
+const DOCKER_BACK_MS = 5 * 60_000;
+
+/**
+ * How the upgrade ended, from what systemd's job wrote: undefined while
+ * it's still running, or when Docker can't be asked.
+ */
+async function upgradeOutcome() {
+  const { lines } = await runToEnd(
+    asHost(`systemctl is-active -q ${UNIT} || cat ${STATUS} 2>/dev/null`)
+  ).catch(() => ({ lines: [] }));
+  const code = Number(lines.at(-1)?.line);
+  return lines.length && Number.isInteger(code) ? code : undefined;
+}
+
 /**
  * The running or last upgrade's output, from its start, following it until
- * it's done; exits as it did. Followed again from the start after a break,
- * as when Docker restarts partway.
+ * it's done; exits as it did. Upgrading Docker restarts it, which takes the
+ * container following along with it: then, until the job itself says it's
+ * done, it waits for Docker and follows on from the line it had got to.
+ * When dash goes too, as it does on the server, the window follows again.
  */
-export async function* followUpgrade() {
-  const exit = yield* runContainer(
-    asHost(`
+export async function* followUpgrade(): AsyncGenerator<RunLine, number> {
+  const giveUp = Date.now() + DOCKER_BACK_MS;
+  // Lines already passed on, which following again skips
+  let sent = 0;
+  for (;;) {
+    let seen = 0;
+    try {
+      const lines = runContainer(
+        asHost(`
 since=$(cat ${STARTED} 2>/dev/null || echo 0)
 journalctl -u ${UNIT} -o cat --no-pager --since "@$since" -n all -f & j=$!
 while systemctl is-active -q ${UNIT}; do sleep 1; done
 sleep 1; kill $j 2>/dev/null
 exit $(cat ${STATUS} 2>/dev/null || echo 1)`)
-  );
-  void lookAgain().catch(console.error);
-  return exit;
+      );
+      for (;;) {
+        const next = await lines.next();
+        if (next.done) break;
+        if (++seen > sent) {
+          sent = seen;
+          yield next.value;
+        }
+      }
+    } catch {
+      // Docker went away partway, as upgrading it restarts it
+    }
+    const outcome = await upgradeOutcome();
+    if (outcome !== undefined) {
+      void lookAgain().catch(console.error);
+      return outcome;
+    }
+    if (Date.now() > giveUp) {
+      throw new Error(
+        "Docker hasn't come back to follow the upgrade; it carries on on the server"
+      );
+    }
+    yield {
+      stream: 'stdout',
+      line: '— Docker is restarting, as upgrading it does; following on once it’s back…',
+    };
+    await new Promise((r) => setTimeout(r, 3_000));
+  }
 }
 
 /** Restarts the server in a few seconds, so this answer gets out first. */

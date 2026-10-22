@@ -147,7 +147,9 @@ export function SystemDialog({
     }
   }
 
-  const packages = system?.packages ?? [];
+  // What an upgrade installs, apart from what Ubuntu is still rolling out
+  const packages = (system?.packages ?? []).filter((p) => !p.phased);
+  const phased = (system?.packages ?? []).filter((p) => p.phased);
   const docker = packages.filter((p) => RESTARTS_DOCKER.test(p.name));
 
   return (
@@ -231,6 +233,14 @@ export function SystemDialog({
               Every package is up to date.
             </p>
           ))}
+
+        {phased.length > 0 && (
+          <p className='text-muted-foreground'>
+            Rolling out to this server later:{' '}
+            {phased.map((p) => p.name).join(', ')}. Ubuntu releases these bit by
+            bit, and apt installs them once they reach it.
+          </p>
+        )}
 
         {docker.length > 0 && !output && (
           <p className='text-muted-foreground'>
