@@ -189,7 +189,7 @@ export function FilesPanel({
             {isMarkdown && opened?.content !== undefined && (
               // A solid backing, as the outline button's own background is
               // see-through in dark mode and the file would show through it
-              <div className='absolute top-3 right-4 rounded-md bg-background'>
+              <div className='absolute top-3 right-4 rounded-md bg-surface'>
                 {/* Names the other view, the one it switches to */}
                 <Button
                   variant='outline'

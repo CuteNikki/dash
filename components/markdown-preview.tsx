@@ -61,7 +61,7 @@ const components: Components = {
   ),
   pre: (props) => (
     <pre
-      className='my-4 overflow-x-auto rounded-lg bg-background p-4 font-mono text-xs/relaxed'
+      className='my-4 overflow-x-auto rounded-lg bg-surface p-4 font-mono text-xs/relaxed'
       {...props}
     />
   ),

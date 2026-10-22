@@ -557,7 +557,7 @@ function Entry({
     <button
       type='button'
       onClick={onOpen}
-      className={cn(ROW, 'hover:bg-background/60')}
+      className={cn(ROW, 'hover:bg-surface/60')}
     >
       {content}
     </button>

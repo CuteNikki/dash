@@ -522,7 +522,7 @@ function Folder({ path, depth }: { path: string; depth: number }) {
 }
 
 const ROW =
-  'flex w-full items-center gap-1.5 rounded-md py-1 pr-2 text-left hover:bg-background/60 aria-[current=page]:bg-background';
+  'flex w-full items-center gap-1.5 rounded-md py-1 pr-2 text-left hover:bg-surface/60 aria-[current=page]:bg-surface';
 
 function Entry({
   entry,
@@ -726,7 +726,7 @@ function NameInput({
           // the dialog the tree is in then takes focus back to itself
           setTimeout(() => finishDraft(name, false));
         }}
-        className='min-w-0 flex-1 rounded-sm bg-background px-1 outline-1 outline-ring'
+        className='min-w-0 flex-1 rounded-sm bg-surface px-1 outline-1 outline-ring'
       />
     </div>
   );

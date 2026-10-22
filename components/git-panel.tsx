@@ -228,7 +228,7 @@ export function GitPanel({
                   <div
                     key={change.path}
                     aria-current={change.path === diffPath ? 'true' : undefined}
-                    className='flex items-center gap-2 rounded-md px-2 py-1 aria-current:bg-background'
+                    className='flex items-center gap-2 rounded-md px-2 py-1 aria-current:bg-surface'
                   >
                     <Checkbox
                       checked={!skipped.has(change.path)}

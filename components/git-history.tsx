@@ -106,7 +106,7 @@ export function GitHistory({
                     type='button'
                     aria-current={c.hash === shown ? 'true' : undefined}
                     onClick={() => setPicked(c.hash)}
-                    className={`${ROW} aria-current:bg-background`}
+                    className={`${ROW} aria-current:bg-surface`}
                   >
                     <span className='truncate' title={c.subject}>
                       {c.subject}
@@ -269,7 +269,7 @@ function CommitView({
                         type='button'
                         aria-current={f.path === file ? 'true' : undefined}
                         onClick={() => setPicked(f.path)}
-                        className='flex w-full items-center gap-2 rounded-md px-2 py-1 text-left aria-current:bg-background'
+                        className='flex w-full items-center gap-2 rounded-md px-2 py-1 text-left aria-current:bg-surface'
                       >
                         <ChangeStatus status={f.status} />
                         <span
