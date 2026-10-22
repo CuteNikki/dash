@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 
 import { COLUMNS_COOKIE, columnsFromCookie } from '@/lib/layout';
@@ -11,6 +12,11 @@ import {
 } from '@/lib/view';
 
 import { Dashboard } from '@/components/dashboard';
+
+/** The tab says which server it's the dashboard of, rather than dash's name. */
+export const metadata: Metadata = {
+  title: { absolute: 'Dashboard · vps.niso.moe' },
+};
 
 /** Columns for a first visit, before the browser's said how wide it is: a laptop's. */
 const FIRST_COLUMNS = 4;

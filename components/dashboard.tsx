@@ -25,6 +25,7 @@ import {
   type BoardSection,
   type LayoutChange,
 } from '@/components/board';
+import { Brand } from '@/components/brand';
 import { EditTileDialog } from '@/components/edit-tile-dialog';
 import { HostTileContent } from '@/components/host-stats';
 import { ServiceDialog } from '@/components/service-dialog';
@@ -202,7 +203,9 @@ export function Dashboard({
     // page would only spread out: then it's centered
     <div className='mx-auto flex w-full max-w-[2200px] flex-col gap-8 px-4 py-6 sm:px-6'>
       <header className='flex items-center gap-3'>
-        <h1 className='mr-auto text-base font-semibold tracking-tight'>dash</h1>
+        <h1 className='mr-auto'>
+          <Brand />
+        </h1>
         <ToggleGroup
           type='single'
           variant='outline'

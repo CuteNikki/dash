@@ -1,3 +1,4 @@
+import { Brand } from '@/components/brand';
 import {
   Card,
   CardContent,
@@ -17,7 +18,8 @@ export function AuthCard({
   children: React.ReactNode;
 }) {
   return (
-    <main className='flex flex-1 items-center justify-center p-4'>
+    <main className='flex flex-1 flex-col items-center justify-center gap-6 p-4'>
+      <Brand />
       <Card className='w-full max-w-sm'>
         <CardHeader>
           <CardTitle className='text-base'>{title}</CardTitle>
