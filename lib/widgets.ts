@@ -106,13 +106,24 @@ async function qbitLogin(url: string) {
   qbitCookie = cookie;
 }
 
+/** Signing in, shared by the stats that need it at once, so it signs in once. */
+let qbitSigningIn: Promise<void> | undefined;
+
+function qbitSignIn(url: string) {
+  return (qbitSigningIn ??= qbitLogin(url).finally(() => {
+    qbitSigningIn = undefined;
+  }));
+}
+
 async function qbitJson<T>(url: string, path: string): Promise<T> {
-  if (!qbitCookie) await qbitLogin(url);
+  if (!qbitCookie) await qbitSignIn(url);
+  const used = qbitCookie;
   try {
-    return await getJson<T>(`${url}${path}`, { Cookie: qbitCookie! });
+    return await getJson<T>(`${url}${path}`, { Cookie: used! });
   } catch {
-    // Its session may have run out: once more, signed in again
-    await qbitLogin(url);
+    // Its session may have run out: once more, signed in again, unless
+    // another stat already has
+    if (qbitCookie === used) await qbitSignIn(url);
     return getJson<T>(`${url}${path}`, { Cookie: qbitCookie! });
   }
 }
