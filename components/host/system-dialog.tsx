@@ -243,11 +243,18 @@ export function SystemDialog({
           ))}
 
         {phased.length > 0 && (
-          <p className='text-muted-foreground'>
-            Rolling out to this server later:{' '}
-            {phased.map((p) => p.name).join(', ')}. Ubuntu releases these bit by
-            bit, and apt installs them once they reach it.
-          </p>
+          // What they are, then why they're waiting on a line of its own,
+          // so it isn't lost at the end of a long list
+          <div className='flex flex-col gap-1 text-muted-foreground'>
+            <p>
+              Rolling out to this server later:{' '}
+              {phased.map((p) => p.name).join(', ')}
+            </p>
+            <p>
+              Ubuntu releases these bit by bit, and apt installs them once they
+              reach it.
+            </p>
+          </div>
         )}
 
         {docker.length > 0 && !output && (
