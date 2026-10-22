@@ -236,9 +236,9 @@ function FilterItem({
       onClick={onPick}
       className={cn(
         'flex shrink-0 items-center gap-3 rounded-md px-2.5 py-1.5 text-left text-sm text-muted-foreground outline-none hover:bg-muted/50 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset lg:justify-between',
-        // Its outline inside it, which the swiped row of chips would cut off
-        active &&
-          'bg-card font-medium text-foreground ring-1 ring-foreground/10 ring-inset'
+        // Picked: its color and outline, not its weight, so it's no wider;
+        // the outline inside it, which the swiped row of chips would cut off
+        active && 'bg-card text-foreground ring-1 ring-foreground/10 ring-inset'
       )}
     >
       <span className='truncate'>{label}</span>

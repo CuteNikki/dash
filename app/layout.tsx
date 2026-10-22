@@ -26,7 +26,9 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
       lang='en'
       suppressHydrationWarning
       className={cn(
-        'h-full antialiased',
+        // The scrollbar keeps its room when there's nothing to scroll, so a
+        // shorter view, the list after the tiles, doesn't shift everything
+        'h-full [scrollbar-gutter:stable] antialiased',
         geistSans.variable,
         jetbrainsMono.variable
       )}
