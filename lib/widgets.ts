@@ -1,7 +1,8 @@
 import 'server-only';
 
 import { execRun, type Container } from '@/lib/docker';
-import { formatBytes, formatRate } from '@/lib/format';
+import { formatBytes, formatRate, imageName } from '@/lib/format';
+import { postgresRows } from '@/lib/postgres';
 import { isRunning } from '@/lib/status';
 import type { Widget, WidgetStat } from '@/lib/types';
 
@@ -29,14 +30,19 @@ const env = (name: string) => process.env[name] || undefined;
 
 /** What a command printed in a container, or an error if it failed or took too long. */
 async function run(c: Container, cmd: string[]) {
-  const { stdout, exitCode } = await Promise.race([
-    execRun(c.id, cmd),
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error(`${cmd[0]} took too long`)), TIMEOUT_MS)
-    ),
-  ]);
+  const { stdout, exitCode } = await inTime(execRun(c.id, cmd), cmd[0]);
   if (exitCode !== 0) throw new Error(`${cmd[0]} exited with ${exitCode}`);
   return stdout;
+}
+
+/** What something gives, or an error once it's taken longer than an app has. */
+function inTime<T>(promise: Promise<T>, what: string) {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`${what} took too long`)), TIMEOUT_MS)
+    ),
+  ]);
 }
 
 /** Garage's sizes, "216.7 kB (211.7 KiB)", in bytes: the one in powers of 1024 where there is one. */
@@ -295,23 +301,30 @@ const APPS: Record<string, App> = {
       ]);
     },
   },
+  // Its databases, each with its size and connections, are in its window
   postgres: {
-    exec: (c) =>
-      stats([
-        [
-          'Connections',
-          async () =>
-            (
-              await run(c, [
-                'psql',
-                '-U',
-                'postgres',
-                '-tAc',
-                "select count(*) from pg_stat_activity where backend_type = 'client backend'",
-              ])
-            ).trim(),
-        ],
-      ]),
+    exec: async (c) => {
+      const [[connections, max, databases, size, version]] = await inTime(
+        postgresRows(
+          c.id,
+          `select
+             (select count(*) from pg_stat_activity where backend_type = 'client backend'),
+             current_setting('max_connections'),
+             count(*),
+             sum(pg_database_size(datname)),
+             current_setting('server_version')
+           from pg_database where not datistemplate`
+        ),
+        'psql'
+      );
+      return [
+        { label: 'Connections', value: `${connections} / ${max}` },
+        { label: 'Databases', value: databases },
+        { label: 'Used', value: formatBytes(+size) },
+        // "16.15", or "18.1 (Debian 18.1-1)" from some builds
+        { value: `v${version.split(' ')[0]}` },
+      ];
+    },
   },
   // Garage, the image storage: what all its buckets hold together
   garage: {
@@ -370,8 +383,8 @@ const APPS: Record<string, App> = {
 
 /** "lscr.io/linuxserver/sonarr:latest" → "sonarr" */
 function appOf(c: Container) {
-  const name = c.image.split('/').pop()?.split(/[:@]/)[0];
-  return name && name in APPS ? name : undefined;
+  const name = imageName(c.image);
+  return name in APPS ? name : undefined;
 }
 
 /**

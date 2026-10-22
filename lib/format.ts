@@ -63,6 +63,11 @@ export function formatCpu(percent: number) {
 
 const SCHEME = /^https?:\/\//i;
 
+/** What an image is, without its registry, owner or tag: "lscr.io/linuxserver/sonarr:latest" → "sonarr". */
+export function imageName(image: string) {
+  return image.split('/').pop()?.split(/[:@]/)[0] ?? image;
+}
+
 /** Whether an address is a web link, rather than text like a host and port. */
 export function isLink(address: string) {
   return SCHEME.test(address);
