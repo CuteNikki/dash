@@ -47,3 +47,27 @@ export async function composeOutput(stack: Stack, args: string[]) {
   const { ok, lines } = await runToEnd(composeRun(stack, args));
   return { ok, output: lines.map((l) => l.line).join('\n') };
 }
+
+/** What Compose makes of a stack's files, the parts dash reads. */
+export type ComposeConfig = {
+  services: Record<
+    string,
+    { container_name?: string; networks?: Record<string, unknown> }
+  >;
+  networks?: Record<string, { name?: string }>;
+};
+
+/** A stack's config as Compose resolves it, or its complaint as an error. */
+export async function composeConfig(stack: Stack): Promise<ComposeConfig> {
+  const { ok, lines } = await runToEnd(
+    composeRun(stack, ['config', '--format', 'json'])
+  );
+  if (!ok) throw new Error(lines.map((l) => l.line).join('\n'));
+  // Only what it printed to stdout; warnings go to stderr
+  return JSON.parse(
+    lines
+      .filter((l) => l.stream === 'stdout')
+      .map((l) => l.line)
+      .join('\n')
+  );
+}
