@@ -254,6 +254,7 @@ export function Dashboard({
       <ServiceDialog
         service={find(openKey)}
         tab={openTab}
+        memoryTotal={host?.memory.total}
         onClose={() => setOpenKey(undefined)}
         onChanged={() => void mutate()}
         onEdit={(service) => {

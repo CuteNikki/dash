@@ -66,6 +66,7 @@ export function ServiceDialog({
   onChanged,
   onEdit,
   tab = 'usage',
+  memoryTotal,
 }: {
   service?: Service;
   onClose: () => void;
@@ -74,6 +75,8 @@ export function ServiceDialog({
   onEdit: (service: Service) => void;
   /** The tab it opens on */
   tab?: 'usage' | 'logs';
+  /** The server's memory, in bytes, which a container's is charted against */
+  memoryTotal?: number;
 }) {
   return (
     <Dialog open={!!service} onOpenChange={(open) => !open && onClose()}>
@@ -93,6 +96,7 @@ export function ServiceDialog({
             onChanged={onChanged}
             onEdit={onEdit}
             tab={tab}
+            memoryTotal={memoryTotal}
           />
         )}
       </DialogContent>
@@ -105,11 +109,13 @@ function ServiceBody({
   onChanged,
   onEdit,
   tab,
+  memoryTotal,
 }: {
   service: Service;
   onChanged: () => void;
   onEdit: (service: Service) => void;
   tab: 'usage' | 'logs';
+  memoryTotal?: number;
 }) {
   const [pending, startTransition] = useTransition();
   const [confirmStop, setConfirmStop] = useState(false);
@@ -277,7 +283,7 @@ function ServiceBody({
             className='h-full overflow-x-hidden overflow-y-auto'
             fadeFrom='from-popover'
           >
-            <UsagePanel service={service} />
+            <UsagePanel service={service} memoryTotal={memoryTotal} />
           </ScrollFade>
         </TabsContent>
       </Tabs>
@@ -357,7 +363,13 @@ function UsageChart({
  * when it has something: that in the middle, as what's most its own, with
  * the rest in a column beside it where there's room, below it where not.
  */
-function UsagePanel({ service }: { service: Service }) {
+function UsagePanel({
+  service,
+  memoryTotal,
+}: {
+  service: Service;
+  memoryTotal?: number;
+}) {
   const usage = service.usage;
   // A running one that hasn't been measured yet, as just after it starts
   const measuring =
@@ -405,7 +417,14 @@ function UsagePanel({ service }: { service: Service }) {
           value={usage?.memory}
           values={usage?.history.memory}
           times={usage?.history.at}
-          measure={MEASURES.memory}
+          // Against the server's memory, so a steady amount sits as low as
+          // its share is, rather than at the top of a scale it alone sets,
+          // and a leak shows as a climb
+          measure={
+            memoryTotal
+              ? { ...MEASURES.memory, floor: memoryTotal }
+              : MEASURES.memory
+          }
           measuring={measuring}
         />
         <Panel
