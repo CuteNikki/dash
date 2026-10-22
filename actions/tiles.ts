@@ -3,6 +3,11 @@
 import { z } from 'zod';
 
 import { db } from '@/lib/db';
+import {
+  arrangeHostTiles,
+  isHostTileKey,
+  type HostTile,
+} from '@/lib/host-tiles';
 import { ensureTiles } from '@/lib/services';
 import { requireUser } from '@/lib/session';
 import { MAX_HEIGHT, MAX_WIDTH } from '@/lib/tile-size';
@@ -133,4 +138,50 @@ export async function restoreTile(tile: TileSnapshot): Promise<TileResult> {
     create: { key, ...data },
     update: data,
   });
+}
+
+/**
+ * Saves the server's tiles in their order, at their sizes, once they've been
+ * moved or resized: all of them, so their order holds whichever change.
+ */
+async function saveHostTiles(tiles: HostTile[]) {
+  await db.$transaction(
+    tiles.map(({ key, width, height }, position) =>
+      db.hostTile.upsert({
+        where: { key },
+        create: { key, position, width, height },
+        update: { position, width, height },
+      })
+    )
+  );
+}
+
+/** Saves the order the server's tiles were dragged into. */
+export async function arrangeHostTilesTo(keys: string[]): Promise<TileResult> {
+  await requireUser();
+  const tiles = arrangeHostTiles(await db.hostTile.findMany());
+  if (keys.length !== tiles.length || !keys.every(isHostTileKey)) {
+    return { error: "Those aren't the server's tiles" };
+  }
+  await saveHostTiles(keys.map((k) => tiles.find((t) => t.key === k)!));
+}
+
+/** Saves how many columns and rows one of the server's tiles spans. */
+export async function resizeHostTile(
+  key: string,
+  width: number,
+  height: number
+): Promise<TileResult> {
+  await requireUser();
+  const size = z.object({ width: Width, height: Height }).safeParse({
+    width,
+    height,
+  });
+  if (!size.success) return { error: size.error.issues[0].message };
+  if (!isHostTileKey(key))
+    return { error: "That isn't one of the server's tiles" };
+  const tiles = arrangeHostTiles(await db.hostTile.findMany());
+  await saveHostTiles(
+    tiles.map((t) => (t.key === key ? { ...t, ...size.data } : t))
+  );
 }

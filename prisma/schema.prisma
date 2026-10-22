@@ -28,6 +28,16 @@ model Tile {
   updatedAt DateTime @updatedAt
 }
 
+/// Where one of the server's tiles goes, and its size, once it's been moved
+/// or resized; until then it has its place and size in lib/host-tiles.
+model HostTile {
+  /// "server", "cpu", "processes", …
+  key      String @id
+  position Int
+  width    Int
+  height   Int
+}
+
 /// The order groups are shown in. Groups exist as long as a tile is in them.
 model Group {
   name     String @id

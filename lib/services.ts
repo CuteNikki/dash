@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { listContainers, takingInput, type Container } from '@/lib/docker';
 import { isLink } from '@/lib/format';
 import { DEFAULT_GROUP } from '@/lib/groups';
+import { arrangeHostTiles } from '@/lib/host-tiles';
 import { iconInfo } from '@/lib/icon-search';
 import type { Dashboard, Service } from '@/lib/types';
 import { currentUsage } from '@/lib/usage';
@@ -68,13 +69,19 @@ function iconName(label?: string) {
  * looking like Homepage did, then from its name.
  */
 export async function getDashboard(): Promise<Dashboard> {
-  const [containers, { containers: usage, host, hostComing }, tiles, groups] =
-    await Promise.all([
-      listContainers(),
-      currentUsage(),
-      db.tile.findMany(),
-      db.group.findMany({ orderBy: { position: 'asc' } }),
-    ]);
+  const [
+    containers,
+    { containers: usage, host, hostComing },
+    tiles,
+    groups,
+    hostTiles,
+  ] = await Promise.all([
+    listContainers(),
+    currentUsage(),
+    db.tile.findMany(),
+    db.group.findMany({ orderBy: { position: 'asc' } }),
+    db.hostTile.findMany(),
+  ]);
   const edited = new Map(tiles.map((t) => [t.key, t]));
   const consoles = await takingInput(containers);
 
@@ -127,6 +134,7 @@ export async function getDashboard(): Promise<Dashboard> {
   return {
     services,
     groupOrder: groups.map((g) => g.name),
+    hostTiles: arrangeHostTiles(hostTiles),
     host,
     hostComing,
   };

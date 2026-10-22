@@ -4,13 +4,8 @@ import {
   closestCenter,
   DndContext,
   DragOverlay,
-  KeyboardSensor,
-  MouseSensor,
   pointerWithin,
-  TouchSensor,
   useDroppable,
-  useSensor,
-  useSensors,
   type CollisionDetection,
   type DragEndEvent,
   type DragOverEvent,
@@ -20,34 +15,29 @@ import {
 import {
   arrayMove,
   SortableContext,
-  sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import {
-  useRef,
-  useState,
-  type KeyboardEventHandler,
-  type ReactNode,
-  type PointerEvent as ReactPointerEvent,
-} from 'react';
+import { useState, type ReactNode } from 'react';
 
 import { GripVerticalIcon } from 'lucide-react';
 
 import type { ServiceGroup } from '@/lib/groups';
-import { MAX_HEIGHT, MAX_WIDTH, spanClasses } from '@/lib/tile-size';
 import type { Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
+import {
+  ArrangeTile,
+  GridTile,
+  inPlace,
+  TILE_GRID,
+  useArrangeSensors,
+} from '@/components/arrange';
 import { ServiceTile } from '@/components/service-tile';
 
 /** Groups in order, each with its tiles' keys in order. */
 export type Layout = { name: string; keys: string[] }[];
-
-const GRID =
-  // Each row at least a tile's height, so a taller tile is that many tall
-  'grid auto-rows-[minmax(6rem,auto)] grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
 
 export function TilesView({
   groups,
@@ -78,18 +68,15 @@ export function TilesView({
       {groups.map((group) => (
         <section key={group.name} className='flex flex-col gap-3'>
           <GroupHeading name={group.name} count={group.services.length} />
-          <div className={GRID}>
+          <div className={TILE_GRID}>
             {group.services.map((service) => (
-              <div
-                key={service.key}
-                className={spanClasses(service.width, service.height)}
-              >
+              <GridTile key={service.key} size={service}>
                 <ServiceTile
                   service={service}
                   editing={false}
                   onOpen={onOpen}
                 />
-              </div>
+              </GridTile>
             ))}
           </div>
         </section>
@@ -122,9 +109,6 @@ function layoutOf(groups: ServiceGroup[]): Layout {
     keys: g.services.map((s) => s.key),
   }));
 }
-
-/** The columns and rows a tile takes while its corner's dragged. */
-type Resizing = { width: number; height: number };
 
 const GROUP_ID = 'group:';
 const GRID_ID = 'grid:';
@@ -176,16 +160,7 @@ function ArrangeView({
   onArrange: (layout: Layout) => void;
   onResize: (service: Service, width: number, height: number) => void;
 }) {
-  const sensors = useSensors(
-    // A click still opens a tile's editor; a press on a phone still scrolls
-    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, {
-      activationConstraint: { delay: 250, tolerance: 8 },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
+  const sensors = useArrangeSensors();
   // While dragging, the layout as it's being changed
   const [draft, setDraft] = useState<Layout>();
   const [active, setActive] = useState<UniqueIdentifier>();
@@ -291,18 +266,28 @@ function ArrangeView({
               name={group.name}
               count={group.keys.length}
             >
-              {/* No transforms: the grid itself moves tiles out of the way */}
-              <SortableContext items={group.keys} strategy={() => null}>
+              <SortableContext items={group.keys} strategy={inPlace}>
                 {group.keys.map((key) => {
                   const service = services.get(key);
                   return (
                     service && (
-                      <SortableTile
+                      <ArrangeTile
                         key={key}
-                        service={service}
-                        onOpen={onOpen}
-                        onResize={onResize}
-                      />
+                        id={key}
+                        name={service.name}
+                        size={service}
+                        onResize={(size) =>
+                          onResize(service, size.width, size.height)
+                        }
+                      >
+                        {(size) => (
+                          <ServiceTile
+                            service={{ ...service, ...size }}
+                            editing
+                            onOpen={onOpen}
+                          />
+                        )}
+                      </ArrangeTile>
                     )
                   );
                 })}
@@ -323,7 +308,7 @@ function ArrangeView({
             />
           </div>
         ) : draggedTile ? (
-          <div className='size-full cursor-grabbing rounded-lg shadow-lg'>
+          <div className='grid size-full cursor-grabbing rounded-lg shadow-lg'>
             <ServiceTile service={draggedTile} editing onOpen={() => {}} />
           </div>
         ) : null}
@@ -380,7 +365,7 @@ function SortableGroup({
       <div
         ref={setGridRef}
         className={cn(
-          GRID,
+          TILE_GRID,
           // Room to drop onto once a group's last tile has left it
           !count && 'min-h-20 rounded-lg border border-dashed'
         )}
@@ -388,143 +373,5 @@ function SortableGroup({
         {children}
       </div>
     </section>
-  );
-}
-
-function SortableTile({
-  service,
-  onOpen,
-  onResize,
-}: {
-  service: Service;
-  onOpen: (service: Service) => void;
-  onResize: (service: Service, width: number, height: number) => void;
-}) {
-  const { attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging } =
-    useSortable({ id: service.key, data: { type: 'tile' } });
-  // Pressing anywhere drags it; the keyboard, only from its handle, so
-  // Enter on the tile still opens its editor
-  const { onKeyDown, ...pointer } = listeners ?? {};
-  const node = useRef<HTMLDivElement>(null);
-  // While its corner's dragged, the columns and rows nearest the pointer,
-  // before they're saved
-  const [resizing, setResizing] = useState<Resizing>();
-  const shown = resizing
-    ? { ...service, width: resizing.width, height: resizing.height }
-    : service;
-
-  function startResize(e: ReactPointerEvent<HTMLButtonElement>) {
-    const tile = node.current;
-    const grid = tile?.parentElement;
-    if (!tile || !grid) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const style = getComputedStyle(grid);
-    const columns = style.gridTemplateColumns.split(' ').length;
-    const gap = parseFloat(style.columnGap) || 0;
-    const rowGap = parseFloat(style.rowGap) || 0;
-    const columnWidth = (grid.clientWidth - gap * (columns - 1)) / columns;
-    const start = tile.getBoundingClientRect();
-    // Rows are as tall as what's in them: one row of this tile, as it is now
-    const rowHeight =
-      (start.height - rowGap * (service.height - 1)) / service.height;
-    const from = { x: e.clientX, y: e.clientY };
-    const widest = Math.min(columns, MAX_WIDTH);
-    let next: Resizing = { width: service.width, height: service.height };
-
-    /** The columns or rows nearest a length. */
-    function span(length: number, unit: number, gapSize: number, most: number) {
-      return Math.min(
-        Math.max(Math.round((length + gapSize) / (unit + gapSize)), 1),
-        most
-      );
-    }
-
-    const move = (m: PointerEvent) => {
-      next = {
-        // On one column there's no width to change, so it keeps what it has
-        width:
-          columns > 1
-            ? span(start.width + m.clientX - from.x, columnWidth, gap, widest)
-            : service.width,
-        height: span(
-          start.height + m.clientY - from.y,
-          rowHeight,
-          rowGap,
-          MAX_HEIGHT
-        ),
-      };
-      setResizing(next);
-    };
-    const end = () => {
-      document.body.style.cursor = '';
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', end);
-      window.removeEventListener('pointercancel', end);
-      if (next.width !== service.width || next.height !== service.height) {
-        onResize(service, next.width, next.height);
-      }
-      setResizing(undefined);
-    };
-    // The resize cursor stays wherever the pointer goes, until it's let go
-    document.body.style.cursor = 'nwse-resize';
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', end);
-    window.addEventListener('pointercancel', end);
-  }
-
-  return (
-    <div
-      ref={(el) => {
-        setNodeRef(el);
-        node.current = el;
-      }}
-      data-dragging={isDragging}
-      className={cn(
-        'relative cursor-grab rounded-lg data-[dragging=true]:opacity-40',
-        spanClasses(shown.width, shown.height),
-        resizing && 'z-10 ring-2 ring-primary'
-      )}
-      {...pointer}
-    >
-      <ServiceTile service={shown} editing onOpen={onOpen} />
-      <button
-        type='button'
-        ref={setActivatorNodeRef}
-        aria-label={`Drag to move ${service.name}`}
-        className='absolute top-2.5 right-2.5 cursor-grab touch-none rounded-sm p-0.5 text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring'
-        {...attributes}
-        onKeyDown={onKeyDown as KeyboardEventHandler}
-      >
-        <GripVerticalIcon className='size-4' />
-      </button>
-      <button
-        type='button'
-        tabIndex={-1}
-        aria-hidden
-        title='Drag to resize'
-        onPointerDown={startResize}
-        // Not a press that drags the tile
-        onMouseDown={(e) => e.stopPropagation()}
-        onTouchStart={(e) => e.stopPropagation()}
-        className='absolute right-0.5 bottom-0.5 flex size-5 cursor-nwse-resize touch-none items-end justify-end p-1 text-muted-foreground hover:text-foreground'
-      >
-        {/* Two lines across the corner */}
-        <svg viewBox='0 0 8 8' className='size-2.5' aria-hidden>
-          <path
-            d='M7 1 1 7M7 4.5 4.5 7'
-            stroke='currentColor'
-            strokeWidth='1.2'
-            strokeLinecap='round'
-          />
-        </svg>
-      </button>
-      {/* Its size as it's resized, in columns and rows */}
-      {resizing && (
-        <span className='pointer-events-none absolute right-6 bottom-1.5 rounded-md bg-primary px-1.5 font-mono text-xs/5 text-primary-foreground tabular-nums'>
-          {resizing.width} × {resizing.height}
-        </span>
-      )}
-    </div>
   );
 }

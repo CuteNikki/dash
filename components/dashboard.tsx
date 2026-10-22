@@ -6,12 +6,19 @@ import useSWR from 'swr';
 
 import { PencilIcon } from 'lucide-react';
 
-import { arrangeTiles, resizeTile, type TileResult } from '@/actions/tiles';
+import {
+  arrangeHostTilesTo,
+  arrangeTiles,
+  resizeHostTile,
+  resizeTile,
+  type TileResult,
+} from '@/actions/tiles';
 import { fetcher } from '@/lib/fetcher';
 import { groupNames, groupServices } from '@/lib/groups';
 import type { Dashboard as DashboardData, Service } from '@/lib/types';
 
 import { AccountMenu } from '@/components/account-menu';
+import type { TileSize } from '@/components/arrange';
 import { EditTileDialog } from '@/components/edit-tile-dialog';
 import { HostStatsBar } from '@/components/host-stats';
 import { ServiceDialog } from '@/components/service-dialog';
@@ -107,6 +114,33 @@ export function Dashboard({
     );
   }
 
+  function arrangeHost(keys: string[]) {
+    void change(
+      (d) => ({
+        ...d,
+        hostTiles: keys.flatMap(
+          (k) => d.hostTiles.find((t) => t.key === k) ?? []
+        ),
+      }),
+      () => arrangeHostTilesTo(keys),
+      "Couldn't save where the server's tiles go"
+    );
+  }
+
+  function resizeHost(key: string, size: TileSize) {
+    const tile = data.hostTiles.find((t) => t.key === key);
+    void change(
+      (d) => ({
+        ...d,
+        hostTiles: d.hostTiles.map((t) =>
+          t.key === key ? { ...t, ...size } : t
+        ),
+      }),
+      () => resizeHostTile(key, size.width, size.height),
+      `Couldn't resize ${tile?.name ?? key}`
+    );
+  }
+
   function open(service: Service) {
     if (editing) setEditKey(service.key);
     else setOpenKey(service.key);
@@ -128,7 +162,15 @@ export function Dashboard({
         <AccountMenu email={email} />
       </header>
       {(host || hostComing) && (
-        <HostStatsBar host={host} services={services} onOpen={open} />
+        <HostStatsBar
+          host={host}
+          tiles={data.hostTiles}
+          services={services}
+          editing={editing}
+          onOpen={open}
+          onArrange={arrangeHost}
+          onResize={resizeHost}
+        />
       )}
       <TilesView
         groups={groups}

@@ -56,8 +56,7 @@ export function ServiceTile({
             ))}
           </div>
           {editing ? (
-            // The handle to drag it by sits here, over the tile
-            <span className='mt-0.5 flex items-center gap-2 self-start pr-6 text-muted-foreground'>
+            <span className='mt-0.5 flex items-center gap-2 self-start text-muted-foreground'>
               {service.hidden && (
                 <EyeOffIcon aria-label='Hidden' className='size-4' />
               )}
@@ -76,13 +75,7 @@ export function ServiceTile({
             />
           </div>
         )}
-        <div
-          className={cn(
-            'mt-auto flex items-center gap-3 font-mono text-muted-foreground tabular-nums',
-            // Clear of the handle to resize it by, in the corner
-            editing && 'pr-4'
-          )}
-        >
+        <div className='mt-auto flex items-center gap-3 font-mono text-muted-foreground tabular-nums'>
           {usage ? (
             <>
               <span>{formatCpu(usage.cpu)}</span>

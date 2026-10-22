@@ -1,4 +1,5 @@
 import type { ContainerState, DockerInfo } from '@/lib/docker';
+import type { HostTile } from '@/lib/host-tiles';
 import type { IconVariants } from '@/lib/icon-sets';
 
 /** A container as the dashboard shows it, safe to send to the browser. */
@@ -57,6 +58,8 @@ export type Dashboard = {
   services: Service[];
   /** Groups in the order they've been placed; others follow by name */
   groupOrder: string[];
+  /** The server's tiles, in order, at their sizes */
+  hostTiles: HostTile[];
   /** The server itself, once it's been measured twice */
   host?: HostStats;
   /** No stats yet, but they're coming: they take two readings, a few seconds apart */

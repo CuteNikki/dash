@@ -22,8 +22,15 @@ import {
   MEASURES,
   type Measure,
 } from '@/lib/format';
+import type { HostTile, HostTileKey } from '@/lib/host-tiles';
 import type { Capacity, HostStats, Service } from '@/lib/types';
 
+import {
+  ArrangeGrid,
+  GridTile,
+  TILE_GRID,
+  type TileSize,
+} from '@/components/arrange';
 import { DiskDialog } from '@/components/disk-dialog';
 import { HistoryChart } from '@/components/history-chart';
 import { ProcessList } from '@/components/process-list';
@@ -34,28 +41,130 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 /**
  * The server itself: what it is, then its CPU and processes, memory, disk
- * and network. Until it's been measured, each card is there with
- * placeholders where its numbers go, so nothing moves when they come.
+ * and network, as tiles moved and resized like the services'. Until it's
+ * been measured, each is there with placeholders where its numbers go, so
+ * nothing moves when they come.
  */
 export function HostStatsBar({
   host,
+  tiles,
   services,
+  editing,
   onOpen,
+  onArrange,
+  onResize,
 }: {
   /** None while it's first measured */
   host?: HostStats;
+  /** Its tiles, in order, at their sizes */
+  tiles: HostTile[];
   /** For each process's container */
   services: Service[];
+  /** While editing, its tiles are dragged to move and resize them */
+  editing: boolean;
   onOpen: (service: Service) => void;
+  onArrange: (keys: string[]) => void;
+  onResize: (key: string, size: TileSize) => void;
 }) {
+  function render(key: string) {
+    switch (key as HostTileKey) {
+      case 'server':
+        return <ServerDetails host={host} />;
+      case 'cpu':
+        return <CpuStat host={host} />;
+      case 'processes':
+        return (
+          <ProcessList
+            processes={host?.processes ?? []}
+            services={services}
+            onOpen={onOpen}
+          />
+        );
+      case 'memory':
+        return (
+          <Stat
+            icon={<MemoryStickIcon />}
+            label='Memory'
+            detail={<Of capacity={host?.memory} />}
+            value={host ? formatBytes(host.memory.used) : <ValueSkeleton />}
+          >
+            <Usage capacity={host?.memory} />
+          </Stat>
+        );
+      case 'disk':
+        return <DiskStat disk={host?.disk} />;
+      case 'disk-io':
+        return (
+          <FlowStat
+            icon={<ActivityIcon />}
+            label='Disk I/O'
+            times={host?.history.at}
+            measure={MEASURES.disk}
+            // Down, then up, as on Network: written to the disk, then read off it
+            flows={[
+              {
+                short: 'Write',
+                label: 'Write',
+                icon: <ArrowDownIcon />,
+                value: host?.diskIo.written,
+                values: host?.history.diskWritten,
+              },
+              {
+                short: 'Read',
+                label: 'Read',
+                icon: <ArrowUpIcon />,
+                value: host?.diskIo.read,
+                values: host?.history.diskRead,
+              },
+            ]}
+          />
+        );
+      case 'network':
+        return (
+          <FlowStat
+            icon={<NetworkIcon />}
+            label='Network'
+            times={host?.history.at}
+            measure={MEASURES.network}
+            flows={[
+              {
+                short: 'Down',
+                label: 'Download',
+                icon: <ArrowDownIcon />,
+                value: host?.network.received,
+                values: host?.history.received,
+              },
+              {
+                short: 'Up',
+                label: 'Upload',
+                icon: <ArrowUpIcon />,
+                value: host?.network.sent,
+                values: host?.history.sent,
+              },
+            ]}
+          />
+        );
+    }
+  }
+
   return (
-    <section
-      aria-label='Server'
-      aria-busy={!host}
-      className='flex flex-col gap-3'
-    >
-      <ServerDetails host={host} />
-      <LiveStats host={host} services={services} onOpen={onOpen} />
+    <section aria-label='Server' aria-busy={!host}>
+      {editing ? (
+        <ArrangeGrid
+          items={tiles}
+          onArrange={onArrange}
+          onResize={onResize}
+          render={render}
+        />
+      ) : (
+        <div className={TILE_GRID}>
+          {tiles.map((tile) => (
+            <GridTile key={tile.key} size={tile}>
+              {render(tile.key)}
+            </GridTile>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -84,14 +193,15 @@ const SERVER_DETAILS: [string, (host: HostStats) => string][] = [
 
 function ServerDetails({ host }: { host?: HostStats }) {
   return (
-    <Card size='sm' className='px-3'>
+    // Its details in as many columns as its own width has room for
+    <Card size='sm' className='@container px-3'>
       <div className='flex items-center gap-2'>
         <ServerIcon className='size-4 text-muted-foreground' />
         <span className='text-sm font-medium'>
           {host ? host.system.hostname : <TextSkeleton className='w-16' />}
         </span>
       </div>
-      <dl className='grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-4'>
+      <dl className='grid grid-cols-1 gap-x-6 gap-y-3 @md:grid-cols-2 @3xl:grid-cols-4'>
         {SERVER_DETAILS.map(([label, value]) => (
           <div key={label} className='flex min-w-0 flex-col'>
             <dt className='text-muted-foreground'>{label}</dt>
@@ -102,90 +212,6 @@ function ServerDetails({ host }: { host?: HostStats }) {
         ))}
       </dl>
     </Card>
-  );
-}
-
-function LiveStats({
-  host,
-  services,
-  onOpen,
-}: {
-  host?: HostStats;
-  services: Service[];
-  onOpen: (service: Service) => void;
-}) {
-  const network = (
-    <FlowStat
-      icon={<NetworkIcon />}
-      label='Network'
-      times={host?.history.at}
-      measure={MEASURES.network}
-      flows={[
-        {
-          short: 'Down',
-          label: 'Download',
-          icon: <ArrowDownIcon />,
-          value: host?.network.received,
-          values: host?.history.received,
-        },
-        {
-          short: 'Up',
-          label: 'Upload',
-          icon: <ArrowUpIcon />,
-          value: host?.network.sent,
-          values: host?.history.sent,
-        },
-      ]}
-    />
-  );
-  const diskIo = (
-    <FlowStat
-      icon={<ActivityIcon />}
-      label='Disk I/O'
-      times={host?.history.at}
-      measure={MEASURES.disk}
-      // Down, then up, as on Network: written to the disk, then read off it
-      flows={[
-        {
-          short: 'Write',
-          label: 'Write',
-          icon: <ArrowDownIcon />,
-          value: host?.diskIo.written,
-          values: host?.history.diskWritten,
-        },
-        {
-          short: 'Read',
-          label: 'Read',
-          icon: <ArrowUpIcon />,
-          value: host?.diskIo.read,
-          values: host?.history.diskRead,
-        },
-      ]}
-    />
-  );
-
-  return (
-    <div className='grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4'>
-      {/* CPU beside the processes using it, its graph as tall as their list */}
-      <CpuStat host={host} />
-      <ProcessList
-        processes={host?.processes ?? []}
-        services={services}
-        onOpen={onOpen}
-      />
-      {/* Then memory, the disk twice over, and the network */}
-      <Stat
-        icon={<MemoryStickIcon />}
-        label='Memory'
-        detail={<Of capacity={host?.memory} />}
-        value={host ? formatBytes(host.memory.used) : <ValueSkeleton />}
-      >
-        <Usage capacity={host?.memory} />
-      </Stat>
-      <DiskStat disk={host?.disk} />
-      {diskIo}
-      {network}
-    </div>
   );
 }
 
@@ -359,6 +385,7 @@ function FlowStat({
     <Stat
       icon={icon}
       label={label}
+      fill
       detail={
         <ToggleGroup
           type='single'
@@ -405,6 +432,7 @@ function FlowStat({
           label={`${label} ${graphed} over the last ten minutes`}
           times={times}
           series={series}
+          className='h-full'
         />
       )}
     </Stat>
@@ -423,7 +451,7 @@ function Stat({
   label: string;
   detail: React.ReactNode;
   value: React.ReactNode;
-  /** The graph takes the room the card has to spare, beside a taller one */
+  /** The graph takes the room the card has to spare, in a taller tile */
   fill?: boolean;
   /** A graph or a bar along the bottom */
   children: React.ReactNode;

@@ -69,7 +69,7 @@ export function ProcessList({
   return (
     // Its columns follow the card's own width: PID shows once there's room,
     // and a container's name beside its icon, so the process always has most
-    <Card size='sm' className='@container px-3 lg:col-span-3'>
+    <Card size='sm' className='@container px-3'>
       {/* The title, the filter in the middle, and how many there are; on a
           narrow card, the filter goes on a line of its own below */}
       <div className='grid grid-cols-[1fr_auto] items-center gap-2 text-muted-foreground @md:h-6 @md:grid-cols-[1fr_auto_1fr] [&_svg:not([class*=size-])]:size-4'>
@@ -100,133 +100,141 @@ export function ProcessList({
       </div>
       {
         // Seven lines whatever the filter leaves, so the page doesn't shift
-        // while typing: the headings and six processes, the rest a scroll
-        // away, faded at the edges while there's more. The scrollbar's room is
-        // kept when it's gone, so the columns stay put too; the headings do,
-        // so the top fade starts a line down
-        <ScrollFade
-          className='h-[7lh] [scrollbar-gutter:stable] overflow-auto'
-          fadeTop='top-[1lh]'
-        >
-          {/* A gap after every column but the last, so none run into the
+        // while typing, or as many as a taller tile has room for: the
+        // headings and the processes, the rest a scroll away, faded at the
+        // edges while there's more. The scrollbar's room is kept when it's
+        // gone, so the columns stay put too; the headings do, so the top fade
+        // starts a line down
+        <div className='flex min-h-[7lh] flex-1 basis-0 flex-col'>
+          <ScrollFade
+            fill
+            className='h-full [scrollbar-gutter:stable] overflow-auto'
+            fadeTop='top-[1lh]'
+          >
+            {/* A gap after every column but the last, so none run into the
               next, and room at each row's ends for its rounded highlight */}
-          <table className='w-full table-fixed [&_td:first-child]:rounded-l-md [&_td:first-child]:pl-2 [&_td:last-child]:rounded-r-md [&_td:last-child]:pr-2 [&_td:not(:last-child)]:pr-4 [&_th:first-child]:pl-2 [&_th:last-child]:pr-2 [&_th:not(:last-child)]:pr-4'>
-            <thead className='sticky top-0 bg-card text-left text-muted-foreground'>
-              <tr>
-                <th className='font-normal'>Process</th>
-                <th className='hidden w-20 font-normal @2xl:table-cell'>PID</th>
-                <th className='w-8 font-normal @lg:w-40'>
-                  <span className='hidden @lg:inline'>Container</span>
-                </th>
-                <SortHeading
-                  by='cpu'
-                  sort={sort}
-                  onSort={setSort}
-                  className='w-16'
-                >
-                  CPU
-                </SortHeading>
-                <SortHeading
-                  by='memory'
-                  sort={sort}
-                  onSort={setSort}
-                  className='w-18'
-                >
-                  Memory
-                </SortHeading>
-              </tr>
-            </thead>
-            <tbody className='tabular-nums'>
-              {/* Rows to come, as the first measurement's under way */}
-              {measuring &&
-                Array.from({ length: SKELETON_ROWS }, (_, i) => (
-                  <tr key={i} aria-hidden>
-                    <td>
-                      <TextSkeleton
-                        className={NAME_WIDTHS[i % NAME_WIDTHS.length]}
-                      />
-                    </td>
-                    <td className='hidden @2xl:table-cell'>
-                      <TextSkeleton className='w-12' />
-                    </td>
-                    <td />
-                    <td>
-                      <span className='flex justify-end'>
-                        <TextSkeleton className='w-8' />
-                      </span>
-                    </td>
-                    <td>
-                      <span className='flex justify-end'>
-                        <TextSkeleton className='w-10' />
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              {shown.map((p) => {
-                const service = serviceOf(p);
-                return (
-                  <tr
-                    key={p.pid}
-                    tabIndex={0}
-                    aria-label={`${p.name} ${p.pid}`}
-                    onClick={() => setPicked(p.pid)}
-                    onKeyDown={(e) => {
-                      if (e.key !== 'Enter' && e.key !== ' ') return;
-                      e.preventDefault();
-                      setPicked(p.pid);
-                    }}
-                    className='cursor-pointer outline-none hover:bg-muted focus-visible:bg-muted'
+            <table className='w-full table-fixed [&_td:first-child]:rounded-l-md [&_td:first-child]:pl-2 [&_td:last-child]:rounded-r-md [&_td:last-child]:pr-2 [&_td:not(:last-child)]:pr-4 [&_th:first-child]:pl-2 [&_th:last-child]:pr-2 [&_th:not(:last-child)]:pr-4'>
+              <thead className='sticky top-0 bg-card text-left text-muted-foreground'>
+                <tr>
+                  <th className='font-normal'>Process</th>
+                  <th className='hidden w-20 font-normal @2xl:table-cell'>
+                    PID
+                  </th>
+                  <th className='w-8 font-normal @lg:w-40'>
+                    <span className='hidden @lg:inline'>Container</span>
+                  </th>
+                  <SortHeading
+                    by='cpu'
+                    sort={sort}
+                    onSort={setSort}
+                    className='w-16'
                   >
-                    <td className='truncate' title={p.command || p.name}>
-                      <span className='font-mono'>{p.name}</span>
-                      {p.command && (
-                        <span className='ml-2 text-muted-foreground'>
-                          {p.command}
+                    CPU
+                  </SortHeading>
+                  <SortHeading
+                    by='memory'
+                    sort={sort}
+                    onSort={setSort}
+                    className='w-18'
+                  >
+                    Memory
+                  </SortHeading>
+                </tr>
+              </thead>
+              <tbody className='tabular-nums'>
+                {/* Rows to come, as the first measurement's under way */}
+                {measuring &&
+                  Array.from({ length: SKELETON_ROWS }, (_, i) => (
+                    <tr key={i} aria-hidden>
+                      <td>
+                        <TextSkeleton
+                          className={NAME_WIDTHS[i % NAME_WIDTHS.length]}
+                        />
+                      </td>
+                      <td className='hidden @2xl:table-cell'>
+                        <TextSkeleton className='w-12' />
+                      </td>
+                      <td />
+                      <td>
+                        <span className='flex justify-end'>
+                          <TextSkeleton className='w-8' />
                         </span>
-                      )}
-                    </td>
-                    <td className='hidden font-mono text-muted-foreground @2xl:table-cell'>
-                      {p.pid}
-                    </td>
-                    <td>
-                      {service && (
-                        <button
-                          type='button'
-                          title={service.name}
-                          aria-label={`Open ${service.name}`}
-                          onClick={(e) => {
-                            // Its service, not the process's details
-                            e.stopPropagation();
-                            onOpen(service);
-                          }}
-                          className='flex max-w-full items-center gap-1.5 rounded-sm hover:underline'
-                        >
-                          <ServiceIcon
-                            icon={service.icon}
-                            name={service.name}
-                            variants={service.iconVariants}
-                            missing={service.iconMissing}
-                            className='size-3.5 shrink-0'
-                          />
-                          <span className='hidden truncate @lg:inline'>
-                            {service.name}
+                      </td>
+                      <td>
+                        <span className='flex justify-end'>
+                          <TextSkeleton className='w-10' />
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                {shown.map((p) => {
+                  const service = serviceOf(p);
+                  return (
+                    <tr
+                      key={p.pid}
+                      tabIndex={0}
+                      aria-label={`${p.name} ${p.pid}`}
+                      onClick={() => setPicked(p.pid)}
+                      onKeyDown={(e) => {
+                        if (e.key !== 'Enter' && e.key !== ' ') return;
+                        e.preventDefault();
+                        setPicked(p.pid);
+                      }}
+                      className='cursor-pointer outline-none hover:bg-muted focus-visible:bg-muted'
+                    >
+                      <td className='truncate' title={p.command || p.name}>
+                        <span className='font-mono'>{p.name}</span>
+                        {p.command && (
+                          <span className='ml-2 text-muted-foreground'>
+                            {p.command}
                           </span>
-                        </button>
-                      )}
-                    </td>
-                    <td className='text-right font-mono'>{formatCpu(p.cpu)}</td>
-                    <td className='text-right font-mono'>
-                      {formatBytes(p.memory)}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          {!measuring && shown.length === 0 && (
-            <p className='text-muted-foreground'>No processes match.</p>
-          )}
-        </ScrollFade>
+                        )}
+                      </td>
+                      <td className='hidden font-mono text-muted-foreground @2xl:table-cell'>
+                        {p.pid}
+                      </td>
+                      <td>
+                        {service && (
+                          <button
+                            type='button'
+                            title={service.name}
+                            aria-label={`Open ${service.name}`}
+                            onClick={(e) => {
+                              // Its service, not the process's details
+                              e.stopPropagation();
+                              onOpen(service);
+                            }}
+                            className='flex max-w-full items-center gap-1.5 rounded-sm hover:underline'
+                          >
+                            <ServiceIcon
+                              icon={service.icon}
+                              name={service.name}
+                              variants={service.iconVariants}
+                              missing={service.iconMissing}
+                              className='size-3.5 shrink-0'
+                            />
+                            <span className='hidden truncate @lg:inline'>
+                              {service.name}
+                            </span>
+                          </button>
+                        )}
+                      </td>
+                      <td className='text-right font-mono'>
+                        {formatCpu(p.cpu)}
+                      </td>
+                      <td className='text-right font-mono'>
+                        {formatBytes(p.memory)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {!measuring && shown.length === 0 && (
+              <p className='text-muted-foreground'>No processes match.</p>
+            )}
+          </ScrollFade>
+        </div>
       }
       <ProcessDialog
         process={processes.find((p) => p.pid === picked)}
