@@ -1,11 +1,11 @@
 import { runCompose } from '@/lib/compose';
+import { streamRun } from '@/lib/run-stream';
 import { unauthorized } from '@/lib/session';
 import { stackOf } from '@/lib/stack-files';
 
 /**
  * Redeploys the container's stack (docker compose up -d, with --build for
- * ?build=1), streaming what
- * Compose prints as one JSON object per line, then { exitCode }.
+ * ?build=1), streaming what Compose prints.
  */
 export async function POST(
   request: Request,
@@ -20,38 +20,9 @@ export async function POST(
       { status: 404 }
     );
   }
-  const encoder = new TextEncoder();
-  const body = new ReadableStream({
-    async start(controller) {
-      const send = (value: unknown) =>
-        controller.enqueue(encoder.encode(JSON.stringify(value) + '\n'));
-      try {
-        // ?build=1 builds the stack's images afresh first, for a changed Dockerfile
-        const build = new URL(request.url).searchParams.get('build') === '1';
-        const run = runCompose(stack, [
-          'up',
-          '-d',
-          ...(build ? ['--build'] : []),
-        ]);
-        for (;;) {
-          const next = await run.next();
-          if (next.done) {
-            send({ exitCode: next.value });
-            break;
-          }
-          send(next.value);
-        }
-      } catch (error) {
-        send({ stream: 'stderr', line: (error as Error).message });
-        send({ exitCode: 1 });
-      }
-      controller.close();
-    },
-  });
-  return new Response(body, {
-    headers: {
-      'content-type': 'application/x-ndjson',
-      'cache-control': 'no-store',
-    },
-  });
+  // ?build=1 builds the stack's images afresh first, for a changed Dockerfile
+  const build = new URL(request.url).searchParams.get('build') === '1';
+  return streamRun(() =>
+    runCompose(stack, ['up', '-d', ...(build ? ['--build'] : [])])
+  );
 }

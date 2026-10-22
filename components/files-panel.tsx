@@ -15,6 +15,7 @@ import {
 
 import { saveFile } from '@/actions/files';
 import { fetcher } from '@/lib/fetcher';
+import { readRunStream } from '@/lib/read-run-stream';
 import type { OpenedFile, StackInfo } from '@/lib/stack-files';
 import { cn } from '@/lib/utils';
 
@@ -28,8 +29,6 @@ import {
 } from '@/components/skeletons';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-
-type DeployLine = { line?: string; exitCode?: number };
 
 /**
  * The files of a service's stack: its folder as a tree, a file open beside
@@ -99,28 +98,9 @@ export function FilesPanel({
       `/api/containers/${containerId}/deploy${build ? '?build=1' : ''}`,
       { method: 'POST' }
     );
-    if (!res.ok || !res.body) {
-      setOutput([
-        (await res.json().catch(() => null))?.error ?? res.statusText,
-      ]);
-      return;
-    }
-    const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
-    let rest = '';
-    let exitCode: number | undefined;
-    for (;;) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      const parts = (rest + value).split('\n');
-      rest = parts.pop() ?? '';
-      for (const part of parts.filter(Boolean)) {
-        const entry: DeployLine = JSON.parse(part);
-        if (entry.exitCode !== undefined) exitCode = entry.exitCode;
-        else if (entry.line !== undefined) {
-          setOutput((lines) => [...(lines ?? []), entry.line!]);
-        }
-      }
-    }
+    const exitCode = await readRunStream(res, (line) =>
+      setOutput((lines) => [...(lines ?? []), line])
+    );
     if (exitCode === 0) {
       toast.success(build ? 'Rebuilt and redeployed' : 'Redeployed');
     } else {
