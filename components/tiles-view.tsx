@@ -123,8 +123,8 @@ function layoutOf(groups: ServiceGroup[]): Layout {
   }));
 }
 
-/** How near a snap a resized tile's edge is pulled to it. */
-const SNAP_PX = 16;
+/** How near a snap a resized tile's edge is pulled to it, as a share of a column or row. */
+const SNAP_SHARE = 0.3;
 /** How long a resized tile takes to ease into the room it snapped to. */
 const SETTLE_MS = 150;
 /** The smallest a tile's drawn while resized, as a share of one column or row. */
@@ -279,12 +279,12 @@ function ArrangeView({
     setDraft(undefined);
   }
 
-  const dragged =
-    active === undefined
-      ? undefined
-      : String(active).startsWith(GROUP_ID)
-        ? { group: String(active).slice(GROUP_ID.length) }
-        : services.get(String(active));
+  // What's dragged, drawn whole under the pointer
+  const id = active === undefined ? undefined : String(active);
+  const draggedGroup = id?.startsWith(GROUP_ID)
+    ? id.slice(GROUP_ID.length)
+    : undefined;
+  const draggedTile = id && !draggedGroup ? services.get(id) : undefined;
 
   return (
     <DndContext
@@ -327,19 +327,19 @@ function ArrangeView({
         </div>
       </SortableContext>
       <DragOverlay>
-        {dragged && 'group' in dragged ? (
+        {draggedGroup !== undefined ? (
           <div className='w-fit rounded-md bg-background px-2 py-1 shadow-md ring-1 ring-foreground/10'>
             <GroupHeading
-              name={dragged.group}
+              name={draggedGroup}
               count={
-                layout.find((g) => g.name === dragged.group)?.keys.length ?? 0
+                layout.find((g) => g.name === draggedGroup)?.keys.length ?? 0
               }
               handle={<GripVerticalIcon className='size-4' />}
             />
           </div>
-        ) : dragged ? (
-          <div className='size-full rounded-lg shadow-lg'>
-            <ServiceTile service={dragged} editing onOpen={() => {}} />
+        ) : draggedTile ? (
+          <div className='size-full cursor-grabbing rounded-lg shadow-lg'>
+            <ServiceTile service={draggedTile} editing onOpen={() => {}} />
           </div>
         ) : null}
       </DragOverlay>
@@ -465,7 +465,7 @@ function SortableTile({
       return {
         span,
         snapped,
-        drawn: Math.abs(drawn - snapped) < SNAP_PX ? snapped : drawn,
+        drawn: Math.abs(drawn - snapped) < unit * SNAP_SHARE ? snapped : drawn,
       };
     }
 
@@ -485,6 +485,7 @@ function SortableTile({
       setResizing(next);
     };
     const end = () => {
+      document.body.style.cursor = '';
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', end);
       window.removeEventListener('pointercancel', end);
@@ -496,6 +497,8 @@ function SortableTile({
       setResizing({ ...next, w: room.width, h: room.height, settling: true });
       setTimeout(() => setResizing(undefined), SETTLE_MS);
     };
+    // The resize cursor stays wherever the pointer goes, until it's let go
+    document.body.style.cursor = 'nwse-resize';
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', end);
     window.addEventListener('pointercancel', end);
@@ -515,10 +518,6 @@ function SortableTile({
       )}
       {...pointer}
     >
-      {/* Where it'll snap to, which the tiles around it make room for */}
-      {resizing && (
-        <div className='size-full rounded-lg border border-dashed border-foreground/30' />
-      )}
       <div
         className={cn(
           resizing ? 'absolute top-0 left-0 shadow-lg' : 'size-full',
@@ -567,6 +566,11 @@ function SortableTile({
           </svg>
         </button>
       </div>
+      {/* Where it'll snap to, over everything, while the tiles around it make
+          room; gone as it eases into place */}
+      {resizing && !resizing.settling && (
+        <div className='pointer-events-none absolute -inset-1.5 rounded-xl border-2 border-dashed border-primary bg-primary/10' />
+      )}
     </div>
   );
 }
