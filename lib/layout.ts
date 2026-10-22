@@ -178,8 +178,9 @@ export function layoutAt(
     return settle(layout);
   }
 
+  // Not the order a trial of one layout for every width kept, under 0
   const arranged = [...new Set(saved.map((s) => s.columns))].filter(
-    (n) => at(n).length
+    (n) => n >= 1 && at(n).length
   );
   const nearest = arranged.sort(
     (a, b) => Math.abs(a - columns) - Math.abs(b - columns) || b - a
