@@ -195,15 +195,20 @@ export function SystemDialog({
             <div className='overflow-hidden rounded-lg border'>
               <ScrollFade
                 fadeFrom='from-popover'
-                className='max-h-64 overflow-y-auto'
+                className='max-h-64 overflow-auto'
               >
-                <ul className='divide-y'>
+                {/* As wide as its longest line, scrolling sideways to it,
+                    rather than cutting versions short */}
+                <ul className='w-max min-w-full divide-y'>
                   {packages.map((p) => (
                     <li
                       key={p.name}
-                      className='flex items-baseline gap-3 px-3 py-1.5'
+                      // Versions under the name on a phone, beside it where
+                      // there's room; both whole, the list scrolling
+                      // sideways to the longest
+                      className='flex flex-col px-3 py-1.5 sm:flex-row sm:items-baseline sm:gap-3'
                     >
-                      <span className='min-w-0 flex-1 truncate font-medium'>
+                      <span className='font-medium whitespace-nowrap sm:flex-1'>
                         {p.name}
                         {p.security && (
                           <span className='ml-2 font-sans text-warning'>
@@ -212,7 +217,7 @@ export function SystemDialog({
                         )}
                       </span>
                       <span
-                        className='min-w-0 truncate font-mono text-muted-foreground'
+                        className='font-mono whitespace-nowrap text-muted-foreground'
                         title={`${p.from} → ${p.to}`}
                       >
                         {p.from} → {p.to}

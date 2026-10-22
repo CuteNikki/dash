@@ -17,18 +17,13 @@ import type { ServiceGroup } from '@/lib/dashboard/groups';
 import { isRunning, labelOf } from '@/lib/dashboard/status';
 import type { ListFilter } from '@/lib/dashboard/view';
 import type { ContainerAction } from '@/lib/docker/docker';
-import {
-  formatAddress,
-  formatBytes,
-  formatCpu,
-  formatMs,
-  MEASURES,
-} from '@/lib/format';
+import { formatBytes, formatCpu, formatMs, MEASURES } from '@/lib/format';
 import type { Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 import { Sparkline } from '@/components/charts/sparkline';
 import { WidgetStats, widgetStats } from '@/components/charts/widget-stats';
+import { addressWords } from '@/components/service/address-text';
 import { ServiceIcon } from '@/components/service/service-icon';
 import { StatePill, StatusDot } from '@/components/service/status-dot';
 import {
@@ -290,7 +285,7 @@ function Row({
   // Under its name: what it is, or where to reach it, or its container
   const detail =
     service.description ??
-    (address ? formatAddress(address) : service.containerName);
+    (address ? addressWords(address) : service.containerName);
 
   return (
     <tr
@@ -309,7 +304,9 @@ function Row({
     >
       <td className='px-3 py-2.5'>
         <div className='flex items-center gap-3'>
-          <span className='relative flex shrink-0'>
+          {/* None on the narrowest phones, to give its name and numbers
+              the room; its state and update go before its name there */}
+          <span className='relative flex shrink-0 max-xs:hidden'>
             <ServiceIcon
               icon={service.icon}
               variants={service.iconVariants}
@@ -322,9 +319,27 @@ function Row({
               state={service.state}
               className='absolute -right-0.5 -bottom-0.5 size-2.5 ring-2 ring-card sm:hidden'
             />
+            {/* An update waiting on its other corner, so the name keeps its room */}
+            {service.update && (
+              <UpdateBadge
+                update={service.update}
+                corner
+                className='absolute -top-1 -right-1'
+              />
+            )}
           </span>
           <div className='min-w-0 flex-1'>
             <div className='flex items-center gap-2'>
+              <StatusDot
+                state={service.state}
+                className='hidden size-2 shrink-0 max-xs:block'
+              />
+              {service.update && (
+                <UpdateBadge
+                  update={service.update}
+                  className='hidden max-xs:block'
+                />
+              )}
               <span className='truncate text-sm font-medium'>
                 {service.name}
               </span>
@@ -334,7 +349,6 @@ function Row({
                   className='size-3.5 shrink-0 text-muted-foreground'
                 />
               )}
-              {service.update && <UpdateBadge update={service.update} />}
             </div>
             <div className='truncate text-muted-foreground' title={detail}>
               {detail}

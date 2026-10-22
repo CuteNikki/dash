@@ -11,7 +11,7 @@ import {
   type Container,
 } from '@/lib/docker/docker';
 import { RUN_LABEL } from '@/lib/docker/runner';
-import { formatMs, isLink } from '@/lib/format';
+import { formatMs, isLink, splitAddress } from '@/lib/format';
 import { arrangeHostTiles } from '@/lib/host/host-tiles';
 import { currentSystemUpdates } from '@/lib/host/system-updates';
 import { currentUsage } from '@/lib/host/usage';
@@ -28,9 +28,15 @@ export function serviceKey(c: Container) {
   return c.stack ? `${c.stack.project}/${c.stack.service}` : c.name;
 }
 
-/** A tile's first web link, as one to request, if it's a valid one. */
+/** The first of some addresses that's a web link, without its label. */
+function firstLink(addresses: string[]) {
+  const entry = addresses.find(isLink);
+  return entry && splitAddress(entry).address;
+}
+
+/** A tile's first web link, without its label, as one to request, if it's a valid one. */
 function siteUrl(addresses: string[]) {
-  const link = addresses.find(isLink);
+  const link = firstLink(addresses);
   if (!link) return undefined;
   try {
     return new URL(link);
@@ -194,7 +200,7 @@ export async function getDashboard(): Promise<Dashboard> {
         c.stack?.service ||
         c.name,
       addresses,
-      url: addresses.find(isLink),
+      url: firstLink(addresses),
       // Its own once edited here, if only to have none
       description:
         (tile?.description ?? l['homepage.description']) || undefined,

@@ -224,7 +224,8 @@ export function Dashboard({
         <h1>
           <Brand />
         </h1>
-        <div className='flex items-center gap-3'>
+        {/* Closer together on a phone, where the line's room is short */}
+        <div className='flex items-center gap-2 sm:gap-3'>
           <ToggleGroup
             type='single'
             variant='segmented'
@@ -267,10 +268,12 @@ export function Dashboard({
           <Button
             variant={editing ? 'default' : 'outline'}
             aria-pressed={editing}
+            aria-label={editing ? 'Done' : 'Edit'}
             onClick={() => setEditing(!editing)}
           >
             <PencilIcon />
-            {editing ? 'Done' : 'Edit'}
+            {/* Its pencil alone on a phone, as New service's plus is */}
+            <span className='max-sm:hidden'>{editing ? 'Done' : 'Edit'}</span>
           </Button>
           <ThemeButton />
           <AccountMenu email={email} />

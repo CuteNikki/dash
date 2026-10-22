@@ -4,8 +4,9 @@ import { toast } from 'sonner';
 
 import { CopyIcon, ExternalLinkIcon } from 'lucide-react';
 
-import { formatAddress, isLink } from '@/lib/format';
+import { formatAddress, isLink, splitAddress } from '@/lib/format';
 
+import { AddressText } from '@/components/service/address-text';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
@@ -15,7 +16,9 @@ import {
 
 /** A service's addresses, each to copy, and links to open as well. */
 export function AddressList({ addresses }: { addresses: string[] }) {
-  async function copy(address: string) {
+  // The address alone, without what it's for
+  async function copy(entry: string) {
+    const { address } = splitAddress(entry);
     try {
       await navigator.clipboard.writeText(address);
       toast.success(`Copied ${formatAddress(address)}`);
@@ -28,8 +31,8 @@ export function AddressList({ addresses }: { addresses: string[] }) {
     <ul className='flex flex-wrap gap-x-4 gap-y-1'>
       {addresses.map((address) => (
         <li key={address} className='flex min-w-0 items-center gap-1'>
-          <span className='truncate font-mono select-all'>
-            {formatAddress(address)}
+          <span className='truncate font-mono'>
+            <AddressText entry={address} />
           </span>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -49,7 +52,7 @@ export function AddressList({ addresses }: { addresses: string[] }) {
               <TooltipTrigger asChild>
                 <Button variant='ghost' size='icon-xs' asChild>
                   <a
-                    href={address}
+                    href={splitAddress(address).address}
                     target='_blank'
                     rel='noreferrer'
                     aria-label={`Open ${address}`}

@@ -1,8 +1,9 @@
+import { Fragment } from 'react';
+
 import { EyeOffIcon } from 'lucide-react';
 
 import { isRunning, labelOf } from '@/lib/dashboard/status';
 import {
-  formatAddress,
   formatBytes,
   formatCpu,
   formatMs,
@@ -14,6 +15,7 @@ import { cn } from '@/lib/utils';
 
 import { Sparkline } from '@/components/charts/sparkline';
 import { WidgetStats, widgetStats } from '@/components/charts/widget-stats';
+import { AddressText, addressWords } from '@/components/service/address-text';
 import { ServiceIcon } from '@/components/service/service-icon';
 import { StatusDot } from '@/components/service/status-dot';
 import { Card } from '@/components/ui/card';
@@ -34,6 +36,9 @@ export function ServiceTile({
   // A taller tile has room for its graph as one of its own
   const graph = service.height > 1;
   const stats = widgetStats(service);
+  const addresses = service.addresses.length
+    ? service.addresses
+    : [service.containerName];
   return (
     <button
       type='button'
@@ -57,18 +62,25 @@ export function ServiceTile({
           <div className='min-w-0 flex-1'>
             <div className='truncate text-sm font-medium'>{service.name}</div>
             {service.description && (
-              <div className='truncate' title={service.description}>
+              <div
+                className='truncate text-muted-foreground'
+                title={service.description}
+              >
                 {service.description}
               </div>
             )}
-            {(service.addresses.length
-              ? service.addresses
-              : [service.containerName]
-            ).map((address) => (
-              <div key={address} className='truncate text-muted-foreground'>
-                {formatAddress(address)}
-              </div>
-            ))}
+            {/* Every address on one line, to keep the tile short */}
+            <div
+              className='truncate text-muted-foreground'
+              title={addresses.map(addressWords).join(' · ')}
+            >
+              {addresses.map((address, i) => (
+                <Fragment key={address}>
+                  {i > 0 && ' · '}
+                  <AddressText entry={address} />
+                </Fragment>
+              ))}
+            </div>
           </div>
           {editing ? (
             <span className='mt-0.5 flex items-center gap-2 self-start text-muted-foreground'>

@@ -5,6 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* The narrowest phones, 320px wide, which some rows make room on */
+  --breakpoint-xs: 22.5rem;
   --color-success: var(--success);
   --color-update: var(--update);
   --color-warning: var(--warning);

@@ -22,19 +22,23 @@ export function WidgetStats({
         <div
           key={stat.label ?? stat.value}
           className={cn(
-            'flex min-w-0 flex-row-reverse gap-1.5 rounded-md bg-muted px-1.5',
+            // No wider than the room it has: a long value cuts short
+            // inside it, rather than spilling past its column
+            'flex max-w-full min-w-0 flex-row-reverse gap-1.5 rounded-md bg-muted px-1.5',
             // On air, in the red streams use for it
             stat.tone === 'live' && 'bg-destructive/15 text-destructive'
           )}
         >
           {stat.label && (
-            <dt className='truncate text-muted-foreground lowercase'>
+            // Gives way first, all the way to nothing: the number's what
+            // the pill is for
+            <dt className='min-w-0 shrink-999 truncate text-muted-foreground lowercase'>
               {stat.label}
             </dt>
           )}
           <dd
             className={cn(
-              'flex items-center gap-1 font-mono font-medium whitespace-nowrap tabular-nums',
+              'flex min-w-0 items-center gap-1 font-mono font-medium whitespace-nowrap tabular-nums',
               stat.tone === 'off' && 'font-normal text-muted-foreground'
             )}
           >
@@ -44,7 +48,9 @@ export function WidgetStats({
                 className='size-1.5 rounded-full bg-destructive motion-safe:animate-pulse'
               />
             )}
-            {stat.value}
+            <span className='truncate' title={stat.value}>
+              {stat.value}
+            </span>
           </dd>
         </div>
       ))}

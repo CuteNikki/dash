@@ -199,7 +199,7 @@ function AddressRow({
           }
         }}
         aria-invalid={badLink(item.value) || undefined}
-        placeholder='https://… or host:port'
+        placeholder='https://…, host:port, or Label: either'
         spellCheck={false}
       />
       <InputGroupAddon align='inline-end'>

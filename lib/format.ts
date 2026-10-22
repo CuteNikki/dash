@@ -98,14 +98,32 @@ export function formatWhen(at: number) {
   return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 }
 
-/** Whether an address is a web link, rather than text like a host and port. */
-export function isLink(address: string) {
-  return SCHEME.test(address);
+/**
+ * A label before an address, saying what it's for: "Java: mc.niso.moe:25565".
+ * A space after the colon makes it one, so a host and port never is.
+ */
+const LABELLED = /^([^\s:/][^:/]{0,23}):\s+(\S.*)$/;
+
+/** An address as written, split into what it's for, if it says, and the address itself. */
+export function splitAddress(entry: string): {
+  label?: string;
+  address: string;
+} {
+  const match = entry.match(LABELLED);
+  return match
+    ? { label: match[1].trim(), address: match[2].trim() }
+    : { address: entry };
 }
 
-/** An address as a tile shows it: a link without its scheme, the rest as it is. */
-export function formatAddress(address: string) {
-  return isLink(address)
+/** Whether an address is a web link, rather than text like a host and port. */
+export function isLink(entry: string) {
+  return SCHEME.test(splitAddress(entry).address);
+}
+
+/** An address as a tile shows it, without its label: a link without its scheme, the rest as it is. */
+export function formatAddress(entry: string) {
+  const { address } = splitAddress(entry);
+  return SCHEME.test(address)
     ? address.replace(SCHEME, '').replace(/\/$/, '')
     : address;
 }
