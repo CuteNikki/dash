@@ -45,3 +45,43 @@ export async function putFile(key: string, body: ArrayBuffer, type: string) {
   if (!res.ok) throw new Error(`Storage answered ${res.status}`);
   return `${PUBLIC_ORIGIN}/${key}`;
 }
+
+/** A file in the bucket: its key, and its size in bytes. */
+export type StoredObject = { key: string; size: number };
+
+function tag(xml: string, name: string) {
+  return new RegExp(`<${name}>([\s\S]*?)</${name}>`).exec(xml)?.[1] ?? '';
+}
+
+function unescapeXml(text: string) {
+  return text
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+    .replaceAll('&quot;', '"')
+    .replaceAll('&apos;', "'")
+    .replaceAll('&amp;', '&');
+}
+
+/** Every file in the bucket, whoever put it there, a thousand at a time. */
+export async function listObjects(): Promise<StoredObject[]> {
+  const objects: StoredObject[] = [];
+  let token: string | undefined;
+  do {
+    const url = new URL(`${API_ORIGIN}/${BUCKET}`);
+    url.searchParams.set('list-type', '2');
+    if (token) url.searchParams.set('continuation-token', token);
+    const res = await storage().fetch(url.href, {
+      signal: AbortSignal.timeout(8_000),
+    });
+    if (!res.ok) throw new Error(`Storage answered ${res.status} to listing`);
+    const xml = await res.text();
+    for (const [, item] of xml.matchAll(/<Contents>([\s\S]*?)<\/Contents>/g)) {
+      objects.push({
+        key: unescapeXml(tag(item, 'Key')),
+        size: Number(tag(item, 'Size')),
+      });
+    }
+    token = unescapeXml(tag(xml, 'NextContinuationToken')) || undefined;
+  } while (token);
+  return objects;
+}
