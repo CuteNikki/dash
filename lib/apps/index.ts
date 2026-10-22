@@ -9,8 +9,9 @@ import { minecraft } from '@/lib/apps/minecraft';
 import { postgres } from '@/lib/apps/postgres';
 import { prowlarr } from '@/lib/apps/prowlarr';
 import { qbittorrent } from '@/lib/apps/qbittorrent';
+import { relay } from '@/lib/apps/relay';
 
-/** The apps dash can read, by their image's name: "lscr.io/linuxserver/sonarr" → sonarr. */
+/** The apps dash can read, by their image's name, "lscr.io/linuxserver/sonarr" → sonarr, or by a dash.app label. */
 export const APPS: Record<string, App> = {
   sonarr,
   radarr,
@@ -21,4 +22,6 @@ export const APPS: Record<string, App> = {
   postgres,
   garage,
   caddy,
+  // Labelled dash.app: relay in its compose file, its image being named for its folder
+  relay,
 };

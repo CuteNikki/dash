@@ -67,13 +67,22 @@ export type DetailSection =
       /** What to say when there are no rows: "No one's watching" */
       empty: string;
     }
-  | { kind: 'facts'; title: string; facts: { label: string; value: string }[] };
+  | {
+      kind: 'facts';
+      title: string;
+      facts: { label: string; value: DetailCell }[];
+    };
 
 /**
  * One of an app's numbers, ready to show: "Queued" and "3", "Down" and
  * "2.1 MB/s"; or one that says what it is alone, as "Paper 26.2" does.
  */
-export type WidgetStat = { label?: string; value: string };
+export type WidgetStat = {
+  label?: string;
+  value: string;
+  /** "live" stands out, as a stream on air does; "off" is quiet, as one that isn't */
+  tone?: 'live' | 'off';
+};
 
 /** An app's numbers, or why they couldn't be read. */
 export type Widget = { stats: WidgetStat[] } | { error: string };

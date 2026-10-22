@@ -46,7 +46,9 @@ export function AppDetails({ containerId }: { containerId: string }) {
           {section.facts.map(({ label, value }) => (
             <div key={label} className='contents'>
               <dt className='text-muted-foreground'>{label}</dt>
-              <dd className='font-mono break-all'>{value}</dd>
+              <dd className='font-mono break-all'>
+                <Cell cell={value} />
+              </dd>
             </div>
           ))}
         </dl>

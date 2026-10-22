@@ -12,7 +12,8 @@ const FRESH_MS = 10_000;
 
 /** "lscr.io/linuxserver/sonarr:latest" → "sonarr" */
 function appOf(c: Container) {
-  const name = imageName(c.image);
+  // A dash.app label names it outright, for an image named for its folder
+  const name = c.labels['dash.app'] ?? imageName(c.image);
   return name in APPS ? name : undefined;
 }
 
