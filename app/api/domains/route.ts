@@ -1,6 +1,6 @@
-import { checkDomain, siteDomains } from '@/lib/domains';
-import { DOMAIN_PATTERN } from '@/lib/new-service';
-import { unauthorized } from '@/lib/session';
+import { unauthorized } from '@/lib/auth/session';
+import { checkDomain, siteDomains } from '@/lib/stacks/domains';
+import { DOMAIN_PATTERN } from '@/lib/stacks/new-service';
 
 /**
  * The domains a new service's address can end in; or with ?check=<domain>,

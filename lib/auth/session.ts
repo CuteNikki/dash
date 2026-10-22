@@ -3,7 +3,7 @@ import 'server-only';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-import { auth } from '@/lib/auth';
+import { auth } from '@/lib/auth/auth';
 import { db } from '@/lib/db';
 
 /** The signed-in user, checked against the database, or undefined. */

@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 import { measureDisk, pruneDocker } from '@/actions/disk';
-import type { DockerSpace } from '@/lib/docker';
+import type { DockerSpace } from '@/lib/docker/docker';
 import { fetcher } from '@/lib/fetcher';
 import { formatBytes, formatDuration } from '@/lib/format';
 import type {

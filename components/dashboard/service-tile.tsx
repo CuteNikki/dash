@@ -1,5 +1,6 @@
 import { EyeOffIcon } from 'lucide-react';
 
+import { isRunning, labelOf } from '@/lib/dashboard/status';
 import {
   formatAddress,
   formatBytes,
@@ -8,7 +9,6 @@ import {
   MEASURES,
   type Measure,
 } from '@/lib/format';
-import { isRunning, labelOf } from '@/lib/status';
 import type { Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 

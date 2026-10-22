@@ -113,7 +113,15 @@ components/
   charts/       graphs and sparklines
   common/       scroll fades and loading placeholders
   ui/           buttons, dialogs, inputs and the rest
-lib/          reading Docker, Compose, git, Caddy and the apps, on the server
+lib/          what runs on the server, and what the browser shares with it
+  apps/         each app's widget and details: Jellyfin, Sonarr, Minecraft, …
+  auth/         sign-in, sessions and setup
+  dashboard/    the tiles, their groups, layout and status, websites' checks
+  docker/       Docker's API, Compose, and runs in short-lived containers
+  host/         the server's stats, processes, disk and files
+  stacks/       adding and removing services, Caddy and domains
+  templates/    the templates, Docker Hub search and docker run import
+  icons/        finding icons
 prisma/       the database schema and migrations
 scripts/      deploy and tunnels
 ```

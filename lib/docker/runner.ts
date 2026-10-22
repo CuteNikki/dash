@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { dockerRequest, logLines } from '@/lib/docker';
+import { dockerRequest, logLines } from '@/lib/docker/docker';
 
 /** The folder the stacks live in, mounted into a run at the same path. */
 export const STACKS_ROOT = process.env.STACKS_ROOT ?? '/home/nikki';

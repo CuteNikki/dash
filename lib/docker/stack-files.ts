@@ -2,8 +2,8 @@ import 'server-only';
 
 import { posix } from 'node:path';
 
-import { composeOutput, type Stack } from '@/lib/compose';
-import { listContainers } from '@/lib/docker';
+import { composeOutput, type Stack } from '@/lib/docker/compose';
+import { listContainers } from '@/lib/docker/docker';
 import {
   createHostEntry,
   listHostDir,
@@ -15,7 +15,7 @@ import {
   removeHostFile,
   writeHostFile,
   type HostEntry,
-} from '@/lib/host-files';
+} from '@/lib/host/host-files';
 
 /** Bigger than any config file; a file this size is data, not for editing here. */
 const MAX_EDIT_BYTES = 1024 * 1024;

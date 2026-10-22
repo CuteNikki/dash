@@ -12,13 +12,13 @@ import {
 } from 'lucide-react';
 
 import { runContainerAction } from '@/actions/containers';
-import type { ContainerAction } from '@/lib/docker';
+import type { ServiceGroup } from '@/lib/dashboard/groups';
+import { isRunning } from '@/lib/dashboard/status';
+import type { ListFilter } from '@/lib/dashboard/view';
+import type { ContainerAction } from '@/lib/docker/docker';
 import { formatAddress, formatBytes, formatCpu, MEASURES } from '@/lib/format';
-import type { ServiceGroup } from '@/lib/groups';
-import { isRunning } from '@/lib/status';
 import type { Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import type { ListFilter } from '@/lib/view';
 
 import { Sparkline } from '@/components/charts/sparkline';
 import { WidgetStats, widgetStats } from '@/components/charts/widget-stats';

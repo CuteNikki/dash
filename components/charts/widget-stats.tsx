@@ -1,4 +1,4 @@
-import { isRunning } from '@/lib/status';
+import { isRunning } from '@/lib/dashboard/status';
 import type { Service, WidgetStat } from '@/lib/types';
 import { cn } from '@/lib/utils';
 

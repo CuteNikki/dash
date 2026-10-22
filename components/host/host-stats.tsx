@@ -22,7 +22,7 @@ import {
   MEASURES,
   type Measure,
 } from '@/lib/format';
-import type { HostTileKey } from '@/lib/host-tiles';
+import type { HostTileKey } from '@/lib/host/host-tiles';
 import type { Capacity, HostStats, Service } from '@/lib/types';
 
 import { HistoryChart } from '@/components/charts/history-chart';

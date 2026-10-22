@@ -1,4 +1,4 @@
-import type { ContainerState } from '@/lib/docker';
+import type { ContainerState } from '@/lib/docker/docker';
 import type { Service } from '@/lib/types';
 
 /** How a container is doing, in the three ways the dashboard shows it. */

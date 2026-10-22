@@ -6,12 +6,12 @@ import useSWR from 'swr';
 import { BadgeCheckIcon, FileIcon, SearchIcon } from 'lucide-react';
 
 import { fetcher } from '@/lib/fetcher';
-import type { HubImage } from '@/lib/image-search';
+import type { HubImage } from '@/lib/templates/image-search';
 import {
   blankTemplate,
   CURATED,
   type ServiceTemplate,
-} from '@/lib/service-templates';
+} from '@/lib/templates/service-templates';
 import { cn } from '@/lib/utils';
 
 import { ScrollFade } from '@/components/common/scroll-fade';

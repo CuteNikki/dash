@@ -3,7 +3,7 @@ import 'server-only';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
-import { execOutput } from '@/lib/docker';
+import { execOutput } from '@/lib/docker/docker';
 import type { Capacity } from '@/lib/types';
 
 /**

@@ -1,18 +1,22 @@
 import 'server-only';
 
+import { DEFAULT_GROUP } from '@/lib/dashboard/groups';
+import { currentSites } from '@/lib/dashboard/sites';
+import { isSiteKey } from '@/lib/dashboard/tiles';
+import { hasDetails, readWidgets } from '@/lib/dashboard/widgets';
 import { db } from '@/lib/db';
-import { listContainers, takingInput, type Container } from '@/lib/docker';
+import {
+  listContainers,
+  takingInput,
+  type Container,
+} from '@/lib/docker/docker';
+import { RUN_LABEL } from '@/lib/docker/runner';
 import { formatMs, isLink } from '@/lib/format';
-import { DEFAULT_GROUP } from '@/lib/groups';
-import { arrangeHostTiles } from '@/lib/host-tiles';
-import { iconInfo } from '@/lib/icon-search';
-import { RUN_LABEL } from '@/lib/runner';
-import { removable } from '@/lib/service-stacks';
-import { currentSites } from '@/lib/sites';
-import { isSiteKey } from '@/lib/tiles';
+import { arrangeHostTiles } from '@/lib/host/host-tiles';
+import { currentUsage } from '@/lib/host/usage';
+import { iconInfo } from '@/lib/icons/icon-search';
+import { removable } from '@/lib/stacks/service-stacks';
 import type { Dashboard, Service, SiteCheck } from '@/lib/types';
-import { currentUsage } from '@/lib/usage';
-import { hasDetails, readWidgets } from '@/lib/widgets';
 
 /**
  * A container's tile key: its compose project and service, which survive the

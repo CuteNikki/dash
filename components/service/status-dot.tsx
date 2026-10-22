@@ -1,7 +1,7 @@
 import { cva } from 'class-variance-authority';
 
-import type { ContainerState } from '@/lib/docker';
-import { healthOf, stateLabel } from '@/lib/status';
+import { healthOf, stateLabel } from '@/lib/dashboard/status';
+import type { ContainerState } from '@/lib/docker/docker';
 import { cn } from '@/lib/utils';
 
 const dot = cva('inline-block size-2 shrink-0 rounded-full', {

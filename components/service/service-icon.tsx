@@ -7,7 +7,7 @@ import {
   iconFileUrl,
   parseIcon,
   type IconVariants,
-} from '@/lib/icon-sets';
+} from '@/lib/icons/icon-sets';
 import { cn } from '@/lib/utils';
 
 type IconSource =

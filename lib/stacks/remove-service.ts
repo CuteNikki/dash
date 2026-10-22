@@ -1,19 +1,19 @@
 import 'server-only';
 
-import { runCompose, type Stack } from '@/lib/compose';
+import { runCompose, type Stack } from '@/lib/docker/compose';
+import type { RunLine } from '@/lib/docker/runner';
 import {
   readHostFile,
   removeHostEntry,
   removeHostFile,
-} from '@/lib/host-files';
-import type { RunLine } from '@/lib/runner';
+} from '@/lib/host/host-files';
 import {
   findCaddy,
   reloadCaddy,
   say,
   shown,
   siteFile,
-} from '@/lib/service-stacks';
+} from '@/lib/stacks/service-stacks';
 
 /**
  * Removes a service: its stack's containers and networks taken down, its

@@ -26,7 +26,7 @@ import {
   type Cell,
   type Layout,
   type SavedCell,
-} from '@/lib/layout';
+} from '@/lib/dashboard/layout';
 import { cn } from '@/lib/utils';
 
 /** A tile on the board, drawn by `render` at the place it has. */

@@ -6,8 +6,8 @@ import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { APIError } from 'better-auth/api';
 import { nextCookies } from 'better-auth/next-js';
 
+import { isCreatingAccount } from '@/lib/auth/setup';
 import { db } from '@/lib/db';
-import { isCreatingAccount } from '@/lib/setup';
 
 /** Where the dashboard runs. Passkeys only work on this address. */
 const authURL = new URL(process.env.BETTER_AUTH_URL ?? 'http://localhost:3000');

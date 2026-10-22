@@ -2,8 +2,8 @@ import 'server-only';
 
 import { randomUUID } from 'node:crypto';
 
-import { hostOwner } from '@/lib/host-files';
-import { runToEnd, STACKS_ROOT, type Run } from '@/lib/runner';
+import { runToEnd, STACKS_ROOT, type Run } from '@/lib/docker/runner';
+import { hostOwner } from '@/lib/host/host-files';
 
 /**
  * Git, run in a short-lived container of the official image as whoever owns

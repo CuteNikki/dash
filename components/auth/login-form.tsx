@@ -5,7 +5,7 @@ import { useState, useTransition } from 'react';
 
 import { KeyRoundIcon } from 'lucide-react';
 
-import { authClient } from '@/lib/auth-client';
+import { authClient } from '@/lib/auth/auth-client';
 
 import { FormField } from '@/components/auth/form-field';
 import { Button } from '@/components/ui/button';

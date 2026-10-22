@@ -1,5 +1,5 @@
-import { searchImages } from '@/lib/image-search';
-import { unauthorized } from '@/lib/session';
+import { unauthorized } from '@/lib/auth/session';
+import { searchImages } from '@/lib/templates/image-search';
 
 /** Images found, a few being enough beside the templates. */
 const LIMIT = 6;

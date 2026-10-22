@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-import { readRunStream } from '@/lib/read-run-stream';
+import { readRunStream } from '@/lib/docker/read-run-stream';
 import type { Service } from '@/lib/types';
 
 import {

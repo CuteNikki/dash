@@ -1,6 +1,6 @@
 import 'server-only';
 
-import type { RunLine } from '@/lib/runner';
+import type { RunLine } from '@/lib/docker/runner';
 
 /**
  * A run's output as a response: what it prints as one JSON object per line,

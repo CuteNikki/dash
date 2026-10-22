@@ -1,5 +1,5 @@
-import { unauthorized } from '@/lib/session';
-import { stackInfo, stackOf } from '@/lib/stack-files';
+import { unauthorized } from '@/lib/auth/session';
+import { stackInfo, stackOf } from '@/lib/docker/stack-files';
 
 /** The stack a container belongs to: its folder, compose files, and whether it builds. */
 export async function GET(

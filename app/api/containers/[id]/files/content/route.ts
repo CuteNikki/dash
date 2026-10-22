@@ -1,5 +1,5 @@
-import { unauthorized } from '@/lib/session';
-import { openStackFile, stackOf } from '@/lib/stack-files';
+import { unauthorized } from '@/lib/auth/session';
+import { openStackFile, stackOf } from '@/lib/docker/stack-files';
 
 /** A file of the stack, ?path= relative to its folder, if it can be edited here. */
 export async function GET(

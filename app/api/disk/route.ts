@@ -1,6 +1,6 @@
-import { diskScan } from '@/lib/disk-usage';
-import { dockerSpace } from '@/lib/docker';
-import { unauthorized } from '@/lib/session';
+import { unauthorized } from '@/lib/auth/session';
+import { dockerSpace } from '@/lib/docker/docker';
+import { diskScan } from '@/lib/host/disk-usage';
 
 /**
  * How measuring the disk is going, with how many seconds ago it started or

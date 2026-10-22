@@ -4,7 +4,7 @@ import { useState, useTransition, type ReactNode } from 'react';
 import { toast } from 'sonner';
 
 import { addSite } from '@/actions/tiles';
-import { MAX_DESCRIPTION } from '@/lib/tiles';
+import { MAX_DESCRIPTION } from '@/lib/dashboard/tiles';
 
 import { GroupField } from '@/components/dashboard/fields/group-field';
 import { Button } from '@/components/ui/button';

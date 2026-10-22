@@ -1,7 +1,7 @@
 'use server';
 
-import { stopProcess as stop } from '@/lib/processes';
-import { requireUser } from '@/lib/session';
+import { requireUser } from '@/lib/auth/session';
+import { stopProcess as stop } from '@/lib/host/processes';
 import type { StopResult } from '@/lib/types';
 
 /**

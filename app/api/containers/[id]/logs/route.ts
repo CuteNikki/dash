@@ -1,5 +1,5 @@
-import { containerLogs, DockerError, logLines } from '@/lib/docker';
-import { unauthorized } from '@/lib/session';
+import { unauthorized } from '@/lib/auth/session';
+import { containerLogs, DockerError, logLines } from '@/lib/docker/docker';
 
 /** How many earlier lines come first, before following new ones. */
 const TAIL = 500;

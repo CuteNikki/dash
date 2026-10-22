@@ -2,9 +2,9 @@ import 'server-only';
 
 import { APPS } from '@/lib/apps';
 import { env, type AppContext } from '@/lib/apps/app';
-import type { Container } from '@/lib/docker';
+import { isRunning } from '@/lib/dashboard/status';
+import type { Container } from '@/lib/docker/docker';
 import { imageName } from '@/lib/format';
-import { isRunning } from '@/lib/status';
 import type { Widget } from '@/lib/types';
 
 /** How long an app's numbers are kept before it's asked again. */

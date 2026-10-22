@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { once, run, stats, type App } from '@/lib/apps/app';
-import type { Container } from '@/lib/docker';
+import type { Container } from '@/lib/docker/docker';
 
 /** What rcon-cli prints, without its colors. */
 async function rcon(c: Container, command: string) {

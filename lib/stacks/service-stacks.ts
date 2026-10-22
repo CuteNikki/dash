@@ -2,12 +2,12 @@ import 'server-only';
 
 import { posix } from 'node:path';
 
-import { isCaddy, RELOAD_CADDY, reloadError } from '@/lib/caddy';
-import type { Stack } from '@/lib/compose';
-import { execRun, listContainers, type Container } from '@/lib/docker';
-import { hostOwner } from '@/lib/host-files';
-import { STACKS_ROOT, type RunLine } from '@/lib/runner';
-import { isRunning } from '@/lib/status';
+import { isRunning } from '@/lib/dashboard/status';
+import type { Stack } from '@/lib/docker/compose';
+import { execRun, listContainers, type Container } from '@/lib/docker/docker';
+import { STACKS_ROOT, type RunLine } from '@/lib/docker/runner';
+import { hostOwner } from '@/lib/host/host-files';
+import { isCaddy, RELOAD_CADDY, reloadError } from '@/lib/stacks/caddy';
 
 /**
  * The services dash adds and removes: each a stack in a folder of its own in

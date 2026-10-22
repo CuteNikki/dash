@@ -1,6 +1,11 @@
 import 'server-only';
 
-import { runContainer, runToEnd, type Run, type RunLine } from '@/lib/runner';
+import {
+  runContainer,
+  runToEnd,
+  type Run,
+  type RunLine,
+} from '@/lib/docker/runner';
 
 /**
  * Docker Compose, run in a short-lived container of the official CLI image,

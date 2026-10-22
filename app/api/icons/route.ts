@@ -1,5 +1,5 @@
-import { searchIcons } from '@/lib/icon-search';
-import { unauthorized } from '@/lib/session';
+import { unauthorized } from '@/lib/auth/session';
+import { searchIcons } from '@/lib/icons/icon-search';
 
 /** Matches sent for one search; typing more narrows them down. */
 const LIMIT = 48 * 4;

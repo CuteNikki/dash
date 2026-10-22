@@ -1,6 +1,6 @@
+import { unauthorized } from '@/lib/auth/session';
+import { stackOf } from '@/lib/docker/stack-files';
 import { gitCommitDetails } from '@/lib/git';
-import { unauthorized } from '@/lib/session';
-import { stackOf } from '@/lib/stack-files';
 
 /** One commit: who made it and when, its whole message, and the files it changed. */
 export async function GET(

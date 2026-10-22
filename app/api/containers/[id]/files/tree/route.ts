@@ -1,5 +1,5 @@
-import { unauthorized } from '@/lib/session';
-import { listStackDir, stackOf } from '@/lib/stack-files';
+import { unauthorized } from '@/lib/auth/session';
+import { listStackDir, stackOf } from '@/lib/docker/stack-files';
 
 /** What's in a folder of the stack, ?path= relative to its folder. */
 export async function GET(

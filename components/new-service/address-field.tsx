@@ -5,9 +5,9 @@ import useSWR from 'swr';
 
 import { CircleAlertIcon, CircleCheckIcon, LoaderIcon } from 'lucide-react';
 
-import type { DomainCheck } from '@/lib/domains';
 import { fetcher } from '@/lib/fetcher';
-import { DOMAIN_PATTERN } from '@/lib/new-service';
+import type { DomainCheck } from '@/lib/stacks/domains';
+import { DOMAIN_PATTERN } from '@/lib/stacks/new-service';
 import { cn } from '@/lib/utils';
 
 import {

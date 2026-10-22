@@ -1,7 +1,7 @@
 'use server';
 
-import type { Stack } from '@/lib/compose';
-import { requireUser } from '@/lib/session';
+import { requireUser } from '@/lib/auth/session';
+import type { Stack } from '@/lib/docker/compose';
 import {
   createStackEntry,
   deleteStackEntry,
@@ -9,7 +9,7 @@ import {
   saveStackFile,
   stackOf,
   type FileResult,
-} from '@/lib/stack-files';
+} from '@/lib/docker/stack-files';
 
 /** Runs a change on a container's stack, for a signed-in user, its failure as an error to show. */
 async function onStack(

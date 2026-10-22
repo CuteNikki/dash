@@ -5,8 +5,8 @@ import {
   dockerInfo,
   listContainers,
   type Usage,
-} from '@/lib/docker';
-import { readHost, type CpuTime, type HostReading } from '@/lib/host';
+} from '@/lib/docker/docker';
+import { readHost, type CpuTime, type HostReading } from '@/lib/host/host';
 import type { HostProcess, HostStats, UsageHistory } from '@/lib/types';
 
 /** How often the server and its containers are measured while someone is watching. */

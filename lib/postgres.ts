@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { execRun } from '@/lib/docker';
+import { execRun } from '@/lib/docker/docker';
 
 /**
  * Rows from a query, run with psql in a Postgres container as its superuser

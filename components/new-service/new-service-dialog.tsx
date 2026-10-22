@@ -3,14 +3,14 @@
 import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 
-import type { ConvertedRun } from '@/lib/docker-run';
-import { NewService, type NewServiceInput } from '@/lib/new-service';
-import { readRunStream } from '@/lib/read-run-stream';
+import { readRunStream } from '@/lib/docker/read-run-stream';
+import { NewService, type NewServiceInput } from '@/lib/stacks/new-service';
+import type { ConvertedRun } from '@/lib/templates/docker-run';
 import {
   blankTemplate,
   composeFor,
   type ServiceTemplate,
-} from '@/lib/service-templates';
+} from '@/lib/templates/service-templates';
 
 import { GroupField } from '@/components/dashboard/fields/group-field';
 import { CodeEditor } from '@/components/editor/code-editor';

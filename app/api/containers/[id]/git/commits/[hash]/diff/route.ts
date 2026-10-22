@@ -1,6 +1,6 @@
+import { unauthorized } from '@/lib/auth/session';
+import { stackOf } from '@/lib/docker/stack-files';
 import { gitCommitDiff } from '@/lib/git';
-import { unauthorized } from '@/lib/session';
-import { stackOf } from '@/lib/stack-files';
 
 /**
  * What one commit changed in one file, ?path= relative to the repository.

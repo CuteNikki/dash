@@ -7,16 +7,16 @@ import useSWR from 'swr';
 import { LayoutGridIcon, ListIcon, PencilIcon, PlusIcon } from 'lucide-react';
 
 import { renameGroup, saveLayout, type TileResult } from '@/actions/tiles';
-import { fetcher } from '@/lib/fetcher';
-import { groupNames, groupServices } from '@/lib/groups';
-import type { Dashboard as DashboardData, Service } from '@/lib/types';
+import { groupNames, groupServices } from '@/lib/dashboard/groups';
 import {
   FILTER_COOKIE,
   filterToCookie,
   VIEW_COOKIE,
   type ListFilter,
   type View,
-} from '@/lib/view';
+} from '@/lib/dashboard/view';
+import { fetcher } from '@/lib/fetcher';
+import type { Dashboard as DashboardData, Service } from '@/lib/types';
 
 import { AccountMenu } from '@/components/chrome/account-menu';
 import { Brand } from '@/components/chrome/brand';

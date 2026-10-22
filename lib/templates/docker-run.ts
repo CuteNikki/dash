@@ -1,4 +1,4 @@
-import { CADDY_NETWORK } from '@/lib/new-service';
+import { CADDY_NETWORK } from '@/lib/stacks/new-service';
 
 /**
  * A pasted `docker run` command as a compose file, as a new service's: its

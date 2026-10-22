@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { run, type App } from '@/lib/apps/app';
-import type { Container } from '@/lib/docker';
+import type { Container } from '@/lib/docker/docker';
 import { formatDuration } from '@/lib/format';
 
 /** What the relay writes about its stream, in its own repository's index.ts. */

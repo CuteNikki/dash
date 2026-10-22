@@ -1,6 +1,6 @@
-import { linuxServerTemplates } from '@/lib/linuxserver';
-import { CURATED } from '@/lib/service-templates';
-import { unauthorized } from '@/lib/session';
+import { unauthorized } from '@/lib/auth/session';
+import { linuxServerTemplates } from '@/lib/templates/linuxserver';
+import { CURATED } from '@/lib/templates/service-templates';
 
 /**
  * Every template: the big apps LinuxServer.io doesn't package, then its own,

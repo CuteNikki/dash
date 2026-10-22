@@ -1,5 +1,7 @@
 'use server';
 
+import { requireUser } from '@/lib/auth/session';
+import { stackOf } from '@/lib/docker/stack-files';
 import {
   gitCommit,
   gitFetch,
@@ -9,8 +11,6 @@ import {
   gitSwitch,
   type GitResult,
 } from '@/lib/git';
-import { requireUser } from '@/lib/session';
-import { stackOf } from '@/lib/stack-files';
 
 const MAX_MESSAGE = 5_000;
 

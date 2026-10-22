@@ -2,8 +2,8 @@ import 'server-only';
 
 import { hostname } from 'node:os';
 
-import { containerPid } from '@/lib/docker';
-import { runToEnd, STACKS_ROOT, type Run } from '@/lib/runner';
+import { containerPid } from '@/lib/docker/docker';
+import { runToEnd, STACKS_ROOT, type Run } from '@/lib/docker/runner';
 import type { ProcessDetails, StopResult } from '@/lib/types';
 
 /**

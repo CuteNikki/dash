@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { run, type App } from '@/lib/apps/app';
-import type { Container } from '@/lib/docker';
+import type { Container } from '@/lib/docker/docker';
 import { formatBytes } from '@/lib/format';
 
 /** Garage's sizes, "216.7 kB (211.7 KiB)", in bytes: the one in powers of 1024 where there is one. */

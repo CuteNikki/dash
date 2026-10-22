@@ -7,17 +7,17 @@ import {
   composeOutput,
   runCompose,
   type Stack,
-} from '@/lib/compose';
-import { checkDomain } from '@/lib/domains';
+} from '@/lib/docker/compose';
+import type { RunLine } from '@/lib/docker/runner';
 import {
   createHostEntry,
   readHostFile,
   removeHostEntry,
   removeHostFile,
   writeHostFile,
-} from '@/lib/host-files';
-import { CADDY_NETWORK, type NewServiceData } from '@/lib/new-service';
-import type { RunLine } from '@/lib/runner';
+} from '@/lib/host/host-files';
+import { checkDomain } from '@/lib/stacks/domains';
+import { CADDY_NETWORK, type NewServiceData } from '@/lib/stacks/new-service';
 import {
   findCaddy,
   reloadCaddy,
@@ -25,7 +25,7 @@ import {
   SERVICES_DIR,
   shown,
   siteFile,
-} from '@/lib/service-stacks';
+} from '@/lib/stacks/service-stacks';
 
 /** A new file, owned like the folder it's in, with its text. */
 async function writeNewFile(path: string, content: string) {

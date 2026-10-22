@@ -1,8 +1,8 @@
 'use server';
 
-import { startDiskScan } from '@/lib/disk-usage';
-import { dockerPrune } from '@/lib/docker';
-import { requireUser } from '@/lib/session';
+import { requireUser } from '@/lib/auth/session';
+import { dockerPrune } from '@/lib/docker/docker';
+import { startDiskScan } from '@/lib/host/disk-usage';
 
 /** Measures the server's disk again, in the background. */
 export async function measureDisk() {

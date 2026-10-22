@@ -2,9 +2,9 @@
 
 import { z } from 'zod';
 
-import { auth } from '@/lib/auth';
-import { hasAccount } from '@/lib/session';
-import { isSetupCode, whileCreatingAccount } from '@/lib/setup';
+import { auth } from '@/lib/auth/auth';
+import { hasAccount } from '@/lib/auth/session';
+import { isSetupCode, whileCreatingAccount } from '@/lib/auth/setup';
 
 const MIN_PASSWORD = 12;
 

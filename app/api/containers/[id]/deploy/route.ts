@@ -1,7 +1,7 @@
-import { runCompose } from '@/lib/compose';
-import { streamRun } from '@/lib/run-stream';
-import { unauthorized } from '@/lib/session';
-import { stackOf } from '@/lib/stack-files';
+import { unauthorized } from '@/lib/auth/session';
+import { runCompose } from '@/lib/docker/compose';
+import { streamRun } from '@/lib/docker/run-stream';
+import { stackOf } from '@/lib/docker/stack-files';
 
 /**
  * Redeploys the container's stack (docker compose up -d, with --build for

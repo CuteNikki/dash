@@ -1,5 +1,5 @@
-import { processDetails } from '@/lib/processes';
-import { unauthorized } from '@/lib/session';
+import { unauthorized } from '@/lib/auth/session';
+import { processDetails } from '@/lib/host/processes';
 
 /** One of the server's processes, looked at closely; 404 once it's ended. */
 export async function GET(

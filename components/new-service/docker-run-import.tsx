@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import { ArrowRightIcon } from 'lucide-react';
 
-import { convertRun, type ConvertedRun } from '@/lib/docker-run';
+import { convertRun, type ConvertedRun } from '@/lib/templates/docker-run';
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';

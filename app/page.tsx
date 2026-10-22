@@ -1,16 +1,16 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 
-import { COLUMNS_COOKIE, columnsFromCookie } from '@/lib/layout';
-import { getDashboard } from '@/lib/services';
-import { requireUser } from '@/lib/session';
-import { SERVER_NAME } from '@/lib/site';
+import { requireUser } from '@/lib/auth/session';
+import { COLUMNS_COOKIE, columnsFromCookie } from '@/lib/dashboard/layout';
+import { getDashboard } from '@/lib/dashboard/services';
 import {
   FILTER_COOKIE,
   filterFromCookie,
   VIEW_COOKIE,
   viewFromCookie,
-} from '@/lib/view';
+} from '@/lib/dashboard/view';
+import { SERVER_NAME } from '@/lib/site';
 
 import { Dashboard } from '@/components/dashboard/dashboard';
 

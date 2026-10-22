@@ -1,7 +1,7 @@
-import type { ContainerState, DockerInfo } from '@/lib/docker';
-import type { HostTile } from '@/lib/host-tiles';
-import type { IconVariants } from '@/lib/icon-sets';
-import type { SavedCell } from '@/lib/layout';
+import type { SavedCell } from '@/lib/dashboard/layout';
+import type { ContainerState, DockerInfo } from '@/lib/docker/docker';
+import type { HostTile } from '@/lib/host/host-tiles';
+import type { IconVariants } from '@/lib/icons/icon-sets';
 
 /** A container as the dashboard shows it, safe to send to the browser. */
 export type Service = {

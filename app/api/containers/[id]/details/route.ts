@@ -1,6 +1,6 @@
-import { listContainers } from '@/lib/docker';
-import { unauthorized } from '@/lib/session';
-import { readDetails } from '@/lib/widgets';
+import { unauthorized } from '@/lib/auth/session';
+import { readDetails } from '@/lib/dashboard/widgets';
+import { listContainers } from '@/lib/docker/docker';
 
 /** What a container's app has to say in its window, as DetailSection[]. */
 export async function GET(

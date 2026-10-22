@@ -8,7 +8,7 @@ import { LoaderIcon, UploadIcon } from 'lucide-react';
 
 import { uploadIcon } from '@/actions/icons';
 import { fetcher } from '@/lib/fetcher';
-import type { IconMatch } from '@/lib/icon-search';
+import type { IconMatch } from '@/lib/icons/icon-search';
 import { cn } from '@/lib/utils';
 
 import { ServiceIcon } from '@/components/service/service-icon';

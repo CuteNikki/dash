@@ -5,7 +5,7 @@ import {
   parseIcon,
   type IconSet,
   type IconVariants,
-} from '@/lib/icon-sets';
+} from '@/lib/icons/icon-sets';
 
 /** The sets' indexes are fetched again after a day. */
 const REFRESH_MS = 24 * 60 * 60 * 1000;

@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { run, type App } from '@/lib/apps/app';
-import type { Container } from '@/lib/docker';
+import type { Container } from '@/lib/docker/docker';
 
 type Route = { match?: { host?: string[] }[]; handle?: unknown[] };
 

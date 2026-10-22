@@ -1,9 +1,9 @@
-import { listContainers } from '@/lib/docker';
-import { removeService } from '@/lib/remove-service';
-import { streamRun } from '@/lib/run-stream';
-import { removable } from '@/lib/service-stacks';
-import { unauthorized } from '@/lib/session';
-import { stackOf } from '@/lib/stack-files';
+import { unauthorized } from '@/lib/auth/session';
+import { listContainers } from '@/lib/docker/docker';
+import { streamRun } from '@/lib/docker/run-stream';
+import { stackOf } from '@/lib/docker/stack-files';
+import { removeService } from '@/lib/stacks/remove-service';
+import { removable } from '@/lib/stacks/service-stacks';
 
 /**
  * Removes the container's whole stack, streaming what it does; with ?files=1

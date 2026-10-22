@@ -13,7 +13,7 @@ import {
 } from 'node:fs/promises';
 import { posix } from 'node:path';
 
-import { execRun } from '@/lib/docker';
+import { execRun } from '@/lib/docker/docker';
 
 /**
  * Files on the server. The dashboard's container has the home folder mounted

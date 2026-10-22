@@ -1,6 +1,6 @@
+import { unauthorized } from '@/lib/auth/session';
+import { stackOf } from '@/lib/docker/stack-files';
 import { gitLog } from '@/lib/git';
-import { unauthorized } from '@/lib/session';
-import { stackOf } from '@/lib/stack-files';
 
 /** Commits in one page of the history. */
 const PAGE = 50;

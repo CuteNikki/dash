@@ -1,5 +1,5 @@
-import { folderUsage } from '@/lib/disk-usage';
-import { unauthorized } from '@/lib/session';
+import { unauthorized } from '@/lib/auth/session';
+import { folderUsage } from '@/lib/host/disk-usage';
 
 /** A folder on the server, ?path= absolute: its size and what's in it. */
 export async function GET(request: Request) {

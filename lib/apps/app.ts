@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { execRun, type Container } from '@/lib/docker';
+import { execRun, type Container } from '@/lib/docker/docker';
 import type { DetailSection, WidgetStat } from '@/lib/types';
 
 /** How long an app has to answer. */

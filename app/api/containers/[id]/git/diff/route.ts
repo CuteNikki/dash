@@ -1,6 +1,6 @@
+import { unauthorized } from '@/lib/auth/session';
+import { stackOf } from '@/lib/docker/stack-files';
 import { gitDiff, gitStatus } from '@/lib/git';
-import { unauthorized } from '@/lib/session';
-import { stackOf } from '@/lib/stack-files';
 
 /** What changed in one of the repository's changed files, ?path= relative to it. */
 export async function GET(

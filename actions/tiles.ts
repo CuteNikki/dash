@@ -2,11 +2,11 @@
 
 import { z } from 'zod';
 
+import { requireUser } from '@/lib/auth/session';
+import { MAX_COLUMNS, MAX_ROWS } from '@/lib/dashboard/layout';
+import { ensureTiles } from '@/lib/dashboard/services';
+import { MAX_DESCRIPTION, SITE_PREFIX } from '@/lib/dashboard/tiles';
 import { db } from '@/lib/db';
-import { MAX_COLUMNS, MAX_ROWS } from '@/lib/layout';
-import { ensureTiles } from '@/lib/services';
-import { requireUser } from '@/lib/session';
-import { MAX_DESCRIPTION, SITE_PREFIX } from '@/lib/tiles';
 
 const MAX_NAME = 80;
 const MAX_GROUP = 60;

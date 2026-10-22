@@ -2,8 +2,8 @@ import 'server-only';
 
 import { posix } from 'node:path';
 
-import { iconsNamed } from '@/lib/icon-search';
-import type { ServiceTemplate } from '@/lib/service-templates';
+import { iconsNamed } from '@/lib/icons/icon-search';
+import type { ServiceTemplate } from '@/lib/templates/service-templates';
 
 /**
  * LinuxServer.io's images as templates, most pulled first: each image's

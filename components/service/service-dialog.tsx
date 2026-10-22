@@ -15,12 +15,12 @@ import {
 } from 'lucide-react';
 
 import { reloadCaddyConfig, runContainerAction } from '@/actions/containers';
-import { isCaddy } from '@/lib/caddy';
-import type { ContainerAction } from '@/lib/docker';
+import { isRunning } from '@/lib/dashboard/status';
+import type { ContainerAction } from '@/lib/docker/docker';
 import { fetcher } from '@/lib/fetcher';
 import { MEASURES, type Measure } from '@/lib/format';
 import type { GitStatus } from '@/lib/git';
-import { isRunning } from '@/lib/status';
+import { isCaddy } from '@/lib/stacks/caddy';
 import type { Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 

@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
-import { hasAccount } from '@/lib/session';
-import { setupCode } from '@/lib/setup';
+import { hasAccount } from '@/lib/auth/session';
+import { setupCode } from '@/lib/auth/setup';
 
 import { AuthCard } from '@/components/auth/auth-card';
 import { SetupForm } from '@/components/auth/setup-form';

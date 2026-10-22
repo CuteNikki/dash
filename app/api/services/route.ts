@@ -1,8 +1,8 @@
-import { createService } from '@/lib/create-service';
-import { NewService } from '@/lib/new-service';
-import { streamRun } from '@/lib/run-stream';
-import { getDashboard } from '@/lib/services';
-import { unauthorized } from '@/lib/session';
+import { unauthorized } from '@/lib/auth/session';
+import { getDashboard } from '@/lib/dashboard/services';
+import { streamRun } from '@/lib/docker/run-stream';
+import { createService } from '@/lib/stacks/create-service';
+import { NewService } from '@/lib/stacks/new-service';
 
 export async function GET() {
   return (await unauthorized()) ?? Response.json(await getDashboard());

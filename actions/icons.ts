@@ -2,7 +2,7 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { requireUser } from '@/lib/session';
+import { requireUser } from '@/lib/auth/session';
 import { putFile } from '@/lib/storage';
 
 /** Plenty for an icon; bigger is almost certainly a photo. */

@@ -1,4 +1,4 @@
-import { CADDY_NETWORK } from '@/lib/new-service';
+import { CADDY_NETWORK } from '@/lib/stacks/new-service';
 
 /**
  * Apps to start a new service from: each a compose file that runs it with its

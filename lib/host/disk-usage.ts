@@ -2,7 +2,7 @@ import 'server-only';
 
 import { posix } from 'node:path';
 
-import { runContainer, runToEnd, type Run } from '@/lib/runner';
+import { runContainer, runToEnd, type Run } from '@/lib/docker/runner';
 import type { DiskScan, FolderUsage } from '@/lib/types';
 
 /**

@@ -2,9 +2,9 @@ import 'server-only';
 
 import { resolve4, resolve6 } from 'node:dns/promises';
 
-import { listHostDir, readHostFile } from '@/lib/host-files';
-import { findCaddy } from '@/lib/service-stacks';
+import { listHostDir, readHostFile } from '@/lib/host/host-files';
 import { SERVER_NAME } from '@/lib/site';
+import { findCaddy } from '@/lib/stacks/service-stacks';
 
 /** Where a domain's DNS points: at this server, somewhere else, or nowhere yet. */
 export type DomainCheck =

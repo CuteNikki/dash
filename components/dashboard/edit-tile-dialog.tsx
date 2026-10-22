@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
 import { resetTile, restoreTile, saveTile } from '@/actions/tiles';
-import { isSiteKey, MAX_DESCRIPTION } from '@/lib/tiles';
+import { isSiteKey, MAX_DESCRIPTION } from '@/lib/dashboard/tiles';
 import type { Service } from '@/lib/types';
 
 import {

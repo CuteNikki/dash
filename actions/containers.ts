@@ -1,6 +1,7 @@
 'use server';
 
-import { isCaddy, RELOAD_CADDY, reloadError } from '@/lib/caddy';
+import { requireUser } from '@/lib/auth/session';
+import { isRunning } from '@/lib/dashboard/status';
 import {
   containerAction,
   execRun,
@@ -8,9 +9,8 @@ import {
   sendInput,
   takesInput,
   type ContainerAction,
-} from '@/lib/docker';
-import { requireUser } from '@/lib/session';
-import { isRunning } from '@/lib/status';
+} from '@/lib/docker/docker';
+import { isCaddy, RELOAD_CADDY, reloadError } from '@/lib/stacks/caddy';
 
 /** Longer than any command a console takes, to keep a paste from flooding one. */
 const MAX_COMMAND = 1_000;

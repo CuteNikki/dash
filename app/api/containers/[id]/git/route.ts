@@ -1,6 +1,6 @@
+import { unauthorized } from '@/lib/auth/session';
+import { stackOf } from '@/lib/docker/stack-files';
 import { gitStatus } from '@/lib/git';
-import { unauthorized } from '@/lib/session';
-import { stackOf } from '@/lib/stack-files';
 
 /** How the repository the container's stack is in stands, or null for none. */
 export async function GET(
