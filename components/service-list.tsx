@@ -98,12 +98,12 @@ export function ServiceList({
     (f.kind !== 'group' || filter.kind !== 'group' || f.name === filter.name);
 
   return (
-    <div className='flex flex-col gap-4 md:flex-row md:items-start'>
+    <div className='flex flex-col gap-4 lg:flex-row lg:items-start'>
       <nav
         aria-label='Show'
-        // A row of chips on a phone, swiped without a scrollbar; a column
-        // beside the table on a computer
-        className='-mx-4 flex [scrollbar-width:none] gap-1 overflow-x-auto px-4 md:sticky md:top-6 md:mx-0 md:w-52 md:shrink-0 md:flex-col md:overflow-visible md:px-0'
+        // A row of chips, swiped edge to edge without a scrollbar, until
+        // there's room for a column beside the table
+        className='-mx-4 flex [scrollbar-width:none] gap-1 overflow-x-auto px-4 sm:-mx-6 sm:px-6 lg:sticky lg:top-6 lg:mx-0 lg:w-44 lg:shrink-0 lg:flex-col lg:overflow-visible lg:px-0'
       >
         <FilterItem
           label='All'
@@ -120,7 +120,7 @@ export function ServiceList({
             onPick={() => setFilter({ kind: 'group', name: g.name })}
           />
         ))}
-        <div className='mx-1 my-0 w-px shrink-0 bg-border md:mx-0 md:my-2 md:h-px md:w-auto' />
+        <div className='mx-1 my-0 w-px shrink-0 bg-border lg:mx-0 lg:my-2 lg:h-px lg:w-auto' />
         <FilterItem
           label='Stopped'
           count={stopped.length}
@@ -235,9 +235,10 @@ function FilterItem({
       aria-pressed={active}
       onClick={onPick}
       className={cn(
-        'flex shrink-0 items-center gap-3 rounded-md px-2.5 py-1.5 text-left text-sm text-muted-foreground outline-none hover:bg-muted/50 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring md:justify-between',
+        'flex shrink-0 items-center gap-3 rounded-md px-2.5 py-1.5 text-left text-sm text-muted-foreground outline-none hover:bg-muted/50 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset lg:justify-between',
+        // Its outline inside it, which the swiped row of chips would cut off
         active &&
-          'bg-card font-medium text-foreground ring-1 ring-foreground/10'
+          'bg-card font-medium text-foreground ring-1 ring-foreground/10 ring-inset'
       )}
     >
       <span className='truncate'>{label}</span>
