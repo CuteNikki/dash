@@ -33,7 +33,7 @@ export function GroupField({
   value: string;
   groups: string[];
   onChange: (group: string) => void;
-  /** Can be left without a group, which None at the top of the list goes back to */
+  /** Can be left without a group: Other, at the top of the list, as it's where one goes */
   optional?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -79,13 +79,11 @@ export function GroupField({
           />
           <CommandList>
             <CommandGroup>
-              {optional && (
-                <CommandItem value='none' onSelect={() => pick('')}>
+              {/* Other is where one with no group goes, so it's none */}
+              {optional && !groups.includes(DEFAULT_GROUP) && (
+                <CommandItem value={DEFAULT_GROUP} onSelect={() => pick('')}>
                   <CheckIcon className={cn(value && 'invisible')} />
-                  None
-                  <span className='text-muted-foreground'>
-                    in {DEFAULT_GROUP}
-                  </span>
+                  {DEFAULT_GROUP}
                 </CommandItem>
               )}
               {groups.map((group) => (
