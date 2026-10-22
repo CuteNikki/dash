@@ -138,8 +138,10 @@ export function ServiceList({
               <th className='hidden w-28 px-2 py-2.5 font-medium sm:table-cell'>
                 Status
               </th>
-              <th className='w-16 px-2 py-2.5 font-medium lg:w-36'>CPU</th>
-              <th className='w-20 px-2 py-2.5 font-medium'>Memory</th>
+              <th className='w-14 px-2 py-2.5 font-medium sm:w-16 lg:w-36'>
+                CPU
+              </th>
+              <th className='w-18 px-2 py-2.5 font-medium sm:w-20'>Memory</th>
               <th className='hidden w-[22%] px-2 py-2.5 font-medium xl:table-cell'>
                 Stack
               </th>
@@ -306,12 +308,20 @@ function Row({
     >
       <td className='px-3 py-2.5'>
         <div className='flex items-center gap-3'>
-          <ServiceIcon
-            icon={service.icon}
-            variants={service.iconVariants}
-            missing={service.iconMissing}
-            name={service.name}
-          />
+          <span className='relative flex shrink-0'>
+            <ServiceIcon
+              icon={service.icon}
+              variants={service.iconVariants}
+              missing={service.iconMissing}
+              name={service.name}
+            />
+            {/* Its state on its icon's corner, where there's no column for
+                it, ringed in the table's color to stand off the icon */}
+            <StatusDot
+              state={service.state}
+              className='absolute -right-0.5 -bottom-0.5 size-2.5 ring-2 ring-card sm:hidden'
+            />
+          </span>
           <div className='min-w-0 flex-1'>
             <div className='flex items-center gap-2'>
               <span className='truncate text-sm font-medium'>
@@ -323,8 +333,6 @@ function Row({
                   className='size-3.5 shrink-0 text-muted-foreground'
                 />
               )}
-              {/* Where there's no column for its state */}
-              <StatusDot state={service.state} className='sm:hidden' />
             </div>
             <div className='truncate text-muted-foreground' title={detail}>
               {detail}
