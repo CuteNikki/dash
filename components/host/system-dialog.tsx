@@ -203,12 +203,11 @@ export function SystemDialog({
                   {packages.map((p) => (
                     <li
                       key={p.name}
-                      // Versions under the name on a phone, beside it where
-                      // there's room; both whole, the list scrolling
-                      // sideways to the longest
-                      className='flex flex-col px-3 py-1.5 sm:flex-row sm:items-baseline sm:gap-3'
+                      // The name, then its versions under it, whole: the
+                      // list scrolls sideways only to the longest version
+                      className='flex flex-col px-3 py-1.5'
                     >
-                      <span className='font-medium whitespace-nowrap sm:flex-1'>
+                      <span className='font-medium whitespace-nowrap'>
                         {p.name}
                         {p.security && (
                           <span className='ml-2 font-sans text-warning'>
