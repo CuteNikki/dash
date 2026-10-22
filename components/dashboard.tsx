@@ -4,12 +4,13 @@ import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 
-import { PencilIcon } from 'lucide-react';
+import { LayoutGridIcon, ListIcon, PencilIcon } from 'lucide-react';
 
 import { saveLayout, type TileResult } from '@/actions/tiles';
 import { fetcher } from '@/lib/fetcher';
 import { groupNames, groupServices } from '@/lib/groups';
 import type { Dashboard as DashboardData, Service } from '@/lib/types';
+import { VIEW_COOKIE, type View } from '@/lib/view';
 
 import { AccountMenu } from '@/components/account-menu';
 import {
@@ -21,9 +22,11 @@ import {
 import { EditTileDialog } from '@/components/edit-tile-dialog';
 import { HostTileContent } from '@/components/host-stats';
 import { ServiceDialog } from '@/components/service-dialog';
+import { ServiceList } from '@/components/service-list';
 import { ServiceTile } from '@/components/service-tile';
 import { ThemeButton } from '@/components/theme-button';
 import { Button } from '@/components/ui/button';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 /** How often the dashboard asks for fresh status and usage. */
 const REFRESH_MS = 5_000;
@@ -31,14 +34,23 @@ const REFRESH_MS = 5_000;
 export function Dashboard({
   initial,
   initialColumns,
+  initialView,
   email,
 }: {
   initial: DashboardData;
   /** The columns the screen had last time, so the first paint has them */
   initialColumns: number;
+  /** Tiles or the list, as picked last time */
+  initialView: View;
   email: string;
 }) {
   const columns = useColumns(initialColumns);
+  const [view, setView] = useState(initialView);
+
+  function pickView(next: View) {
+    setView(next);
+    document.cookie = `${VIEW_COOKIE}=${next}; path=/; max-age=31536000; samesite=lax`;
+  }
   const { data = initial, mutate } = useSWR<DashboardData>(
     '/api/services',
     fetcher,
@@ -120,7 +132,8 @@ export function Dashboard({
           },
         ]
       : []),
-    ...groups.map((g) => ({
+    // As a list, the groups aren't on the board
+    ...(view === 'list' ? [] : groups).map((g) => ({
       id: `group:${g.name}`,
       kind: 'group' as const,
       label: g.name,
@@ -150,6 +163,21 @@ export function Dashboard({
     <div className='flex w-full flex-col gap-8 px-4 py-6 sm:px-6'>
       <header className='flex items-center gap-3'>
         <h1 className='mr-auto text-base font-semibold tracking-tight'>dash</h1>
+        <ToggleGroup
+          type='single'
+          variant='outline'
+          value={view}
+          // Picking the shown one again would unpick it; keep one picked
+          onValueChange={(v) => v && pickView(v as View)}
+          aria-label='Show services as'
+        >
+          <ToggleGroupItem value='tiles' aria-label='Tiles'>
+            <LayoutGridIcon />
+          </ToggleGroupItem>
+          <ToggleGroupItem value='list' aria-label='List'>
+            <ListIcon />
+          </ToggleGroupItem>
+        </ToggleGroup>
         <Button
           variant={editing ? 'default' : 'outline'}
           aria-pressed={editing}
@@ -168,6 +196,9 @@ export function Dashboard({
         saved={data.layouts}
         onLayout={saveCells}
       />
+      {view === 'list' && (
+        <ServiceList groups={groups} editing={editing} onOpen={open} />
+      )}
       <ServiceDialog
         service={find(openKey)}
         onClose={() => setOpenKey(undefined)}
