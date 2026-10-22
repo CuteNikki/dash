@@ -7,6 +7,7 @@ import { flaresolverr } from '@/lib/apps/flaresolverr';
 import { garage } from '@/lib/apps/garage';
 import { gluetun } from '@/lib/apps/gluetun';
 import { jellyfin } from '@/lib/apps/jellyfin';
+import { ludo } from '@/lib/apps/ludo';
 import { minecraft } from '@/lib/apps/minecraft';
 import { postgres } from '@/lib/apps/postgres';
 import { prowlarr } from '@/lib/apps/prowlarr';
@@ -33,4 +34,6 @@ export const APPS: Record<string, App> = {
   // Labelled dash.app: relay in its compose file, its image being named for its folder
   relay,
   stalwart,
+  // Ludo's game server, built from its repository as ludo-server
+  'ludo-server': ludo,
 };
