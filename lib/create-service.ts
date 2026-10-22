@@ -2,58 +2,29 @@ import 'server-only';
 
 import { posix } from 'node:path';
 
-import { isCaddy, RELOAD_CADDY, reloadError } from '@/lib/caddy';
 import {
   composeConfig,
   composeOutput,
   runCompose,
   type Stack,
 } from '@/lib/compose';
-import { execRun, listContainers } from '@/lib/docker';
 import {
   createHostEntry,
-  hostOwner,
   readHostFile,
   removeHostEntry,
   removeHostFile,
   writeHostFile,
 } from '@/lib/host-files';
 import { CADDY_NETWORK, type NewServiceData } from '@/lib/new-service';
-import { STACKS_ROOT, type RunLine } from '@/lib/runner';
-import { isRunning } from '@/lib/status';
-
-/** Where every stack lives, a folder each. */
-const SERVICES_DIR = posix.join(STACKS_ROOT, 'services');
-
-const say = (line: string): RunLine => ({ stream: 'stdout', line });
-
-/** A path as it reads on the server, the home folder as ~. */
-const shown = (path: string) => path.replace(STACKS_ROOT, '~');
-
-/** Caddy's container, and the folder its site files are imported from. */
-async function findCaddy() {
-  const caddy = (await listContainers()).find(
-    (c) => isCaddy(c.image) && c.stack
-  );
-  if (!caddy || !isRunning(caddy.state)) {
-    throw new Error(
-      "Caddy isn't running, so there's nothing to add a domain to"
-    );
-  }
-  const sites = posix.join(caddy.stack!.dir, 'sites');
-  await hostOwner(sites).catch(() => {
-    throw new Error(
-      `Caddy has no ${shown(sites)} folder to add a site file to`
-    );
-  });
-  return { id: caddy.id, sites };
-}
-
-/** Has Caddy read its config again; Caddy keeps the old one if it's wrong. */
-async function reloadCaddy(id: string) {
-  const { stderr, exitCode } = await execRun(id, RELOAD_CADDY);
-  if (exitCode !== 0) throw new Error(reloadError(stderr));
-}
+import type { RunLine } from '@/lib/runner';
+import {
+  findCaddy,
+  reloadCaddy,
+  say,
+  SERVICES_DIR,
+  shown,
+  siteFile,
+} from '@/lib/service-stacks';
 
 /** A new file, owned like the folder it's in, with its text. */
 async function writeNewFile(path: string, content: string) {
@@ -125,7 +96,7 @@ export async function* createService(
   try {
     if (input.domain) {
       caddy = await findCaddy();
-      site = posix.join(caddy.sites, `${input.name}.caddy`);
+      site = siteFile(caddy.sites, input.name);
       if ((await readHostFile(site)) !== undefined) {
         throw new Error(`Caddy already has a site file named ${shown(site)}`);
       }

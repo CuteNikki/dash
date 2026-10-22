@@ -34,6 +34,8 @@ export type Service = {
   state: ContainerState;
   status: string;
   stack?: { project: string; service: string; dir: string; files: string[] };
+  /** Its stack can be removed from here: one of ~/services' own, not dash's or Caddy's */
+  removable: boolean;
   /** Takes commands typed into its console, as a game server does */
   console: boolean;
   usage?: {

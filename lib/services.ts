@@ -6,6 +6,7 @@ import { formatMs, isLink } from '@/lib/format';
 import { DEFAULT_GROUP } from '@/lib/groups';
 import { arrangeHostTiles } from '@/lib/host-tiles';
 import { iconInfo } from '@/lib/icon-search';
+import { removable } from '@/lib/service-stacks';
 import { currentSites } from '@/lib/sites';
 import { isSiteKey } from '@/lib/tiles';
 import type { Dashboard, Service, SiteCheck } from '@/lib/types';
@@ -77,6 +78,7 @@ function siteService(
           : 'unhealthy',
     status,
     console: false,
+    removable: false,
     site: { check },
   };
 }
@@ -194,6 +196,7 @@ export async function getDashboard(): Promise<Dashboard> {
         state: c.state,
         status: c.status,
         stack: c.stack,
+        removable: !!c.stack && removable(c.stack, containers),
         console: consoles.has(c.id),
         usage: u
           ? { cpu: u.cpu, memory: u.memory, history: u.history }
