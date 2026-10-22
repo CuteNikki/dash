@@ -317,12 +317,14 @@ const APPS: Record<string, App> = {
         ),
         'psql'
       );
+      // The version second, short enough to share the first line with the
+      // connections, so the four take two lines rather than three
       return [
         { label: 'Connections', value: `${connections} / ${max}` },
-        { label: 'Databases', value: databases },
-        { label: 'Used', value: formatBytes(+size) },
         // "16.15", or "18.1 (Debian 18.1-1)" from some builds
         { value: `v${version.split(' ')[0]}` },
+        { label: 'Databases', value: databases },
+        { label: 'Used', value: formatBytes(+size) },
       ];
     },
   },
