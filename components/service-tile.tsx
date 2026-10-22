@@ -2,13 +2,14 @@ import { EyeOffIcon } from 'lucide-react';
 
 import { formatAddress, formatBytes, formatCpu, MEASURES } from '@/lib/format';
 import { isRunning, stateLabel } from '@/lib/status';
-import type { Service, WidgetStat } from '@/lib/types';
+import type { Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 import { ServiceIcon } from '@/components/service-icon';
 import { Sparkline } from '@/components/sparkline';
 import { StatusDot } from '@/components/status-dot';
 import { Card } from '@/components/ui/card';
+import { WidgetStats, widgetStats } from '@/components/widget-stats';
 
 export function ServiceTile({
   service,
@@ -24,9 +25,7 @@ export function ServiceTile({
   const usage = running ? service.usage : undefined;
   // A taller tile has room for its CPU as a graph of its own
   const graph = service.height > 1;
-  // Numbers that couldn't be read leave nothing; why is in /api/services
-  const widget = running ? service.widget : undefined;
-  const stats = widget && 'stats' in widget ? widget.stats : undefined;
+  const stats = widgetStats(service);
   return (
     <button
       type='button'
@@ -107,43 +106,5 @@ export function ServiceTile({
         </div>
       </Card>
     </button>
-  );
-}
-
-/** An app's numbers as chips, each its value then its label, wrapping as needed. */
-function WidgetStats({ stats }: { stats: WidgetStat[] }) {
-  return (
-    <dl className='flex flex-wrap gap-1.5'>
-      {stats.map((stat) => (
-        <div
-          key={stat.label ?? stat.value}
-          className={cn(
-            'flex min-w-0 flex-row-reverse gap-1.5 rounded-md bg-muted px-1.5',
-            // On air, in the red streams use for it
-            stat.tone === 'live' && 'bg-destructive/15 text-destructive'
-          )}
-        >
-          {stat.label && (
-            <dt className='truncate text-muted-foreground lowercase'>
-              {stat.label}
-            </dt>
-          )}
-          <dd
-            className={cn(
-              'flex items-center gap-1 font-mono font-medium whitespace-nowrap tabular-nums',
-              stat.tone === 'off' && 'font-normal text-muted-foreground'
-            )}
-          >
-            {stat.tone === 'live' && (
-              <span
-                aria-hidden
-                className='size-1.5 rounded-full bg-destructive motion-safe:animate-pulse'
-              />
-            )}
-            {stat.value}
-          </dd>
-        </div>
-      ))}
-    </dl>
   );
 }

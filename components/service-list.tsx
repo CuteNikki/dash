@@ -33,6 +33,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { WidgetStats, widgetStats } from '@/components/widget-stats';
 
 /** Which services the list shows: all, one group's, or the stopped ones. */
 type Filter =
@@ -286,6 +287,7 @@ function Row({
 }) {
   const running = isRunning(service.state);
   const usage = running ? service.usage : undefined;
+  const stats = widgetStats(service);
   const address = service.addresses[0];
   // Under its name: what it is, or where to reach it, or its container
   const detail =
@@ -338,6 +340,7 @@ function Row({
             <div className='truncate text-muted-foreground' title={detail}>
               {detail}
             </div>
+            {stats && <WidgetStats stats={stats} className='mt-1.5' />}
           </div>
         </div>
       </td>
