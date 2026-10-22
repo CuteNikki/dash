@@ -2,7 +2,7 @@ import { EyeOffIcon } from 'lucide-react';
 
 import { formatAddress, formatBytes, formatCpu, MEASURES } from '@/lib/format';
 import { isRunning, stateLabel } from '@/lib/status';
-import type { Service, Widget } from '@/lib/types';
+import type { Service, WidgetStat } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 import { ServiceIcon } from '@/components/service-icon';
@@ -24,7 +24,9 @@ export function ServiceTile({
   const usage = running ? service.usage : undefined;
   // A taller tile has room for its CPU as a graph of its own
   const graph = service.height > 1;
+  // Numbers that couldn't be read leave nothing; why is in /api/services
   const widget = running ? service.widget : undefined;
+  const stats = widget && 'stats' in widget ? widget.stats : undefined;
   return (
     <button
       type='button'
@@ -71,7 +73,7 @@ export function ServiceTile({
             <StatusDot state={service.state} className='mt-1.5 self-start' />
           )}
         </div>
-        {widget && <WidgetStats widget={widget} />}
+        {stats && <WidgetStats stats={stats} />}
         {graph && usage && (
           // Fills the room the tile has, without asking for any of its own
           <div className='relative min-h-8 flex-1'>
@@ -108,27 +110,11 @@ export function ServiceTile({
   );
 }
 
-/** An app's numbers in a row, each its value over its label, or why there are none. */
-function WidgetStats({
-  widget,
-  className,
-}: {
-  widget: Widget;
-  className?: string;
-}) {
-  if ('error' in widget) {
-    return (
-      <div
-        className={cn('truncate text-muted-foreground', className)}
-        title={widget.error}
-      >
-        Couldn&apos;t read its numbers
-      </div>
-    );
-  }
+/** An app's numbers in a row, each its value over its label. */
+function WidgetStats({ stats }: { stats: WidgetStat[] }) {
   return (
-    <dl className={cn('flex gap-4 overflow-hidden', className)}>
-      {widget.stats.map((stat) => (
+    <dl className='flex gap-4 overflow-hidden'>
+      {stats.map((stat) => (
         <div key={stat.label} className='flex min-w-0 flex-col-reverse'>
           <dt className='truncate text-muted-foreground'>{stat.label}</dt>
           <dd className='truncate font-mono font-medium tabular-nums'>
