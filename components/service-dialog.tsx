@@ -167,7 +167,11 @@ function ServiceBody({
           <AddressList addresses={service.addresses} />
         )}
         <div className='flex flex-wrap items-center gap-2'>
-          <StatePill state={service.state} className='mr-1' />
+          {/* As tall as the buttons beside it, its text level with theirs */}
+          <StatePill
+            state={service.state}
+            className='mr-1 h-7 items-center px-2'
+          />
           {running ? (
             <Button
               variant='destructive'
