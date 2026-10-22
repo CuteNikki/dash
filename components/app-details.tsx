@@ -15,7 +15,8 @@ const REFRESH_MS = 10_000;
 /**
  * A card in a service's window: its title, how many of something if it
  * counts any, and what it has to show. Each part of the window is one, so
- * where one ends and the next starts is plain.
+ * where one ends and the next starts is plain. Outlined by a border, inside
+ * it, not a ring outside it, which the scrolling around it would cut off.
  */
 export function Panel({
   title,
@@ -32,7 +33,7 @@ export function Panel({
     <section
       aria-label={title}
       className={cn(
-        'flex min-w-0 flex-col gap-3 rounded-lg bg-muted/40 p-3 ring-1 ring-foreground/10',
+        'flex min-w-0 flex-col gap-3 rounded-lg border border-foreground/10 bg-muted/40 p-3',
         className
       )}
     >
