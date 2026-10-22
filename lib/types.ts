@@ -47,8 +47,11 @@ export type Service = {
   widget?: Widget;
 };
 
-/** One of an app's numbers, ready to show: "Queued" and "3", "Down" and "2.1 MB/s". */
-export type WidgetStat = { label: string; value: string };
+/**
+ * One of an app's numbers, ready to show: "Queued" and "3", "Down" and
+ * "2.1 MB/s"; or one that says what it is alone, as "Paper 26.2" does.
+ */
+export type WidgetStat = { label?: string; value: string };
 
 /** An app's numbers, or why they couldn't be read. */
 export type Widget = { stats: WidgetStat[] } | { error: string };

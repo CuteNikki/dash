@@ -1,7 +1,7 @@
 import 'server-only';
 
-import type { Container } from '@/lib/docker';
-import { formatRate } from '@/lib/format';
+import { execRun, type Container } from '@/lib/docker';
+import { formatBytes, formatRate } from '@/lib/format';
 import { isRunning } from '@/lib/status';
 import type { Widget, WidgetStat } from '@/lib/types';
 
@@ -11,13 +11,43 @@ const FRESH_MS = 10_000;
 const TIMEOUT_MS = 4_000;
 
 type App = {
-  port: number;
-  /** Its key, or its user and password, from dash's .env */
-  ready: () => boolean;
-  read: (url: string) => Promise<WidgetStat[]>;
-};
+  /** Its key, or its user and password, from dash's .env, when it needs any */
+  ready?: () => boolean;
+} & (
+  | {
+      /** Its port, to read its API at over HTTP */
+      port: number;
+      read: (url: string) => Promise<WidgetStat[]>;
+    }
+  | {
+      /** Read by running commands in its container, which needs no keys */
+      exec: (c: Container) => Promise<WidgetStat[]>;
+    }
+);
 
 const env = (name: string) => process.env[name] || undefined;
+
+/** What a command printed in a container, or an error if it failed or took too long. */
+async function run(c: Container, cmd: string[]) {
+  const { stdout, exitCode } = await Promise.race([
+    execRun(c.id, cmd),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`${cmd[0]} took too long`)), TIMEOUT_MS)
+    ),
+  ]);
+  if (exitCode !== 0) throw new Error(`${cmd[0]} exited with ${exitCode}`);
+  return stdout;
+}
+
+/** Garage's sizes, "216.7 kB (211.7 KiB)", in bytes: the one in powers of 1024 where there is one. */
+function garageBytes(size: string) {
+  const [, value, unit] =
+    size.match(/\(([\d.]+) (\w+)\)/) ?? size.match(/([\d.]+) (\w+)/) ?? [];
+  const power = ['B', 'KiB', 'MiB', 'GiB', 'TiB'].indexOf(unit);
+  const si = ['B', 'kB', 'MB', 'GB', 'TB'].indexOf(unit);
+  if (power < 0 && si < 0) throw new Error(`Unknown size: ${size}`);
+  return power >= 0 ? +value * 1024 ** power : +value * 1000 ** si;
+}
 
 /** JSON from an app's API, or an error naming what failed. */
 async function getJson<T>(url: string, headers: HeadersInit): Promise<T> {
@@ -35,10 +65,10 @@ async function getJson<T>(url: string, headers: HeadersInit): Promise<T> {
  * others; only when none can be read is it an error.
  */
 async function stats(
-  reads: [label: string, read: () => Promise<string | number>][]
+  reads: [label: string | undefined, read: () => Promise<string | number>][]
 ): Promise<WidgetStat[]> {
   const results = await Promise.allSettled(reads.map(([, read]) => read()));
-  const read = results.flatMap((r, i) =>
+  const read = results.flatMap((r, i): WidgetStat[] =>
     r.status === 'fulfilled'
       ? [{ label: reads[i][0], value: `${r.value}` }]
       : []
@@ -57,9 +87,9 @@ function once<T>(get: () => Promise<T>) {
   return () => (promise ??= get());
 }
 
-/** Sonarr and Radarr:what's downloading, and what's wanted but missing. */
-function arr(keyName: string): App['read'] {
-  return (url) => {
+/** Sonarr and Radarr: what's downloading, and what's wanted but missing. */
+function arr(keyName: string) {
+  return (url: string) => {
     const headers = { 'X-Api-Key': env(keyName)! };
     return stats([
       [
@@ -226,6 +256,116 @@ const APPS: Record<string, App> = {
       ]);
     },
   },
+  // itzg/minecraft-server, which comes with mc-monitor and rcon-cli
+  'minecraft-server': {
+    exec: (c) => {
+      const status = once(
+        async () =>
+          JSON.parse(await run(c, ['mc-monitor', 'status', '--json'])) as {
+            server_info: {
+              version: { name: string };
+              players: { online: number; max: number };
+            };
+          }
+      );
+      return stats([
+        [
+          'Players',
+          async () => {
+            const { players } = (await status()).server_info;
+            return `${players.online} / ${players.max}`;
+          },
+        ],
+        [
+          'TPS',
+          async () => {
+            // "TPS from last 1m, 5m, 15m: 20.0, 20.0, 20.0", in color, and
+            // with a * when it's caught up past 20
+            const out = (await run(c, ['rcon-cli', 'tps'])).replace(
+              /\x1b\[[\d;]*m/g,
+              ''
+            );
+            const tps = out.match(/:\s*\*?([\d.]+)/)?.[1];
+            if (!tps) throw new Error(`Unexpected: ${out}`);
+            return tps;
+          },
+        ],
+        // "Paper 26.2" says what it is without a label
+        [undefined, async () => (await status()).server_info.version.name],
+      ]);
+    },
+  },
+  postgres: {
+    exec: (c) =>
+      stats([
+        [
+          'Connections',
+          async () =>
+            (
+              await run(c, [
+                'psql',
+                '-U',
+                'postgres',
+                '-tAc',
+                "select count(*) from pg_stat_activity where backend_type = 'client backend'",
+              ])
+            ).trim(),
+        ],
+      ]),
+  },
+  // Garage, the image storage: what all its buckets hold together
+  garage: {
+    exec: async (c) => {
+      const ids = (await run(c, ['/garage', 'bucket', 'list']))
+        .split('\n')
+        .map((line) => line.match(/^([0-9a-f]{16})\s/)?.[1])
+        .filter((id) => id !== undefined);
+      const infos = once(() =>
+        Promise.all(ids.map((id) => run(c, ['/garage', 'bucket', 'info', id])))
+      );
+      const total = async (field: string, parse: (s: string) => number) =>
+        (await infos()).reduce((sum, info) => {
+          const value = info.match(new RegExp(`^${field}:\\s*(.+)$`, 'm'))?.[1];
+          if (!value) throw new Error(`No ${field} in its bucket info`);
+          return sum + parse(value);
+        }, 0);
+      return stats([
+        ['Objects', () => total('Objects', Number)],
+        ['Used', async () => formatBytes(await total('Size', garageBytes))],
+      ]);
+    },
+  },
+  // Its admin API is off, so its sites are counted from its Caddyfile
+  caddy: {
+    exec: (c) =>
+      stats([
+        [
+          'Sites',
+          async () => {
+            const config = JSON.parse(
+              await run(c, [
+                'caddy',
+                'adapt',
+                '--config',
+                '/etc/caddy/Caddyfile',
+              ])
+            ) as {
+              apps?: {
+                http?: {
+                  servers?: Record<
+                    string,
+                    { routes?: { match?: { host?: string[] }[] }[] }
+                  >;
+                };
+              };
+            };
+            return Object.values(config.apps?.http?.servers ?? {})
+              .flatMap((s) => s.routes ?? [])
+              .filter((r) => r.match?.some((m) => m.host?.length)).length;
+          },
+        ],
+      ]),
+  },
 };
 
 /** "lscr.io/linuxserver/sonarr:latest" → "sonarr" */
@@ -239,25 +379,31 @@ function appOf(c: Container) {
  * network dash shares with it. qBittorrent behind a VPN container needs its
  * URL set, to the VPN container's name.
  */
-function urlOf(app: string, c: Container) {
+function urlOf(app: string, c: Container, port: number) {
   return (
     env(`${app.toUpperCase()}_URL`)?.replace(/\/$/, '') ??
-    `http://${c.name}:${APPS[app].port}`
+    `http://${c.name}:${port}`
   );
+}
+
+/** Its numbers, over HTTP or by running commands in its container. */
+function readApp(app: string, c: Container) {
+  const a = APPS[app];
+  return 'exec' in a ? a.exec(c) : a.read(urlOf(app, c, a.port));
 }
 
 type Cached = { at: number; widget?: Widget; pending?: Promise<void> };
 
-// Kept on globalThis so development's hot reloads keep them
+// By container, so two of the same app have their own. Kept on globalThis
+// so development's hot reloads keep them
 const cache: Map<string, Cached> = ((
   globalThis as typeof globalThis & { widgetCache?: Map<string, Cached> }
 ).widgetCache ??= new Map());
 
-function refresh(app: string, url: string) {
-  const entry = cache.get(app);
+function refresh(app: string, c: Container) {
+  const entry = cache.get(c.id);
   if (entry?.pending) return entry.pending;
-  const pending = APPS[app]
-    .read(url)
+  const pending = readApp(app, c)
     .then(
       (stats): Widget => ({ stats }),
       (e: unknown): Widget => ({
@@ -265,9 +411,9 @@ function refresh(app: string, url: string) {
       })
     )
     .then((widget) => {
-      cache.set(app, { at: Date.now(), widget });
+      cache.set(c.id, { at: Date.now(), widget });
     });
-  cache.set(app, { at: entry?.at ?? 0, widget: entry?.widget, pending });
+  cache.set(c.id, { at: entry?.at ?? 0, widget: entry?.widget, pending });
   return pending;
 }
 
@@ -281,20 +427,22 @@ export async function readWidgets(
 ): Promise<Map<string, Widget>> {
   const found = containers.flatMap((c) => {
     const app = appOf(c);
-    return app && isRunning(c.state) && APPS[app].ready() ? [{ c, app }] : [];
+    return app && isRunning(c.state) && (APPS[app].ready?.() ?? true)
+      ? [{ c, app }]
+      : [];
   });
   await Promise.all(
     found.map(({ c, app }) => {
-      const entry = cache.get(app);
+      const entry = cache.get(c.id);
       if (entry && Date.now() - entry.at < FRESH_MS) return;
-      const pending = refresh(app, urlOf(app, c));
+      const pending = refresh(app, c);
       // Only the first reading is waited for
       return entry?.widget ? undefined : pending;
     })
   );
   return new Map(
-    found.flatMap(({ c, app }) => {
-      const widget = cache.get(app)?.widget;
+    found.flatMap(({ c }) => {
+      const widget = cache.get(c.id)?.widget;
       return widget ? [[c.id, widget]] : [];
     })
   );

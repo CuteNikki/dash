@@ -116,12 +116,14 @@ function WidgetStats({ stats }: { stats: WidgetStat[] }) {
     <dl className='flex flex-wrap gap-1.5'>
       {stats.map((stat) => (
         <div
-          key={stat.label}
+          key={stat.label ?? stat.value}
           className='flex min-w-0 flex-row-reverse gap-1.5 rounded-md bg-muted px-1.5'
         >
-          <dt className='truncate text-muted-foreground lowercase'>
-            {stat.label}
-          </dt>
+          {stat.label && (
+            <dt className='truncate text-muted-foreground lowercase'>
+              {stat.label}
+            </dt>
+          )}
           <dd className='font-mono font-medium whitespace-nowrap tabular-nums'>
             {stat.value}
           </dd>
