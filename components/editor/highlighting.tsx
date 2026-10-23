@@ -19,7 +19,7 @@ import { properties } from '@codemirror/legacy-modes/mode/properties';
 import { shell } from '@codemirror/legacy-modes/mode/shell';
 import { toml } from '@codemirror/legacy-modes/mode/toml';
 import { highlightCode, tags } from '@lezer/highlight';
-import { useInsertionEffect } from 'react';
+import { useInsertionEffect, useMemo } from 'react';
 import { StyleModule } from 'style-mod';
 
 /** Each kind of code in its own muted color, from the theme's --syntax tokens. */
@@ -72,52 +72,67 @@ export const highlight = HighlightStyle.define([
   },
 ]);
 
+type Language = LanguageSupport | StreamLanguage<unknown>;
+
+/** Each kind of file, by its name in lower case, and how it's read. */
+const LANGUAGES: [RegExp, () => Language][] = [
+  [/\.ya?ml$/, () => yaml()],
+  [/\.json$/, () => json()],
+  [/\.(ts|mts|cts)$/, () => javascript({ typescript: true })],
+  [/\.tsx$/, () => javascript({ typescript: true, jsx: true })],
+  [/\.(js|mjs|cjs|jsx)$/, () => javascript({ jsx: true })],
+  [/\.(md|markdown)$/, () => markdown()],
+  [/\.(css|scss)$/, () => css()],
+  [/\.html?$/, () => html()],
+  [/\.py$/, () => python()],
+  [/\.sql$/, () => sql()],
+  [/^dockerfile|\.dockerfile$/, () => StreamLanguage.define(dockerFile)],
+  [/\.(sh|bash)$/, () => StreamLanguage.define(shell)],
+  [/\.toml$/, () => StreamLanguage.define(toml)],
+  [/\.(diff|patch)$/, () => StreamLanguage.define(diff)],
+  [
+    /^\.env|\.(env|properties|conf|ini)$/,
+    () => StreamLanguage.define(properties),
+  ],
+];
+
+// Each made once: a stream language made again is a new one to CodeMirror,
+// which reparses the file and keeps its types for good
+const made = new Map<number, Language>();
+
 /** How a file is read, from its name; undefined for plain text. */
-export function languageFor(
-  name: string
-): LanguageSupport | StreamLanguage<unknown> | undefined {
+export function languageFor(name: string): Language | undefined {
   const lower = name.toLowerCase();
-  if (/\.ya?ml$/.test(lower)) return yaml();
-  if (/\.json$/.test(lower)) return json();
-  if (/\.(ts|mts|cts)$/.test(lower)) return javascript({ typescript: true });
-  if (/\.tsx$/.test(lower)) return javascript({ typescript: true, jsx: true });
-  if (/\.(js|mjs|cjs|jsx)$/.test(lower)) return javascript({ jsx: true });
-  if (/\.(md|markdown)$/.test(lower)) return markdown();
-  if (/\.(css|scss)$/.test(lower)) return css();
-  if (/\.html?$/.test(lower)) return html();
-  if (/\.py$/.test(lower)) return python();
-  if (/\.sql$/.test(lower)) return sql();
-  if (/^dockerfile|\.dockerfile$/.test(lower)) {
-    return StreamLanguage.define(dockerFile);
+  const i = LANGUAGES.findIndex(([test]) => test.test(lower));
+  if (i === -1) return undefined;
+  let language = made.get(i);
+  if (!language) {
+    language = LANGUAGES[i][1]();
+    made.set(i, language);
   }
-  if (/\.(sh|bash)$/.test(lower)) return StreamLanguage.define(shell);
-  if (/\.toml$/.test(lower)) return StreamLanguage.define(toml);
-  if (/\.(diff|patch)$/.test(lower)) return StreamLanguage.define(diff);
-  if (/^\.env|\.(env|properties|conf|ini)$/.test(lower)) {
-    return StreamLanguage.define(properties);
-  }
-  return undefined;
+  return language;
 }
 
 /**
  * A Markdown code block's language, as named after its ```, as the name of a
  * file of that kind; most are their own extension: ts, yaml, json, sql.
  */
-const FENCE_FILES: Record<string, string> = {
-  typescript: 'x.ts',
-  javascript: 'x.js',
-  python: 'x.py',
-  yml: 'x.yaml',
-  markdown: 'x.md',
-  shell: 'x.sh',
-  zsh: 'x.sh',
-  console: 'x.sh',
-  dockerfile: 'Dockerfile',
-  docker: 'Dockerfile',
-  dotenv: '.env',
-  env: '.env',
-  jsonc: 'x.json',
-};
+const FENCE_FILES = new Map([
+  ['typescript', 'x.ts'],
+  ['javascript', 'x.js'],
+  ['python', 'x.py'],
+  ['yml', 'x.yaml'],
+  ['markdown', 'x.md'],
+  ['shell', 'x.sh'],
+  ['zsh', 'x.sh'],
+  ['dockerfile', 'Dockerfile'],
+  ['docker', 'Dockerfile'],
+  ['dotenv', '.env'],
+  ['env', '.env'],
+]);
+
+/** Whether the colors' rules are on the page yet, put there once for all. */
+let mounted = false;
 
 /**
  * A code block's text, colored as its language is in the editor, each
@@ -132,29 +147,33 @@ export function HighlightedCode({
 }) {
   // The colors' rules, which an editor puts on the page, for when none has
   useInsertionEffect(() => {
-    if (highlight.module) StyleModule.mount(document, highlight.module);
+    if (mounted || !highlight.module) return;
+    StyleModule.mount(document, highlight.module);
+    mounted = true;
   }, []);
-  const lower = language.toLowerCase();
-  const found = languageFor(FENCE_FILES[lower] ?? `x.${lower}`);
-  if (!found) return text;
-  const parser =
-    found instanceof LanguageSupport ? found.language.parser : found.parser;
-  const parts: React.ReactNode[] = [];
-  highlightCode(
-    text,
-    parser.parse(text),
-    highlight,
-    (code, classes) =>
-      parts.push(
-        classes ? (
-          <span key={parts.length} className={classes}>
-            {code}
-          </span>
-        ) : (
-          code
-        )
-      ),
-    () => parts.push('\n')
-  );
-  return parts;
+  return useMemo(() => {
+    const lower = language.toLowerCase();
+    const found = languageFor(FENCE_FILES.get(lower) ?? `x.${lower}`);
+    if (!found) return text;
+    const parser =
+      found instanceof LanguageSupport ? found.language.parser : found.parser;
+    const parts: React.ReactNode[] = [];
+    highlightCode(
+      text,
+      parser.parse(text),
+      highlight,
+      (code, classes) =>
+        parts.push(
+          classes ? (
+            <span key={parts.length} className={classes}>
+              {code}
+            </span>
+          ) : (
+            code
+          )
+        ),
+      () => parts.push('\n')
+    );
+    return parts;
+  }, [text, language]);
 }
