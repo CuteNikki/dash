@@ -324,7 +324,7 @@ function Folder({
                     aria-current={last || undefined}
                     className={cn(
                       'min-w-0 truncate rounded-sm px-1 hover:bg-foreground/5',
-                      last ? 'shrink' : 'shrink-[4] text-muted-foreground'
+                      last ? 'shrink' : 'shrink-4 text-muted-foreground'
                     )}
                     onClick={() => onOpenAction(c.prefix)}
                   >
