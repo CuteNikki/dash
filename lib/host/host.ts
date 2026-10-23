@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { execFile } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { promisify } from 'node:util';
 
 import { execOutput } from '@/lib/docker/docker';
@@ -47,8 +48,10 @@ cat "$p/size" 2>/dev/null`,
   processContainers:
     "grep -H -E -o 'docker[-/][0-9a-f]{64}' /proc/[0-9]*/cgroup 2>/dev/null",
   // How each was started, its arguments split by NULs made spaces, under a
-  // "==> /proc/123/cmdline <==" heading each; enough to tell it apart
-  processCommands: `head -c ${COMMAND_BYTES} /proc/[0-9]*/cmdline 2>/dev/null | tr '\\0' ' '`,
+  // "==> /tmp/…/$id/123/cmdline <==" heading each; enough to tell it apart.
+  // Through a link named for this run, as any process can put "==>
+  // /proc/1/cmdline <==" in its own arguments, but not this run's id
+  processCommands: `d=$(mktemp -d) && { ln -s /proc "$d/$id" && head -c ${COMMAND_BYTES} "$d/$id"/[0-9]*/cmdline 2>/dev/null | tr '\\0' ' '; rm -f "$d/$id"; rmdir "$d"; }`,
 } as const;
 
 type Raw = Record<keyof typeof SOURCES, string>;
@@ -56,11 +59,16 @@ type Raw = Record<keyof typeof SOURCES, string>;
 /** Room for every process's line, which a busy server has hundreds of. */
 const MAX_OUTPUT_BYTES = 16 * 1024 * 1024;
 
-/** Everything in one run of the shell, each part's output split by a marker. */
-async function readRaw(): Promise<Raw> {
+/**
+ * Everything in one run of the shell, each part's output split by a marker.
+ * Both are new each run, as a process can name itself anything: one that put
+ * the marker in its name or arguments would otherwise shift every part after.
+ */
+async function readRaw(): Promise<Raw & { id: string }> {
   const names = Object.keys(SOURCES) as (keyof typeof SOURCES)[];
-  const marker = '--dash--';
-  const script = `${names.map((n) => SOURCES[n]).join(`; echo ${marker}; `)}; true`;
+  const id = randomUUID();
+  const marker = `--dash-${id}--`;
+  const script = `id=${id}; ${names.map((n) => SOURCES[n]).join(`; echo ${marker}; `)}; true`;
   const output = HELPER
     ? await execOutput(HELPER, ['sh', '-c', script])
     : (
@@ -69,7 +77,10 @@ async function readRaw(): Promise<Raw> {
         })
       ).stdout;
   const parts = output.split(`${marker}\n`);
-  return Object.fromEntries(names.map((n, i) => [n, parts[i] ?? ''])) as Raw;
+  return {
+    ...(Object.fromEntries(names.map((n, i) => [n, parts[i] ?? ''])) as Raw),
+    id,
+  };
 }
 
 export type HostReading = {
@@ -130,7 +141,7 @@ function parseDiskIo(diskstats: string) {
   return { read, written };
 }
 
-function parseProcesses(raw: Raw) {
+function parseProcesses(raw: Raw, id: string) {
   const memory = new Map<number, number>();
   for (const line of raw.processMemory.split('\n')) {
     // /proc/123/status:VmRSS:     4567 kB
@@ -146,7 +157,7 @@ function parseProcesses(raw: Raw) {
   const commands = new Map<number, string>();
   // The heading's pid, then the command up to the next heading
   const parts = raw.processCommands.split(
-    /(?:^|\n)==> \/proc\/(\d+)\/cmdline <==\n/
+    new RegExp(`(?:^|\\n)==> [^\\n]*/${id}/(\\d+)/cmdline <==\\n`)
   );
   for (let i = 1; i < parts.length; i += 2) {
     commands.set(Number(parts[i]), (parts[i + 1] ?? '').trim());
@@ -254,7 +265,7 @@ export async function readHost(): Promise<HostReading> {
     ],
     disk: parseDisk(raw.disk, raw.diskSize),
     diskIo: parseDiskIo(raw.disks),
-    processes: parseProcesses(raw),
+    processes: parseProcesses(raw, raw.id),
     network: parseNetwork(raw.network, raw.routes),
   };
 }

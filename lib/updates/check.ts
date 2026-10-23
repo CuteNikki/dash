@@ -148,7 +148,6 @@ function start(containers: Container[], force: boolean) {
   return checker.running;
 }
 
-/** What each container could be updated to, as last found. */
 /** What an image's environment calls its version where that isn't its own name: PG_VERSION. */
 const VERSION_NAMES: Record<string, string> = { postgres: 'PG' };
 
@@ -230,6 +229,7 @@ export function versionOf(c: Container) {
   return image && versionFrom(image, c.image);
 }
 
+/** What each container could be updated to, as last found. */
 export function updateOf(c: Container): {
   update?: ServiceUpdate;
   error?: string;

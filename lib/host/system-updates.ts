@@ -122,7 +122,12 @@ function parse(lines: string[]): SystemUpdates {
   return found;
 }
 
-type Cache = { found?: SystemUpdates; looking?: Promise<SystemUpdates> };
+type Cache = {
+  found?: SystemUpdates;
+  looking?: Promise<SystemUpdates>;
+  /** When a look last started, whether or not it found anything */
+  triedAt?: number;
+};
 // Kept on globalThis, so development's hot reloads keep it
 const cache: Cache = ((
   globalThis as typeof globalThis & { systemUpdates?: Cache }
@@ -136,6 +141,7 @@ async function look() {
 
 /** Looks again now, and waits for it. */
 export function lookAgain() {
+  if (!cache.looking) cache.triedAt = Date.now();
   cache.looking ??= look()
     .then((found) => (cache.found = found))
     .finally(() => {
@@ -149,11 +155,12 @@ export function lookAgain() {
  * the dashboard never waits on it. Nothing until the first look is done.
  */
 export function currentSystemUpdates() {
-  const found = cache.found;
-  if (!found || Date.now() - found.checkedAt > FRESH_MS) {
+  // Counted from the last try, so one that failed isn't tried again on every
+  // poll, each starting another privileged container
+  if (Date.now() - (cache.triedAt ?? 0) > FRESH_MS) {
     void lookAgain().catch(console.error);
   }
-  return found;
+  return cache.found;
 }
 
 /** Starts the upgrade as a systemd job on the server, unless one is running. */
@@ -176,11 +183,15 @@ const DOCKER_BACK_MS = 5 * 60_000;
 
 /**
  * How the upgrade ended, from what systemd's job wrote: undefined while
- * it's still running, or when Docker can't be asked.
+ * it's still running, or when Docker can't be asked. A job that's stopped
+ * without writing how it ended, as one killed partway, failed, as following
+ * it says too.
  */
 async function upgradeOutcome() {
   const { lines } = await runToEnd(
-    asHost(`systemctl is-active -q ${UNIT} || cat ${STATUS} 2>/dev/null`)
+    asHost(
+      `systemctl is-active -q ${UNIT} && exit 0; s=$(cat ${STATUS} 2>/dev/null); echo "\${s:-1}"`
+    )
   ).catch(() => ({ lines: [] }));
   const code = Number(lines.at(-1)?.line);
   return lines.length && Number.isInteger(code) ? code : undefined;

@@ -14,6 +14,8 @@ WORKDIR /app
 ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
-COPY --from=build /app/public ./public
+# There's no public/: the icons are app/'s own. Should it get files, copy it here.
 EXPOSE 3000
+# Runs as root, as meant: the Docker socket and pid: host it needs give it
+# root's reach over the server anyway
 CMD ["node", "server.js"]

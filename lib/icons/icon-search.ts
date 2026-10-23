@@ -2,6 +2,7 @@ import 'server-only';
 
 import {
   ICON_SETS,
+  isImageUrl,
   parseIcon,
   type IconSet,
   type IconVariants,
@@ -194,7 +195,7 @@ export async function iconInfo(icons: string[]) {
   const names = await dashboardFiles().catch(() => undefined);
   if (!names) return found;
   for (const icon of icons) {
-    if (/^https:\/\//.test(icon) || parseIcon(icon).set !== 'dashboard') {
+    if (isImageUrl(icon) || parseIcon(icon).set !== 'dashboard') {
       continue;
     }
     if (!names.has(icon)) found.set(icon, { missing: true });

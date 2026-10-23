@@ -16,6 +16,7 @@ import { arrangeHostTiles } from '@/lib/host/host-tiles';
 import { currentSystemUpdates } from '@/lib/host/system-updates';
 import { currentUsage } from '@/lib/host/usage';
 import { iconInfo } from '@/lib/icons/icon-search';
+import { isImageUrl } from '@/lib/icons/icon-sets';
 import { removable } from '@/lib/stacks/service-stacks';
 import type { Dashboard, Service, SiteCheck } from '@/lib/types';
 import { currentUpdates } from '@/lib/updates/check';
@@ -159,7 +160,7 @@ export async function ensureTiles(keys: string[]) {
  * are an image's address, which is kept whole.
  */
 function iconName(label?: string) {
-  if (label && /^https:\/\//.test(label)) return label;
+  if (label && isImageUrl(label)) return label;
   return label?.replace(/\.(svg|png|webp)$/, '') || undefined;
 }
 

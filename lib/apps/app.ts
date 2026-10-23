@@ -26,17 +26,34 @@ export const env = (name: string) => process.env[name] || undefined;
 
 /** What something gives, or an error once it's taken longer than an app has. */
 export function inTime<T>(promise: Promise<T>, what: string) {
+  let timer: ReturnType<typeof setTimeout> | undefined;
   return Promise.race([
     promise,
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error(`${what} took too long`)), TIMEOUT_MS)
-    ),
-  ]);
+    new Promise<never>((_, reject) => {
+      timer = setTimeout(
+        () => reject(new Error(`${what} took too long`)),
+        TIMEOUT_MS
+      );
+    }),
+  ]).finally(() => clearTimeout(timer));
 }
+
+/**
+ * Commands still running in a container, by container and command. Docker
+ * can't stop one once it's started, so one that hangs is waited on again
+ * rather than started anew on every refresh, piling up beside it.
+ */
+const running = new Map<string, ReturnType<typeof execRun>>();
 
 /** What a command printed in a container, or an error if it failed or took too long. */
 export async function run(c: Container, cmd: string[]) {
-  const { stdout, exitCode } = await inTime(execRun(c.id, cmd), cmd[0]);
+  const key = JSON.stringify([c.id, cmd]);
+  let exec = running.get(key);
+  if (!exec) {
+    exec = execRun(c.id, cmd).finally(() => running.delete(key));
+    running.set(key, exec);
+  }
+  const { stdout, exitCode } = await inTime(exec, cmd[0]);
   if (exitCode !== 0) throw new Error(`${cmd[0]} exited with ${exitCode}`);
   return stdout;
 }

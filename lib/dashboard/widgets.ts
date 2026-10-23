@@ -14,7 +14,8 @@ const FRESH_MS = 10_000;
 function appOf(c: Container) {
   // A dash.app label names it outright, for an image named for its folder
   const name = c.labels['dash.app'] ?? imageName(c.image);
-  return name in APPS ? name : undefined;
+  // Its own keys only: a label of "toString" isn't an app
+  return Object.hasOwn(APPS, name) ? name : undefined;
 }
 
 /**
@@ -68,6 +69,9 @@ function refresh(app: string, c: Container) {
 export async function readWidgets(
   containers: Container[]
 ): Promise<Map<string, Widget>> {
+  // A container removed, or recreated with a new id, takes its numbers with it
+  const ids = new Set(containers.map((c) => c.id));
+  for (const id of cache.keys()) if (!ids.has(id)) cache.delete(id);
   const found = containers.flatMap((c) => {
     const app = appOf(c);
     return app && isRunning(c.state) && (APPS[app].ready?.() ?? true)

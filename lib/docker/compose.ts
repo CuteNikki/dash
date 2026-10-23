@@ -5,7 +5,6 @@ import {
   runToEnd,
   startRun,
   type Run,
-  type RunLine,
 } from '@/lib/docker/runner';
 
 /**
@@ -37,8 +36,6 @@ function composeRun(stack: Stack, args: string[]): Run {
     binds: ['/var/run/docker.sock:/var/run/docker.sock'],
   };
 }
-
-export type ComposeLine = RunLine;
 
 /**
  * Runs `docker compose <args>` for a stack, yielding what it prints line by

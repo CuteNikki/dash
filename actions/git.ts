@@ -32,9 +32,12 @@ export async function runGit(
 ): Promise<GitResult> {
   const repo = await repoOf(containerId);
   if (!repo) return noRepo;
-  const run = { fetch: gitFetch, pull: gitPull, push: gitPush }[action];
-  if (!run) return { ok: false, output: 'Unknown action' };
-  return run(repo.root);
+  const runs = { fetch: gitFetch, pull: gitPull, push: gitPush };
+  // Its own keys only, as "toString" or "__proto__" would find Object's
+  if (!Object.hasOwn(runs, action)) {
+    return { ok: false, output: 'Unknown action' };
+  }
+  return runs[action](repo.root);
 }
 
 /** Commits the chosen changed files with a message, and pushes if asked. */
@@ -54,7 +57,11 @@ export async function commitChanges(
   const changed = new Set(repo.changes.map((c) => c.path));
   const chosen = paths.filter((p) => changed.has(p));
   if (!chosen.length) return { ok: false, output: 'Pick at least one file' };
-  const committed = await gitCommit(repo.root, text, chosen);
+  // A rename's old path goes with it, or it would stay in the commit
+  const renamedFrom = repo.changes.flatMap((c) =>
+    c.from && chosen.includes(c.path) ? [c.from] : []
+  );
+  const committed = await gitCommit(repo.root, text, chosen, renamedFrom);
   if (!committed.ok || !push) return committed;
   const pushed = await gitPush(repo.root);
   return {

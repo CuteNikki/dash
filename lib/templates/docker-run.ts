@@ -93,8 +93,6 @@ const IGNORED = new Set([
   '--interactive',
   '-t',
   '--tty',
-  '-it',
-  '-ti',
   '--rm',
   '--init',
 ]);
@@ -115,6 +113,24 @@ const SWITCHES = new Set([
   '--quiet',
   '--use-api-socket',
 ]);
+
+/** docker run's one-letter flags that take no value, which can be run together. */
+const SHORT_SWITCHES = new Set(['d', 'i', 't', 'P', 'q']);
+
+/**
+ * One-letter flags run together, as -dit, as the ones they are, the last of
+ * which may take a value, as in -dp 8080:80. Anything else is left as it is.
+ */
+function separate(word: string) {
+  if (!/^-[a-zA-Z]{2,}$/.test(word)) return [word];
+  const flags = [...word.slice(1)].map((letter) => `-${letter}`);
+  const known = flags.every(
+    (flag, i) =>
+      SHORT_SWITCHES.has(flag.slice(1)) ||
+      (i === flags.length - 1 && TAKES_VALUE.has(VALUED[flag] ?? flag))
+  );
+  return known ? flags : [word];
+}
 
 const quoted = (s: string) => JSON.stringify(s);
 const list = (key: string, items: string[], indent = '    ') =>
@@ -141,6 +157,7 @@ export function convertRun(command: string): ConvertedRun {
   const skipped: string[] = [];
   let i = 0;
   for (; i < all.length && all[i].startsWith('-'); i++) {
+    all.splice(i, 1, ...separate(all[i]));
     // --name=app as well as --name app; the value may have an = of its own
     const equals = all[i].indexOf('=');
     let flag = equals < 0 ? all[i] : all[i].slice(0, equals);

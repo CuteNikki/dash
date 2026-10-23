@@ -15,6 +15,8 @@ const MAX_ADDRESS = 300;
 const MAX_ADDRESSES = 10;
 /** Rows down a grid a tile can be put, far past any real one */
 const MAX_ROW = 1000;
+/** Services in a group being renamed, far past any real one */
+const MAX_RENAMED = 1000;
 
 const Group = z.string().trim().min(1, 'Pick or type a group').max(MAX_GROUP);
 
@@ -147,8 +149,10 @@ export async function saveLayout(input: LayoutInput): Promise<TileResult> {
         update: cell,
       })
     ),
+    // updateMany, as a container removed meanwhile has no row to update,
+    // which is no reason to lose the rest
     ...moved.map(({ key, group }) =>
-      db.tile.update({ where: { key }, data: { group } })
+      db.tile.updateMany({ where: { key }, data: { group } })
     ),
   ]);
 }
@@ -167,32 +171,26 @@ export async function resetTile(
   return tile ?? undefined;
 }
 
+/** A tile's edits as resetTile returned them, held to saveTile's limits. */
+const TileSnapshot = z.object({
+  key: z.string().min(1),
+  name: z.string().max(MAX_NAME).nullable(),
+  description: z.string().max(MAX_DESCRIPTION).nullable(),
+  icon: z.string().max(MAX_ICON).nullable(),
+  addresses: z.array(z.string().max(MAX_ADDRESS)).max(MAX_ADDRESSES),
+  group: z.string().max(MAX_GROUP).nullable(),
+  position: z.number().int().min(0).max(MAX_ROW).nullable(),
+  width: z.number().int().min(1).max(MAX_COLUMNS),
+  height: z.number().int().min(1).max(MAX_ROWS),
+  hidden: z.boolean(),
+});
+
 /** Puts back a tile's edits as a reset found them. */
 export async function restoreTile(tile: TileSnapshot): Promise<TileResult> {
   await requireUser();
-  const {
-    key,
-    name,
-    description,
-    icon,
-    addresses,
-    group,
-    position,
-    width,
-    height,
-    hidden,
-  } = tile;
-  const data = {
-    name,
-    description,
-    icon,
-    addresses,
-    group,
-    position,
-    width,
-    height,
-    hidden,
-  };
+  const parsed = TileSnapshot.safeParse(tile);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const { key, ...data } = parsed.data;
   await db.tile.upsert({
     where: { key },
     create: { key, ...data },
@@ -214,18 +212,24 @@ export async function renameGroup(
   keys: string[]
 ): Promise<TileResult> {
   await requireUser();
-  const names = z.object({ from: Group, to: Group }).safeParse({ from, to });
-  if (!names.success) return { error: names.error.issues[0].message };
-  const { from: old, to: name } = names.data;
+  const input = z
+    .object({
+      from: Group,
+      to: Group,
+      keys: z.array(z.string().min(1)).max(MAX_RENAMED),
+    })
+    .safeParse({ from, to, keys });
+  if (!input.success) return { error: input.error.issues[0].message };
+  const { from: old, to: name, keys: services } = input.data;
   if (old === name) return;
-  await ensureTiles(keys);
+  await ensureTiles(services);
   const [existing, layouts] = await Promise.all([
     db.group.findUnique({ where: { name } }),
     db.tileLayout.findMany({ where: { key: SECTION_KEY + name } }),
   ]);
   await db.$transaction([
     db.tile.updateMany({
-      where: { OR: [{ key: { in: keys } }, { group: old }] },
+      where: { OR: [{ key: { in: services } }, { group: old }] },
       data: { group: name },
     }),
     // Its place among the groups, unless it's joined one that has its own

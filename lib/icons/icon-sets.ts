@@ -48,6 +48,16 @@ export type IconSet = keyof typeof ICON_SETS;
 /** Sets named by a prefix; dashboard-icons has none. */
 const PREFIXED = ['mdi', 'si', 'sh', 'papirus', 'homelab'] as const;
 
+/**
+ * Whether an icon is an image's own address rather than a name in a set.
+ * http:// too, such as an http site's /favicon.ico: a browser showing the
+ * dashboard over https asks for it over https instead, and an image that
+ * isn't there shows the letter, as one that's missing would.
+ */
+export function isImageUrl(icon: string) {
+  return /^https?:\/\//i.test(icon);
+}
+
 /** Which set an icon name belongs to, and its file name there. */
 export function parseIcon(icon: string): { set: IconSet; name: string } {
   for (const set of PREFIXED) {

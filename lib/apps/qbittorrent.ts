@@ -10,8 +10,11 @@ import {
 } from '@/lib/apps/app';
 import { formatDuration, formatRate } from '@/lib/format';
 
-/** qBittorrent's session, kept until it stops being accepted. */
-let qbitCookie: string | undefined;
+/**
+ * qBittorrent's sessions, each kept until it stops being accepted. By its
+ * address, as two of them would otherwise keep signing each other out.
+ */
+const qbitCookies = new Map<string, string>();
 
 async function qbitLogin(url: string) {
   const res = await fetch(`${url}/api/v2/auth/login`, {
@@ -27,28 +30,31 @@ async function qbitLogin(url: string) {
   // Its cookie's name changes between versions, so it's taken as it comes
   const cookie = res.headers.getSetCookie()[0]?.split(';')[0];
   if (!res.ok || !cookie) throw new Error(`Couldn't sign in (${res.status})`);
-  qbitCookie = cookie;
+  qbitCookies.set(url, cookie);
 }
 
-/** Signing in, shared by the stats that need it at once, so it signs in once. */
-let qbitSigningIn: Promise<void> | undefined;
+/** Signing in, shared by the stats that need it at once, so each signs in once. */
+const qbitSigningIn = new Map<string, Promise<void>>();
 
 function qbitSignIn(url: string) {
-  return (qbitSigningIn ??= qbitLogin(url).finally(() => {
-    qbitSigningIn = undefined;
-  }));
+  let signingIn = qbitSigningIn.get(url);
+  if (!signingIn) {
+    signingIn = qbitLogin(url).finally(() => qbitSigningIn.delete(url));
+    qbitSigningIn.set(url, signingIn);
+  }
+  return signingIn;
 }
 
 async function qbitJson<T>(url: string, path: string): Promise<T> {
-  if (!qbitCookie) await qbitSignIn(url);
-  const used = qbitCookie;
+  if (!qbitCookies.has(url)) await qbitSignIn(url);
+  const used = qbitCookies.get(url);
   try {
     return await getJson<T>(`${url}${path}`, { Cookie: used! });
   } catch {
     // Its session may have run out: once more, signed in again, unless
     // another stat already has
-    if (qbitCookie === used) await qbitSignIn(url);
-    return getJson<T>(`${url}${path}`, { Cookie: qbitCookie! });
+    if (qbitCookies.get(url) === used) await qbitSignIn(url);
+    return getJson<T>(`${url}${path}`, { Cookie: qbitCookies.get(url)! });
   }
 }
 

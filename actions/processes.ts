@@ -15,6 +15,10 @@ export async function stopProcess(
   force: boolean
 ): Promise<StopResult> {
   await requireUser();
+  // A server action takes whatever it's sent, so only a process id gets through
+  if (!Number.isInteger(pid) || pid <= 0) {
+    return { ok: false, outcome: 'failed', error: 'Not a process id' };
+  }
   try {
     return await stop(pid, start, force);
   } catch (error) {

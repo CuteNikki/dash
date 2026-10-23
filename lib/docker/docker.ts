@@ -1,6 +1,7 @@
 import 'server-only';
 
 import http from 'node:http';
+import { StringDecoder } from 'node:string_decoder';
 
 /**
  * The Docker Engine API, spoken directly over its socket. DOCKER_HOST is
@@ -478,20 +479,26 @@ export async function containerLogs(
 export async function* logLines(res: http.IncomingMessage, tty: boolean) {
   let buffer = Buffer.alloc(0);
   let partial = { stdout: '', stderr: '' };
+  // One for each stream, keeping a character split between chunks or frames
+  // until the rest of it comes
+  const decoders = {
+    stdout: new StringDecoder('utf8'),
+    stderr: new StringDecoder('utf8'),
+  };
   for await (const chunk of res) {
     buffer = Buffer.concat([buffer, chunk as Buffer]);
     while (buffer.length) {
       let stream: 'stdout' | 'stderr' = 'stdout';
       let text: string;
       if (tty) {
-        text = buffer.toString('utf8');
+        text = decoders.stdout.write(buffer);
         buffer = Buffer.alloc(0);
       } else {
         if (buffer.length < 8) break;
         const size = buffer.readUInt32BE(4);
         if (buffer.length < 8 + size) break;
         stream = buffer[0] === 2 ? 'stderr' : 'stdout';
-        text = buffer.subarray(8, 8 + size).toString('utf8');
+        text = decoders[stream].write(buffer.subarray(8, 8 + size));
         buffer = buffer.subarray(8 + size);
       }
       const lines = (partial[stream] + text).split('\n');
@@ -501,6 +508,7 @@ export async function* logLines(res: http.IncomingMessage, tty: boolean) {
   }
   // A last line with no newline after it, as `compose config`'s closing brace
   for (const stream of ['stdout', 'stderr'] as const) {
-    if (partial[stream]) yield { stream, line: partial[stream] };
+    const last = partial[stream] + decoders[stream].end();
+    if (last) yield { stream, line: last };
   }
 }

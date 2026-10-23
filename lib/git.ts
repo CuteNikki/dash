@@ -43,6 +43,8 @@ export type GitChange = {
   path: string;
   /** M changed, A added, D deleted, R renamed, ? new and not yet tracked */
   status: 'M' | 'A' | 'D' | 'R' | '?';
+  /** For a rename, the path it had, which committing it takes out of the repository */
+  from?: string;
 };
 
 export type GitCommit = {
@@ -71,7 +73,6 @@ export type GitStatus = {
   };
 };
 
-const MARK = '--dash--';
 /** A commit's line in git log's output, as `parseCommit` reads it */
 const COMMIT_FORMAT = '%h%x09%an%x09%at%x09%s';
 
@@ -86,13 +87,23 @@ function parseCommit(line: string): GitCommit {
 }
 
 /** Splits a script's output at the marks between its parts. */
-function partsOf(stdout: string[], mark = MARK) {
+function partsOf(stdout: string[], mark: string) {
   const parts: string[][] = [[]];
   for (const line of stdout) {
     if (line === mark) parts.push([]);
     else parts.at(-1)!.push(line);
   }
   return parts;
+}
+
+/**
+ * What git printed with -z, one name or field each, as it wrote them: names
+ * aren't quoted, and one with a line break, split into lines on the way, is
+ * whole again. The command has an echo after it, so the mark after that is a
+ * line of its own.
+ */
+function fieldsOf(part: string[] | undefined) {
+  return (part ?? []).join('\n').split('\0').filter(Boolean);
 }
 
 /** Runs from the top of the repository, which paths in it are relative to. */
@@ -104,18 +115,36 @@ function statusOf(xy: string): GitChange['status'] {
   return (['A', 'D', 'R'].includes(code) ? code : 'M') as GitChange['status'];
 }
 
+/**
+ * Changes as `git status --porcelain=v1 -z` lists them: "XY path", and for a
+ * rename or a copy, the path it had after it.
+ */
+function changesOf(fields: string[]) {
+  const changes: GitChange[] = [];
+  for (let i = 0; i < fields.length; i++) {
+    const xy = fields[i].slice(0, 2);
+    const path = fields[i].slice(3);
+    const from = /[RC]/.test(xy) ? fields[++i] : undefined;
+    const status = statusOf(xy);
+    changes.push({ status, path, ...(status === 'R' && from ? { from } : {}) });
+  }
+  return changes;
+}
+
 /** The repository a folder is in, and how it stands; undefined if none. */
 export async function gitStatus(dir: string): Promise<GitStatus | undefined> {
+  const mark = uniqueMark();
   const { ok, stdout } = await gitScript(
     dir,
     `git rev-parse --show-toplevel 2>/dev/null || exit 0
-echo ${MARK}; git rev-parse --abbrev-ref HEAD
-echo ${MARK}; git rev-parse HEAD 2>/dev/null
-echo ${MARK}; git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null
-echo ${MARK}; git rev-list --left-right --count HEAD...@{u} 2>/dev/null
-echo ${MARK}; git status --porcelain=v1
-echo ${MARK}; git for-each-ref --format='%(refname:short)' refs/heads
-echo ${MARK}; git for-each-ref --format='%(refname:short)' refs/remotes`
+echo "$1"; git rev-parse --abbrev-ref HEAD
+echo "$1"; git rev-parse HEAD 2>/dev/null
+echo "$1"; git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null
+echo "$1"; git rev-list --left-right --count HEAD...@{u} 2>/dev/null
+echo "$1"; git status --porcelain=v1 -z; echo
+echo "$1"; git for-each-ref --format='%(refname:short)' refs/heads
+echo "$1"; git for-each-ref --format='%(refname:short)' refs/remotes`,
+    mark
   );
   if (!ok || !stdout.length) return undefined;
   const [
@@ -127,7 +156,7 @@ echo ${MARK}; git for-each-ref --format='%(refname:short)' refs/remotes`
     status,
     heads,
     remotes,
-  ] = partsOf(stdout);
+  ] = partsOf(stdout, mark);
   const local = heads ?? [];
   // A remote's own HEAD isn't a branch, and ones already checked out are local
   const remote = (remotes ?? []).filter(
@@ -141,11 +170,7 @@ echo ${MARK}; git for-each-ref --format='%(refname:short)' refs/remotes`
     upstream: upstream || undefined,
     ahead: ahead || 0,
     behind: behind || 0,
-    changes: (status ?? []).map((line) => ({
-      status: statusOf(line.slice(0, 2)),
-      // A rename reads "old -> new"; the new name is the file now
-      path: line.slice(3).split(' -> ').at(-1)!.replace(/^"|"$/g, ''),
-    })),
+    changes: changesOf(fieldsOf(status)),
     branches: { local, remote },
   };
 }
@@ -186,16 +211,26 @@ export async function gitPush(root: string): Promise<GitResult> {
   return gitScript(root, 'git push');
 }
 
-/** Commits exactly these files (new ones included) with this message. */
+/**
+ * Commits exactly these files (new ones included) with this message, and the
+ * paths renames among them had, so those leave the repository with them.
+ * Those aren't added first: git mv already took them out, and git won't add
+ * a path that's nowhere.
+ */
 export async function gitCommit(
   root: string,
   message: string,
-  paths: string[]
+  paths: string[],
+  renamedFrom: string[] = []
 ): Promise<GitResult> {
   return gitScript(
     root,
-    'msg="$1"; shift; git add -A -- "$@" && git commit -q -m "$msg" -- "$@" && git log -1 --format="Committed %h %s"',
+    `msg="$1"; k="$2"; shift 2
+add() { shift "$k"; [ $# -gt 0 ] || return 0; git add -A -- "$@"; }
+add "$@" && git commit -q -m "$msg" -- "$@" && git log -1 --format="Committed %h %s"`,
     message,
+    String(renamedFrom.length),
+    ...renamedFrom,
     ...paths
   );
 }
@@ -317,43 +352,61 @@ export async function gitCommitDetails(
   hash: string
 ): Promise<GitCommitDetails | undefined> {
   if (!HASH.test(hash)) return undefined;
+  // Its message is anyone's text, so the mark is one it can't have
+  const mark = uniqueMark();
   const { ok, stdout } = await gitScript(
     dir,
     `${AT_ROOT}
 git rev-parse --verify --quiet "$1^{commit}" >/dev/null || exit 1
 git show -s --format='%H%x09%ae%x09${COMMIT_FORMAT}' "$1"
-echo ${MARK}; git show -s --format=%b "$1"
-echo ${MARK}; ${SHOW} --name-status "$1"
-echo ${MARK}; ${SHOW} --numstat "$1"`,
-    hash
+echo "$2"; git show -s --format=%b "$1"
+echo "$2"; ${SHOW} --name-status -z "$1"; echo
+echo "$2"; ${SHOW} --numstat -z "$1"; echo`,
+    hash,
+    mark
   );
   if (!ok || !stdout.length) return undefined;
-  const [[first], body, statuses, counts] = partsOf(stdout);
+  const [[first], body, statuses, counts] = partsOf(stdout, mark);
   const [id, email, ...rest] = first.split('\t');
-  const lines = new Map(
-    (counts ?? []).map((line) => {
-      const [added, removed, ...path] = line.split('\t');
-      return [path.join('\t'), { added, removed }];
-    })
-  );
   return {
     ...parseCommit(rest.join('\t')),
     id,
     email,
     body: (body ?? []).join('\n').trim(),
-    files: (statuses ?? []).filter(Boolean).map((line) => {
-      const [code, ...path] = line.split('\t');
-      const file = path.join('\t');
-      const n = lines.get(file);
-      const binary = !n || n.added === '-';
-      return {
-        path: file,
-        status: statusOf(code),
-        added: binary ? undefined : Number(n.added),
-        removed: binary ? undefined : Number(n.removed),
-      };
-    }),
+    files: filesOf(fieldsOf(statuses), fieldsOf(counts)),
   };
+}
+
+/**
+ * A commit's files from its -z name-status ("M", path; a rename or copy's
+ * code is followed by both paths) and numstat ("added<tab>removed<tab>path",
+ * or with no path, both after it), by the path each has now.
+ */
+function filesOf(statuses: string[], counts: string[]): GitCommitFile[] {
+  const lines = new Map<string, { added: string; removed: string }>();
+  for (let i = 0; i < counts.length; i++) {
+    const [added, removed, ...path] = counts[i].split('\t');
+    let file = path.join('\t');
+    // A rename's: the path it had, then the one it has
+    if (!file) file = counts[(i += 2)];
+    lines.set(file, { added, removed });
+  }
+  const files: GitCommitFile[] = [];
+  for (let i = 0; i < statuses.length; i++) {
+    const code = statuses[i];
+    if (/^[RC]/.test(code)) i++;
+    const file = statuses[++i];
+    if (file === undefined) break;
+    const n = lines.get(file);
+    const binary = !n || n.added === '-';
+    files.push({
+      path: file,
+      status: statusOf(code),
+      added: binary ? undefined : Number(n.added),
+      removed: binary ? undefined : Number(n.removed),
+    });
+  }
+  return files;
 }
 
 /**

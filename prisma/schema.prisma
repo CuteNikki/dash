@@ -31,7 +31,7 @@ model Tile {
 }
 
 /// Where one of the server's tiles goes, and its size, once it's been moved
-/// or resized; until then it has its place and size in lib/host-tiles.
+/// or resized; until then it has its place and size in lib/host/host-tiles.ts.
 model HostTile {
   /// "server", "cpu", "processes", …
   key      String @id

@@ -85,23 +85,43 @@ export async function* updateService(
   if (update.kind === 'version') {
     const to = c.image.slice(0, -update.from.length) + update.to;
     const bumped = await bumpImage(stack, c.image, to);
-    yield say(`${shown(bumped.file)}: ${c.image} → ${to}`);
-    yield say(`Pulling ${to}…`);
-    const pulled = yield* runCompose(stack, ['pull', service]);
-    if (pulled !== 0) {
-      await bumped.restore();
-      yield say(`Put ${shown(bumped.file)} back as it was`);
-      return pulled;
-    }
-    yield say(`Recreating ${c.name}…`);
-    const up = yield* runCompose(stack, ['up', '-d', service]);
-    if (up !== 0) {
-      await bumped.restore();
-      yield say(
-        `Put ${shown(bumped.file)} back as it was; starting ${update.from} again…`
-      );
-      yield* runCompose(stack, ['up', '-d', service]);
-      return up;
+    let restored = false;
+    try {
+      yield say(`${shown(bumped.file)}: ${c.image} → ${to}`);
+      yield say(`Pulling ${to}…`);
+      const pulled = yield* runCompose(stack, ['pull', service]);
+      if (pulled !== 0) {
+        await bumped.restore();
+        restored = true;
+        yield say(`Put ${shown(bumped.file)} back as it was`);
+        return pulled;
+      }
+      yield say(`Recreating ${c.name}…`);
+      const up = yield* runCompose(stack, ['up', '-d', service]);
+      if (up !== 0) {
+        await bumped.restore();
+        restored = true;
+        yield say(
+          `Put ${shown(bumped.file)} back as it was; starting ${update.from} again…`
+        );
+        yield* runCompose(stack, ['up', '-d', service]);
+        return up;
+      }
+    } catch (error) {
+      // Compose that couldn't run at all, as while Docker restarts, leaves
+      // the file naming a version that isn't running, for the next deploy
+      if (!restored) {
+        const back = await bumped.restore().then(
+          () => true,
+          () => false
+        );
+        yield say(
+          back
+            ? `Put ${shown(bumped.file)} back as it was`
+            : `Couldn't put ${shown(bumped.file)} back; it still names ${to}`
+        );
+      }
+      throw error;
     }
     forgetUpdate(c);
     return 0;

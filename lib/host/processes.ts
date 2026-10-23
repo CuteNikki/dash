@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { randomUUID } from 'node:crypto';
 import { hostname } from 'node:os';
 
 import { containerPid } from '@/lib/docker/docker';
@@ -101,17 +102,21 @@ function statFields(stat: string) {
 export async function processDetails(
   pid: number
 ): Promise<ProcessDetails | undefined> {
-  const marker = '--dash--';
+  // Only an id makes a path in /proc, and one that's no process is gone
+  if (!Number.isSafeInteger(pid) || pid <= 0) return undefined;
+  // New each time, as a process can put any marker in its name or arguments
+  const marker = `--dash-${randomUUID()}--`;
   const { exitCode, stdout, stderr } = await hostScript(
     { signals: false },
     `p=/proc/$1; [ -d "$p" ] || exit ${GONE}
-cat "$p/stat"; echo ${marker}
-cat "$p/status"; echo ${marker}
-tr '\\0' ' ' < "$p/cmdline"; echo; echo ${marker}
-cat "$p/cgroup"; echo ${marker}
-cat /proc/uptime; echo ${marker}
+cat "$p/stat"; echo "$2"
+cat "$p/status"; echo "$2"
+tr '\\0' ' ' < "$p/cmdline"; echo; echo "$2"
+cat "$p/cgroup"; echo "$2"
+cat /proc/uptime; echo "$2"
 cat /etc/passwd`,
-    String(pid)
+    String(pid),
+    marker
   );
   if (exitCode === GONE) return undefined;
   if (exitCode !== 0) throw new Error(stderr || `Couldn't look at ${pid}`);
@@ -182,15 +187,15 @@ export async function stopProcess(
     { signals: true },
     `pid=$1; want=$2; signal=$3
 ended() {
-  s=$(cat /proc/$pid/stat 2>/dev/null) || return 0
+  s=$(cat "/proc/$pid/stat" 2>/dev/null) || return 0
   set -- \${s##*) }
   [ "$1" = Z ]
 }
 ended && exit ${GONE}
-s=$(cat /proc/$pid/stat) || exit ${GONE}
+s=$(cat "/proc/$pid/stat") || exit ${GONE}
 set -- \${s##*) }
 [ "\${20}" = "$want" ] || exit ${REPLACED}
-kill -$signal $pid || exit 1
+kill -s "$signal" "$pid" || exit 1
 i=0
 while [ $i -lt ${WAIT_STEPS} ]; do
   ended && exit 0
