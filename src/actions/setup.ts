@@ -7,7 +7,6 @@ import { MIN_PASSWORD } from '@/lib/auth/password';
 import { hasAccount } from '@/lib/auth/session';
 import { isSetupCode, whileCreatingAccount } from '@/lib/auth/setup';
 
-
 const SetupInput = z.object({
   code: z.string().min(1, 'Enter the setup code'),
   name: z.string().trim().min(1, 'Enter your name'),

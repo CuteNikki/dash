@@ -26,6 +26,9 @@ to redeploy. New services come from templates and get a site in Caddy.
 - **Updates, found and applied.** New image versions and new commits,
   checked every few hours, and applied from the dashboard: one service, or all
   of them. The server's own packages too.
+- **Other people, with their own access.** Invite someone with a link, and
+  give them a role and the groups they see: a friend who restarts the game
+  servers, a housemate who checks on the media.
 
 ## A closer look
 
@@ -106,64 +109,36 @@ It expects the server laid out like this:
     sites/<name>.caddy
 ```
 
-Tiles, layouts and the account are kept in PostgreSQL, through Prisma.
-Uploaded icons go to an S3 bucket (Garage, on the same server). There's one
-account, signed in with a password or a passkey.
+Tiles, layouts and accounts are kept in PostgreSQL, through Prisma.
+Uploaded icons go to an S3 bucket (Garage, on the same server).
 
-Dashboard itself is a stack like the others: a clone of this repository in
-`~/services/dash`, with a `.env` beside it holding its secrets (the settings
-in [`.env.example`](.env.example) say where each comes from). Its
-[`docker-compose.yml`](docker-compose.yml) is the one this server runs; for
-yours, change the names in it:
+With no account yet, it prints a setup code in its log; make the first
+account, the owner, at `/setup` with it.
 
-```yaml
-services:
-  # The database's migrations, run before dash starts
-  migrate:
-    build: { context: ., target: migrate }
-    env_file: .env
-    restart: 'no'
-    labels:
-      dash.purpose: the database's migrations, before dash starts
+## People and roles
 
-  dash:
-    build:
-      context: .
-      args:
-        NEXT_PUBLIC_SERVER_NAME: vps.example.com
-    container_name: dash
-    restart: unless-stopped
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-    env_file: .env
-    environment:
-      BETTER_AUTH_URL: https://dash.example.com
-      DOCKER_HOST: unix:///var/run/docker.sock
-      STACKS_ROOT: /home/you
-      STORAGE_API_URL: https://s3.example.com
-      STORAGE_PUBLIC_URL: https://images.example.com/dash
-    # The server's processes and which container each runs in, not only its own
-    pid: host
-    cgroup: host
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /home/you:/home/you
-    networks:
-      - caddy
+The owner invites others from Settings → People: a link that works once, for
+a day, with the role it gives and, for the roles that don't see everything,
+the groups they see. Everyone signs in with a password or a passkey, can turn
+on two-factor codes from an authenticator app, and sees and signs out their
+own devices.
 
-networks:
-  caddy:
-    external: true
-```
+| Role         | Sees                     | Can                                              |
+| ------------ | ------------------------ | ------------------------------------------------ |
+| **Owner**    | everything               | everything, and other people's accounts          |
+| **Admin**    | everything               | everything but other people's accounts           |
+| **Operator** | the groups they're given | logs, start, stop and restart, and image updates |
+| **Viewer**   | the groups they're given | status, usage and logs                           |
 
-With no account yet, it prints a setup code in its log; make the account at
-`/setup` with it.
+Files, git, consoles, compose, adding services and the server's own panels are
+owners' and admins' alone, as any of them reaches the whole server. Every
+route and action checks the role on the server, and a test fails if one
+doesn't.
 
 > [!WARNING]
-> Dashboard has the Docker socket and the server's processes, so whoever signs in
-> to it controls the server. Keep it behind HTTPS, and use a passkey or a
-> strong password.
+> Dashboard has the Docker socket and the server's processes, so an owner or
+> admin controls the server. Keep it behind HTTPS, give those roles only to
+> people you'd give the server to, and use a passkey or two-factor codes.
 
 ## Developing
 
@@ -234,7 +209,7 @@ src/
   app/            pages and API routes
   actions/        server actions, the changes a page asks for
   components/
-    auth/           sign-in and setup
+    auth/           sign-in, two-factor codes, setup and invites
     chrome/         the page's own: its name, theme and account menu
     dashboard/      tiles, the list, the board they're arranged on
     service/        a service's window: logs, details, status
@@ -243,12 +218,13 @@ src/
     git/            changes, history, branches and diffs
     host/           the server's stats, processes and disk
     updates/        finding and applying updates
+    settings/       your account, its security, and other people's
     charts/         graphs and sparklines
     common/         scroll fades, toasts and loading placeholders
     ui/             buttons, dialogs, inputs and the rest
   lib/            what runs on the server, and what the browser shares with it
     apps/           each app's widget and details: Jellyfin, Sonarr, Minecraft, …
-    auth/           sign-in, sessions and setup
+    auth/           sign-in, setup, invites, roles and the access checks
     dashboard/      the tiles, their groups, layout and status, websites' checks
     docker/         Docker's API, Compose, and runs in short-lived containers
     host/           the server's stats, processes, disk and files

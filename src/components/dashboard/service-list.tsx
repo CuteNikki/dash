@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 
 import { Sparkline } from '@/components/charts/sparkline';
 import { WidgetStats, widgetStats } from '@/components/charts/widget-stats';
+import { useCan } from '@/components/common/role';
 import { attempt } from '@/components/common/toasts';
 import { addressWords } from '@/components/service/address-text';
 import { ServiceIcon } from '@/components/service/service-icon';
@@ -280,6 +281,8 @@ function Row({
   onRun: (action: ContainerAction) => void;
 }) {
   const running = isRunning(service.state);
+  // Starting and stopping is for those whose role may
+  const controls = useCan()('control');
   const usage = running ? service.usage : undefined;
   // A website's response time, in place of a container's CPU
   const check = service.site?.check;
@@ -424,10 +427,12 @@ function Row({
               <ActionButton label='Logs' onClick={() => onLogs(service)}>
                 <ScrollTextIcon />
               </ActionButton>
-              <ActionButton label='Restart' onClick={() => onRun('restart')}>
-                <RotateCwIcon />
-              </ActionButton>
-              {running ? (
+              {controls && (
+                <ActionButton label='Restart' onClick={() => onRun('restart')}>
+                  <RotateCwIcon />
+                </ActionButton>
+              )}
+              {!controls ? null : running ? (
                 <ActionButton label='Stop' onClick={() => onRun('stop')}>
                   <SquareIcon />
                 </ActionButton>

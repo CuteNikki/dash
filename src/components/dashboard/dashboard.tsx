@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 
 import { renameGroup, saveLayout, type TileResult } from '@/actions/tiles';
+import { can, type Ability } from '@/lib/auth/roles';
 import { groupNames, groupServices } from '@/lib/dashboard/groups';
 import {
   FILTER_COOKIE,
@@ -28,6 +29,7 @@ import { cn } from '@/lib/utils';
 import { AccountMenu } from '@/components/chrome/account-menu';
 import { Brand } from '@/components/chrome/brand';
 import { ThemeButton } from '@/components/chrome/theme-button';
+import { RoleProvider } from '@/components/common/role';
 import {
   Board,
   useColumns,
@@ -66,6 +68,8 @@ export function Dashboard({
   me: Me;
 }) {
   const columns = useColumns(initialColumns);
+  // What their role may use shows; the server refuses the rest regardless
+  const may = (ability: Ability) => can(me.role, ability);
   const [view, setView] = useState(initialView);
 
   function pickView(next: View) {
@@ -216,129 +220,141 @@ export function Dashboard({
   }
 
   return (
-    // Wider screens get more columns of tiles, up to a width past which the
-    // page would only spread out: then it's centered
-    <div className='mx-auto flex w-full max-w-[2200px] flex-col gap-8 px-4 py-6 sm:px-6'>
-      {/* The heading and the buttons on one line where they fit; on a
+    <RoleProvider role={me.role}>
+      {/* Wider screens get more columns of tiles, up to a width past which
+          the page would only spread out: then it's centered */}
+      <div className='mx-auto flex w-full max-w-[2200px] flex-col gap-8 px-4 py-6 sm:px-6'>
+        {/* The heading and the buttons on one line where they fit; on a
           narrow screen, the buttons on a line of their own below */}
-      <header className='flex flex-wrap items-center justify-between gap-3'>
-        <h1>
-          <Brand />
-        </h1>
-        {/* Closer together on a phone, where the line's room is short */}
-        <div className='flex items-center gap-2'>
-          <ToggleGroup
-            type='single'
-            variant='segmented'
-            value={view}
-            // Picking the shown one again would unpick it; keep one picked
-            onValueChange={(v) => v && pickView(v as View)}
-            aria-label='Show services as'
-          >
-            <ToggleGroupItem value='tiles' aria-label='Tiles'>
-              <LayoutGridIcon />
-            </ToggleGroupItem>
-            <ToggleGroupItem value='list' aria-label='List'>
-              <ListIcon />
-            </ToggleGroupItem>
-          </ToggleGroup>
-          <Button
-            variant='outline'
-            aria-label={
-              updateCount ? `Updates, ${updateCount} waiting` : 'Updates'
-            }
-            onClick={() => setShowUpdates(true)}
-            className={cn(updateCount > 0 && 'text-update hover:text-update')}
-          >
-            <ArrowUpCircleIcon />
-            {/* Its icon alone on a phone, with how many are waiting */}
-            <span className='max-sm:hidden'>Updates</span>
-            {updateCount > 0 && (
-              <span className='font-mono tabular-nums'>{updateCount}</span>
+        <header className='flex flex-wrap items-center justify-between gap-3'>
+          <h1>
+            <Brand />
+          </h1>
+          {/* Closer together on a phone, where the line's room is short */}
+          <div className='flex items-center gap-2'>
+            <ToggleGroup
+              type='single'
+              variant='segmented'
+              value={view}
+              // Picking the shown one again would unpick it; keep one picked
+              onValueChange={(v) => v && pickView(v as View)}
+              aria-label='Show services as'
+            >
+              <ToggleGroupItem value='tiles' aria-label='Tiles'>
+                <LayoutGridIcon />
+              </ToggleGroupItem>
+              <ToggleGroupItem value='list' aria-label='List'>
+                <ListIcon />
+              </ToggleGroupItem>
+            </ToggleGroup>
+            {may('control') && (
+              <Button
+                variant='outline'
+                aria-label={
+                  updateCount ? `Updates, ${updateCount} waiting` : 'Updates'
+                }
+                onClick={() => setShowUpdates(true)}
+                className={cn(
+                  updateCount > 0 && 'text-update hover:text-update'
+                )}
+              >
+                <ArrowUpCircleIcon />
+                {/* Its icon alone on a phone, with how many are waiting */}
+                <span className='max-sm:hidden'>Updates</span>
+                {updateCount > 0 && (
+                  <span className='font-mono tabular-nums'>{updateCount}</span>
+                )}
+              </Button>
             )}
-          </Button>
-          <Button
-            variant='outline'
-            aria-label='New service'
-            onClick={() => setAdding(true)}
-          >
-            <PlusIcon />
-            {/* Its plus alone on a phone, where the header's room is short */}
-            <span className='max-sm:hidden'>New service</span>
-          </Button>
-          <Button
-            variant={editing ? 'default' : 'outline'}
-            aria-pressed={editing}
-            aria-label={editing ? 'Done' : 'Edit'}
-            onClick={() => setEditing(!editing)}
-          >
-            <PencilIcon />
-            {/* Its pencil alone on a phone, as New service's plus is */}
-            <span className='max-sm:hidden'>{editing ? 'Done' : 'Edit'}</span>
-          </Button>
-          <ThemeButton />
-          <AccountMenu me={me} />
-        </div>
-      </header>
-      <Board
-        sections={sections}
-        columns={columns}
-        editing={editing}
-        saved={data.layouts}
-        onLayout={saveCells}
-        onRename={rename}
-      />
-      {view === 'list' && (
-        <ServiceList
-          groups={groups}
-          filter={filter}
-          onFilter={pickFilter}
+            {may('manage') && (
+              <Button
+                variant='outline'
+                aria-label='New service'
+                onClick={() => setAdding(true)}
+              >
+                <PlusIcon />
+                {/* Its plus alone on a phone, where the header's room is short */}
+                <span className='max-sm:hidden'>New service</span>
+              </Button>
+            )}
+            {may('manage') && (
+              <Button
+                variant={editing ? 'default' : 'outline'}
+                aria-pressed={editing}
+                aria-label={editing ? 'Done' : 'Edit'}
+                onClick={() => setEditing(!editing)}
+              >
+                <PencilIcon />
+                {/* Its pencil alone on a phone, as New service's plus is */}
+                <span className='max-sm:hidden'>
+                  {editing ? 'Done' : 'Edit'}
+                </span>
+              </Button>
+            )}
+            <ThemeButton />
+            <AccountMenu me={me} />
+          </div>
+        </header>
+        <Board
+          sections={sections}
+          columns={columns}
           editing={editing}
-          onOpen={open}
-          onLogs={(service) => {
-            setOpenTab('logs');
-            setOpenKey(service.key);
+          saved={data.layouts}
+          onLayout={saveCells}
+          onRename={rename}
+        />
+        {view === 'list' && (
+          <ServiceList
+            groups={groups}
+            filter={filter}
+            onFilter={pickFilter}
+            editing={editing}
+            onOpen={open}
+            onLogs={(service) => {
+              setOpenTab('logs');
+              setOpenKey(service.key);
+            }}
+            onChanged={() => void mutate()}
+          />
+        )}
+        <ServiceDialog
+          service={find(openKey)}
+          tab={openTab}
+          memoryTotal={host?.memory.total}
+          onClose={() => setOpenKey(undefined)}
+          onChanged={() => void mutate()}
+          onEdit={(service) => {
+            setOpenKey(undefined);
+            setEditKey(service.key);
           }}
+        />
+        <EditTileDialog
+          service={find(editKey)}
+          groups={allGroups}
+          onClose={() => setEditKey(undefined)}
+          onSaved={() => void mutate()}
+        />
+        <SystemDialog
+          open={showSystem}
+          system={data.system}
+          onCloseAction={() => setShowSystem(false)}
+          onChangedAction={() => void mutate()}
+        />
+        <UpdatesDialog
+          open={showUpdates}
+          services={services}
+          checkedAt={data.updates?.checkedAt}
+          checking={data.updates?.checking ?? false}
+          onClose={() => setShowUpdates(false)}
           onChanged={() => void mutate()}
         />
-      )}
-      <ServiceDialog
-        service={find(openKey)}
-        tab={openTab}
-        memoryTotal={host?.memory.total}
-        onClose={() => setOpenKey(undefined)}
-        onChanged={() => void mutate()}
-        onEdit={(service) => {
-          setOpenKey(undefined);
-          setEditKey(service.key);
-        }}
-      />
-      <EditTileDialog
-        service={find(editKey)}
-        groups={allGroups}
-        onClose={() => setEditKey(undefined)}
-        onSaved={() => void mutate()}
-      />
-      <SystemDialog
-        open={showSystem}
-        system={data.system}
-        onCloseAction={() => setShowSystem(false)}
-        onChangedAction={() => void mutate()}
-      />
-      <UpdatesDialog
-        open={showUpdates}
-        services={services}
-        checkedAt={data.updates?.checkedAt}
-        checking={data.updates?.checking ?? false}
-        onClose={() => setShowUpdates(false)}
-        onChanged={() => void mutate()}
-      />
-      <NewServiceDialog
-        open={adding}
-        groups={allGroups}
-        onCloseAction={() => setAdding(false)}
-        onCreatedAction={() => void mutate()}
-      />
-    </div>
+        <NewServiceDialog
+          open={adding}
+          groups={allGroups}
+          onCloseAction={() => setAdding(false)}
+          onCreatedAction={() => void mutate()}
+        />
+      </div>
+    </RoleProvider>
   );
 }

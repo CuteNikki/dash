@@ -28,6 +28,7 @@ import { updateLabel } from '@/lib/updates/describe';
 import { cn } from '@/lib/utils';
 
 import { HistoryChart } from '@/components/charts/history-chart';
+import { useCan } from '@/components/common/role';
 import { ScrollFade } from '@/components/common/scroll-fade';
 import { TextSkeleton } from '@/components/common/skeletons';
 import { attempt } from '@/components/common/toasts';
@@ -160,9 +161,16 @@ function ServiceBody({
   const running = isRunning(service.state);
   // A website elsewhere: nothing to start or stop, only how it answers
   const site = !!service.site;
+  // What their role may use: starting and stopping, or its files, git and
+  // console too, which reach the whole server
+  const may = useCan();
+  const controls = may('control');
+  const manages = may('manage');
   // The repository its stack is in, if any: a Git tab shows once it's known
   const { data: git, mutate: rereadGit } = useSWR<GitStatus | null>(
-    service.stack ? `/api/containers/${service.containerId}/git` : null,
+    service.stack && manages
+      ? `/api/containers/${service.containerId}/git`
+      : null,
     fetcher,
     { revalidateOnFocus: false }
   );
@@ -247,7 +255,7 @@ function ServiceBody({
             label={labelOf(service)}
             className='mr-1 h-7 items-center px-2'
           />
-          {site ? null : running ? (
+          {site || !controls ? null : running ? (
             <Button
               variant='destructive'
               disabled={pending}
@@ -266,7 +274,7 @@ function ServiceBody({
               Start
             </Button>
           )}
-          {!site && (
+          {!site && controls && (
             <Button
               variant='warning'
               disabled={pending || !running}
@@ -276,7 +284,7 @@ function ServiceBody({
               Restart
             </Button>
           )}
-          {isCaddy(service.image) && (
+          {isCaddy(service.image) && manages && (
             <Button
               variant='outline'
               disabled={pending || !running}
@@ -287,23 +295,28 @@ function ServiceBody({
               Reload config
             </Button>
           )}
-          <Button variant='outline' onClick={() => onEdit(service)}>
-            <PencilIcon />
-            Edit tile
-          </Button>
-          {service.update && (
-            <Button
-              variant='outline'
-              disabled={pending}
-              onClick={() => setConfirmUpdate(true)}
-              className='text-update hover:text-update'
-            >
-              <ArrowUpCircleIcon />
-              Update
-              <span className='font-mono'>{updateLabel(service.update)}</span>
+          {manages && (
+            <Button variant='outline' onClick={() => onEdit(service)}>
+              <PencilIcon />
+              Edit tile
             </Button>
           )}
-          {(service.removable || site) && (
+          {/* New commits rebuild the whole stack, which only they may */}
+          {service.update &&
+            controls &&
+            (service.update.kind !== 'commits' || manages) && (
+              <Button
+                variant='outline'
+                disabled={pending}
+                onClick={() => setConfirmUpdate(true)}
+                className='text-update hover:text-update'
+              >
+                <ArrowUpCircleIcon />
+                Update
+                <span className='font-mono'>{updateLabel(service.update)}</span>
+              </Button>
+            )}
+          {(service.removable || site) && manages && (
             <Button
               variant='outline'
               disabled={pending}
@@ -340,9 +353,11 @@ function ServiceBody({
           <TabsList>
             <TabsTrigger value='usage'>Usage</TabsTrigger>
             <TabsTrigger value='logs'>
-              {service.console ? 'Console' : 'Logs'}
+              {service.console && manages ? 'Console' : 'Logs'}
             </TabsTrigger>
-            {service.stack && <TabsTrigger value='files'>Files</TabsTrigger>}
+            {service.stack && manages && (
+              <TabsTrigger value='files'>Files</TabsTrigger>
+            )}
             {git && (
               <TabsTrigger value='git'>
                 Git
@@ -358,10 +373,10 @@ function ServiceBody({
             <LogViewer
               key={service.containerId}
               containerId={service.containerId}
-              commands={service.console ? { running } : undefined}
+              commands={service.console && manages ? { running } : undefined}
             />
           </TabsContent>
-          {service.stack && (
+          {service.stack && manages && (
             <TabsContent value='files' className='flex min-h-0 flex-col'>
               {/* By stack, so unsaved edits survive the container being recreated */}
               <FilesPanel

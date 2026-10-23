@@ -11,6 +11,7 @@ import { DASH_PROJECT } from '@/lib/site';
 import type { Service } from '@/lib/types';
 import { updateLabel } from '@/lib/updates/describe';
 
+import { useCan } from '@/components/common/role';
 import { RunOutput } from '@/components/common/run-output';
 import { ServiceIcon } from '@/components/service/service-icon';
 import { Button } from '@/components/ui/button';
@@ -105,6 +106,11 @@ export function UpdatesDialog({
 }) {
   // The rows as the window opened, so one stays, done, once it's updated
   const [rows, setRows] = useState<Row[]>([]);
+  // New commits rebuild a whole stack, which only those who may change its
+  // files can; the rest see what they can update
+  const manages = useCan()('manage');
+  const updatable = (list: Service[]) =>
+    rowsOf(list).filter((r) => r.service.update?.kind !== 'commits' || manages);
   const [outcomes, setOutcomes] = useState<Record<string, Outcome>>({});
   const [output, setOutput] = useState<string[]>();
   const [running, setRunning] = useState(false);
@@ -115,7 +121,7 @@ export function UpdatesDialog({
   if (open !== openedFor) {
     setOpenedFor(open);
     if (open) {
-      setRows(rowsOf(services));
+      setRows(updatable(services));
       setOutcomes({});
       setOutput(undefined);
     }
@@ -161,7 +167,7 @@ export function UpdatesDialog({
   const [seenServices, setSeenServices] = useState(services);
   if (services !== seenServices) {
     setSeenServices(services);
-    if (!running && !Object.keys(outcomes).length) setRows(rowsOf(services));
+    if (!running && !Object.keys(outcomes).length) setRows(updatable(services));
   }
 
   const waiting = rows.filter((r) => !outcomes[r.key]);
