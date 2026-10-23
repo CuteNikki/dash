@@ -128,9 +128,11 @@ function DetailTable({
 }: {
   section: Extract<DetailSection, { kind: 'table' }>;
 }) {
-  // The first column takes what's left and cuts its text short; the rest
-  // keep to their content, together at the right, so a row's numbers are
-  // read beside each other rather than across the window
+  // With numbers in it, the first column takes what's left and cuts its text
+  // short; the rest keep to their content, together at the right, so a row's
+  // numbers are read beside each other rather than across the window.
+  // Without, as Caddy's sites, every column is whole, and it scrolls sideways
+  const cuts = section.columns.some((c) => c.numeric);
   const align = (i: number) =>
     section.columns[i].numeric ? 'pl-6 text-right' : i ? 'pl-6' : '';
   return (
@@ -146,7 +148,8 @@ function DetailTable({
                   'pb-1.5 text-left font-normal whitespace-nowrap',
                   align(i),
                   // Taking what's left, though never so little its names vanish
-                  i === 0 && 'w-full min-w-28'
+                  i === 0 && 'w-full',
+                  i === 0 && cuts && 'min-w-28'
                 )}
               >
                 {column.label}
@@ -169,9 +172,13 @@ function DetailTable({
                   className={cn(
                     'py-1.5',
                     align(i),
-                    i === 0 ? 'max-w-0 truncate' : 'whitespace-nowrap'
+                    i === 0 && cuts ? 'max-w-0 truncate' : 'whitespace-nowrap'
                   )}
-                  title={i === 0 && typeof cell === 'string' ? cell : undefined}
+                  title={
+                    i === 0 && cuts && typeof cell === 'string'
+                      ? cell
+                      : undefined
+                  }
                 >
                   <Cell cell={cell} />
                 </td>

@@ -17,7 +17,8 @@ async function sites(c: Container) {
 
 /**
  * Where a route sends what it gets: the addresses it proxies to, however
- * deep in its subroutes, or that it serves files or redirects.
+ * deep in its subroutes, or that it serves files, redirects, or answers
+ * itself, by its status: "404 response".
  */
 function targets(route: unknown): string[] {
   const found = new Set<string>();
@@ -33,10 +34,10 @@ function targets(route: unknown): string[] {
       found.add('files');
     } else if (node.handler === 'static_response') {
       const location = (node.headers as { Location?: string[] })?.Location;
+      // Caddy's own default, with no status given, is 200
+      const status = (node.status_code as number | string | undefined) ?? 200;
       found.add(
-        location?.length
-          ? `redirect to ${location[0]}`
-          : 'a response of its own'
+        location?.length ? `redirect to ${location[0]}` : `${status} response`
       );
     }
     Object.values(node).forEach(visit);
