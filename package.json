@@ -56,6 +56,7 @@
     "remark-gfm": "^4.0.1",
     "server-only": "^0.0.1",
     "shadcn": "^4.22.1",
+    "sharp": "0.35.5",
     "sonner": "^2.0.8",
     "style-mod": "^4.1.4",
     "swr": "^2.5.1",

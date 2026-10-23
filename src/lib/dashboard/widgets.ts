@@ -5,6 +5,7 @@ import { env, type AppContext } from '@/lib/apps/app';
 import { isRunning } from '@/lib/dashboard/status';
 import type { Container } from '@/lib/docker/docker';
 import { imageName } from '@/lib/format';
+import { hasStorageKey } from '@/lib/storage';
 import type { Widget } from '@/lib/types';
 
 /** How long an app's numbers are kept before it's asked again. */
@@ -99,6 +100,11 @@ export async function readWidgets(
 export function hasDetails(c: Container) {
   const app = appOf(c);
   return !!app && !!APPS[app].details && (APPS[app].ready?.() ?? true);
+}
+
+/** Whether what a container stores can be browsed: Garage's buckets, with the dashboard's key to them. */
+export function canBrowse(c: Container) {
+  return appOf(c) === 'garage' && hasStorageKey();
 }
 
 /** What a container's app has to say in its window, or nothing for one that has none. */

@@ -3,6 +3,7 @@ import 'server-only';
 import { run, type App } from '@/lib/apps/app';
 import type { Container } from '@/lib/docker/docker';
 import { formatBytes } from '@/lib/format';
+import { NoAccess, storageKeyId } from '@/lib/storage';
 
 /** Garage's sizes, "216.7 kB (211.7 KiB)", in bytes: the one in powers of 1024 where there is one. */
 function garageBytes(size: string) {
@@ -15,7 +16,7 @@ function garageBytes(size: string) {
 }
 
 /** Each bucket: its name, the first of its global aliases or else its id, and what it holds. */
-async function buckets(c: Container) {
+export async function buckets(c: Container) {
   const ids = (await run(c, ['/garage', 'bucket', 'list']))
     .split('\n')
     .map((line) => line.match(/^([0-9a-f]{16})\s/)?.[1])
@@ -68,3 +69,46 @@ export const garage: App = {
     },
   ],
 };
+
+/** How long Garage is given to let the key in before it's asked again. */
+const SETTLE_MS = 500;
+
+/**
+ * Runs work on a bucket with the dashboard's key, letting that key read and
+ * write the bucket first if it's refused, as each bucket but its own is
+ * until it's first browsed. Only a bucket Garage lists is let into.
+ */
+export async function withAccess<T>(
+  c: Container,
+  bucket: string,
+  work: () => Promise<T>
+): Promise<T> {
+  try {
+    return await work();
+  } catch (error) {
+    const key = storageKeyId();
+    if (!(error instanceof NoAccess) || !key) throw error;
+    if (!(await buckets(c)).some((b) => b.name === bucket)) {
+      throw new Error(`No bucket named ${bucket}`);
+    }
+    await run(c, [
+      '/garage',
+      'bucket',
+      'allow',
+      '--read',
+      '--write',
+      '--key',
+      key,
+      bucket,
+    ]);
+    // Garage may take a moment to pass the change on
+    for (let tries = 3; ; tries--) {
+      try {
+        return await work();
+      } catch (again) {
+        if (!(again instanceof NoAccess) || tries === 0) throw again;
+        await new Promise((resolve) => setTimeout(resolve, SETTLE_MS));
+      }
+    }
+  }
+}

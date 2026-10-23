@@ -58,6 +58,8 @@ export type Service = {
   widget?: Widget;
   /** Whether the app has more to show in its window, from /api/containers/[id]/details */
   details?: boolean;
+  /** Whether what it stores can be browsed in its window, as Garage's buckets */
+  browse?: boolean;
   /** A website elsewhere, checked over HTTP: as it was last found, once it has been */
   site?: { check?: SiteCheck };
 };

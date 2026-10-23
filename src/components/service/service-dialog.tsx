@@ -42,6 +42,7 @@ import { PortList } from '@/components/service/port-list';
 import { RemoveServiceDialog } from '@/components/service/remove-service-dialog';
 import { ServiceIcon } from '@/components/service/service-icon';
 import { StatePill } from '@/components/service/status-dot';
+import { BucketBrowser } from '@/components/storage/bucket-browser';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -187,7 +188,8 @@ function ServiceBody({
   const shownTab =
     openTab === 'logs' ||
     (openTab === 'files' && service.stack && manages) ||
-    (openTab === 'git' && git && manages)
+    (openTab === 'git' && git && manages) ||
+    (openTab === 'browse' && service.browse && manages)
       ? openTab
       : 'usage';
 
@@ -377,6 +379,9 @@ function ServiceBody({
             {service.stack && manages && (
               <TabsTrigger value='files'>Files</TabsTrigger>
             )}
+            {service.browse && manages && (
+              <TabsTrigger value='browse'>Browse</TabsTrigger>
+            )}
             {git && (
               <TabsTrigger value='git'>
                 Git
@@ -426,6 +431,11 @@ function ServiceBody({
                 status={git}
                 onChangedAction={rereadGit}
               />
+            </TabsContent>
+          )}
+          {service.browse && manages && (
+            <TabsContent value='browse' className='flex min-h-0 flex-col'>
+              <BucketBrowser containerId={service.containerId} />
             </TabsContent>
           )}
           {/* Scrolls within the window, as the other tabs' panels do */}

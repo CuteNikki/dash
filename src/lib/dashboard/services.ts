@@ -4,7 +4,7 @@ import { can, seesGroup, type Role } from '@/lib/auth/roles';
 import { DEFAULT_GROUP } from '@/lib/dashboard/groups';
 import { currentSites } from '@/lib/dashboard/sites';
 import { isSiteKey } from '@/lib/dashboard/tiles';
-import { hasDetails, readWidgets } from '@/lib/dashboard/widgets';
+import { canBrowse, hasDetails, readWidgets } from '@/lib/dashboard/widgets';
 import { db } from '@/lib/db';
 import {
   listContainers,
@@ -253,6 +253,7 @@ export async function getDashboard(who: {
         : undefined,
       widget: widgets.get(c.id),
       details: hasDetails(c),
+      browse: canBrowse(c),
     };
   });
   // Websites elsewhere, each a tile added here, with how it last answered
