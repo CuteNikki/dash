@@ -44,7 +44,7 @@ function ToggleGroup({
       className={cn(
         'group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] rounded-md data-[size=sm]:rounded-md data-vertical:flex-col data-vertical:items-stretch',
         // Segmented: drawn as tabs are, its options in one track
-        variant === 'segmented' && [segmentTrack, 'gap-0'],
+        variant === 'segmented' && segmentTrack,
         className
       )}
       {...props}

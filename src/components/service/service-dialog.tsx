@@ -556,9 +556,9 @@ function SitePanel({ service }: { service: Service }) {
 }
 
 /**
- * What it is and what it uses, each a card, and what its app has to say
- * when it has something: that in the middle, as what's most its own, with
- * the rest in a column beside it where there's room, below it where not.
+ * What it uses and what it is, each a card, the same for every service: its
+ * charts side by side, its container's facts and ports side by side below
+ * them, and what its app has to say, when it has something, below that.
  */
 function UsagePanel({
   service,
@@ -591,63 +591,51 @@ function UsagePanel({
     },
   ];
   return (
-    <div
-      className={cn(
-        // Columns no wider than the window, whatever's in them
-        'grid grid-cols-1 gap-3',
-        app && 'lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start'
-      )}
-    >
-      {app && (
-        <div className='flex min-w-0 flex-col gap-3'>
-          <AppDetails containerId={service.containerId} />
-        </div>
-      )}
-      {/* Side by side below it, or one above another in the column beside it */}
-      <div
-        className={cn(
-          'grid grid-cols-1 gap-3 sm:grid-cols-2',
-          app && 'lg:grid-cols-1'
-        )}
-      >
-        <UsageChart
-          label='CPU'
-          value={usage?.cpu}
-          values={usage?.history.cpu}
-          times={usage?.history.at}
-          measure={MEASURES.cpu}
-          measuring={measuring}
-        />
-        <UsageChart
-          label='Memory'
-          value={usage?.memory}
-          values={usage?.history.memory}
-          times={usage?.history.at}
-          // Against the server's memory, so a steady amount sits as low as
-          // its share is, rather than at the top of a scale it alone sets,
-          // and a leak shows as a climb
-          measure={
-            memoryTotal
-              ? { ...MEASURES.memory, floor: memoryTotal }
-              : MEASURES.memory
-          }
-          measuring={measuring}
-        />
+    // Columns no wider than the window, whatever's in them
+    <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
+      <UsageChart
+        label='CPU'
+        value={usage?.cpu}
+        values={usage?.history.cpu}
+        times={usage?.history.at}
+        measure={MEASURES.cpu}
+        measuring={measuring}
+      />
+      <UsageChart
+        label='Memory'
+        value={usage?.memory}
+        values={usage?.history.memory}
+        times={usage?.history.at}
+        // Against the server's memory, so a steady amount sits as low as
+        // its share is, rather than at the top of a scale it alone sets,
+        // and a leak shows as a climb
+        measure={
+          memoryTotal
+            ? { ...MEASURES.memory, floor: memoryTotal }
+            : MEASURES.memory
+        }
+        measuring={measuring}
+      />
+      {/* Its ports beside its facts where there's room, in a column of
+          their own, as a list of them needs no more */}
+      <div className='grid grid-cols-1 gap-3 sm:col-span-2 lg:grid-cols-[minmax(0,1fr)_20rem]'>
         <Panel
           title='Container'
-          className={cn('sm:col-span-2', app && 'lg:col-span-1')}
+          className={cn(!service.ports?.length && 'lg:col-span-2')}
         >
           <Facts facts={facts} />
         </Panel>
         {service.ports && service.ports.length > 0 && (
-          <Panel
-            title='Ports'
-            className={cn('sm:col-span-2', app && 'lg:col-span-1')}
-          >
+          <Panel title='Ports'>
             <PortList service={service} />
           </Panel>
         )}
       </div>
+      {app && (
+        <div className='flex min-w-0 flex-col gap-3 sm:col-span-2'>
+          <AppDetails containerId={service.containerId} />
+        </div>
+      )}
     </div>
   );
 }
