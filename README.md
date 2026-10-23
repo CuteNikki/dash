@@ -230,32 +230,35 @@ leaves the Dashboard that's running as it is.
 ## Where things are
 
 ```
-app/          pages and API routes
-actions/      server actions, the changes a page asks for
-components/
-  auth/         sign-in and setup
-  chrome/       the page's own: its name, theme and account menu
-  dashboard/    tiles, the list, the board they're arranged on
-  service/      a service's window: logs, details, status
-  new-service/  adding a service, and its templates
-  editor/       the file tree, code editor and Markdown preview
-  git/          changes, history, branches and diffs
-  host/         the server's stats, processes and disk
-  updates/      finding and applying updates
-  charts/       graphs and sparklines
-  common/       scroll fades and loading placeholders
-  ui/           buttons, dialogs, inputs and the rest
-lib/          what runs on the server, and what the browser shares with it
-  apps/         each app's widget and details: Jellyfin, Sonarr, Minecraft, …
-  auth/         sign-in, sessions and setup
-  dashboard/    the tiles, their groups, layout and status, websites' checks
-  docker/       Docker's API, Compose, and runs in short-lived containers
-  host/         the server's stats, processes, disk and files
-  stacks/       adding and removing services, Caddy and domains
-  templates/    the templates, Docker Hub search and docker run import
-  updates/      checking registries and repositories, and applying updates
-  icons/        finding icons
-prisma/       the database schema and migrations
-scripts/      deploy, tunnels and the class check
-docs/         the screenshots here
+src/
+  app/            pages and API routes
+  actions/        server actions, the changes a page asks for
+  components/
+    auth/           sign-in and setup
+    chrome/         the page's own: its name, theme and account menu
+    dashboard/      tiles, the list, the board they're arranged on
+    service/        a service's window: logs, details, status
+    new-service/    adding a service, and its templates
+    editor/         the file tree, code editor and Markdown preview
+    git/            changes, history, branches and diffs
+    host/           the server's stats, processes and disk
+    updates/        finding and applying updates
+    charts/         graphs and sparklines
+    common/         scroll fades, toasts and loading placeholders
+    ui/             buttons, dialogs, inputs and the rest
+  lib/            what runs on the server, and what the browser shares with it
+    apps/           each app's widget and details: Jellyfin, Sonarr, Minecraft, …
+    auth/           sign-in, sessions and setup
+    dashboard/      the tiles, their groups, layout and status, websites' checks
+    docker/         Docker's API, Compose, and runs in short-lived containers
+    host/           the server's stats, processes, disk and files
+    stacks/         adding and removing services, Caddy and domains
+    templates/      the templates, Docker Hub search and docker run import
+    updates/        checking registries and repositories, and applying updates
+    icons/          finding icons
+  test/           the tests' setup; each test sits beside what it tests
+  proxy.ts        signs in whoever isn't, before any page
+prisma/         the database schema and migrations
+scripts/        deploy, tunnels and the class check
+docs/           the screenshots here, and the icon's drafts
 ```

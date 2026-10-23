@@ -1,3 +1,3 @@
 [test]
 # Stands in for Next's server-only marker, which throws outside Next
-preload = ["./test/setup.ts"]
+preload = ["./src/test/setup.ts"]

@@ -12,12 +12,12 @@ import { __unstable__loadDesignSystem } from '@tailwindcss/node';
 import { Scanner } from '@tailwindcss/oxide';
 
 const root = resolve(import.meta.dirname, '..');
-const css = join(root, 'app/globals.css');
+const css = join(root, 'src/app/globals.css');
 const fix = process.argv.includes('--fix');
 
 const source = readFileSync(css, 'utf8');
 const designSystem = await __unstable__loadDesignSystem(source, {
-  base: join(root, 'app'),
+  base: join(root, 'src/app'),
 });
 const scanner = new Scanner({});
 
@@ -87,9 +87,9 @@ function same(written: string, suggested: string) {
 }
 
 const files = ['app', 'components', 'lib', 'actions'].flatMap((dir) =>
-  readdirSync(join(root, dir), { recursive: true, encoding: 'utf8' })
+  readdirSync(join(root, 'src', dir), { recursive: true, encoding: 'utf8' })
     .filter((file) => /\.(tsx?|css)$/.test(file) && !file.includes('generated'))
-    .map((file) => join(root, dir, file))
+    .map((file) => join(root, 'src', dir, file))
 );
 
 let found = 0;

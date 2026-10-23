@@ -13,7 +13,7 @@ const eslintConfig = defineConfig([
     files: ["**/*.{ts,tsx}"],
     plugins: { "better-tailwindcss": betterTailwindcss },
     settings: {
-      "better-tailwindcss": { entryPoint: "app/globals.css" },
+      "better-tailwindcss": { entryPoint: "src/app/globals.css" },
     },
     rules: {
       ...betterTailwindcss.configs.correctness.rules,

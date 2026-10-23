@@ -12,7 +12,7 @@
     "test": "bun test",
     "format": "prettier --write \"**/*.{ts,tsx,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,css}\"",
-    "typecheck": "next typegen && tsc --noEmit && tsc --noEmit -p scripts && tsc --noEmit -p test",
+    "typecheck": "next typegen && tsc --noEmit && tsc --noEmit -p scripts && tsc --noEmit -p src/test",
     "db:diff": "prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script",
     "db:migrate": "prisma migrate deploy",
     "deploy": "bun scripts/deploy.ts",
@@ -92,5 +92,39 @@
     "prisma",
     "sharp",
     "unrs-resolver"
-  ]
+  ],
+  "prettier": {
+    "endOfLine": "lf",
+    "semi": true,
+    "singleQuote": true,
+    "jsxSingleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "es5",
+    "printWidth": 80,
+    "plugins": [
+      "@ianvs/prettier-plugin-sort-imports",
+      "prettier-plugin-tailwindcss"
+    ],
+    "importOrder": [
+      "<BUILTIN_MODULES>",
+      "<THIRD_PARTY_MODULES>",
+      "",
+      "^lucide-react$",
+      "",
+      "^@/actions/(.*)$",
+      "^@/data/(.*)$",
+      "^@/lib/(.*)$",
+      "^@/app/(.*)$",
+      "",
+      "^@/components/(.*)$",
+      "^@/hooks/(.*)$",
+      "",
+      "^[.]"
+    ],
+    "tailwindStylesheet": "src/app/globals.css",
+    "tailwindFunctions": [
+      "cn",
+      "cva"
+    ]
+  }
 }
