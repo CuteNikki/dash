@@ -38,14 +38,14 @@ export function PortList({ service }: { service: Service }) {
   return (
     <ul className='flex flex-col'>
       {service.ports!.map(({ port, protocols }) => (
-        <li key={port} className='flex items-center gap-3'>
+        <li key={port} className='flex items-center gap-2'>
           <span className='w-14 shrink-0 font-mono font-medium tabular-nums'>
             {port}
           </span>
-          <span className='w-20 shrink-0 font-mono text-muted-foreground'>
+          <span className='w-16 shrink-0 font-mono text-muted-foreground'>
             {protocols.join(', ')}
           </span>
-          <span className='w-36 min-w-0 truncate text-muted-foreground'>
+          <span className='min-w-0 flex-1 truncate text-muted-foreground'>
             {portName(port)}
           </span>
           <Button
