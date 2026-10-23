@@ -1,4 +1,4 @@
-import { serviceForRoute } from '@/lib/auth/access';
+import { denied, serviceForRoute } from '@/lib/auth/access';
 import { listContainers } from '@/lib/docker/docker';
 import { streamRun } from '@/lib/docker/run-stream';
 import { DASH_PROJECT } from '@/lib/site';
@@ -14,6 +14,9 @@ import {
  * there's been no rebuild lately.
  */
 export async function GET() {
+  // Who's asking first, which also keeps this from being built as a page
+  const refused = await denied('manage');
+  if (refused) return refused;
   const dash = (await listContainers()).find(
     (c) => c.stack?.project === DASH_PROJECT && c.state === 'running'
   );
