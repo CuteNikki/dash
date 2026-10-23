@@ -23,7 +23,7 @@ export const postgres: App = {
     // The version second, short enough to share the first line with the
     // connections, so the four take two lines rather than three
     return [
-      { label: 'Connections', value: `${connections} / ${max}` },
+      { label: 'Conns', value: `${connections} / ${max}` },
       // "16.15", or "18.1 (Debian 18.1-1)" from some builds
       { value: `v${version.split(' ')[0]}` },
       { label: 'Databases', value: databases },
