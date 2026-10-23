@@ -1,5 +1,14 @@
+import { createContext, useContext } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+
+import {
+  InfoIcon,
+  LightbulbIcon,
+  MessageSquareWarningIcon,
+  OctagonAlertIcon,
+  TriangleAlertIcon,
+} from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
@@ -13,6 +22,92 @@ function withoutNode<P extends { node?: unknown }>(props: P): Omit<P, 'node'> {
   const rest = { ...props };
   delete rest.node;
   return rest;
+}
+
+/**
+ * Where a picture the file names is fetched from: as it's written, or for
+ * one in the stack, by a path from the file, where the stack's files are.
+ */
+const ImageSource = createContext<(src: string) => string>((src) => src);
+
+/**
+ * A picture's address in a Markdown file, from where the file is in its
+ * stack: one of the stack's files by its path from the stack's folder, as
+ * GitHub finds a README's pictures in its repository; or, for a web address
+ * or the like, none. "docs/a.png" in "app/README.md" is "app/docs/a.png",
+ * and "/docs/a.png" is from the stack's folder.
+ */
+export function stackImagePath(src: string, file: string) {
+  if (/^([a-z][a-z0-9+.-]*:|\/\/|#)/i.test(src)) return undefined;
+  const [path] = src.split(/[?#]/);
+  const from = path.startsWith('/') ? [] : file.split('/').slice(0, -1);
+  const parts: string[] = [];
+  for (const part of [...from, ...path.split('/')]) {
+    if (part === '..') parts.pop();
+    else if (part && part !== '.') parts.push(part);
+  }
+  return parts.join('/');
+}
+
+/** GitHub's alerts, "> [!WARNING]" and the rest: each one's title, icon and color. */
+const ALERTS = {
+  NOTE: { title: 'Note', icon: InfoIcon, tone: 'border-update text-update' },
+  TIP: {
+    title: 'Tip',
+    icon: LightbulbIcon,
+    tone: 'border-success text-success',
+  },
+  IMPORTANT: {
+    title: 'Important',
+    icon: MessageSquareWarningIcon,
+    tone: 'border-foreground text-foreground',
+  },
+  WARNING: {
+    title: 'Warning',
+    icon: TriangleAlertIcon,
+    tone: 'border-warning text-warning',
+  },
+  CAUTION: {
+    title: 'Caution',
+    icon: OctagonAlertIcon,
+    tone: 'border-destructive text-destructive',
+  },
+} as const;
+
+type Alert = keyof typeof ALERTS;
+
+/** As much of Markdown's tree as finding alerts needs. */
+type MdNode = {
+  type: string;
+  value?: string;
+  children?: MdNode[];
+  data?: { hProperties?: Record<string, string> };
+};
+
+/**
+ * Marks each quote that starts with "[!NOTE]" and the like as that alert,
+ * for the blockquote below to draw, and takes the marker out of its text,
+ * as GitHub does.
+ */
+function remarkAlerts() {
+  const visit = (node: MdNode) => {
+    if (node.type === 'blockquote') {
+      const first = node.children?.[0];
+      const text =
+        first?.type === 'paragraph' ? first.children?.[0] : undefined;
+      const match =
+        text?.type === 'text'
+          ? text.value?.match(/^\[!(\w+)\][ \t]*\n?/)
+          : undefined;
+      const kind = match?.[1].toUpperCase();
+      if (text && match && kind && Object.hasOwn(ALERTS, kind)) {
+        node.data = { hProperties: { 'data-alert': kind } };
+        text.value = text.value!.slice(match[0].length);
+      }
+    }
+    node.children?.forEach(visit);
+  };
+  return visit;
 }
 
 /**
@@ -84,12 +179,37 @@ const components: Components = {
       {...withoutNode(props)}
     />
   ),
-  blockquote: ({ className, ...props }) => (
-    <blockquote
-      className={cn('my-4 border-l-4 pl-4 text-muted-foreground', className)}
-      {...withoutNode(props)}
-    />
-  ),
+  blockquote: ({ className, children, ...props }) => {
+    const kind = (props as { 'data-alert'?: Alert })['data-alert'];
+    if (!kind) {
+      return (
+        <blockquote
+          className={cn(
+            'my-4 border-l-4 pl-4 text-muted-foreground',
+            className
+          )}
+          {...withoutNode(props)}
+        >
+          {children}
+        </blockquote>
+      );
+    }
+    // An alert: its kind as a title with its icon, in its color, the text
+    // under it in the page's own
+    const { title, icon: Icon, tone } = ALERTS[kind];
+    return (
+      <blockquote
+        className={cn('my-4 border-l-4 py-1 pl-4', tone, className)}
+        {...withoutNode(props)}
+      >
+        <p className='mb-2 flex items-center gap-2 font-medium [&_svg]:size-4'>
+          <Icon />
+          {title}
+        </p>
+        <div className='text-foreground [&>p:last-child]:mb-0'>{children}</div>
+      </blockquote>
+    );
+  },
   hr: ({ className, ...props }) => (
     <hr className={cn('my-6', className)} {...withoutNode(props)} />
   ),
@@ -139,35 +259,51 @@ const components: Components = {
       {...withoutNode(props)}
     />
   ),
-  img: ({ alt, className, ...props }) => (
-    // A plain img: a README's images are any size, from anywhere, which
-    // next/image would need to know beforehand. Asked for without a
-    // referrer, as the file picks where they come from, and wherever that
-    // is needn't learn the dashboard's address
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      alt={alt ?? ''}
-      className={cn('inline max-w-full', className)}
-      {...withoutNode(props)}
-      referrerPolicy='no-referrer'
-    />
-  ),
+  img: function Image({ alt, className, src, ...props }) {
+    const source = useContext(ImageSource);
+    return (
+      // A plain img: a README's images are any size, from anywhere, which
+      // next/image would need to know beforehand. Asked for without a
+      // referrer, as the file picks where they come from, and wherever that
+      // is needn't learn the dashboard's address
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        alt={alt ?? ''}
+        className={cn('inline max-w-full', className)}
+        {...withoutNode(props)}
+        src={typeof src === 'string' ? source(src) : undefined}
+        referrerPolicy='no-referrer'
+      />
+    );
+  },
 };
 
 /**
- * A Markdown file as GitHub shows it, tables and task lists included. HTML
- * in the file is shown as text, never run.
+ * A Markdown file as GitHub shows it, tables, task lists and alerts
+ * included, and pictures by where `imageSrc` says they are. HTML in the
+ * file is shown as text, never run.
  */
-export function MarkdownPreview({ text }: { text: string }) {
+export function MarkdownPreview({
+  text,
+  imageSrc = (src) => src,
+}: {
+  text: string;
+  imageSrc?: (src: string) => string;
+}) {
   return (
     // The scroller sits inside the rounded box, as in the editor, so the box
     // clips its scrollbar to the corners
     <div className='h-full overflow-hidden rounded-lg bg-muted'>
       <div className='h-full overflow-auto p-6'>
         <article className='max-w-4xl text-sm/relaxed'>
-          <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
-            {text}
-          </ReactMarkdown>
+          <ImageSource value={imageSrc}>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm, remarkAlerts]}
+              components={components}
+            >
+              {text}
+            </ReactMarkdown>
+          </ImageSource>
         </article>
       </div>
     </div>
