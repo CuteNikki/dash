@@ -14,7 +14,7 @@ import { SERVER_NAME } from '@/lib/site';
 
 import { Dashboard } from '@/components/dashboard/dashboard';
 
-/** The tab says which server it's the dashboard of, rather than dash's name. */
+/** The tab says which server it's the dashboard of. */
 export const metadata: Metadata = {
   title: {
     absolute: SERVER_NAME ? `Dashboard · ${SERVER_NAME}` : 'Dashboard',

@@ -108,9 +108,9 @@ export function FileTree({
   compose,
   chosen,
   unsaved,
-  onChoose,
-  onRenamed,
-  onDeleted,
+  onChooseAction,
+  onRenamedAction,
+  onDeletedAction,
   onChangedAction,
   keysFrom,
 }: {
@@ -123,9 +123,9 @@ export function FileTree({
   compose: string[];
   chosen: string;
   unsaved: Set<string>;
-  onChoose: (path: string) => void;
-  onRenamed: (from: string, to: string) => void;
-  onDeleted: (path: string) => void;
+  onChooseAction: (path: string) => void;
+  onRenamedAction: (from: string, to: string) => void;
+  onDeletedAction: (path: string) => void;
   /** After an entry's made, renamed or deleted, so what follows the files, as git's status, does too */
   onChangedAction: () => void;
   /** Where F2 renames: the row it's pressed on, or else the open file, as from its editor */
@@ -159,7 +159,7 @@ export function FileTree({
   const composeIn = (path: string) => compose.find((c) => isWithin(path, c));
   /** What moving a compose file does, said once it's done or in asking */
   const stackWarning = (file: string) =>
-    `Docker finds this stack by ${file}, so Redeploy won’t work until there’s a ${nameOf(file)} there again.`;
+    `Docker finds this stack by ${file}, so Redeploy won't work until there's a ${nameOf(file)} there again.`;
   // Where the toolbar's New File and New Folder put things: beside the open file
   const here = parentOf(chosen);
 
@@ -238,7 +238,7 @@ export function FileTree({
       await refresh(current.folder);
       onChangedAction();
       setDraft(undefined);
-      if (current.kind === 'file') onChoose(path);
+      if (current.kind === 'file') onChooseAction(path);
       else setOpen((o) => new Set(o).add(path));
       return path;
     }
@@ -258,7 +258,7 @@ export function FileTree({
           )
         )
     );
-    onRenamed(current.path, path);
+    onRenamedAction(current.path, path);
     const moved = composeIn(current.path);
     if (moved)
       toast.warning(`Renamed ${nameOf(current.path)}`, {
@@ -299,7 +299,7 @@ export function FileTree({
           (o) => new Set([...o].filter((p) => !isWithin(target.path, p)))
         );
         setDeleting(undefined);
-        onDeleted(target.path);
+        onDeletedAction(target.path);
         onChangedAction();
         toast.success(`Deleted ${nameOf(target.path)}`);
       })
@@ -319,7 +319,7 @@ export function FileTree({
     askDelete: (path, kind) => setDeleting({ path, kind }),
     composeIn,
     copyPath: (path) => copyPath(`${dir}/${path}`),
-    onChoose,
+    onChoose: onChooseAction,
     folderKey,
   };
 
@@ -366,7 +366,7 @@ export function FileTree({
               {deleting?.kind === 'dir'
                 ? 'The folder and everything in it are deleted from the server. '
                 : 'The file is deleted from the server. '}
-              This can’t be undone.
+              This can't be undone.
               {deleting && composeIn(deleting.path) && (
                 <> {stackWarning(composeIn(deleting.path)!)}</>
               )}

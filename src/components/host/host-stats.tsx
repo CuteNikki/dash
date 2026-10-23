@@ -46,19 +46,19 @@ export function HostTileContent({
   tile,
   host,
   services,
-  onOpen,
+  onOpenAction,
   system,
-  onSystem,
+  onSystemAction,
 }: {
   tile: HostTileKey;
   /** None while it's first measured */
   host?: HostStats;
   /** For each process's container */
   services: Service[];
-  onOpen: (service: Service) => void;
+  onOpenAction: (service: Service) => void;
   /** Its own updates, Ubuntu's, once they've been looked at */
   system?: SystemUpdates;
-  onSystem: () => void;
+  onSystemAction: () => void;
 }) {
   return render(tile);
 
@@ -66,7 +66,11 @@ export function HostTileContent({
     switch (key) {
       case 'server':
         return (
-          <ServerDetails host={host} system={system} onSystem={onSystem} />
+          <ServerDetails
+            host={host}
+            system={system}
+            onSystem={onSystemAction}
+          />
         );
       case 'cpu':
         return <CpuStat host={host} />;
@@ -75,7 +79,7 @@ export function HostTileContent({
           <ProcessList
             processes={host?.processes ?? []}
             services={services}
-            onOpen={onOpen}
+            onOpenAction={onOpenAction}
           />
         );
       case 'memory':
@@ -361,7 +365,11 @@ function DiskStat({ disk }: { disk?: Capacity }) {
         </Stat>
       </button>
       {disk && (
-        <DiskDialog open={open} onClose={() => setOpen(false)} disk={disk} />
+        <DiskDialog
+          open={open}
+          onCloseAction={() => setOpen(false)}
+          disk={disk}
+        />
       )}
     </>
   );

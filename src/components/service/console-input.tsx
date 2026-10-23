@@ -25,13 +25,13 @@ const MAX_HISTORY = 100;
 export function ConsoleInput({
   containerId,
   running,
-  onSent,
+  onSentAction,
 }: {
   containerId: string;
   /** Only a running one takes commands */
   running: boolean;
   /** After a command went, so its reply shows */
-  onSent: () => void;
+  onSentAction: () => void;
 }) {
   const [command, setCommand] = useState('');
   const [history, setHistory] = useState<string[]>([]);
@@ -55,7 +55,7 @@ export function ConsoleInput({
         );
         browsing.current = undefined;
         setCommand('');
-        onSent();
+        onSentAction();
       })
     );
   }

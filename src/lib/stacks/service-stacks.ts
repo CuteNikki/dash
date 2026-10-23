@@ -11,7 +11,7 @@ import { DASH_PROJECT } from '@/lib/site';
 import { isCaddy, RELOAD_CADDY, reloadError } from '@/lib/stacks/caddy';
 
 /**
- * The services dash adds and removes: each a stack in a folder of its own in
+ * The services the dashboard adds and removes: each a stack in a folder of its own in
  * ~/services, named as its compose project, with its domain, if it has one,
  * in Caddy's sites/<name>.caddy.
  */
@@ -49,7 +49,7 @@ export async function reloadCaddy(id: string) {
 
 /**
  * Whether a stack can be removed from here: one of ~/services' own folders,
- * not dash's, mid-request, or Caddy's, every site's, given every container
+ * not the dashboard's, mid-request, or Caddy's, every site's, given every container
  * there is.
  */
 export function removable(stack: Stack, containers: Container[]) {

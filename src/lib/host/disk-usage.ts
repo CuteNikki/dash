@@ -157,7 +157,7 @@ true`,
     ])
   );
   if (exitCode === MISSING) {
-    throw new Error('There’s no such folder, or it’s on another disk');
+    throw new Error("There's no such folder, or it's on another disk");
   }
   const out = lines.filter((l) => l.stream === 'stdout').map((l) => l.line);
   const split = out.indexOf(FILES_MARKER);

@@ -43,13 +43,13 @@ type Outcome = 'done' | 'failed';
 export function UpdateDialog({
   service,
   open,
-  onOpenChange,
-  onUpdated,
+  onOpenChangeAction,
+  onUpdatedAction,
 }: {
   service: Service;
   open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onUpdated: () => void;
+  onOpenChangeAction: (open: boolean) => void;
+  onUpdatedAction: () => void;
 }) {
   const [running, setRunning] = useState(false);
   const [output, setOutput] = useState<string[]>();
@@ -82,7 +82,7 @@ export function UpdateDialog({
       if (exitCode === 0) {
         setOutcome('done');
         toast.success(`Updated ${shown.name}`);
-        onUpdated();
+        onUpdatedAction();
       } else {
         setOutcome('failed');
         toast.error(`Couldn't update ${shown.name}`, {
@@ -96,7 +96,10 @@ export function UpdateDialog({
 
   return (
     // Not closed while it's updating, so its outcome isn't missed
-    <AlertDialog open={open} onOpenChange={(o) => !running && onOpenChange(o)}>
+    <AlertDialog
+      open={open}
+      onOpenChange={(o) => !running && onOpenChangeAction(o)}
+    >
       <AlertDialogContent className='data-[size=default]:sm:max-w-xl'>
         <AlertDialogHeader>
           <AlertDialogTitle>
@@ -113,7 +116,7 @@ export function UpdateDialog({
         {update.kind === 'version' && update.major && (
           <p className='text-xs/relaxed text-warning'>
             A new major version, which can change how it works or need its data
-            migrated: check what’s new first.
+            migrated: check what's new first.
           </p>
         )}
         {notes && (
@@ -124,7 +127,7 @@ export function UpdateDialog({
             className='inline-flex w-fit items-center gap-1.5 text-xs/relaxed font-medium underline-offset-4 hover:underline'
           >
             <ExternalLinkIcon className='size-3.5' />
-            What’s new
+            What's new
           </a>
         )}
         {output && <RunOutput lines={output} />}

@@ -25,7 +25,7 @@ import { Label } from '@/components/ui/label';
 /**
  * Invites someone by email, with the role and groups their account will
  * have; then shows the invite's link, this once, to send them however suits.
- * dash sends no email itself.
+ * The dashboard sends no email itself.
  */
 export function InviteDialog({
   open,

@@ -21,13 +21,13 @@ export function NewWebsiteForm({
   hidden,
   picker,
   groups,
-  onCreated,
+  onCreatedAction,
 }: {
   hidden: boolean;
   /** Where to start from, Template, docker run or Website, under the window's heading */
   picker: ReactNode;
   groups: string[];
-  onCreated: () => void;
+  onCreatedAction: () => void;
 }) {
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
@@ -45,7 +45,7 @@ export function NewWebsiteForm({
           return;
         }
         toast.success(`Added ${name.trim()}`);
-        onCreated();
+        onCreatedAction();
       })
     );
   }
@@ -79,7 +79,7 @@ export function NewWebsiteForm({
               id='website-group'
               value={group}
               groups={groups}
-              onChange={setGroup}
+              onChangeAction={setGroup}
               optional
             />
           </div>

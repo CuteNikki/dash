@@ -34,7 +34,7 @@ export const NewService = z
       .string()
       .trim()
       .toLowerCase()
-      .refine((d) => !d || DOMAIN_PATTERN.test(d), 'That isn’t a domain'),
+      .refine((d) => !d || DOMAIN_PATTERN.test(d), "That isn't a domain"),
     service: z.string().trim(),
     port: z.string().trim(),
   })

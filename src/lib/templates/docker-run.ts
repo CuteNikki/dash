@@ -149,7 +149,7 @@ export function convertRun(command: string): ConvertedRun {
   let all = words(command.trim());
   // Whatever comes before `run`: docker, sudo docker, podman, `docker container`
   const at = all.findIndex((w) => w === 'run');
-  if (at < 0) throw new Error('That isn’t a docker run command');
+  if (at < 0) throw new Error("That isn't a docker run command");
   all = all.slice(at + 1);
 
   const values: Record<string, string[]> = {};

@@ -9,14 +9,14 @@ export const TIMEOUT_MS = 4_000;
 /** Where an app is: its container, and for one read over HTTP, its address. */
 export type AppContext = { container: Container; url: string };
 
-/** An app dash knows how to read: numbers for its tile, and more for its window. */
+/** An app the dashboard knows how to read: numbers for its tile, and more for its window. */
 export type App = {
   /**
    * Its port, for one read over HTTP: at its container by name on a network
-   * dash shares with it, or at SONARR_URL and so on
+   * the dashboard shares with it, or at SONARR_URL and so on
    */
   port?: number;
-  /** Its key, or its user and password, from dash's .env, when it needs any */
+  /** Its key, or its user and password, from the dashboard's .env, when it needs any */
   ready?: () => boolean;
   read: (app: AppContext) => Promise<WidgetStat[]>;
   details?: (app: AppContext) => Promise<DetailSection[]>;

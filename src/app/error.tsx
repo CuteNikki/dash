@@ -15,7 +15,7 @@ import {
 /**
  * What shows when the page itself fails, as the sign-in's card does, with a
  * way back: the dashboard's buttons say their own failures in a toast, so
- * this is for the rest, as dash not answering while it restarts.
+ * this is for the rest, as the dashboard not answering while it restarts.
  */
 export default function PageError({
   error,
@@ -32,7 +32,7 @@ export default function PageError({
           <CardTitle className='text-base'>Something went wrong</CardTitle>
           <CardDescription>
             {/* A server error's own message is kept from the browser; its
-                digest is what finds it in dash's logs */}
+                digest is what finds it in the dashboard's logs */}
             {error.digest
               ? `dash couldn't show this page (${error.digest}).`
               : error.message}

@@ -15,7 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-/** Who they are, as dash knows them, and the password they sign in with. */
+/** Who they are, as the dashboard knows them, and the password they sign in with. */
 export function AccountPanel({ me }: { me: Me }) {
   return (
     <div className='grid grid-cols-1 gap-3 lg:grid-cols-2 lg:items-start'>
@@ -100,7 +100,8 @@ function ProfileForm({ me }: { me: Me }) {
             required
           />
           <p className='text-muted-foreground'>
-            What you sign in with. dash sends no email, so it changes at once.
+            What you sign in with. The dashboard sends no email, so it changes
+            at once.
           </p>
         </div>
         {error && <p className='text-destructive'>{error}</p>}

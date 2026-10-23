@@ -36,13 +36,13 @@ export function IconField({
   id,
   value,
   name,
-  onChange,
+  onChangeAction,
 }: {
   id: string;
   value: string;
   /** The tile's name, for the letter shown while there's no icon */
   name: string;
-  onChange: (icon: string) => void;
+  onChangeAction: (icon: string) => void;
 }) {
   // Searches once typing pauses, not for every key, keeping the last
   // matches up meanwhile
@@ -67,7 +67,7 @@ export function IconField({
             description: result.error,
           });
         } else {
-          onChange(result.url);
+          onChangeAction(result.url);
         }
       })
     );
@@ -87,7 +87,7 @@ export function IconField({
         <InputGroupInput
           id={id}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => onChangeAction(e.target.value)}
           placeholder='Search icons, or paste a link to one'
           autoComplete='off'
           spellCheck={false}
@@ -132,7 +132,7 @@ export function IconField({
               title={`${match.icon} (${match.label})`}
               aria-label={match.icon}
               aria-pressed={match.icon === value}
-              onClick={() => onChange(match.icon)}
+              onClick={() => onChangeAction(match.icon)}
               className={cn(
                 'flex aspect-square items-center justify-center rounded-md p-1 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring',
                 match.icon === value && 'bg-muted ring-1 ring-foreground/20'

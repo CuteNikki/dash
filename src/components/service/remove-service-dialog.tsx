@@ -28,13 +28,13 @@ import { Label } from '@/components/ui/label';
 export function RemoveServiceDialog({
   service,
   open,
-  onOpenChange,
-  onRemoved,
+  onOpenChangeAction,
+  onRemovedAction,
 }: {
   service: Service;
   open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onRemoved: () => void;
+  onOpenChangeAction: (open: boolean) => void;
+  onRemovedAction: () => void;
 }) {
   const [files, setFiles] = useState(false);
   const [running, setRunning] = useState(false);
@@ -55,7 +55,7 @@ export function RemoveServiceDialog({
       );
       if (exitCode === 0) {
         toast.success(`Removed ${project}`);
-        onRemoved();
+        onRemovedAction();
       } else {
         toast.error(`Couldn't remove ${project}`, {
           description: 'See what happened in the window',
@@ -76,7 +76,7 @@ export function RemoveServiceDialog({
           setOutput(undefined);
           setFiles(false);
         }
-        onOpenChange(o);
+        onOpenChangeAction(o);
       }}
     >
       <AlertDialogContent>

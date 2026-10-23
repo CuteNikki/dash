@@ -51,12 +51,12 @@ function GitOutput({ text }: { text: string }) {
 export function GitPanel({
   containerId,
   status,
-  onChanged,
+  onChangedAction,
 }: {
   containerId: string;
   status: GitStatus;
   /** After anything that changes the repository, to read it again */
-  onChanged: () => Promise<unknown>;
+  onChangedAction: () => Promise<unknown>;
 }) {
   // Files left out of the next commit; every other changed file goes in,
   // ones that change later included
@@ -105,7 +105,7 @@ export function GitPanel({
             closeButton: true,
           });
         }
-        await onChanged();
+        await onChangedAction();
       })
     );
   }
@@ -162,7 +162,7 @@ export function GitPanel({
           local={status.branches.local}
           remote={status.branches.remote}
           disabled={pending}
-          onSwitch={switchTo}
+          onSwitchAction={switchTo}
         />
         {status.upstream ? (
           <span className='font-mono text-muted-foreground'>
@@ -186,7 +186,7 @@ export function GitPanel({
           {status.behind}
         </span>
         <span className='ml-auto flex flex-wrap gap-2'>
-          <DiffLayoutToggle layout={layout} onPick={setLayout} />
+          <DiffLayoutToggle layout={layout} onPickAction={setLayout} />
           <Button
             variant='outline'
             disabled={pending}

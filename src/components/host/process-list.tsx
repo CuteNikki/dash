@@ -53,11 +53,11 @@ const TABLE =
 export function ProcessList({
   processes,
   services,
-  onOpen,
+  onOpenAction,
 }: {
   processes: HostProcess[];
   services: Service[];
-  onOpen: (service: Service) => void;
+  onOpenAction: (service: Service) => void;
 }) {
   const [sort, setSort] = useState<SortKey>('cpu');
   const [filter, setFilter] = useState('');
@@ -226,7 +226,7 @@ export function ProcessList({
                               onClick={(e) => {
                                 // Its service, not the process's details
                                 e.stopPropagation();
-                                onOpen(service);
+                                onOpenAction(service);
                               }}
                               className='flex max-w-full items-center gap-1.5 rounded-sm hover:underline'
                             >
@@ -266,8 +266,8 @@ export function ProcessList({
       <ProcessDialog
         process={processes.find((p) => p.pid === picked)}
         services={services}
-        onOpenService={onOpen}
-        onClose={() => setPicked(undefined)}
+        onOpenServiceAction={onOpenAction}
+        onCloseAction={() => setPicked(undefined)}
       />
     </Card>
   );

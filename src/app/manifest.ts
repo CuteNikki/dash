@@ -1,10 +1,10 @@
 import type { MetadataRoute } from 'next';
 
-/** dash as an app of its own, added to a phone's home screen or installed from the browser. */
+/** The dashboard as an app of its own, added to a phone's home screen or installed from the browser. */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'dash',
-    short_name: 'dash',
+    name: 'Dashboard',
+    short_name: 'Dashboard',
     description: 'Services, containers and files on the VPS',
     start_url: '/',
     display: 'standalone',

@@ -15,9 +15,9 @@ import { Textarea } from '@/components/ui/textarea';
  * than dropped quietly.
  */
 export function DockerRunImport({
-  onConvert,
+  onConvertAction,
 }: {
-  onConvert: (converted: ConvertedRun) => void;
+  onConvertAction: (converted: ConvertedRun) => void;
 }) {
   const [command, setCommand] = useState('');
   const [error, setError] = useState<string>();
@@ -28,7 +28,7 @@ export function DockerRunImport({
       const converted = convertRun(command);
       setError(undefined);
       setSkipped(converted.skipped);
-      onConvert(converted);
+      onConvertAction(converted);
     } catch (e) {
       setError((e as Error).message);
       setSkipped([]);

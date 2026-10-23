@@ -16,13 +16,13 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: { default: 'dash', template: '%s · dash' },
+  title: { default: 'Dashboard', template: '%s · Dashboard' },
   description: 'Services, containers and files on the VPS',
-  applicationName: 'dash',
+  applicationName: 'Dashboard',
   // Behind a sign-in, and nothing for a search engine to show
   robots: { index: false, follow: false },
-  // Added to a phone's home screen, it opens on its own, named dash
-  appleWebApp: { title: 'dash', capable: true },
+  // Added to a phone's home screen, it opens on its own, named Dashboard
+  appleWebApp: { title: 'Dashboard', capable: true },
 };
 
 export const viewport: Viewport = {

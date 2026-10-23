@@ -37,11 +37,11 @@ const ROLE_ABILITIES: Record<Role, readonly Ability[]> = {
 export const ROLE_INFO: Record<Role, { name: string; description: string }> = {
   owner: {
     name: 'Owner',
-    description: 'Everything, and other people’s accounts',
+    description: "Everything, and other people's accounts",
   },
   admin: {
     name: 'Admin',
-    description: 'Everything but other people’s accounts',
+    description: "Everything but other people's accounts",
   },
   operator: {
     name: 'Operator',

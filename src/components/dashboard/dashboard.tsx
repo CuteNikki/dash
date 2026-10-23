@@ -181,9 +181,9 @@ export function Dashboard({
                   tile={t.key}
                   host={host}
                   services={services}
-                  onOpen={open}
+                  onOpenAction={open}
                   system={data.system}
-                  onSystem={() => setShowSystem(true)}
+                  onSystemAction={() => setShowSystem(true)}
                 />
               ),
             })),
@@ -300,30 +300,30 @@ export function Dashboard({
           columns={columns}
           editing={editing}
           saved={data.layouts}
-          onLayout={saveCells}
-          onRename={rename}
+          onLayoutAction={saveCells}
+          onRenameAction={rename}
         />
         {view === 'list' && (
           <ServiceList
             groups={groups}
             filter={filter}
-            onFilter={pickFilter}
+            onFilterAction={pickFilter}
             editing={editing}
-            onOpen={open}
-            onLogs={(service) => {
+            onOpenAction={open}
+            onLogsAction={(service) => {
               setOpenTab('logs');
               setOpenKey(service.key);
             }}
-            onChanged={() => void mutate()}
+            onChangedAction={() => void mutate()}
           />
         )}
         <ServiceDialog
           service={find(openKey)}
           tab={openTab}
           memoryTotal={host?.memory.total}
-          onClose={() => setOpenKey(undefined)}
-          onChanged={() => void mutate()}
-          onEdit={(service) => {
+          onCloseAction={() => setOpenKey(undefined)}
+          onChangedAction={() => void mutate()}
+          onEditAction={(service) => {
             setOpenKey(undefined);
             setEditKey(service.key);
           }}
@@ -331,8 +331,8 @@ export function Dashboard({
         <EditTileDialog
           service={find(editKey)}
           groups={allGroups}
-          onClose={() => setEditKey(undefined)}
-          onSaved={() => void mutate()}
+          onCloseAction={() => setEditKey(undefined)}
+          onSavedAction={() => void mutate()}
         />
         <SystemDialog
           open={showSystem}
@@ -345,8 +345,8 @@ export function Dashboard({
           services={services}
           checkedAt={data.updates?.checkedAt}
           checking={data.updates?.checking ?? false}
-          onClose={() => setShowUpdates(false)}
-          onChanged={() => void mutate()}
+          onCloseAction={() => setShowUpdates(false)}
+          onChangedAction={() => void mutate()}
         />
         <NewServiceDialog
           open={adding}

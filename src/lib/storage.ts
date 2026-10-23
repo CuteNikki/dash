@@ -2,7 +2,7 @@ import 'server-only';
 
 import { AwsClient } from 'aws4fetch';
 
-/** dash's own bucket in the S3 storage (Garage on the server), as each site has its own. */
+/** The dashboard's own bucket in the S3 storage (Garage on the server), as each site has its own. */
 const BUCKET = process.env.STORAGE_BUCKET || 'dash';
 /** Where its files are read from, as https://images.example.com/dash */
 const PUBLIC_URL = process.env.STORAGE_PUBLIC_URL;
@@ -26,7 +26,7 @@ function storage() {
   });
 }
 
-/** Stores a file in dash's bucket and returns the address it's read at. */
+/** Stores a file in the dashboard's bucket and returns the address it's read at. */
 export async function putFile(key: string, body: ArrayBuffer, type: string) {
   const res = await storage().fetch(`${API_URL}/${BUCKET}/${key}`, {
     method: 'PUT',

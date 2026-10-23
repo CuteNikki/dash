@@ -1,7 +1,7 @@
 import { SERVER_NAME } from '@/lib/site';
 import { cn } from '@/lib/utils';
 
-/** dash's icon, "Dashboard" and the server's name, as the dashboard's heading and above the sign-in. */
+/** The icon, "Dashboard" and the server's name, as the dashboard's heading and above the sign-in. */
 export function Brand({ className }: { className?: string }) {
   return (
     <span
@@ -24,7 +24,7 @@ export function Brand({ className }: { className?: string }) {
 
 /**
  * The icon in app/icon.svg, drawn here in the theme's own colours so it
- * follows dash's theme button, where the file can only follow the device's.
+ * follows the dashboard's theme button, where the file can only follow the device's.
  */
 function BrandIcon({ className }: { className?: string }) {
   return (

@@ -53,7 +53,7 @@ export class AccessError extends Error {
         ? 'Sign in first'
         : status === 404
           ? 'That no longer exists'
-          : 'Your account can’t do that'
+          : "Your account can't do that"
     );
   }
 }

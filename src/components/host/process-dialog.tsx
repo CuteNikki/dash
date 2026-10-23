@@ -43,17 +43,20 @@ import {
 export function ProcessDialog({
   process,
   services,
-  onOpenService,
-  onClose,
+  onOpenServiceAction,
+  onCloseAction,
 }: {
   /** As the list last measured it, for its CPU; none closes the dialog */
   process?: HostProcess;
   services: Service[];
-  onOpenService: (service: Service) => void;
-  onClose: () => void;
+  onOpenServiceAction: (service: Service) => void;
+  onCloseAction: () => void;
 }) {
   return (
-    <Dialog open={process !== undefined} onOpenChange={(o) => !o && onClose()}>
+    <Dialog
+      open={process !== undefined}
+      onOpenChange={(o) => !o && onCloseAction()}
+    >
       <DialogContent className='sm:max-w-2xl'>
         {process && (
           // Keyed, so another process starts afresh rather than as this one ended
@@ -61,8 +64,8 @@ export function ProcessDialog({
             key={process.pid}
             process={process}
             services={services}
-            onOpenService={onOpenService}
-            onClose={onClose}
+            onOpenService={onOpenServiceAction}
+            onClose={onCloseAction}
           />
         )}
       </DialogContent>
@@ -181,7 +184,7 @@ function Details({
           </dl>
           {data.containerMain && (
             <p className='text-muted-foreground'>
-              It’s its container’s own first process: stopping it stops the
+              It's its container's own first process: stopping it stops the
               container, which may then start again by itself.
             </p>
           )}
@@ -237,7 +240,7 @@ function Details({
                 : service
                   ? `It runs in ${service.name}, which may not work without it. `
                   : ''}
-              It’s asked to stop, and has a few seconds to finish up.
+              It's asked to stop, and has a few seconds to finish up.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -6,7 +6,7 @@ import { dockerRequest, logLines } from '@/lib/docker/docker';
 
 /**
  * The folder the stacks live in, mounted into a run at the same path: the
- * home folder of whoever runs dash, unless STACKS_ROOT says otherwise, as it
+ * home folder of whoever runs the dashboard, unless STACKS_ROOT says otherwise, as it
  * must in a container or while developing.
  */
 export const STACKS_ROOT = process.env.STACKS_ROOT ?? homedir();
@@ -36,7 +36,7 @@ export type Run = {
   asHost?: boolean;
 };
 
-/** Marks the containers dash runs for a moment, as for measuring the disk, which aren't services. */
+/** Marks the containers the dashboard runs for a moment, as for measuring the disk, which aren't services. */
 export const RUN_LABEL = 'dash.purpose';
 
 export type RunLine = { stream: 'stdout' | 'stderr'; line: string };
@@ -132,7 +132,7 @@ export async function* runContainer(run: Run): AsyncGenerator<RunLine, number> {
 
 /**
  * Starts a command in a short-lived container and leaves it to finish on its
- * own, unwatched, for one that outlasts the dashboard, as recreating dash's
+ * own, unwatched, for one that outlasts the dashboard, as recreating the dashboard's
  * own container does. It's removed once it exits.
  */
 export async function startRun(run: Run) {

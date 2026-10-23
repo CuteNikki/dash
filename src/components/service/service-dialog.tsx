@@ -71,17 +71,17 @@ const DONE: Record<ContainerAction, string> = {
 /** A service's logs, usage and controls, over the dashboard. */
 export function ServiceDialog({
   service,
-  onClose,
-  onChanged,
-  onEdit,
+  onCloseAction,
+  onChangedAction,
+  onEditAction,
   tab = 'usage',
   memoryTotal,
 }: {
   service?: Service;
-  onClose: () => void;
+  onCloseAction: () => void;
   /** Called after an action, so the dashboard refreshes right away */
-  onChanged: () => void;
-  onEdit: (service: Service) => void;
+  onChangedAction: () => void;
+  onEditAction: (service: Service) => void;
   /** The tab it opens on */
   tab?: 'usage' | 'logs';
   /** The server's memory, in bytes, which a container's is charted against */
@@ -99,7 +99,7 @@ export function ServiceDialog({
 
   function close() {
     setRemoving(false);
-    onClose();
+    onCloseAction();
   }
 
   return (
@@ -119,12 +119,12 @@ export function ServiceDialog({
             service={shown}
             confirmRemove={removing}
             setConfirmRemove={setRemoving}
-            onChanged={onChanged}
+            onChanged={onChangedAction}
             onRemoved={() => {
-              onChanged();
+              onChangedAction();
               close();
             }}
-            onEdit={onEdit}
+            onEdit={onEditAction}
             tab={tab}
             memoryTotal={memoryTotal}
           />
@@ -393,7 +393,7 @@ function ServiceBody({
                 key={git.root}
                 containerId={service.containerId}
                 status={git}
-                onChanged={rereadGit}
+                onChangedAction={rereadGit}
               />
             </TabsContent>
           )}
@@ -414,15 +414,15 @@ function ServiceBody({
       <UpdateDialog
         service={service}
         open={confirmUpdate}
-        onOpenChange={setConfirmUpdate}
-        onUpdated={onChanged}
+        onOpenChangeAction={setConfirmUpdate}
+        onUpdatedAction={onChanged}
       />
       {service.removable && (
         <RemoveServiceDialog
           service={service}
           open={confirmRemove}
-          onOpenChange={setConfirmRemove}
-          onRemoved={onRemoved}
+          onOpenChangeAction={setConfirmRemove}
+          onRemovedAction={onRemoved}
         />
       )}
       <AlertDialog open={confirmStop} onOpenChange={setConfirmStop}>

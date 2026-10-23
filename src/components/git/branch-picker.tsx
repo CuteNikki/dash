@@ -34,13 +34,13 @@ export function BranchPicker({
   local,
   remote,
   disabled,
-  onSwitch,
+  onSwitchAction,
 }: {
   current: string;
   local: string[];
   remote: string[];
   disabled?: boolean;
-  onSwitch: (branch: string, create: boolean) => void;
+  onSwitchAction: (branch: string, create: boolean) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -53,7 +53,7 @@ export function BranchPicker({
   function pick(branch: string, create: boolean) {
     setOpen(false);
     setQuery('');
-    if (branch !== current) onSwitch(branch, create);
+    if (branch !== current) onSwitchAction(branch, create);
   }
 
   return (

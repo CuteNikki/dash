@@ -17,7 +17,7 @@ import { SERVER_NAME, SITE_URL } from '@/lib/site';
 /**
  * Better Auth's own roles, which only its admin endpoints go by. Those are
  * all turned off over HTTP below: people's accounts are managed through
- * dash's actions, which check lib/auth/access.ts and call auth.api. Only the
+ * the dashboard's actions, which check lib/auth/access.ts and call auth.api. Only the
  * owner holds Better Auth's permissions, should one be called with headers.
  */
 const ac = createAccessControl(defaultStatements);
@@ -64,12 +64,12 @@ export const auth = betterAuth({
   plugins: [
     passkey({
       rpID: SITE_URL.hostname,
-      rpName: 'dash',
+      rpName: 'Dashboard',
       origin: SITE_URL.origin,
     }),
     admin({ ac, roles, defaultRole: 'viewer', adminRoles: ['owner'] }),
     // The authenticator app names the account after the server
-    twoFactor({ issuer: SERVER_NAME ?? 'dash' }),
+    twoFactor({ issuer: SERVER_NAME ?? 'Dashboard' }),
     nextCookies(),
   ],
   databaseHooks: {

@@ -142,7 +142,7 @@ export const qbittorrent: App = {
             ],
           };
         }),
-        empty: 'Nothing’s moving',
+        empty: "Nothing's moving",
       },
     ];
   },

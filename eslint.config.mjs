@@ -8,7 +8,7 @@ const eslintConfig = defineConfig([
   ...nextTs,
   // Tailwind classes that don't exist, conflict, or repeat. Their order and
   // wrapping are Prettier's, and the shorter way to write one is
-  // `bun run lint:classes`, which knows dash's own --radius
+  // `bun run lint:classes`, which knows the dashboard's own --radius
   {
     files: ["**/*.{ts,tsx}"],
     plugins: { "better-tailwindcss": betterTailwindcss },
@@ -20,6 +20,13 @@ const eslintConfig = defineConfig([
       "better-tailwindcss/no-duplicate-classes": "error",
       "better-tailwindcss/no-deprecated-classes": "error",
       "better-tailwindcss/no-unnecessary-whitespace": "error",
+    },
+  },
+  // Straight quotes and apostrophes in JSX text are fine; a stray > or } is
+  // what this is there to catch
+  {
+    rules: {
+      "react/no-unescaped-entities": ["error", { forbid: [">", "}"] }],
     },
   },
   // Override default ignores of eslint-config-next.

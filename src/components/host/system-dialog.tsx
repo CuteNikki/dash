@@ -42,7 +42,7 @@ import {
 const RESTARTS_DOCKER =
   /^(docker-ce|docker-ce-cli|containerd\.io|containerd|runc)$/;
 
-/** How long to keep trying to follow an upgrade again, while dash is gone with Docker. */
+/** How long to keep trying to follow an upgrade again, while the dashboard is gone with Docker. */
 const RECONNECT_MS = 5 * 60_000;
 const RETRY_MS = 3_000;
 
@@ -72,7 +72,7 @@ export function SystemDialog({
 
   /**
    * Follows the upgrade until it says how it ended, following it again from
-   * its start whenever the connection breaks, until dash is back.
+   * its start whenever the connection breaks, until the dashboard is back.
    */
   async function follow(first: () => Promise<Response>) {
     setRunning(true);
@@ -84,9 +84,9 @@ export function SystemDialog({
         const res = await request().catch(() => undefined);
         const exit = res ? await readRunStream(res, say) : undefined;
         if (exit !== undefined) {
-          if (exit === 0) toast.success('The server’s packages are up to date');
+          if (exit === 0) toast.success("The server's packages are up to date");
           else
-            toast.error('The upgrade didn’t finish', {
+            toast.error("The upgrade didn't finish", {
               description: 'See what apt said in the window',
             });
           return;
@@ -98,7 +98,7 @@ export function SystemDialog({
           return;
         }
         say(
-          '— Lost the connection, as Docker restarting does. The upgrade carries on; following it again once dash is back…'
+          '— Lost the connection, as Docker restarting does. The upgrade carries on; following it again once the dashboard is back…'
         );
         await wait(RETRY_MS);
         // From its start again, so what's shown is the whole of it
@@ -135,7 +135,7 @@ export function SystemDialog({
     startCheck(async () => {
       const result = await checkSystemUpdates();
       if (result.error) {
-        toast.error('Couldn’t look at the server’s updates', {
+        toast.error("Couldn't look at the server's updates", {
           description: result.error,
         });
       }
@@ -151,7 +151,7 @@ export function SystemDialog({
       });
       onCloseAction();
     } else {
-      toast.error('Couldn’t restart the server', {
+      toast.error("Couldn't restart the server", {
         description: (await res.json().catch(() => null))?.error,
       });
     }
@@ -183,7 +183,7 @@ export function SystemDialog({
 
         {system?.reboot && (
           <p className='rounded-lg bg-warning/10 p-3 text-warning'>
-            Ubuntu asks for a restart to finish what’s been installed
+            Ubuntu asks for a restart to finish what's been installed
             {system.rebootFor.length ? ` (${system.rebootFor.join(', ')})` : ''}
             .
           </p>
@@ -198,14 +198,14 @@ export function SystemDialog({
                 u.description ? `${u.name} (${u.description})` : u.name
               )
               .join(', ')}
-            . It runs again by itself as it’s due; its log says why it failed.
+            . It runs again by itself as it's due; its log says why it failed.
           </p>
         )}
         {system?.lastExit !== undefined &&
           system.lastExit !== 0 &&
           !running && (
             <p className='text-destructive'>
-              The last upgrade from dash didn’t finish (apt exited with{' '}
+              The last upgrade from the dashboard didn't finish (apt exited with{' '}
               {system.lastExit}).
             </p>
           )}
@@ -270,8 +270,9 @@ export function SystemDialog({
         {docker.length > 0 && !output && (
           <p className='text-muted-foreground'>
             {docker.map((p) => p.name).join(', ')} among them: Docker restarts,
-            and every container with it, dash too, for a moment. The upgrade
-            carries on, and this window follows it again once dash is back.
+            and every container with it, the dashboard too, for a moment. The
+            upgrade carries on, and this window follows it again once the
+            dashboard is back.
           </p>
         )}
 
@@ -288,7 +289,7 @@ export function SystemDialog({
             Check now
           </Button>
           <Button
-            // It takes everything on the server down, dash too
+            // It takes everything on the server down, the dashboard too
             variant='destructive'
             disabled={running}
             onClick={() => setConfirmReboot(true)}
@@ -318,8 +319,8 @@ export function SystemDialog({
           <AlertDialogHeader>
             <AlertDialogTitle>Restart the server?</AlertDialogTitle>
             <AlertDialogDescription>
-              Everything on it goes down for a minute or two, dash too, and
-              comes back by itself as the server starts again.
+              Everything on it goes down for a minute or two, the dashboard too,
+              and comes back by itself as the server starts again.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -1,13 +1,13 @@
 /**
- * The server dash is the dashboard of, as its heading and tab title name it:
+ * The server this dashboard is for, as its heading and tab title name it:
  * its host name, as vps.example.com. Read when the image is built, as the
  * browser shows it too; without one, they say "Dashboard" alone.
  */
 export const SERVER_NAME = process.env.NEXT_PUBLIC_SERVER_NAME || undefined;
 
 /**
- * dash's own compose project, whose update restarts it: updated last, so
- * nothing after it waits on a dash that's starting again.
+ * The dashboard's own compose project, whose update restarts it: updated last, so
+ * nothing after it waits on a dashboard that's starting again.
  */
 export const DASH_PROJECT = 'dash';
 

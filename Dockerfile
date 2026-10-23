@@ -10,7 +10,7 @@ COPY . .
 ARG NEXT_PUBLIC_SERVER_NAME
 RUN bun run build
 
-# The database's migrations, which compose's migrate runs before dash starts:
+# The database's migrations, which compose's migrate runs before the dashboard starts:
 # Prisma and the migrations alone, at the versions package.json names
 FROM oven/bun:1.4.0-alpine AS migrate
 WORKDIR /app

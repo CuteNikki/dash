@@ -121,7 +121,7 @@ export function SessionList() {
   if (error) {
     return (
       <p className='text-destructive'>
-        Couldn’t list them: {error.message ?? 'dash didn’t answer'}
+        Couldn't list them: {error.message ?? "dash didn't answer"}
       </p>
     );
   }

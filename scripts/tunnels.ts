@@ -1,7 +1,7 @@
 // In development: a tunnel to the server's Docker, at DOCKER_HOST, which
-// everything dash shows comes through; and tunnels to the apps whose numbers
+// everything the dashboard shows comes through; and tunnels to the apps whose numbers
 // show on their tiles, which on the server are only reached by name on the
-// networks dash shares with them. Each app is looked up when it starts, since
+// networks the dashboard shares with them. Each app is looked up when it starts, since
 // a recreated container has a new address, and is then on this machine at the
 // port SONARR_URL and the rest name.
 // The server as SSH knows it, from .env.local, which Bun reads

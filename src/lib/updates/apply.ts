@@ -64,12 +64,12 @@ export async function* updateService(
   const stack = c.stack;
   if (!stack) {
     throw new Error(
-      "It isn't part of a compose stack, so dash can't recreate it"
+      "It isn't part of a compose stack, so the dashboard can't recreate it"
     );
   }
   const { update, error } = updateOf(c);
   if (error) throw new Error(`Couldn't check it for updates: ${error}`);
-  if (!update) throw new Error('There’s no update for it');
+  if (!update) throw new Error("There's no update for it");
   const { service } = stack;
 
   if (update.kind === 'image') {
@@ -146,18 +146,18 @@ export async function* updateService(
 }
 
 /**
- * dash's own rebuild: built and its database migrated while it's here to say
+ * The dashboard's own rebuild: built and its database migrated while it's here to say
  * how that goes, then recreated by a run it doesn't wait for, as recreating
- * it ends this one. A migration that fails leaves this dash running.
+ * it ends this one. A migration that fails leaves this dashboard running.
  */
 async function* restartDash(stack: Stack): AsyncGenerator<RunLine, number> {
-  yield say('Building dash…');
+  yield say('Building the dashboard…');
   const built = yield* runCompose(stack, ['build']);
   if (built !== 0) return built;
   yield say('Migrating its database…');
   const migrated = yield* runCompose(stack, ['run', '--rm', 'migrate']);
   if (migrated !== 0) return migrated;
   await startCompose(stack, ['up', '-d']);
-  yield say('Restarting dash on the new build; it’s back in a moment');
+  yield say("Restarting the dashboard on the new build; it's back in a moment");
   return 0;
 }

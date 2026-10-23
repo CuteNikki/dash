@@ -51,11 +51,11 @@ function badLink(value: string) {
 export function AddressesField({
   id,
   items,
-  onChange,
+  onChangeAction,
 }: {
   id: string;
   items: AddressItem[];
-  onChange: (items: AddressItem[]) => void;
+  onChangeAction: (items: AddressItem[]) => void;
 }) {
   const list = useRef<HTMLDivElement>(null);
   const sensors = useSensors(
@@ -72,7 +72,11 @@ export function AddressesField({
    */
   function insertAfter(index: number, values: string[], from = items) {
     const added = toItems(values);
-    onChange([...from.slice(0, index + 1), ...added, ...from.slice(index + 1)]);
+    onChangeAction([
+      ...from.slice(0, index + 1),
+      ...added,
+      ...from.slice(index + 1),
+    ]);
     requestAnimationFrame(() =>
       list.current
         ?.querySelector<HTMLInputElement>(
@@ -91,7 +95,7 @@ export function AddressesField({
     if (!over || active.id === over.id) return;
     const from = items.findIndex((i) => i.id === active.id);
     const to = items.findIndex((i) => i.id === over.id);
-    onChange(arrayMove(items, from, to));
+    onChangeAction(arrayMove(items, from, to));
   }
 
   return (
@@ -107,8 +111,10 @@ export function AddressesField({
               key={item.id}
               item={item}
               inputId={index === 0 ? id : undefined}
-              onChange={(value) => onChange(withValue(index, value))}
-              onRemove={() => onChange(items.filter((i) => i.id !== item.id))}
+              onChange={(value) => onChangeAction(withValue(index, value))}
+              onRemove={() =>
+                onChangeAction(items.filter((i) => i.id !== item.id))
+              }
               onEnter={() => insertAfter(index, [''])}
               onPasteLines={(lines) =>
                 insertAfter(index, lines.slice(1), withValue(index, lines[0]))

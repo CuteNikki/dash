@@ -34,12 +34,12 @@ const OTHER = 'other';
  */
 export function AddressField({
   id,
-  onChange,
+  onChangeAction,
   disabled,
 }: {
   id: string;
   /** The whole domain, or '' for none */
-  onChange: (domain: string) => void;
+  onChangeAction: (domain: string) => void;
   disabled?: boolean;
 }) {
   const { data: domains } = useSWR<string[]>('/api/domains', fetcher, {
@@ -54,7 +54,7 @@ export function AddressField({
   // Told of the whole domain whenever it changes, typed or picked or when
   // the server's domains arrive after a name's typed, which changes the one
   // it's under without anything being touched
-  useEffect(() => onChange(domain), [domain, onChange]);
+  useEffect(() => onChangeAction(domain), [domain, onChangeAction]);
   // Its DNS asked about once typing pauses, not for every key
   const query = useDebounced(domain);
 

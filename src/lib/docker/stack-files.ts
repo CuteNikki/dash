@@ -104,7 +104,7 @@ export async function openStackFile(
   if (!entry) return { reason: "There's no such file" };
   if (entry.kind === 'dir') return { reason: "That's a folder" };
   if (entry.size > MAX_EDIT_BYTES) {
-    return { reason: 'Too big to edit here; it’s data rather than a setting' };
+    return { reason: "Too big to edit here; it's data rather than a setting" };
   }
   if ((await readHostFileStart(path, SNIFF_BYTES)).includes(0)) {
     return { reason: 'Not a text file' };
@@ -175,9 +175,9 @@ export async function saveStackFile(
 function checkName(name: string) {
   const trimmed = name.trim();
   if (!trimmed) throw new Error('A name is needed');
-  if (trimmed.includes('/')) throw new Error('A name can’t contain /');
+  if (trimmed.includes('/')) throw new Error("A name can't contain /");
   if (trimmed === '.' || trimmed === '..') {
-    throw new Error(`${trimmed} can’t be used as a name`);
+    throw new Error(`${trimmed} can't be used as a name`);
   }
   return trimmed;
 }
@@ -186,7 +186,7 @@ function checkName(name: string) {
 async function checkMovable(stack: Stack, relative: string) {
   const path = await resolve(stack, relative);
   if (path === ((await realHostPath(stack.dir)) ?? stack.dir)) {
-    throw new Error('That’s the stack’s own folder');
+    throw new Error("That's the stack's own folder");
   }
   return path;
 }

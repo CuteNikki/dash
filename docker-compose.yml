@@ -1,9 +1,9 @@
 # The dashboard: the server's services, their logs, files and git, and the server itself.
 # A clone of the repository, updated by its own Update or `bun run deploy`.
 services:
-  # The database brought up to the schema, before dash starts on it, each
+  # The database brought up to the schema, before the dashboard starts on it, each
   # time it's started: by Update or `bun run deploy` alike. A migration that
-  # fails leaves the dash that's running as it is. From the Dockerfile's
+  # fails leaves the dashboard that's running as it is. From the Dockerfile's
   # stage of Prisma and the migrations alone; the dashboard doesn't list it.
   migrate:
     build:
@@ -12,7 +12,7 @@ services:
     env_file: .env
     restart: 'no'
     labels:
-      dash.purpose: the database's migrations, before dash starts
+      dash.purpose: the database's migrations, before the dashboard starts
     networks:
       - caddy
 

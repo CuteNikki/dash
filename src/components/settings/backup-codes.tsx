@@ -13,8 +13,8 @@ function download(codes: string[], email: string) {
   // on the server
   const site = SERVER_NAME ?? location.hostname;
   const text = [
-    `Backup codes for dash on ${site} (${email})`,
-    'Each signs you in once, in place of your authenticator app’s code.',
+    `Backup codes for the dashboard on ${site} (${email})`,
+    "Each signs you in once, in place of your authenticator app's code.",
     '',
     ...codes,
     '',
@@ -42,7 +42,7 @@ export function BackupCodes({
     <div className='flex flex-col gap-3'>
       <p>
         Each signs you in once, should you lose your authenticator app. Keep
-        them somewhere safe, such as your password manager: they’re shown only
+        them somewhere safe, such as your password manager: they're shown only
         now.
       </p>
       <ul className='grid w-fit grid-cols-2 gap-x-6 gap-y-1 rounded-md border bg-field px-3 py-2 font-mono tabular-nums'>

@@ -44,7 +44,7 @@ export function LogBox({
   empty,
   label,
   follow: followProp,
-  onFollowChange,
+  onFollowChangeAction,
   className,
   boxClassName,
 }: {
@@ -55,7 +55,7 @@ export function LogBox({
   label: string;
   /** Following the newest line, for a parent that also sets it */
   follow?: boolean;
-  onFollowChange?: (follow: boolean) => void;
+  onFollowChangeAction?: (follow: boolean) => void;
   /** The whole, filter and box: as in a panel, flex-1 to fill it */
   className?: string;
   /** The box's own, such as its height in a window */
@@ -66,7 +66,7 @@ export function LogBox({
   const follow = followProp ?? ownFollow;
   const setFollow = (next: boolean) => {
     setOwnFollow(next);
-    onFollowChange?.(next);
+    onFollowChangeAction?.(next);
   };
   const [wrap, setWrap] = useState(true);
   const scroller = useRef<HTMLDivElement>(null);
@@ -175,7 +175,7 @@ export function LogBox({
         <ScrollFade
           ref={scroller}
           // Scrolling up stops following; scrolling back to the end resumes it
-          onScroll={onScroll}
+          onScrollAction={onScroll}
           className='h-full overflow-auto p-3'
           fadeFrom='from-muted'
           fill

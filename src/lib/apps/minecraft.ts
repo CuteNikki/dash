@@ -63,7 +63,7 @@ export const minecraft: App = {
         title: 'Online',
         columns: [{ label: 'Player' }],
         rows: names.sort().map((name) => ({ cells: [name] })),
-        empty: 'No one’s online',
+        empty: "No one's online",
       },
       {
         kind: 'facts',

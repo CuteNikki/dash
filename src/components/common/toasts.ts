@@ -2,7 +2,7 @@ import { toast } from 'sonner';
 
 /**
  * Runs what a button started, saying in a toast when it failed outright, as
- * when dash doesn't answer while it restarts. Left to throw, it would reach
+ * when the dashboard doesn't answer while it restarts. Left to throw, it would reach
  * the page's error boundary and take the dashboard down with it.
  */
 export async function attempt(failed: string, work: () => Promise<unknown>) {

@@ -76,7 +76,7 @@ function rowsOf(services: Service[]): Row[] {
       major: update.kind === 'version' && update.major,
     });
   }
-  // dash's own last, as it restarts dash
+  // The dashboard's own last, as it restarts the dashboard
   const isDash = (r: Row) => r.service.stack?.project === DASH_PROJECT;
   return [...rows.values()].sort(
     (a, b) =>
@@ -94,15 +94,15 @@ export function UpdatesDialog({
   services,
   checkedAt,
   checking,
-  onClose,
-  onChanged,
+  onCloseAction,
+  onChangedAction,
 }: {
   open: boolean;
   services: Service[];
   checkedAt?: number;
   checking: boolean;
-  onClose: () => void;
-  onChanged: () => void;
+  onCloseAction: () => void;
+  onChangedAction: () => void;
 }) {
   // The rows as the window opened, so one stays, done, once it's updated
   const [rows, setRows] = useState<Row[]>([]);
@@ -146,7 +146,7 @@ export function UpdatesDialog({
           [row.key]: exitCode === 0 ? 'done' : 'failed',
         }));
         if (exitCode !== 0) toast.error(`Couldn't update ${row.name}`);
-        onChanged();
+        onChangedAction();
       }
     } finally {
       setRunning(false);
@@ -157,9 +157,9 @@ export function UpdatesDialog({
     startCheck(async () => {
       const result = await checkUpdates();
       if (!result.ok) {
-        toast.error('Couldn’t look for updates', { description: result.error });
+        toast.error("Couldn't look for updates", { description: result.error });
       }
-      onChanged();
+      onChangedAction();
     });
   }
 
@@ -176,7 +176,7 @@ export function UpdatesDialog({
 
   return (
     // Not closed while it's updating, so nothing's cut off halfway
-    <Dialog open={open} onOpenChange={(o) => !o && !running && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && !running && onCloseAction()}>
       <DialogContent className='flex flex-col sm:max-w-xl'>
         <DialogHeader>
           <DialogTitle>Updates</DialogTitle>
@@ -184,7 +184,7 @@ export function UpdatesDialog({
             {checking || checkPending
               ? 'Looking for updates…'
               : checkedAt
-                ? `Looked ${formatAgo(checkedAt)}, and again every few hours while dash is open.`
+                ? `Looked ${formatAgo(checkedAt)}, and again every few hours while the dashboard is open.`
                 : 'Not looked for yet.'}
           </DialogDescription>
         </DialogHeader>
@@ -220,12 +220,12 @@ export function UpdatesDialog({
             ))}
           </ul>
         ) : (
-          <p className='text-muted-foreground'>Everything’s up to date.</p>
+          <p className='text-muted-foreground'>Everything's up to date.</p>
         )}
 
         {failedChecks.length > 0 && (
           <div className='flex flex-col gap-1 text-muted-foreground'>
-            <span>Couldn’t check:</span>
+            <span>Couldn't check:</span>
             {failedChecks.map((s) => (
               <span key={s.key} className='truncate'>
                 {s.name}: {s.updateError}

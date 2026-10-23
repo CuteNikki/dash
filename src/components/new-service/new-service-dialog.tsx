@@ -119,7 +119,7 @@ function NewServiceBody({
         <DialogTitle>{website ? 'New website' : 'New service'}</DialogTitle>
         <DialogDescription>
           {website
-            ? 'A site hosted somewhere else, as a tile that shows whether it’s up and how fast it answers. Nothing changes on the server.'
+            ? "A site hosted somewhere else, as a tile that shows whether it's up and how fast it answers. Nothing changes on the server."
             : 'A folder of its own in ~/services, started with Docker Compose, and for a domain, a site in Caddy.'}
         </DialogDescription>
       </DialogHeader>
@@ -136,7 +136,7 @@ function NewServiceBody({
         hidden={!website}
         picker={picker}
         groups={groups}
-        onCreated={onCreated}
+        onCreatedAction={onCreated}
       />
     </>
   );
@@ -274,9 +274,9 @@ function NewServiceForm({
       <fieldset disabled={running} className='contents'>
         {picker}
         {fromRun ? (
-          <DockerRunImport onConvert={convert} />
+          <DockerRunImport onConvertAction={convert} />
         ) : (
-          <TemplatePicker picked={template} onPick={pick} />
+          <TemplatePicker picked={template} onPickAction={pick} />
         )}
         <div className='grid gap-4 sm:grid-cols-2'>
           <div className='flex flex-col gap-2'>
@@ -297,7 +297,7 @@ function NewServiceForm({
               id='service-group'
               value={group}
               groups={groups}
-              onChange={setGroup}
+              onChangeAction={setGroup}
               optional
             />
           </div>
@@ -337,7 +337,7 @@ function NewServiceForm({
             </Label>
             <AddressField
               id='service-domain'
-              onChange={setDomain}
+              onChangeAction={setDomain}
               disabled={running}
             />
           </div>

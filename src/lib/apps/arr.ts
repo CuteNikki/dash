@@ -74,7 +74,7 @@ function queueTable(title: string, items: QueueItem[]): DetailSection {
         dim: item.status !== 'downloading',
       };
     }),
-    empty: 'Nothing’s downloading',
+    empty: "Nothing's downloading",
   };
 }
 

@@ -1,7 +1,7 @@
 // Puts the dashboard on the server, as its own Update does there: master is
 // pushed, pulled into ~/services/dash, a clone of the repository, then built
 // and started. Its .env, kept only there, stays.
-// The server as SSH knows it, and dash's clone there, from .env.local, which
+// The server as SSH knows it, and the dashboard's clone there, from .env.local, which
 // Bun reads
 const SERVER = process.env.DASH_SSH_HOST;
 const DIR = process.env.DASH_SERVER_DIR || '~/services/dash';

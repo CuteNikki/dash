@@ -2,7 +2,7 @@
 // `h-[22px]` for `h-5.5`, and fails if there are any: the suggestions the
 // Tailwind editor extension makes, for every file at once. With --fix, writes
 // them in. Only a suggestion that comes to the same CSS, with the theme's
-// values put in, counts: dash's corners follow --radius, which is only known
+// values put in, counts: the dashboard's corners follow --radius, which is only known
 // in the page, so the extension's `rounded-lg` for `rounded-[4px]` isn't the
 // same here. Uses Tailwind's unstable design system API, which Prettier's
 // Tailwind plugin relies on too.
@@ -24,7 +24,7 @@ const scanner = new Scanner({});
 /**
  * Variables the stylesheet sets itself, outside its @theme, as on :root and
  * .dark: whatever the theme says of one, the page's own value wins, so it's
- * only known there. Tailwind's theme has a --radius of 0.25rem; dash's :root
+ * only known there. Tailwind's theme has a --radius of 0.25rem; the dashboard's :root
  * makes it 0.5rem.
  */
 const pageVariables = new Set(

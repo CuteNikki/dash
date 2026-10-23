@@ -144,10 +144,10 @@ export function useDiffLayout() {
 /** Unified or side by side, for every diff in the panel. */
 export function DiffLayoutToggle({
   layout,
-  onPick,
+  onPickAction,
 }: {
   layout: DiffLayout;
-  onPick: (layout: DiffLayout) => void;
+  onPickAction: (layout: DiffLayout) => void;
 }) {
   return (
     <ToggleGroup
@@ -155,7 +155,7 @@ export function DiffLayoutToggle({
       variant='segmented'
       value={layout}
       // Picking the shown one again would unpick it; keep one picked
-      onValueChange={(v) => v && onPick(v as DiffLayout)}
+      onValueChange={(v) => v && onPickAction(v as DiffLayout)}
       aria-label='Show changes'
     >
       <ToggleGroupItem value='unified'>Unified</ToggleGroupItem>

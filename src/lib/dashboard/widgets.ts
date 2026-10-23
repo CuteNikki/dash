@@ -20,7 +20,7 @@ function appOf(c: Container) {
 
 /**
  * Where an app is: its container, and for one read over HTTP, SONARR_URL
- * and so on, or its container by name on a network dash shares with it.
+ * and so on, or its container by name on a network the dashboard shares with it.
  * qBittorrent behind a VPN container needs its URL set, to the VPN
  * container's name.
  */

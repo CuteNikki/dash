@@ -35,7 +35,7 @@ export type Service = {
   state: ContainerState;
   status: string;
   stack?: { project: string; service: string; dir: string; files: string[] };
-  /** Its stack can be removed from here: one of ~/services' own, not dash's or Caddy's */
+  /** Its stack can be removed from here: one of ~/services' own, not the dashboard's or Caddy's */
   removable: boolean;
   /** A newer image or version, or commits to build, once checked */
   update?: ServiceUpdate;
@@ -54,7 +54,7 @@ export type Service = {
     memory: number;
     history: UsageHistory;
   };
-  /** Live numbers from the app itself, for those dash knows: Sonarr's queue and so on */
+  /** Live numbers from the app itself, for those the dashboard knows: Sonarr's queue and so on */
   widget?: Widget;
   /** Whether the app has more to show in its window, from /api/containers/[id]/details */
   details?: boolean;
@@ -159,7 +159,7 @@ export type SystemUpdates = {
    * "logrotate", and what systemd says it does, "Rotate log files"
    */
   failedUnits: { name: string; description?: string }[];
-  /** An upgrade from dash is running now */
+  /** An upgrade from the dashboard is running now */
   upgrading: boolean;
   /** How the last one ended, while the server's been up */
   lastExit?: number;
@@ -325,7 +325,7 @@ export type Capacity = {
   size: number;
 };
 
-/** A website elsewhere, as dash last found it when it asked for its page. */
+/** A website elsewhere, as the dashboard last found it when it asked for its page. */
 export type SiteCheck = {
   /** It answered, and not with an error */
   ok: boolean;

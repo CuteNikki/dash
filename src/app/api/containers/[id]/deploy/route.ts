@@ -16,7 +16,7 @@ export async function POST(
   const stack = await stackOf((await params).id);
   if (!stack) {
     return Response.json(
-      { error: 'This container isn’t part of a compose stack' },
+      { error: "This container isn't part of a compose stack" },
       { status: 404 }
     );
   }

@@ -202,7 +202,7 @@ async function upgradeOutcome() {
  * it's done; exits as it did. Upgrading Docker restarts it, which takes the
  * container following along with it: then, until the job itself says it's
  * done, it waits for Docker and follows on from the line it had got to.
- * When dash goes too, as it does on the server, the window follows again.
+ * When the dashboard goes too, as it does on the server, the window follows again.
  */
 export async function* followUpgrade(): AsyncGenerator<RunLine, number> {
   const giveUp = Date.now() + DOCKER_BACK_MS;
@@ -247,7 +247,7 @@ exit $(cat ${STATUS} 2>/dev/null || echo 1)`)
     }
     yield {
       stream: 'stdout',
-      line: '— Docker is restarting, as upgrading it does; following on once it’s back…',
+      line: "— Docker is restarting, as upgrading it does; following on once it's back…",
     };
     await new Promise((r) => setTimeout(r, 3_000));
   }

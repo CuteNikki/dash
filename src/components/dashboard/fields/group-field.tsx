@@ -25,13 +25,13 @@ export function GroupField({
   id,
   value,
   groups,
-  onChange,
+  onChangeAction,
   optional,
 }: {
   id: string;
   value: string;
   groups: string[];
-  onChange: (group: string) => void;
+  onChangeAction: (group: string) => void;
   /** Can be left without a group, by None at the top of the list */
   optional?: boolean;
 }) {
@@ -43,7 +43,7 @@ export function GroupField({
     !groups.some((g) => g.toLowerCase() === typed.toLowerCase());
 
   function pick(group: string) {
-    onChange(group);
+    onChangeAction(group);
     setQuery('');
     setOpen(false);
   }

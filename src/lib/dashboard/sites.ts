@@ -113,7 +113,7 @@ async function check(url: string) {
       redirect: 'follow',
       cache: 'no-store',
       signal: AbortSignal.timeout(TIMEOUT_MS),
-      headers: { 'user-agent': 'dash (status check)' },
+      headers: { 'user-agent': 'Dashboard (status check)' },
     });
     // How fast it answers, not how long its page takes to arrive
     ms = performance.now() - start;

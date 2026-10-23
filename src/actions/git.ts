@@ -22,7 +22,7 @@ async function repoOf(containerId: string) {
 
 const noRepo: GitResult = {
   ok: false,
-  output: 'This service isn’t in a git repository',
+  output: "This service isn't in a git repository",
 };
 
 /** Fetches, pulls (fast-forward only) or pushes the service's repository. */
@@ -83,7 +83,7 @@ export async function switchBranch(
   if (!repo) return noRepo;
   const known = [...repo.branches.local, ...repo.branches.remote];
   if (!create && !known.includes(branch)) {
-    return { ok: false, output: 'There’s no branch by that name' };
+    return { ok: false, output: "There's no branch by that name" };
   }
   return gitSwitch(repo.root, branch, create);
 }

@@ -114,7 +114,7 @@ export const jellyfin: App = {
             },
           ];
         }),
-        empty: 'No one’s watching',
+        empty: "No one's watching",
       },
       {
         kind: 'table',

@@ -56,20 +56,20 @@ const DONE: Record<ContainerAction, string> = {
 export function ServiceList({
   groups,
   filter: picked,
-  onFilter,
+  onFilterAction,
   editing,
-  onOpen,
-  onLogs,
-  onChanged,
+  onOpenAction,
+  onLogsAction,
+  onChangedAction,
 }: {
   groups: ServiceGroup[];
   filter: ListFilter;
-  onFilter: (filter: ListFilter) => void;
+  onFilterAction: (filter: ListFilter) => void;
   editing: boolean;
-  onOpen: (service: Service) => void;
-  onLogs: (service: Service) => void;
+  onOpenAction: (service: Service) => void;
+  onLogsAction: (service: Service) => void;
   /** After an action, so the dashboard refreshes right away */
-  onChanged: () => void;
+  onChangedAction: () => void;
 }) {
   // A group since renamed or emptied shows them all
   const filter: ListFilter =
@@ -101,7 +101,7 @@ export function ServiceList({
           toast.error(`Couldn't ${action} ${service.name}`, {
             description: result.error,
           });
-        onChanged();
+        onChangedAction();
       })
     );
   }
@@ -122,7 +122,7 @@ export function ServiceList({
           label='All'
           count={all.length}
           active={same({ kind: 'all' })}
-          onPick={() => onFilter({ kind: 'all' })}
+          onPick={() => onFilterAction({ kind: 'all' })}
         />
         {groups.map((g) => (
           <FilterItem
@@ -130,7 +130,7 @@ export function ServiceList({
             label={g.name}
             count={g.services.length}
             active={same({ kind: 'group', name: g.name })}
-            onPick={() => onFilter({ kind: 'group', name: g.name })}
+            onPick={() => onFilterAction({ kind: 'group', name: g.name })}
           />
         ))}
         <div className='mx-1 my-0 w-px shrink-0 bg-border lg:mx-0 lg:my-2 lg:h-px lg:w-auto' />
@@ -138,7 +138,7 @@ export function ServiceList({
           label='Stopped'
           count={stopped.length}
           active={same({ kind: 'stopped' })}
-          onPick={() => onFilter({ kind: 'stopped' })}
+          onPick={() => onFilterAction({ kind: 'stopped' })}
         />
       </nav>
 
@@ -185,8 +185,8 @@ export function ServiceList({
                   key={service.key}
                   service={service}
                   editing={editing}
-                  onOpen={onOpen}
-                  onLogs={onLogs}
+                  onOpen={onOpenAction}
+                  onLogs={onLogsAction}
                   onRun={(action) =>
                     action === 'stop'
                       ? setStopping(service)

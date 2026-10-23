@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   const check = new URL(request.url).searchParams.get('check')?.toLowerCase();
   if (check === undefined) return Response.json(await siteDomains());
   if (!DOMAIN_PATTERN.test(check)) {
-    return Response.json({ error: 'That isn’t a domain' }, { status: 400 });
+    return Response.json({ error: "That isn't a domain" }, { status: 400 });
   }
   return Response.json(await checkDomain(check));
 }

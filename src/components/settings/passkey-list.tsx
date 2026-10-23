@@ -95,14 +95,14 @@ export function PasskeyList() {
   return (
     <div className='flex flex-col gap-3'>
       <p>
-        A passkey signs you in with your fingerprint, face or your device’s PIN,
+        A passkey signs you in with your fingerprint, face or your device's PIN,
         with no password to type.
       </p>
       {isPending && !passkeys ? (
         <TextSkeleton className='w-40' />
       ) : error && !passkeys ? (
         <p className='text-destructive'>
-          Couldn’t list them: {error.message || error.statusText}
+          Couldn't list them: {error.message || error.statusText}
         </p>
       ) : passkeys && passkeys.length > 0 ? (
         <ul className='flex flex-col gap-1'>
@@ -146,8 +146,8 @@ export function PasskeyList() {
               Remove {removing && nameOf(removing)}?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              It won’t sign you in to dash any more. Your device or password
-              manager keeps it until you delete it there too.
+              It won't sign you in to the dashboard any more. Your device or
+              password manager keeps it until you delete it there too.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

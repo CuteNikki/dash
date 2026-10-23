@@ -69,7 +69,7 @@ const SiteAddress = z
         return url.href;
       }
     } catch {}
-    ctx.addIssue({ code: 'custom', message: 'That isn’t a web address' });
+    ctx.addIssue({ code: 'custom', message: "That isn't a web address" });
     return z.NEVER;
   });
 

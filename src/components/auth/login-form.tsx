@@ -158,7 +158,7 @@ function CodeStep({
       if (error?.code === 'INVALID_TWO_FACTOR_COOKIE') {
         onBackAction('That took too long; sign in again');
       } else if (error) {
-        setError(error.message ?? 'That code isn’t right');
+        setError(error.message ?? "That code isn't right");
       } else {
         onSignedInAction();
       }

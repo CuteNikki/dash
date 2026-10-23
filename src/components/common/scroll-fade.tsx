@@ -24,7 +24,7 @@ export function ScrollFade({
   fill,
   shrink,
   ref,
-  onScroll,
+  onScrollAction,
   children,
 }: {
   /** The scrolling area's own, such as its height and overflow */
@@ -43,7 +43,7 @@ export function ScrollFade({
   shrink?: boolean;
   /** The scrolling area itself, for one that also scrolls it */
   ref?: React.RefObject<HTMLDivElement | null>;
-  onScroll?: (e: React.UIEvent<HTMLDivElement>) => void;
+  onScrollAction?: (e: React.UIEvent<HTMLDivElement>) => void;
   children: React.ReactNode;
 }) {
   const own = useRef<HTMLDivElement>(null);
@@ -106,7 +106,7 @@ export function ScrollFade({
         ref={scroller}
         onScroll={(e) => {
           measure();
-          onScroll?.(e);
+          onScrollAction?.(e);
         }}
         className={className}
       >

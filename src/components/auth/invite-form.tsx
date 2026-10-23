@@ -115,7 +115,7 @@ export function InviteForm({
           const form = new FormData(e.currentTarget);
           const field = (name: string) => String(form.get(name) ?? '');
           if (field('password') !== field('repeat')) {
-            setError('The passwords don’t match');
+            setError("The passwords don't match");
             return;
           }
           startTransition(async () => {

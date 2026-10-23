@@ -19,7 +19,7 @@ async function onStack(
   await requireAccess('manage');
   const stack = await stackOf(containerId);
   if (!stack) {
-    return { ok: false, error: 'This container isn’t part of a compose stack' };
+    return { ok: false, error: "This container isn't part of a compose stack" };
   }
   try {
     return (await change(stack)) ?? { ok: true };

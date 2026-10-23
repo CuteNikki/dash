@@ -16,7 +16,7 @@ import { relay } from '@/lib/apps/relay';
 import { seerr } from '@/lib/apps/seerr';
 import { stalwart } from '@/lib/apps/stalwart';
 
-/** The apps dash can read, by their image's name, "lscr.io/linuxserver/sonarr" → sonarr, or by a dash.app label. */
+/** The apps the dashboard can read, by their image's name, "lscr.io/linuxserver/sonarr" → sonarr, or by a dash.app label. */
 export const APPS: Record<string, App> = {
   sonarr,
   radarr,

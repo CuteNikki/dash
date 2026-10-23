@@ -36,10 +36,10 @@ const CHOICE =
  */
 export function TemplatePicker({
   picked,
-  onPick,
+  onPickAction,
 }: {
   picked: ServiceTemplate;
-  onPick: (template: ServiceTemplate) => void;
+  onPickAction: (template: ServiceTemplate) => void;
 }) {
   const [search, setSearch] = useState('');
   const typed = search.trim().toLowerCase();
@@ -86,7 +86,7 @@ export function TemplatePicker({
             type='button'
             className={CHOICE}
             aria-pressed={!picked.id && !picked.image}
-            onClick={() => onPick(blankTemplate())}
+            onClick={() => onPickAction(blankTemplate())}
           >
             <span className='flex size-8 shrink-0 items-center justify-center rounded-md border border-dashed text-muted-foreground'>
               <FileIcon className='size-4' />
@@ -105,7 +105,7 @@ export function TemplatePicker({
             type='button'
             className={CHOICE}
             aria-pressed={picked.id === t.id}
-            onClick={() => onPick(t)}
+            onClick={() => onPickAction(t)}
           >
             <ServiceIcon icon={t.icon} name={t.name} className='size-8' />
             <span className='flex min-w-0 flex-col'>
@@ -132,7 +132,7 @@ export function TemplatePicker({
               type='button'
               className={cn(CHOICE, 'col-span-full')}
               aria-pressed={!picked.id && picked.image === image.image}
-              onClick={() => onPick(blankTemplate(image.image))}
+              onClick={() => onPickAction(blankTemplate(image.image))}
             >
               <span className='flex min-w-0 flex-1 flex-col'>
                 <span className='flex items-center gap-1.5 truncate font-mono'>

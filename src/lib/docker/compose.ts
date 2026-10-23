@@ -47,7 +47,7 @@ export function runCompose(stack: Stack, args: string[]) {
 
 /**
  * Starts `docker compose <args>` for a stack a couple of seconds from now,
- * and leaves it to run, for one that stops dash itself: by then dash has
+ * and leaves it to run, for one that stops the dashboard itself: by then the dashboard has
  * said it's done.
  */
 export function startCompose(stack: Stack, args: string[]) {
@@ -64,7 +64,7 @@ export async function composeOutput(stack: Stack, args: string[]) {
   return { ok, output: lines.map((l) => l.line).join('\n') };
 }
 
-/** What Compose makes of a stack's files, the parts dash reads. */
+/** What Compose makes of a stack's files, the parts the dashboard reads. */
 export type ComposeConfig = {
   services: Record<
     string,

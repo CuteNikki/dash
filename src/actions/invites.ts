@@ -10,7 +10,7 @@ import { whileCreatingAccount } from '@/lib/auth/setup';
 import { db } from '@/lib/db';
 
 const AcceptInput = z.object({
-  token: z.string().regex(/^[\w-]{20,100}$/, 'That invite link isn’t whole'),
+  token: z.string().regex(/^[\w-]{20,100}$/, "That invite link isn't whole"),
   name: z.string().trim().min(1, 'Enter your name').max(100),
   password: z
     .string()

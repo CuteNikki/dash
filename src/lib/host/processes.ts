@@ -76,13 +76,13 @@ function lockedReason(
   d: Pick<ProcessDetails, 'pid' | 'parentPid' | 'name' | 'containerId'>
 ) {
   if (d.pid === 1)
-    return 'It’s the server’s own first process, which runs all the others.';
-  if (d.pid === 2 || d.parentPid === 2) return 'It’s part of the kernel.';
+    return "It's the server's own first process, which runs all the others.";
+  if (d.pid === 2 || d.parentPid === 2) return "It's part of the kernel.";
   if (ESSENTIAL.test(d.name)) {
     return 'The server depends on it: stopping it could take every service down, or lock you out.';
   }
   // A container's id begins with its hostname, so this is the dashboard's own
-  if (d.containerId?.startsWith(hostname())) return 'It’s this dashboard.';
+  if (d.containerId?.startsWith(hostname())) return "It's this dashboard.";
   return undefined;
 }
 
@@ -223,8 +223,8 @@ exit ${STILL_RUNNING}`,
         ok: false,
         outcome: 'running',
         error: force
-          ? 'It’s still there: it may be waiting on the disk, which even a forced stop has to wait for.'
-          : 'It’s still running: it may be finishing up, or ignoring the request.',
+          ? "It's still there: it may be waiting on the disk, which even a forced stop has to wait for."
+          : "It's still running: it may be finishing up, or ignoring the request.",
       };
     default:
       return {

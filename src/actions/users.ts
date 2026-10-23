@@ -154,7 +154,7 @@ export async function setPersonDisabled(
   if (typeof disabled !== 'boolean') return { error: 'On or off' };
   if (disabled) {
     if (userId === access.user.id) {
-      return { error: 'You can’t disable your own account' };
+      return { error: "You can't disable your own account" };
     }
     const kept = await keepsAnOwner(userId);
     if (kept) return { error: kept };
@@ -181,7 +181,7 @@ export async function signOutPerson(userId: string): Promise<PeopleResult> {
 export async function removePerson(userId: string): Promise<PeopleResult> {
   const access = await requireAccess('users');
   if (userId === access.user.id) {
-    return { error: 'You can’t remove your own account' };
+    return { error: "You can't remove your own account" };
   }
   const kept = await keepsAnOwner(userId);
   if (kept) return { error: kept };

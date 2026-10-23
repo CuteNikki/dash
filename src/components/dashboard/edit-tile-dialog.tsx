@@ -31,16 +31,16 @@ import { Switch } from '@/components/ui/switch';
 export function EditTileDialog({
   service,
   groups,
-  onClose,
-  onSaved,
+  onCloseAction,
+  onSavedAction,
 }: {
   service?: Service;
   groups: string[];
-  onClose: () => void;
-  onSaved: () => void;
+  onCloseAction: () => void;
+  onSavedAction: () => void;
 }) {
   return (
-    <Dialog open={!!service} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={!!service} onOpenChange={(open) => !open && onCloseAction()}>
       <DialogContent>
         {service && (
           <EditTileForm
@@ -48,8 +48,8 @@ export function EditTileDialog({
             service={service}
             groups={groups}
             onDone={() => {
-              onSaved();
-              onClose();
+              onSavedAction();
+              onCloseAction();
             }}
           />
         )}
@@ -168,7 +168,7 @@ function EditTileForm({
             id='tile-icon'
             value={icon}
             name={name}
-            onChange={setIcon}
+            onChangeAction={setIcon}
           />
         </div>
         <div className='flex flex-col gap-2'>
@@ -176,7 +176,7 @@ function EditTileForm({
           <AddressesField
             id='tile-addresses'
             items={addresses}
-            onChange={setAddresses}
+            onChangeAction={setAddresses}
           />
         </div>
         <div className='flex flex-col gap-2'>
@@ -185,7 +185,7 @@ function EditTileForm({
             id='tile-group'
             value={group}
             groups={groups}
-            onChange={setGroup}
+            onChangeAction={setGroup}
           />
         </div>
         <div className='flex items-center gap-2'>

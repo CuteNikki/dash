@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   const input = NewService.safeParse(await request.json().catch(() => null));
   if (!input.success) {
     return Response.json(
-      { error: input.error.issues[0]?.message ?? 'That form isn’t right' },
+      { error: input.error.issues[0]?.message ?? "That form isn't right" },
       { status: 400 }
     );
   }

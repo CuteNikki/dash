@@ -532,16 +532,16 @@ export function Board({
   columns,
   editing,
   saved,
-  onLayout,
-  onRename,
+  onLayoutAction,
+  onRenameAction,
 }: {
   sections: BoardSection[];
   columns: number;
   editing: boolean;
   saved: SavedCell[];
-  onLayout: (change: LayoutChange) => void;
+  onLayoutAction: (change: LayoutChange) => void;
   /** A group renamed while editing */
-  onRename: (section: BoardSection, name: string) => void;
+  onRenameAction: (section: BoardSection, name: string) => void;
 }) {
   // Each section full width, one under another, until they're arranged
   const page = useArrange(
@@ -561,7 +561,7 @@ export function Board({
       },
     ],
     (layouts) =>
-      onLayout({
+      onLayoutAction({
         cells: [...layouts.get(PAGE)!].map(([key, c]) => ({
           key,
           columns,
@@ -589,7 +589,7 @@ export function Board({
   });
   const tiles = useArrange(grids, (layouts, d) => {
     const to = sections.find((s) => s.id === d.to)!;
-    onLayout({
+    onLayoutAction({
       cells: [...new Set([d.from, d.to])].flatMap((id) => {
         const n = grids.find((g) => g.id === id)!.columns;
         return [...layouts.get(id)!].map(([key, c]) => ({
@@ -699,7 +699,7 @@ export function Board({
                       page.press(e, key, mode, node, 0)
                     }
                     onNudge={(e) => page.nudge(e, key)}
-                    onRename={(name) => onRename(section, name)}
+                    onRename={(name) => onRenameAction(section, name)}
                   >
                     {tileGrid(section, editing)}
                   </SectionBlock>

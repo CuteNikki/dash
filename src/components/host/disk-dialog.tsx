@@ -70,15 +70,15 @@ const SCANNING_POLL_MS = 1_000;
  */
 export function DiskDialog({
   open,
-  onClose,
+  onCloseAction,
   disk,
 }: {
   open: boolean;
-  onClose: () => void;
+  onCloseAction: () => void;
   disk: Capacity;
 }) {
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && onCloseAction()}>
       <DialogContent className='flex h-full max-h-none max-w-full flex-col gap-4 rounded-none sm:h-5/6 sm:max-w-5xl sm:rounded-xl'>
         <DialogHeader>
           <DialogTitle>Disk usage</DialogTitle>
@@ -215,13 +215,13 @@ function DockerSection({
 
   function prune(what: Prunable) {
     startTransition(() =>
-      attempt('Couldn’t free it', async () => {
+      attempt("Couldn't free it", async () => {
         const result = await pruneDocker(what);
         if (result.ok) {
           toast.success(`Freed ${formatBytes(result.freed)}`);
           onFreed();
         } else {
-          toast.error('Couldn’t free it', { description: result.error });
+          toast.error("Couldn't free it", { description: result.error });
         }
         setAsking(undefined);
       })
@@ -414,7 +414,7 @@ function Folders({ scanning }: { scanning: boolean }) {
             fill
           >
             {entries.length === 0 ? (
-              <p className='p-2 text-muted-foreground'>It’s empty.</p>
+              <p className='p-2 text-muted-foreground'>It's empty.</p>
             ) : (
               <ul>
                 {entries.map((entry) => (
@@ -461,7 +461,7 @@ function Size({ size }: { size: MeasuredSize & { elsewhere?: boolean } }) {
   if (size.before !== undefined) {
     return (
       <span
-        title='What it was last time; it’s being measured again'
+        title="What it was last time; it's being measured again"
         className='opacity-50'
       >
         {formatBytes(size.before)}
@@ -572,7 +572,7 @@ function Entry({
     <div
       title={
         entry.elsewhere
-          ? 'Not on this disk: the system’s, memory’s, or another disk’s'
+          ? "Not on this disk: the system's, memory's, or another disk's"
           : undefined
       }
       className={cn(ROW, 'text-muted-foreground')}

@@ -251,7 +251,7 @@ function SetupStep({
       attempt("Couldn't turn it on", async () => {
         const { error } = await authClient.twoFactor.verifyTotp({ code });
         if (error) {
-          setError(error.message ?? 'That code isn’t right');
+          setError(error.message ?? "That code isn't right");
           return;
         }
         toast.success('Two-factor is on', {
@@ -265,7 +265,9 @@ function SetupStep({
   return (
     <div className='flex flex-col gap-4'>
       <div className='flex flex-col gap-3'>
-        <h4 className='font-medium'>1. Add dash to your authenticator app</h4>
+        <h4 className='font-medium'>
+          1. Add the dashboard to your authenticator app
+        </h4>
         <p>
           Scan this with an app such as 1Password, Google Authenticator or
           Aegis, or type in the key below it.

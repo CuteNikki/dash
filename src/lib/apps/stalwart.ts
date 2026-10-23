@@ -50,7 +50,7 @@ async function accountOf(url: string) {
     headersOf()
   );
   const account = session.primaryAccounts['urn:stalwart:jmap'];
-  if (!account) throw new Error('Its key can’t see the queue');
+  if (!account) throw new Error("Its key can't see the queue");
   return account;
 }
 
@@ -129,7 +129,7 @@ export const stalwart: App = {
             dim: stateOf(r.status) === 'delivered',
           }))
         ),
-        empty: 'Nothing’s waiting to go out',
+        empty: "Nothing's waiting to go out",
       },
     ];
   },

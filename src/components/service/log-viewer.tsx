@@ -66,7 +66,7 @@ export function LogViewer({
         lines={error ? [] : lines}
         label='logs'
         follow={follow}
-        onFollowChange={setFollow}
+        onFollowChangeAction={setFollow}
         className='flex-1'
         empty={
           error ? (
@@ -83,7 +83,7 @@ export function LogViewer({
           containerId={containerId}
           running={commands.running}
           // Back to the end, where the reply comes in
-          onSent={() => setFollow(true)}
+          onSentAction={() => setFollow(true)}
         />
       )}
     </div>

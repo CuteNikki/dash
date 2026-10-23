@@ -143,18 +143,18 @@ export function FilesPanel({
             keysFrom={panel}
             chosen={path}
             unsaved={unsaved}
-            onChoose={(p) => {
+            onChooseAction={(p) => {
               setChosen(p);
               setProblem(undefined);
             }}
-            onRenamed={(from, to) => {
+            onRenamedAction={(from, to) => {
               const move = (p: string) => movedPath(p, from, to);
               setChosen(move(path));
               setEdits((e) => mapKeys(e, move));
               setPreviewed((p) => new Set([...p].map(move)));
             }}
             onChangedAction={onFilesChangedAction}
-            onDeleted={(gone) => {
+            onDeletedAction={(gone) => {
               const kept = (p: string) => !isWithin(gone, p);
               if (!kept(path)) setChosen(undefined);
               setEdits((e) =>

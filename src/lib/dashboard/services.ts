@@ -204,7 +204,7 @@ export async function getDashboard(who: {
   ]);
 
   // The development helper that reads the server's stats isn't a service, nor
-  // is a container dash runs for a moment, as to measure the disk
+  // is a container the dashboard runs for a moment, as to measure the disk
   const helper = process.env.HOST_HELPER_CONTAINER;
   const shown = containers.filter(
     (c) => c.name !== helper && !c.labels[RUN_LABEL]
