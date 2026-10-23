@@ -14,6 +14,7 @@ import { ListEndIcon, SearchIcon, WrapTextIcon } from 'lucide-react';
 import type { Tone } from '@/lib/ansi';
 import type { LogLine } from '@/lib/log-lines';
 import { cn } from '@/lib/utils';
+import { splitWide } from '@/lib/wide-text';
 
 import { ScrollFade } from '@/components/common/scroll-fade';
 import { Button } from '@/components/ui/button';
@@ -261,10 +262,30 @@ function Line({ line, wrap }: { line: LogLine; wrap: boolean }) {
             )}
           >
             {/* An empty line keeps its height */}
-            {segment.text || ' '}
+            <Cells text={segment.text || ' '} />
           </span>
         ))}
       </span>
     </div>
+  );
+}
+
+/**
+ * Text as a terminal lays it out: each wide character, an emoji shown as a
+ * picture, exactly two cells, however wide its font draws it, so a table
+ * printed around one lines up as it did there.
+ */
+function Cells({ text }: { text: string }) {
+  return splitWide(text).map((run, i) =>
+    run.wide ? (
+      <span
+        key={i}
+        className='inline-block h-lh w-[2ch] overflow-hidden text-center align-top'
+      >
+        {run.text}
+      </span>
+    ) : (
+      <Fragment key={i}>{run.text}</Fragment>
+    )
   );
 }

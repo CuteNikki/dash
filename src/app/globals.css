@@ -15,7 +15,8 @@
   --color-field: var(--field);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-jetbrains-mono);
+  /* Its symbols first, as they're only for what JetBrains Mono's lacking */
+  --font-mono: var(--font-mono-symbols), var(--font-jetbrains-mono);
   /* No ligatures: logs show the characters as written, -> not an arrow */
   --font-mono--font-feature-settings: 'calt' 0, 'liga' 0;
   --font-heading: var(--font-geist-sans);

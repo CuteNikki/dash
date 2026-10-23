@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Geist, JetBrains_Mono } from 'next/font/google';
+import localFont from 'next/font/local';
 
 import { cn } from '@/lib/utils';
 
@@ -13,6 +14,18 @@ const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
 const jetbrainsMono = JetBrains_Mono({
   variable: '--font-jetbrains-mono',
   subsets: ['latin'],
+});
+// JetBrains Mono's box drawing, block elements, arrows and shapes, which
+// Google's subsets leave out: a log's tables drawn in another font, its
+// lines another width than the letters, don't line up. Fetched only for a
+// page that has some
+const monoSymbols = localFont({
+  src: './fonts/jetbrains-mono-symbols.woff2',
+  variable: '--font-mono-symbols',
+  weight: '100 800',
+  declarations: [{ prop: 'unicode-range', value: 'U+2190-21FF, U+2500-25FF' }],
+  adjustFontFallback: false,
+  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -44,7 +57,8 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
         // shorter view, the list after the tiles, doesn't shift everything
         'h-full scrollbar-gutter-stable antialiased',
         geistSans.variable,
-        jetbrainsMono.variable
+        jetbrainsMono.variable,
+        monoSymbols.variable
       )}
     >
       <body className='flex min-h-full flex-col'>
