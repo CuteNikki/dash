@@ -12,7 +12,8 @@ import {
   type ContainerAction,
 } from '@/lib/docker/docker';
 import { isCaddy, RELOAD_CADDY, reloadError } from '@/lib/stacks/caddy';
-import { checkUpdatesNow } from '@/lib/updates/check';
+import type { ServiceUpdate } from '@/lib/types';
+import { checkUpdateNow, checkUpdatesNow } from '@/lib/updates/check';
 
 /** Longer than any command a console takes, to keep a paste from flooding one. */
 const MAX_COMMAND = 1_000;
@@ -94,6 +95,25 @@ export async function reloadCaddyConfig(id: string): Promise<ActionResult> {
 }
 
 /** Looks for updates everywhere now, rather than when they're next due. */
+/** Looks for one service's update now, and what it found: none, when it's up to date. */
+export async function checkUpdate(
+  id: string
+): Promise<
+  { ok: true; update?: ServiceUpdate } | { ok: false; error: string }
+> {
+  const found = await serviceForAction(id, 'control');
+  if ('refused' in found) return { ok: false, error: found.refused };
+  try {
+    const { update, error } = await checkUpdateNow(
+      await listContainers(),
+      found.container
+    );
+    return error ? { ok: false, error } : { ok: true, update };
+  } catch (error) {
+    return { ok: false, error: (error as Error).message };
+  }
+}
+
 export async function checkUpdates(): Promise<ActionResult> {
   await requireAccess('control');
   try {

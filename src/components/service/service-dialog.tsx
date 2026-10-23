@@ -15,7 +15,11 @@ import {
   Trash2Icon,
 } from 'lucide-react';
 
-import { reloadCaddyConfig, runContainerAction } from '@/actions/containers';
+import {
+  checkUpdate,
+  reloadCaddyConfig,
+  runContainerAction,
+} from '@/actions/containers';
 import { resetTile, restoreTile } from '@/actions/tiles';
 import { isRunning, labelOf } from '@/lib/dashboard/status';
 import type { ContainerAction } from '@/lib/docker/docker';
@@ -172,6 +176,7 @@ function ServiceBody({
   memoryTotal?: number;
 }) {
   const [pending, startTransition] = useTransition();
+  const [checking, startCheck] = useTransition();
   const [confirmStop, setConfirmStop] = useState(false);
   const [confirmUpdate, setConfirmUpdate] = useState(false);
   const running = isRunning(service.state);
@@ -240,6 +245,25 @@ function ServiceBody({
           },
         });
         onRemoved();
+      })
+    );
+  }
+
+  /** Looks for its update now, rather than in a few hours with the rest. */
+  function checkForUpdate() {
+    startCheck(() =>
+      attempt(`Couldn't look for ${service.name}'s updates`, async () => {
+        const result = await checkUpdate(service.containerId);
+        if (!result.ok) {
+          toast.error(`Couldn't look for ${service.name}'s updates`, {
+            description: result.error,
+          });
+        } else if (result.update) {
+          toast.success(`Found an update for ${service.name}`, {
+            description: updateLabel(result.update),
+          });
+        } else toast.success(`${service.name} is up to date`);
+        onChanged();
       })
     );
   }
@@ -333,6 +357,18 @@ function ServiceBody({
             <Button variant='outline' onClick={() => onEdit(service)}>
               <PencilIcon />
               Edit tile
+            </Button>
+          )}
+          {/* Until there's one to run, as one found's Update takes its place */}
+          {!site && controls && !service.update && (
+            <Button
+              variant='outline'
+              disabled={checking}
+              title={service.updateError}
+              onClick={checkForUpdate}
+            >
+              <RefreshCwIcon className={cn(checking && 'animate-spin')} />
+              Check for updates
             </Button>
           )}
           {/* New commits rebuild the whole stack, which only they may */}

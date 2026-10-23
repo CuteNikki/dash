@@ -76,10 +76,17 @@ const isBuilt = (c: Container) =>
  * Looks again at what's stale or not yet known: each image's own digests,
  * then each tag's image or newer versions, and each built stack's
  * repository, fetched first. All of it with force, as Check now does.
+ * With `only`, just those containers' are looked at, the rest still there
+ * to judge them by, as whether another has the newer image already.
  */
-async function refresh(containers: Container[], force: boolean) {
+async function refresh(
+  containers: Container[],
+  force: boolean,
+  only?: Container[]
+) {
+  const looked = only ?? containers;
   await Promise.all(
-    [...new Set(containers.map((c) => c.imageId))]
+    [...new Set(looked.map((c) => c.imageId))]
       .filter((id) => !checker.images.has(id))
       .map(async (id) => {
         const details = await imageDetails(id).catch(() => undefined);
@@ -88,11 +95,9 @@ async function refresh(containers: Container[], force: boolean) {
   );
 
   const refs = new Set(
-    containers
-      .filter((c) => !isBuilt(c) && parseRef(c.image))
-      .map((c) => c.image)
+    looked.filter((c) => !isBuilt(c) && parseRef(c.image)).map((c) => c.image)
   );
-  const dirs = new Set(containers.filter(isBuilt).map((c) => c.stack!.dir));
+  const dirs = new Set(looked.filter(isBuilt).map((c) => c.stack!.dir));
   await Promise.all([
     ...[...refs]
       .filter(
@@ -135,7 +140,7 @@ async function refresh(containers: Container[], force: boolean) {
         );
       }),
   ]);
-  checker.checkedAt = Date.now();
+  if (!only) checker.checkedAt = Date.now();
 }
 
 function start(containers: Container[], force: boolean) {
@@ -295,6 +300,31 @@ export function currentUpdates(containers: Container[]) {
 export async function checkUpdatesNow(containers: Container[]) {
   await checker.running;
   await start(containers, true);
+}
+
+/**
+ * Looks for one container's update now, after any look already going on,
+ * and what it found: its image's registry asked again, or its repository
+ * fetched.
+ */
+export async function checkUpdateNow(containers: Container[], c: Container) {
+  await checker.running;
+  await refresh(containers, true, [c]);
+  // Nothing found, as there's nowhere to look, isn't being up to date
+  if (isBuilt(c)) {
+    const repo = checker.repos.get(c.stack!.dir);
+    if (!repo?.error && !repo?.value) {
+      return {
+        error:
+          "Its folder isn't a git repository following a branch, so there's nowhere to look",
+      };
+    }
+  } else if (!parseRef(c.image)) {
+    return {
+      error: "Its image isn't from a registry, so there's nowhere to look",
+    };
+  }
+  return updateOf(c);
 }
 
 /** Forgets what was found for a container's image or repository, after updating it. */
