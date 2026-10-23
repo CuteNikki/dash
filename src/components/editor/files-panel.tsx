@@ -29,7 +29,10 @@ import { attempt } from '@/components/common/toasts';
 import { keptUnder, useKept } from '@/components/common/use-kept';
 import { CodeEditor } from '@/components/editor/code-editor';
 import { FileTree, isWithin, TreeToolbar } from '@/components/editor/file-tree';
-import { MarkdownPreview } from '@/components/editor/markdown-preview';
+import {
+  MarkdownPreview,
+  stackImagePath,
+} from '@/components/editor/markdown-preview';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
@@ -201,7 +204,16 @@ export function FilesPanel({
                 {name}: {opened.reason}
               </p>
             ) : previewing ? (
-              <MarkdownPreview text={text} />
+              <MarkdownPreview
+                text={text}
+                // Its pictures in the stack, from the stack's files
+                imageSrc={(src) => {
+                  const image = stackImagePath(src, path);
+                  return image === undefined
+                    ? src
+                    : `${base}/image?path=${encodeURIComponent(image)}`;
+                }}
+              />
             ) : (
               <CodeEditor
                 key={path}

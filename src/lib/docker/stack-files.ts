@@ -112,6 +112,40 @@ export async function openStackFile(
   return { content: (await readHostFile(path)) ?? '' };
 }
 
+/** The most of a picture read to show it, as a README's. */
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+
+/** Pictures a README shows, by their extension, as the browser's told what they are. */
+const IMAGE_TYPES: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  avif: 'image/avif',
+  svg: 'image/svg+xml',
+  ico: 'image/x-icon',
+  bmp: 'image/bmp',
+};
+
+/**
+ * One of a stack's pictures, by its path in the stack, as a Markdown file
+ * there shows it: its bytes and what it is, or why it can't be shown.
+ */
+export async function readStackImage(
+  stack: Stack,
+  relative: string
+): Promise<{ bytes: Buffer; type: string } | { reason: string }> {
+  const type = IMAGE_TYPES[posix.extname(relative).slice(1).toLowerCase()];
+  if (!type) return { reason: 'Not a picture' };
+  const path = await resolve(stack, relative);
+  const siblings = await listHostDir(posix.dirname(path)).catch(() => []);
+  const entry = siblings.find((e) => e.name === posix.basename(path));
+  if (!entry || entry.kind === 'dir') return { reason: "There's no such file" };
+  if (entry.size > MAX_IMAGE_BYTES) return { reason: 'Too big to show here' };
+  return { bytes: await readHostFileStart(path, entry.size), type };
+}
+
 export type FileResult = { ok: true } | { ok: false; error: string };
 
 /**

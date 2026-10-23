@@ -11,6 +11,8 @@ import {
 import { hostOf } from '@/lib/ports';
 import { lastMinutes } from '@/lib/recent';
 
+import { stackImagePath } from '@/components/editor/markdown-preview';
+
 describe('formatBytes', () => {
   test('counts in powers of 1024, with a decimal below ten', () => {
     expect(formatBytes(0)).toBe('0 B');
@@ -101,5 +103,30 @@ describe('lastMinutes', () => {
       at: [],
       cpu: [],
     });
+  });
+});
+
+describe('stackImagePath', () => {
+  test("finds a picture from the file's folder, as GitHub does", () => {
+    expect(stackImagePath('docs/a.png', 'README.md')).toBe('docs/a.png');
+    expect(stackImagePath('docs/a.png', 'app/README.md')).toBe(
+      'app/docs/a.png'
+    );
+    expect(stackImagePath('../a.png', 'app/docs/x.md')).toBe('app/a.png');
+    expect(stackImagePath('./a.png?raw=1', 'app/x.md')).toBe('app/a.png');
+  });
+  test("goes from the stack's folder for a path from its root", () => {
+    expect(stackImagePath('/docs/a.png', 'app/README.md')).toBe('docs/a.png');
+  });
+  test('leaves web addresses and the like as they are', () => {
+    expect(
+      stackImagePath('https://img.shields.io/x.svg', 'README.md')
+    ).toBeUndefined();
+    expect(
+      stackImagePath('//cdn.example.com/a.png', 'README.md')
+    ).toBeUndefined();
+    expect(
+      stackImagePath('data:image/png;base64,AAAA', 'README.md')
+    ).toBeUndefined();
   });
 });
