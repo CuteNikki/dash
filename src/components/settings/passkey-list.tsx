@@ -227,7 +227,7 @@ function PasskeyRow({
           />
           <Button
             type='submit'
-            variant='ghost'
+            variant='outline'
             size='icon'
             disabled={pending}
             aria-label='Save the name'
@@ -237,7 +237,7 @@ function PasskeyRow({
           </Button>
           <Button
             type='button'
-            variant='ghost'
+            variant='outline'
             size='icon'
             aria-label='Cancel'
             title='Cancel'
@@ -256,27 +256,30 @@ function PasskeyRow({
               Added {added}
             </span>
           )}
-          <Button
-            variant='ghost'
-            size='icon'
-            aria-label={`Rename ${nameOf(passkey)}`}
-            title='Rename'
-            onClick={() => {
-              setName(passkey.name ?? '');
-              setEditing(true);
-            }}
-          >
-            <PencilIcon />
-          </Button>
-          <Button
-            variant='destructive'
-            size='icon'
-            aria-label={`Remove ${nameOf(passkey)}`}
-            title='Remove'
-            onClick={onRemoveAction}
-          >
-            <Trash2Icon />
-          </Button>
+          {/* Together, as one passkey's, apart from the next row's */}
+          <span className='flex shrink-0 items-center gap-1'>
+            <Button
+              variant='outline'
+              size='icon'
+              aria-label={`Rename ${nameOf(passkey)}`}
+              title='Rename'
+              onClick={() => {
+                setName(passkey.name ?? '');
+                setEditing(true);
+              }}
+            >
+              <PencilIcon />
+            </Button>
+            <Button
+              variant='destructive'
+              size='icon'
+              aria-label={`Remove ${nameOf(passkey)}`}
+              title='Remove'
+              onClick={onRemoveAction}
+            >
+              <Trash2Icon />
+            </Button>
+          </span>
         </>
       )}
     </li>

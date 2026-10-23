@@ -235,7 +235,7 @@ export function FilesPanel({
           {info.dir}/{path}
         </span>
         <Button
-          variant='ghost'
+          variant='outline'
           disabled={pending || !changed}
           onClick={() => {
             setEdits((e) => without(e, path));
@@ -312,7 +312,7 @@ function FilesSkeleton() {
         <span className='mr-auto'>
           <TextSkeleton className='w-64' />
         </span>
-        <Button variant='ghost' disabled>
+        <Button variant='outline' disabled>
           <Undo2Icon />
           Revert
         </Button>

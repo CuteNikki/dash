@@ -216,7 +216,7 @@ function CodeStep({
       </Button>
       <Button
         type='button'
-        variant='ghost'
+        variant='outline'
         disabled={pending}
         onClick={() => onBackAction()}
       >

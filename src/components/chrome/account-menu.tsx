@@ -30,7 +30,7 @@ export function AccountMenu({ me }: { me: Me }) {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            variant='ghost'
+            variant='outline'
             size='icon'
             aria-label={`Account: ${me.name}`}
             className='rounded-full'

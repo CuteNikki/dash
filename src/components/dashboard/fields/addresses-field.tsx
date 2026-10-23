@@ -125,7 +125,7 @@ export function AddressesField({
       </DndContext>
       <Button
         type='button'
-        variant='ghost'
+        variant='outline'
         size='sm'
         className='self-start text-muted-foreground'
         onClick={() => insertAfter(items.length - 1, [''])}

@@ -222,7 +222,7 @@ function CommitView({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      variant='ghost'
+                      variant='outline'
                       size='icon-sm'
                       aria-label='Copy the whole hash'
                       onClick={() => copy(commit.id)}

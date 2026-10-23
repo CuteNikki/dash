@@ -79,7 +79,7 @@ export function InviteForm({
             <KeyRoundIcon />
             Add a passkey
           </Button>
-          <Button variant='ghost' disabled={pending} onClick={goIn}>
+          <Button variant='outline' disabled={pending} onClick={goIn}>
             Skip
           </Button>
         </div>

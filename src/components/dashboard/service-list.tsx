@@ -410,7 +410,7 @@ function Row({
             // Nothing to start or stop: only somewhere to go
             service.url && (
               <Button
-                variant='ghost'
+                variant='outline'
                 size='icon-sm'
                 aria-label='Open'
                 title='Open'
@@ -460,7 +460,7 @@ function ActionButton({
 }) {
   return (
     <Button
-      variant='ghost'
+      variant='outline'
       size='icon-sm'
       aria-label={label}
       title={label}

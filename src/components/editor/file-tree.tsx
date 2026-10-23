@@ -453,7 +453,7 @@ function ToolbarButton({
     <Tooltip>
       <TooltipTrigger asChild>
         <Button
-          variant='ghost'
+          variant='outline'
           size='icon-sm'
           aria-label={label}
           onClick={onClick}

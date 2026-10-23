@@ -231,7 +231,7 @@ function SystemButton({
   ].filter(Boolean);
   return (
     <Button
-      variant='ghost'
+      variant='outline'
       size='xs'
       onClick={onClick}
       className={cn(

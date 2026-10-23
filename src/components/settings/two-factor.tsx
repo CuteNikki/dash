@@ -220,7 +220,7 @@ function PasswordStep({
         >
           {PURPOSES[purpose]}
         </Button>
-        <Button type='button' variant='ghost' onClick={onCancelAction}>
+        <Button type='button' variant='outline' onClick={onCancelAction}>
           Cancel
         </Button>
       </div>
@@ -272,12 +272,12 @@ function SetupStep({
   }
 
   const back = (
-    <Button type='button' variant='ghost' onClick={() => setAt(at - 1)}>
+    <Button type='button' variant='outline' onClick={() => setAt(at - 1)}>
       Back
     </Button>
   );
   const cancel = (
-    <Button type='button' variant='ghost' onClick={onCancelAction}>
+    <Button type='button' variant='outline' onClick={onCancelAction}>
       Cancel
     </Button>
   );
@@ -324,7 +324,7 @@ function SetupStep({
               <div className='flex items-center gap-1'>
                 <code className='font-mono break-all'>{secret}</code>
                 <Button
-                  variant='ghost'
+                  variant='outline'
                   size='icon'
                   aria-label='Copy the key'
                   title='Copy the key'

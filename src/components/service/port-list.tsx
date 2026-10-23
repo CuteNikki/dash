@@ -49,7 +49,7 @@ export function PortList({ service }: { service: Service }) {
             {portName(port)}
           </span>
           <Button
-            variant='ghost'
+            variant='outline'
             size='icon-sm'
             aria-label={`Copy ${host}:${port}`}
             title={`Copy ${host}:${port}`}

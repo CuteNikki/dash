@@ -223,7 +223,7 @@ function PersonRow({
       {!person.you && (
         <div className='flex shrink-0 items-center gap-1'>
           <Button
-            variant='ghost'
+            variant='outline'
             size='icon'
             aria-label={`Change ${name}'s access`}
             title='Change access'
@@ -250,7 +250,7 @@ function PersonRow({
           </Button>
           {person.disabled ? (
             <Button
-              variant='ghost'
+              variant='outline'
               size='icon'
               aria-label={`Enable ${name}'s account`}
               title='Enable'
