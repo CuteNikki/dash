@@ -33,11 +33,25 @@ export async function backupState(): Promise<BackupState> {
   };
 }
 
+/** The longest the window waits for the backups, so it never waits for ever. */
+const WAIT_MS = 45_000;
+
 /** Every backup there is, and what they take up, or why they couldn't be read. */
 export async function backupSnapshots(): Promise<BackupSnapshots> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    return await readSnapshots();
+    return await Promise.race([
+      readSnapshots(),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error('No answer from restic in 45 seconds')),
+          WAIT_MS
+        );
+      }),
+    ]);
   } catch (error) {
     return { snapshots: [], error: (error as Error).message };
+  } finally {
+    clearTimeout(timer);
   }
 }

@@ -76,13 +76,20 @@ export function BackupsDialog({
     { refreshInterval: (d) => (d?.running ? 5_000 : 60_000) }
   );
   // Apart, as reading them takes restic a moment: the list shows meanwhile
-  const { data: backups, mutate: rereadBackups } = useSWR<BackupSnapshots>(
+  const {
+    data: backups,
+    error: backupsError,
+    mutate: rereadBackups,
+  } = useSWR<BackupSnapshots>(
     open && data && !data.off ? '/api/backups/snapshots' : null,
     fetcher,
     { refreshInterval: 60_000 }
   );
+  // None while they're read; none at all, rather than read for ever, once
+  // reading them has failed
   const snapshotsOf = (id: string) =>
-    backups?.snapshots.filter((s) => s.source === id);
+    backupsError ? [] : backups?.snapshots.filter((s) => s.source === id);
+  const readError = backups?.error ?? backupsError?.message;
 
   /** Switches a part on or off at once, then saves it. */
   async function toggle(source: Source, enabled: boolean) {
@@ -163,9 +170,9 @@ export function BackupsDialog({
           {error && !data && (
             <p className='text-destructive'>{error.message}</p>
           )}
-          {backups?.error && (
+          {readError && (
             <p className='text-destructive'>
-              Couldn&apos;t read the backups: {backups.error}
+              Couldn&apos;t read the backups: {readError}
             </p>
           )}
           {data?.lastRun && (
