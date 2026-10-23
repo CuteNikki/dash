@@ -17,13 +17,31 @@ const HEADROOM = 1.25;
 /** Readings over longer than this say which day they're from, not just the time. */
 const DAYS_MS = 20 * 60 * 60_000;
 
-/** A line's runs of readings, each drawn on its own, so a gap shows as one. */
-function runs(values: (number | null)[]) {
+/** Readings further apart than this many of their usual steps have a gap between. */
+const GAP_STEPS = 3;
+
+/** The usual time between readings: the middle of the steps between them. */
+function usualStep(times: number[]) {
+  const steps = times
+    .slice(1)
+    .map((t, i) => t - times[i])
+    .sort((a, b) => a - b);
+  return steps[Math.floor(steps.length / 2)] ?? 0;
+}
+
+/**
+ * A line's runs of readings, each drawn on its own, so a gap shows as one:
+ * where there's no reading, or where readings stopped for a while, as
+ * while nobody was watching.
+ */
+function runs(values: (number | null)[], times: number[]) {
+  const gap = usualStep(times) * GAP_STEPS;
   const found: { start: number; values: number[] }[] = [];
   values.forEach((v, i) => {
     if (v === null) return;
     const last = found.at(-1);
-    if (last && last.start + last.values.length === i) last.values.push(v);
+    const next = last && last.start + last.values.length === i;
+    if (next && times[i] - times[i - 1] <= gap) last.values.push(v);
     else found.push({ start: i, values: [v] });
   });
   return found;
@@ -67,7 +85,9 @@ export function HistoryChart({
       ...series.map((s) => s.measure.floor)
     ) * HEADROOM;
   // Positions in percent of the chart, so the line and markers stretch with it
-  const x = (i: number) => (i / (count - 1)) * 100;
+  // Along by when each was taken, so a pause takes the room it lasted
+  const span = times[count - 1] - times[0] || 1;
+  const x = (i: number) => ((times[i] - times[0]) / span) * 100;
   const y = (v: number) => 100 - (v / top) * 100;
   const shown = index === undefined ? undefined : Math.min(index, count - 1);
   const days = times[count - 1] - times[0] > DAYS_MS;
@@ -75,7 +95,13 @@ export function HistoryChart({
   function pointAt(clientX: number, element: HTMLElement) {
     const { left, width } = element.getBoundingClientRect();
     const ratio = Math.min(1, Math.max(0, (clientX - left) / width));
-    setIndex(Math.round(ratio * (count - 1)));
+    // The reading nearest that moment
+    const at = times[0] + ratio * span;
+    let nearest = 0;
+    times.forEach((t, i) => {
+      if (Math.abs(t - at) < Math.abs(times[nearest] - at)) nearest = i;
+    });
+    setIndex(nearest);
   }
 
   function onKeyDown(e: React.KeyboardEvent) {
@@ -118,7 +144,7 @@ export function HistoryChart({
         className='size-full overflow-visible'
       >
         {series.flatMap((s) =>
-          runs(s.values).map((run) => {
+          runs(s.values, times).map((run) => {
             // A reading alone between gaps is a dot: a line of no length,
             // its round ends making one, as a circle would stretch with the box
             const alone = run.values.length === 1;

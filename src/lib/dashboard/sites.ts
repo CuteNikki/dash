@@ -1,12 +1,11 @@
 import 'server-only';
 
 import { inBackground } from '@/lib/background';
+import { lastMinutes } from '@/lib/recent';
 import type { SiteCheck } from '@/lib/types';
 
 /** How often each site is asked for its page while someone is watching. */
 const INTERVAL_MS = 30_000;
-/** Checks kept for each graph: ten minutes at one every thirty seconds. */
-const HISTORY = 20;
 /** Checking stops this long after the dashboard last asked about the sites. */
 const IDLE_MS = 120_000;
 /** A site that hasn't answered by now is down. */
@@ -36,8 +35,11 @@ if (checker.owner !== MODULE) {
   checker.owner = MODULE;
 }
 
-const recent = (history: number[] | undefined, value: number) =>
-  [...(history ?? []), value].slice(-HISTORY);
+/** A list of checks with one more on the end; lastMinutes trims them after. */
+const recent = (history: number[] | undefined, value: number) => [
+  ...(history ?? []),
+  value,
+];
 
 /** Why a request failed, in a few words: "No answer in 10 s", "ENOTFOUND"… */
 function reason(error: unknown) {
@@ -147,7 +149,10 @@ async function check(url: string) {
     ...result,
     icon: result.icon ?? before?.icon,
     at,
-    history: { at: recent(last?.at, at), ms: recent(last?.ms, result.ms) },
+    history: lastMinutes({
+      at: recent(last?.at, at),
+      ms: recent(last?.ms, result.ms),
+    }),
   });
 }
 

@@ -9,6 +9,7 @@ import {
   splitAddress,
 } from '@/lib/format';
 import { hostOf } from '@/lib/ports';
+import { lastMinutes } from '@/lib/recent';
 
 describe('formatBytes', () => {
   test('counts in powers of 1024, with a decimal below ten', () => {
@@ -68,5 +69,37 @@ describe('formatUptime', () => {
     expect(formatUptime(0.99996)).toBe('99.99%');
     expect(formatUptime(0.5)).toBe('50.00%');
     expect(formatUptime(0)).toBe('0.00%');
+  });
+});
+
+describe('lastMinutes', () => {
+  const now = 1_000_000_000;
+  const min = 60_000;
+  test('keeps only the last ten minutes, every list alike', () => {
+    const kept = lastMinutes(
+      {
+        at: [now - 13 * min, now - 11 * min, now - 9 * min, now - min],
+        cpu: [1, 2, 3, 4],
+        cores: [
+          [1, 2, 3, 4],
+          [3, 4],
+        ],
+      },
+      now
+    );
+    expect(kept).toEqual({
+      at: [now - 9 * min, now - min],
+      cpu: [3, 4],
+      cores: [
+        [3, 4],
+        [3, 4],
+      ],
+    });
+  });
+  test('keeps nothing once every reading is older', () => {
+    expect(lastMinutes({ at: [now - 20 * min], cpu: [1] }, now)).toEqual({
+      at: [],
+      cpu: [],
+    });
   });
 });

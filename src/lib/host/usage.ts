@@ -7,12 +7,11 @@ import {
   type Usage,
 } from '@/lib/docker/docker';
 import { readHost, type CpuTime, type HostReading } from '@/lib/host/host';
+import { lastMinutes } from '@/lib/recent';
 import type { HostProcess, HostStats, UsageHistory } from '@/lib/types';
 
 /** How often the server and its containers are measured while someone is watching. */
 const INTERVAL_MS = 5_000;
-/** Readings kept for each graph: ten minutes at one every five seconds. */
-const HISTORY = 120;
 /** Measuring stops this long after the dashboard was last asked for usage. */
 const IDLE_MS = 60_000;
 
@@ -42,8 +41,11 @@ if (sampler.owner !== MODULE) {
   sampler.owner = MODULE;
 }
 
-const recent = (history: number[] | undefined, value: number) =>
-  [...(history ?? []), value].slice(-HISTORY);
+/** A list of readings with one more on the end; lastMinutes trims them after. */
+const recent = (history: number[] | undefined, value: number) => [
+  ...(history ?? []),
+  value,
+];
 
 async function sampleContainers() {
   const running = (await listContainers()).filter((c) =>
@@ -60,11 +62,11 @@ async function sampleContainers() {
         const last = sampler.usage.get(c.id)?.history;
         sampler.usage.set(c.id, {
           ...reading,
-          history: {
+          history: lastMinutes({
             at: recent(last?.at, Date.now()),
             cpu: recent(last?.cpu, reading.cpu),
             memory: recent(last?.memory, reading.memory),
-          },
+          }),
         });
       } catch {
         // Stopped between listing and measuring: it drops out next time
@@ -111,7 +113,7 @@ async function sampleHost() {
       load: now.load,
       swap: now.swap,
     },
-    history: {
+    history: lastMinutes({
       at: recent(history?.at, now.at),
       cpu: recent(history?.cpu, cpu),
       coreCpu: coreCpu.map((c, i) => recent(history?.coreCpu?.[i], c)),
@@ -120,7 +122,7 @@ async function sampleHost() {
       sent: recent(history?.sent, sent),
       diskRead: recent(history?.diskRead, diskIo.read),
       diskWritten: recent(history?.diskWritten, diskIo.written),
-    },
+    }),
   };
 }
 
