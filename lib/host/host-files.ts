@@ -2,6 +2,7 @@ import 'server-only';
 
 import {
   chown,
+  lstat,
   mkdir,
   readdir,
   readFile,
@@ -167,6 +168,25 @@ export async function realHostPath(path: string) {
   // BusyBox's realpath takes no --; the path is always absolute anyway
   const { stdout, exitCode } = await helper('realpath "$1"', path);
   return exitCode === 0 ? stdout.trim() : undefined;
+}
+
+/**
+ * Whether a path is itself a symbolic link, not following it: true even for
+ * one that leads nowhere, which a listing leaves out.
+ */
+export async function isHostLink(path: string): Promise<boolean> {
+  if (!HELPER) {
+    try {
+      return (await lstat(path)).isSymbolicLink();
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false;
+      throw error;
+    }
+  }
+  const { stderr, exitCode } = await helper('[ -L "$1" ]', path);
+  if (exitCode === 0) return true;
+  if (exitCode === 1) return false;
+  failed(stderr, `Couldn't look at ${path}`);
 }
 
 export type HostEntry = { name: string; kind: 'dir' | 'file'; size: number };

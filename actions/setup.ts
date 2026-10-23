@@ -32,7 +32,7 @@ export async function createAccount(
   }
   const { name, email, password } = parsed.data;
   try {
-    await whileCreatingAccount(() =>
+    await whileCreatingAccount(email, () =>
       auth.api.signUpEmail({ body: { name, email, password } })
     );
   } catch (error) {

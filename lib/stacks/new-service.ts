@@ -47,8 +47,10 @@ export const NewService = z
         message: 'Which service answers the domain',
       });
     }
+    // Digits only, as it's written into the Caddyfile as it is: Number()
+    // would also take 0x50 and 1e3
     const port = Number(input.port);
-    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    if (!/^\d{1,5}$/.test(input.port) || port < 1 || port > 65535) {
       ctx.addIssue({
         code: 'custom',
         path: ['port'],

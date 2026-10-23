@@ -6,26 +6,37 @@ import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { APIError } from 'better-auth/api';
 import { nextCookies } from 'better-auth/next-js';
 
-import { isCreatingAccount } from '@/lib/auth/setup';
+import { accountBeingCreated } from '@/lib/auth/setup';
 import { db } from '@/lib/db';
-
-/** Where the dashboard runs. Passkeys only work on this address. */
-const authURL = new URL(process.env.BETTER_AUTH_URL ?? 'http://localhost:3000');
+import { SITE_URL } from '@/lib/site';
 
 export const auth = betterAuth({
   database: prismaAdapter(db, { provider: 'postgresql' }),
   emailAndPassword: { enabled: true },
+  // The one account is made by /setup's action, through auth.api, which
+  // doesn't go by these; signing up over HTTP isn't a way in at all
+  disabledPaths: ['/sign-up/email'],
   plugins: [
-    passkey({ rpID: authURL.hostname, rpName: 'dash', origin: authURL.origin }),
+    passkey({
+      rpID: SITE_URL.hostname,
+      rpName: 'dash',
+      origin: SITE_URL.origin,
+    }),
     nextCookies(),
   ],
   databaseHooks: {
     user: {
       create: {
         // The one account is made on /setup, with the code from the server's
-        // log. Signing up any other way, or a second time, is refused.
+        // log, and only with the email given there. Any other user, or a
+        // second, is refused, should a way to make one get past the above.
         before: async (user) => {
-          if (!isCreatingAccount() || (await db.user.count()) > 0) {
+          const email = accountBeingCreated();
+          if (
+            !email ||
+            user.email.toLowerCase() !== email ||
+            (await db.user.count()) > 0
+          ) {
             throw new APIError('FORBIDDEN', {
               message: 'This dashboard already has its account.',
             });

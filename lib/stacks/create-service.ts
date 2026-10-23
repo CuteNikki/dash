@@ -8,6 +8,7 @@ import {
   runCompose,
   type Stack,
 } from '@/lib/docker/compose';
+import { listContainers } from '@/lib/docker/docker';
 import type { RunLine } from '@/lib/docker/runner';
 import {
   createHostEntry,
@@ -95,6 +96,18 @@ export async function* createService(
   let site: string | undefined;
 
   try {
+    // Compose knows a project by its name alone, wherever its folder is: up
+    // would recreate another stack's containers from this file, and undoing
+    // it take them down
+    const taken = (await listContainers()).some(
+      (c) => c.stack?.project === input.name
+    );
+    if (taken) {
+      throw new Error(
+        `There's already a compose project named ${input.name}: give this one another name`
+      );
+    }
+
     if (input.domain) {
       // Before anything's made, as Caddy can't get a certificate for a domain
       // that doesn't lead here

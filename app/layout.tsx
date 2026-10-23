@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Geist, JetBrains_Mono } from 'next/font/google';
 
+import { SITE_URL } from '@/lib/site';
 import { cn } from '@/lib/utils';
 
 import { ThemeProvider } from '@/components/chrome/theme-provider';
@@ -17,7 +18,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   // Where it's reached, so the icons and manifest are linked in full
-  metadataBase: new URL(process.env.BETTER_AUTH_URL ?? 'https://dash.niso.moe'),
+  metadataBase: SITE_URL,
   title: { default: 'dash', template: '%s · dash' },
   description: 'Services, containers and files on the VPS',
   applicationName: 'dash',

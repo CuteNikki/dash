@@ -7,6 +7,7 @@ import type { Stack } from '@/lib/docker/compose';
 import { execRun, listContainers, type Container } from '@/lib/docker/docker';
 import { STACKS_ROOT, type RunLine } from '@/lib/docker/runner';
 import { hostOwner } from '@/lib/host/host-files';
+import { DASH_PROJECT } from '@/lib/site';
 import { isCaddy, RELOAD_CADDY, reloadError } from '@/lib/stacks/caddy';
 
 /**
@@ -15,9 +16,6 @@ import { isCaddy, RELOAD_CADDY, reloadError } from '@/lib/stacks/caddy';
  * in Caddy's sites/<name>.caddy.
  */
 export const SERVICES_DIR = posix.join(STACKS_ROOT, 'services');
-
-/** Stacks never removed from here: dash's own, mid-request, and Caddy's, every site's. */
-const KEPT = ['dash'];
 
 export const say = (line: string): RunLine => ({ stream: 'stdout', line });
 
@@ -51,11 +49,17 @@ export async function reloadCaddy(id: string) {
 
 /**
  * Whether a stack can be removed from here: one of ~/services' own folders,
- * not dash's or Caddy's, given every container there is.
+ * not dash's, mid-request, or Caddy's, every site's, given every container
+ * there is.
  */
 export function removable(stack: Stack, containers: Container[]) {
+  // The folder as its label has it, which removing it deletes: written out
+  // plainly, as ~/services/.. would lead to the home folder itself
+  const name = posix.basename(stack.dir);
+  if (posix.normalize(stack.dir) !== stack.dir) return false;
+  if (!name || name === '.' || name === '..') return false;
   if (posix.dirname(stack.dir) !== SERVICES_DIR) return false;
-  if (KEPT.includes(stack.project)) return false;
+  if (stack.project === DASH_PROJECT) return false;
   return !containers.some(
     (c) => c.stack?.project === stack.project && isCaddy(c.image)
   );

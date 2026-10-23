@@ -6,6 +6,7 @@ import { composeOutput, type Stack } from '@/lib/docker/compose';
 import { listContainers } from '@/lib/docker/docker';
 import {
   createHostEntry,
+  isHostLink,
   listHostDir,
   moveHostEntry,
   readHostFile,
@@ -71,6 +72,18 @@ async function resolve(stack: Stack, relative: string) {
   return real;
 }
 
+/**
+ * Refuses a path that's a symbolic link leading nowhere, as writing to it
+ * would make the file it points at, wherever that is: where it leads can't
+ * be checked, as it isn't there yet.
+ */
+async function refuseLooseLink(path: string) {
+  if (await realHostPath(path)) return;
+  if (await isHostLink(path)) {
+    throw new Error(`${posix.basename(path)} is a link to nothing there is`);
+  }
+}
+
 export async function listStackDir(
   stack: Stack,
   relative: string
@@ -113,8 +126,17 @@ export async function saveStackFile(
   content: string
 ): Promise<FileResult> {
   const path = await resolve(stack, relative);
-  const isCompose = stack.files.includes(path);
-  const isEnv = path === posix.join(stack.dir, '.env');
+  await refuseLooseLink(path);
+  // Each by where it really leads, as the path is, so a compose file or
+  // .env behind a linked folder is still checked
+  const real = async (p: string) => (await realHostPath(p)) ?? p;
+  const target = await real(path);
+  const files = await Promise.all(stack.files.map(real));
+  const isCompose = files.includes(target);
+  const env =
+    (await realHostPath(posix.join(stack.dir, '.env'))) ??
+    posix.join(await real(stack.dir), '.env');
+  const isEnv = target === env;
   if (!isCompose && !isEnv) {
     await writeHostFile(path, content);
     return { ok: true };
@@ -124,6 +146,9 @@ export async function saveStackFile(
     posix.dirname(path),
     `.dash-check-${posix.basename(path)}`
   );
+  // Whatever an earlier check left there, a link even, so this writes a
+  // file of its own
+  await removeHostFile(candidate);
   await writeHostFile(candidate, content);
   try {
     const { ok, output } = await composeOutput(
@@ -131,7 +156,9 @@ export async function saveStackFile(
         ? stack
         : {
             ...stack,
-            files: stack.files.map((f) => (f === path ? candidate : f)),
+            files: stack.files.map((f, i) =>
+              files[i] === target ? candidate : f
+            ),
           },
       isEnv ? ['--env-file', candidate, 'config', '-q'] : ['config', '-q']
     );
@@ -171,10 +198,9 @@ export async function createStackEntry(
   name: string,
   kind: 'file' | 'dir'
 ) {
-  await createHostEntry(
-    await resolve(stack, posix.join(folder, checkName(name))),
-    kind
-  );
+  const path = await resolve(stack, posix.join(folder, checkName(name)));
+  await refuseLooseLink(path);
+  await createHostEntry(path, kind);
 }
 
 /** Gives a file or folder a new name in the same folder. */
