@@ -253,6 +253,7 @@ function SystemButton({
       variant='outline'
       size='xs'
       onClick={onClick}
+      aria-label={`System updates: ${words.join(', ')}`}
       className={cn(
         system.reboot
           ? 'text-warning hover:text-warning'
@@ -262,7 +263,12 @@ function SystemButton({
       )}
     >
       {count > 0 || system.reboot ? <ArrowUpCircleIcon /> : <CheckIcon />}
-      {words.join(', ')}
+      {/* On a narrow tile, as History is, its icon and how many wait, its
+          color saying whether a restart's needed */}
+      <span className='@max-md:hidden'>{words.join(', ')}</span>
+      {count > 0 && (
+        <span className='font-mono tabular-nums @md:hidden'>{count}</span>
+      )}
     </Button>
   );
 }
