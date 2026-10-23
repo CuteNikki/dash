@@ -152,6 +152,13 @@ export function HostTileContent({
   }
 }
 
+/**
+ * The server tile's buttons: small beside its details on a wide tile, and
+ * on a narrow one, as on a phone, where they're tapped, the header's size.
+ */
+const TILE_BUTTON =
+  "@max-md:h-7 @max-md:gap-1 @max-md:rounded-md @max-md:text-xs @max-md:[&_svg:not([class*='size-'])]:size-3.5";
+
 /** What the server is, label by label. */
 const SERVER_DETAILS: [string, (host: HostStats) => string][] = [
   ['System', (h) => h.system.os],
@@ -197,7 +204,7 @@ function ServerDetails({
           size='xs'
           onClick={() => setHistory(true)}
           aria-label='History'
-          className='text-muted-foreground'
+          className={cn(TILE_BUTTON, 'text-muted-foreground')}
         >
           <HistoryIcon />
           {/* Its icon alone on a narrow tile, so the server's name has the room */}
@@ -255,6 +262,7 @@ function SystemButton({
       onClick={onClick}
       aria-label={`System updates: ${words.join(', ')}`}
       className={cn(
+        TILE_BUTTON,
         system.reboot
           ? 'text-warning hover:text-warning'
           : count
