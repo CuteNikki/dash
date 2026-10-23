@@ -225,7 +225,7 @@ export function Dashboard({
           <Brand />
         </h1>
         {/* Closer together on a phone, where the line's room is short */}
-        <div className='flex items-center gap-2 sm:gap-3'>
+        <div className='flex items-center gap-2'>
           <ToggleGroup
             type='single'
             variant='segmented'
