@@ -189,6 +189,8 @@ function ServiceBody({
     'usage',
     tab
   );
+  // How far back the Usage tab's charts look, picked beside the tabs
+  const [range, setRange] = useState<UsageRange>('live');
   // The repository its stack is in, if any: a Git tab shows once it's known
   const { data: git, mutate: rereadGit } = useSWR<GitStatus | null>(
     service.stack && manages
@@ -385,28 +387,39 @@ function ServiceBody({
           onValueChange={setOpenTab}
           className='min-h-0 flex-1 gap-4 p-4'
         >
-          <TabsList>
-            <TabsTrigger value='usage'>Usage</TabsTrigger>
-            <TabsTrigger value='logs'>
-              {service.console && manages ? 'Console' : 'Logs'}
-            </TabsTrigger>
-            {service.stack && manages && (
-              <TabsTrigger value='files'>Files</TabsTrigger>
-            )}
-            {service.browse && manages && (
-              <TabsTrigger value='browse'>Browse</TabsTrigger>
-            )}
-            {git && (
-              <TabsTrigger value='git'>
-                Git
-                {git.changes.length > 0 && (
-                  <span className='font-mono text-muted-foreground tabular-nums'>
-                    {git.changes.length}
-                  </span>
-                )}
+          {/* The tabs, and on Usage how far back its charts look, on the
+              tabs' line where there's room for both, else under them */}
+          <div className='flex flex-wrap items-center justify-between gap-2'>
+            <TabsList>
+              <TabsTrigger value='usage'>Usage</TabsTrigger>
+              <TabsTrigger value='logs'>
+                {service.console && manages ? 'Console' : 'Logs'}
               </TabsTrigger>
+              {service.stack && manages && (
+                <TabsTrigger value='files'>Files</TabsTrigger>
+              )}
+              {service.browse && manages && (
+                <TabsTrigger value='browse'>Browse</TabsTrigger>
+              )}
+              {git && (
+                <TabsTrigger value='git'>
+                  Git
+                  {git.changes.length > 0 && (
+                    <span className='font-mono text-muted-foreground tabular-nums'>
+                      {git.changes.length}
+                    </span>
+                  )}
+                </TabsTrigger>
+              )}
+            </TabsList>
+            {shownTab === 'usage' && (
+              <RangePicker
+                ranges={USAGE_RANGES}
+                value={range}
+                onChangeAction={setRange}
+              />
             )}
-          </TabsList>
+          </div>
           <TabsContent value='logs' className='flex min-h-0 flex-col'>
             <LogViewer
               key={service.containerId}
@@ -459,7 +472,11 @@ function ServiceBody({
               className='h-full overflow-x-hidden overflow-y-auto'
               fadeFrom='from-popover'
             >
-              <UsagePanel service={service} memoryTotal={memoryTotal} />
+              <UsagePanel
+                service={service}
+                memoryTotal={memoryTotal}
+                range={range}
+              />
             </ScrollFade>
           </TabsContent>
         </Tabs>
@@ -767,12 +784,14 @@ const SHARE_SKELETONS = (['24h', '7d', '30d'] as const).map((range) => ({
 function UsagePanel({
   service,
   memoryTotal,
+  range,
 }: {
   service: Service;
   memoryTotal?: number;
+  /** How far back its charts look, as picked beside the tabs */
+  range: UsageRange;
 }) {
   const usage = service.usage;
-  const [range, setRange] = useState<UsageRange>('live');
   const { data: history } = useSWR<ServiceHistory>(
     range === 'live'
       ? null
@@ -807,13 +826,6 @@ function UsagePanel({
   return (
     // Columns no wider than the window, whatever's in them
     <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
-      <div className='flex justify-end sm:col-span-2'>
-        <RangePicker
-          ranges={USAGE_RANGES}
-          value={range}
-          onChangeAction={setRange}
-        />
-      </div>
       <UsageChart
         label='CPU'
         value={usage?.cpu}
