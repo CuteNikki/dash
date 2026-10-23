@@ -53,7 +53,7 @@ export function AccountMenu({ me }: { me: Me }) {
             <SettingsIcon />
             Settings
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={signOut}>
+          <DropdownMenuItem variant='destructive' onSelect={signOut}>
             <LogOutIcon />
             Sign out
           </DropdownMenuItem>

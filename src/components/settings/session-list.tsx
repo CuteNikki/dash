@@ -156,11 +156,11 @@ export function SessionList() {
                 </span>
               </span>
               {/* Its room kept on this one, so the others' buttons line up */}
-              <span className='flex size-5 shrink-0'>
+              <span className='flex size-7 shrink-0'>
                 {!here && (
                   <Button
-                    variant='ghost'
-                    size='icon-xs'
+                    variant='destructive'
+                    size='icon'
                     disabled={pending}
                     aria-label={`Sign out ${describeAgent(session.userAgent)}`}
                     title='Sign out'
@@ -176,7 +176,7 @@ export function SessionList() {
       </ul>
       {others.length > 0 && (
         <Button
-          variant='outline'
+          variant='destructive'
           disabled={pending}
           onClick={() => setConfirmAll(true)}
           className='self-start'

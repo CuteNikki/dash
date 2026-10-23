@@ -50,7 +50,7 @@ export function PortList({ service }: { service: Service }) {
           </span>
           <Button
             variant='ghost'
-            size='icon-xs'
+            size='icon-sm'
             aria-label={`Copy ${host}:${port}`}
             title={`Copy ${host}:${port}`}
             onClick={() => copy(port)}

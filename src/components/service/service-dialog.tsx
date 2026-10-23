@@ -318,10 +318,9 @@ function ServiceBody({
             )}
           {(service.removable || site) && manages && (
             <Button
-              variant='outline'
+              variant='destructive'
               disabled={pending}
               onClick={() => (site ? removeSite() : setConfirmRemove(true))}
-              className='text-destructive hover:text-destructive'
             >
               <Trash2Icon />
               Remove

@@ -32,7 +32,7 @@ export function AddressList({ addresses }: { addresses: string[] }) {
             <TooltipTrigger asChild>
               <Button
                 variant='ghost'
-                size='icon-xs'
+                size='icon-sm'
                 aria-label={`Copy ${address}`}
                 onClick={() => copy(address)}
               >
@@ -44,7 +44,7 @@ export function AddressList({ addresses }: { addresses: string[] }) {
           {isLink(address) && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant='ghost' size='icon-xs' asChild>
+                <Button variant='ghost' size='icon-sm' asChild>
                   <a
                     href={splitAddress(address).address}
                     target='_blank'

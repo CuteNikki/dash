@@ -119,9 +119,8 @@ export function TwoFactor() {
             New backup codes
           </Button>
           <Button
-            variant='outline'
+            variant='destructive'
             onClick={() => setStep({ kind: 'password', purpose: 'disable' })}
-            className='text-destructive hover:text-destructive'
           >
             Turn off
           </Button>
@@ -326,7 +325,7 @@ function SetupStep({
                 <code className='font-mono break-all'>{secret}</code>
                 <Button
                   variant='ghost'
-                  size='icon-xs'
+                  size='icon'
                   aria-label='Copy the key'
                   title='Copy the key'
                   onClick={() =>

@@ -228,7 +228,7 @@ function PasskeyRow({
           <Button
             type='submit'
             variant='ghost'
-            size='icon-xs'
+            size='icon'
             disabled={pending}
             aria-label='Save the name'
             title='Save the name'
@@ -238,7 +238,7 @@ function PasskeyRow({
           <Button
             type='button'
             variant='ghost'
-            size='icon-xs'
+            size='icon'
             aria-label='Cancel'
             title='Cancel'
             onClick={() => setEditing(false)}
@@ -258,7 +258,7 @@ function PasskeyRow({
           )}
           <Button
             variant='ghost'
-            size='icon-xs'
+            size='icon'
             aria-label={`Rename ${nameOf(passkey)}`}
             title='Rename'
             onClick={() => {
@@ -269,12 +269,11 @@ function PasskeyRow({
             <PencilIcon />
           </Button>
           <Button
-            variant='ghost'
-            size='icon-xs'
+            variant='destructive'
+            size='icon'
             aria-label={`Remove ${nameOf(passkey)}`}
             title='Remove'
             onClick={onRemoveAction}
-            className='text-destructive hover:text-destructive'
           >
             <Trash2Icon />
           </Button>

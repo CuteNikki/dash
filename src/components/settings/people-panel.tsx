@@ -224,7 +224,7 @@ function PersonRow({
         <div className='flex shrink-0 items-center gap-1'>
           <Button
             variant='ghost'
-            size='icon-xs'
+            size='icon'
             aria-label={`Change ${name}'s access`}
             title='Change access'
             disabled={pending}
@@ -233,8 +233,8 @@ function PersonRow({
             <PencilIcon />
           </Button>
           <Button
-            variant='ghost'
-            size='icon-xs'
+            variant='destructive'
+            size='icon'
             aria-label={`Sign ${name} out everywhere`}
             title='Sign out everywhere'
             disabled={pending}
@@ -251,7 +251,7 @@ function PersonRow({
           {person.disabled ? (
             <Button
               variant='ghost'
-              size='icon-xs'
+              size='icon'
               aria-label={`Enable ${name}'s account`}
               title='Enable'
               disabled={pending}
@@ -267,8 +267,8 @@ function PersonRow({
             </Button>
           ) : (
             <Button
-              variant='ghost'
-              size='icon-xs'
+              variant='destructive'
+              size='icon'
               aria-label={`Disable ${name}'s account`}
               title='Disable: signs them out, and keeps them out'
               disabled={pending}
@@ -284,8 +284,8 @@ function PersonRow({
             </Button>
           )}
           <Button
-            variant='ghost'
-            size='icon-xs'
+            variant='destructive'
+            size='icon'
             aria-label={`Remove ${name}`}
             title='Remove'
             disabled={pending}
@@ -351,8 +351,8 @@ function InviteRow({
         </div>
       </div>
       <Button
-        variant='ghost'
-        size='icon-xs'
+        variant='destructive'
+        size='icon'
         aria-label={`Revoke the invite for ${email}`}
         title='Revoke: its link stops working'
         disabled={pending}
