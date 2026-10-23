@@ -60,6 +60,8 @@ export function HistoryDialog({
     lines: (h: HostHistory) => Line[];
     /** Say its highest, rather than its average */
     peak?: boolean;
+    /** Say its latest, as for what's stored, which only grows or shrinks */
+    latest?: boolean;
   }[] = [
     {
       title: 'CPU',
@@ -72,6 +74,15 @@ export function HistoryDialog({
         ? { ...MEASURES.memory, floor: host.memory.total }
         : MEASURES.memory,
       lines: (h) => [{ label: 'Memory', values: h.memory }],
+    },
+    {
+      title: 'Disk space',
+      // Against the disk's size, so it climbs toward the top as it fills
+      measure: host
+        ? { format: MEASURES.memory.format, floor: host.disk.total }
+        : MEASURES.memory,
+      lines: (h) => [{ label: 'Used', values: h.diskUsed }],
+      latest: true,
     },
     {
       title: 'Disk wait',
@@ -128,6 +139,7 @@ export function HistoryDialog({
                 title={c.title}
                 measure={c.measure}
                 peak={c.peak}
+                latest={c.latest}
                 times={data?.at}
                 lines={data ? c.lines(data) : undefined}
                 words={words}
@@ -145,6 +157,7 @@ function HistoryPanel({
   title,
   measure,
   peak,
+  latest,
   times,
   lines,
   words,
@@ -152,6 +165,7 @@ function HistoryPanel({
   title: string;
   measure: Measure;
   peak?: boolean;
+  latest?: boolean;
   times?: number[];
   lines?: Line[];
   words: string;
@@ -161,9 +175,11 @@ function HistoryPanel({
     ? undefined
     : !first.length
       ? 'No readings'
-      : peak
-        ? `${measure.format(Math.max(...first))} at worst`
-        : `${measure.format(first.reduce((a, b) => a + b, 0) / first.length)} on average`;
+      : latest
+        ? `${measure.format(first.at(-1)!)} now, ${changeOf(first, measure)}`
+        : peak
+          ? `${measure.format(Math.max(...first))} at worst`
+          : `${measure.format(first.reduce((a, b) => a + b, 0) / first.length)} on average`;
   return (
     <Panel title={title}>
       <span className='-mt-1 text-muted-foreground'>
@@ -181,4 +197,11 @@ function HistoryPanel({
       </div>
     </Panel>
   );
+}
+
+/** How much something grew or shrank over the range: "up 2.1 GB", "no change". */
+function changeOf(values: number[], measure: Measure) {
+  const change = values.at(-1)! - values[0];
+  if (Math.abs(change) < 1024 * 1024) return 'no change';
+  return `${change > 0 ? 'up' : 'down'} ${measure.format(Math.abs(change))}`;
 }
