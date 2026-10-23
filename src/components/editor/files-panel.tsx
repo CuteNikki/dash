@@ -26,11 +26,25 @@ import {
   TreeSkeleton,
 } from '@/components/common/skeletons';
 import { attempt } from '@/components/common/toasts';
+import { keptUnder, useKept } from '@/components/common/use-kept';
 import { CodeEditor } from '@/components/editor/code-editor';
 import { FileTree, isWithin, TreeToolbar } from '@/components/editor/file-tree';
 import { MarkdownPreview } from '@/components/editor/markdown-preview';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+
+/** Where each stack's unsaved edits are kept. */
+const EDITS = 'files-edits:';
+
+// Leaving the page loses edits kept only in memory: the browser asks first
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', (e) => {
+    const unsaved = keptUnder<Record<string, string>>(EDITS).some(
+      (edits) => Object.keys(edits).length > 0
+    );
+    if (unsaved) e.preventDefault();
+  });
+}
 
 /**
  * The files of a service's stack: its folder as a tree, a file open beside
@@ -39,10 +53,13 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
  */
 export function FilesPanel({
   containerId,
+  stackDir,
   onDeployedAction,
   onFilesChangedAction,
 }: {
   containerId: string;
+  /** The stack's folder, which what's open and edited is kept by */
+  stackDir: string;
   onDeployedAction: () => void;
   /** After a file's saved, made, renamed or deleted, as its repository's status changes with it */
   onFilesChangedAction: () => void;
@@ -51,14 +68,25 @@ export function FilesPanel({
   const { data: info, error } = useSWR<StackInfo>(base, fetcher, {
     revalidateOnFocus: false,
   });
-  const [chosen, setChosen] = useState<string>();
+  // Kept by the stack while the page is open, so closing the window or
+  // switching tabs and coming back finds the same file, edits and all
+  const [chosen, setChosen] = useKept<string | undefined>(
+    `files:${stackDir}:chosen`,
+    undefined
+  );
   // Edited text by path; saved text comes from the server
-  const [edits, setEdits] = useState<Record<string, string>>({});
+  const [edits, setEdits] = useKept<Record<string, string>>(
+    `${EDITS}${stackDir}`,
+    {}
+  );
   const [problem, setProblem] = useState<string>();
   const [output, setOutput] = useState<string[]>();
   const [pending, startTransition] = useTransition();
   // Markdown files being previewed rather than edited
-  const [previewed, setPreviewed] = useState<Set<string>>(new Set());
+  const [previewed, setPreviewed] = useKept<Set<string>>(
+    `files:${stackDir}:previewed`,
+    () => new Set()
+  );
   const panel = useRef<HTMLDivElement>(null);
 
   const path = chosen ?? info?.compose[0];

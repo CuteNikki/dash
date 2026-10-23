@@ -32,6 +32,7 @@ import { useCan } from '@/components/common/role';
 import { ScrollFade } from '@/components/common/scroll-fade';
 import { TextSkeleton } from '@/components/common/skeletons';
 import { attempt } from '@/components/common/toasts';
+import { useKept } from '@/components/common/use-kept';
 import { FilesPanel } from '@/components/editor/files-panel';
 import { GitPanel } from '@/components/git/git-panel';
 import { AddressList } from '@/components/service/address-list';
@@ -74,7 +75,7 @@ export function ServiceDialog({
   onCloseAction,
   onChangedAction,
   onEditAction,
-  tab = 'usage',
+  tab,
   memoryTotal,
 }: {
   service?: Service;
@@ -82,8 +83,8 @@ export function ServiceDialog({
   /** Called after an action, so the dashboard refreshes right away */
   onChangedAction: () => void;
   onEditAction: (service: Service) => void;
-  /** The tab it opens on */
-  tab?: 'usage' | 'logs';
+  /** A tab it opens on, rather than the one it was left on */
+  tab?: 'logs';
   /** The server's memory, in bytes, which a container's is charted against */
   memoryTotal?: number;
 }) {
@@ -152,7 +153,7 @@ function ServiceBody({
   /** Called once its stack is removed, which closes the window */
   onRemoved: () => void;
   onEdit: (service: Service) => void;
-  tab: 'usage' | 'logs';
+  tab?: 'logs';
   memoryTotal?: number;
 }) {
   const [pending, startTransition] = useTransition();
@@ -166,6 +167,13 @@ function ServiceBody({
   const may = useCan();
   const controls = may('control');
   const manages = may('manage');
+  // The tab it was left on, kept per service while the page is open, unless
+  // it's opened at its logs; one that's not there, or not theirs, is Usage
+  const [openTab, setOpenTab] = useKept<string>(
+    `tab:${service.key}`,
+    'usage',
+    tab
+  );
   // The repository its stack is in, if any: a Git tab shows once it's known
   const { data: git, mutate: rereadGit } = useSWR<GitStatus | null>(
     service.stack && manages
@@ -174,6 +182,14 @@ function ServiceBody({
     fetcher,
     { revalidateOnFocus: false }
   );
+
+  // The kept tab while it's there for them to see; Usage otherwise
+  const shownTab =
+    openTab === 'logs' ||
+    (openTab === 'files' && service.stack && manages) ||
+    (openTab === 'git' && git && manages)
+      ? openTab
+      : 'usage';
 
   function run(action: ContainerAction) {
     startTransition(() =>
@@ -348,7 +364,11 @@ function ServiceBody({
           </ScrollFade>
         </div>
       ) : (
-        <Tabs defaultValue={tab} className='min-h-0 flex-1 gap-4 p-4'>
+        <Tabs
+          value={shownTab}
+          onValueChange={setOpenTab}
+          className='min-h-0 flex-1 gap-4 p-4'
+        >
           <TabsList>
             <TabsTrigger value='usage'>Usage</TabsTrigger>
             <TabsTrigger value='logs'>
@@ -376,18 +396,30 @@ function ServiceBody({
             />
           </TabsContent>
           {service.stack && manages && (
-            <TabsContent value='files' className='flex min-h-0 flex-col'>
+            // Kept while another tab shows, hidden, so coming back finds the
+            // file that was open, and any edits to it, as they were left
+            <TabsContent
+              value='files'
+              forceMount
+              className='flex min-h-0 flex-col data-[state=inactive]:hidden'
+            >
               {/* By stack, so unsaved edits survive the container being recreated */}
               <FilesPanel
                 key={service.stack.dir}
                 containerId={service.containerId}
+                stackDir={service.stack.dir}
                 onDeployedAction={onChanged}
                 onFilesChangedAction={() => void rereadGit()}
               />
             </TabsContent>
           )}
           {git && (
-            <TabsContent value='git' className='flex min-h-0 flex-col'>
+            // Likewise the commit that was being looked at
+            <TabsContent
+              value='git'
+              forceMount
+              className='flex min-h-0 flex-col data-[state=inactive]:hidden'
+            >
               <GitPanel
                 key={git.root}
                 containerId={service.containerId}

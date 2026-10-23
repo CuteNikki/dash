@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils';
 
 import { TextSkeleton, TreeSkeleton } from '@/components/common/skeletons';
 import { attempt, copyText } from '@/components/common/toasts';
+import { useKept } from '@/components/common/use-kept';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -132,7 +133,8 @@ export function FileTree({
   keysFrom: React.RefObject<HTMLElement | null>;
 }) {
   const { mutate } = useSWRConfig();
-  const [open, setOpen] = useState<Set<string>>(new Set());
+  // Kept by the folder, as the file that's open is
+  const [open, setOpen] = useKept<Set<string>>(`tree:${dir}`, () => new Set());
   const [draft, setDraft] = useState<Draft>();
   const [deleting, setDeleting] = useState<{ path: string; kind: Kind }>();
   const [pending, startTransition] = useTransition();

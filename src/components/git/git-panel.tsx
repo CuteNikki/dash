@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useTransition } from 'react';
 import { toast } from 'sonner';
 import useSWR, { useSWRConfig } from 'swr';
 
@@ -17,6 +17,7 @@ import type { FileDiff, GitStatus } from '@/lib/git';
 
 import { CodeSkeleton } from '@/components/common/skeletons';
 import { attempt } from '@/components/common/toasts';
+import { useKept } from '@/components/common/use-kept';
 import { BranchPicker } from '@/components/git/branch-picker';
 import {
   DiffLayoutToggle,
@@ -60,13 +61,20 @@ export function GitPanel({
 }) {
   // Files left out of the next commit; every other changed file goes in,
   // ones that change later included
-  const [skipped, setSkipped] = useState<Set<string>>(new Set());
-  const [shown, setShown] = useState<string | undefined>(
+  // Kept by the repository while the page is open, as the files are
+  const at = `git:${status.root}`;
+  const [skipped, setSkipped] = useKept<Set<string>>(
+    `${at}:skipped`,
+    () => new Set()
+  );
+  const [shown, setShown] = useKept<string | undefined>(
+    `${at}:shown`,
     status.changes[0]?.path
   );
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useKept(`${at}:message`, '');
   // The history, when there's nothing to commit
-  const [view, setView] = useState(
+  const [view, setView] = useKept(
+    `${at}:view`,
     status.changes.length ? 'changes' : 'history'
   );
   const [layout, setLayout] = useDiffLayout();
@@ -311,6 +319,7 @@ export function GitPanel({
       <TabsContent value='history' className='flex min-h-0 flex-col'>
         <GitHistory
           containerId={containerId}
+          root={status.root}
           head={status.head}
           layout={layout}
         />

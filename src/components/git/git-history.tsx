@@ -13,6 +13,7 @@ import type { FileDiff, GitCommit, GitCommitDetails } from '@/lib/git';
 import { ScrollFade } from '@/components/common/scroll-fade';
 import { CodeSkeleton, TextSkeleton } from '@/components/common/skeletons';
 import { copyText } from '@/components/common/toasts';
+import { useKept } from '@/components/common/use-kept';
 import { DiffView, type DiffLayout } from '@/components/git/diff-view';
 import { ChangeStatus } from '@/components/git/git-change';
 import { Button } from '@/components/ui/button';
@@ -46,10 +47,13 @@ const ROW = 'flex w-full flex-col rounded-md px-2 py-1 text-left';
  */
 export function GitHistory({
   containerId,
+  root,
   head,
   layout,
 }: {
   containerId: string;
+  /** The repository's folder, which the commit being looked at is kept by */
+  root: string;
   /** The commit checked out, to read the history again once it moves */
   head: string;
   layout: DiffLayout;
@@ -65,7 +69,10 @@ export function GitHistory({
   );
   const commits = data?.flatMap((page) => page.commits) ?? [];
   const more = data?.at(-1)?.more ?? false;
-  const [picked, setPicked] = useState<string>();
+  const [picked, setPicked] = useKept<string | undefined>(
+    `git:${root}:commit`,
+    undefined
+  );
   const shown = picked ?? commits[0]?.hash;
 
   // Older commits once the end of the list comes near

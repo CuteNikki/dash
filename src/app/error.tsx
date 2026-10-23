@@ -34,7 +34,7 @@ export default function PageError({
             {/* A server error's own message is kept from the browser; its
                 digest is what finds it in the dashboard's logs */}
             {error.digest
-              ? `dash couldn't show this page (${error.digest}).`
+              ? `The dashboard couldn't show this page (${error.digest}).`
               : error.message}
           </CardDescription>
         </CardHeader>

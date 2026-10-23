@@ -93,7 +93,8 @@ export function Dashboard({
   const [showSystem, setShowSystem] = useState(false);
   // By key, so these follow the live data and survive a recreated container
   const [openKey, setOpenKey] = useState<string>();
-  const [openTab, setOpenTab] = useState<'usage' | 'logs'>('usage');
+  // Logs, when opened from a row's Logs; otherwise the tab it was left on
+  const [openTab, setOpenTab] = useState<'logs'>();
   const [editKey, setEditKey] = useState<string>();
 
   const { services, groupOrder, host, hostComing } = data;
@@ -214,7 +215,7 @@ export function Dashboard({
   function open(service: Service) {
     if (editing) setEditKey(service.key);
     else {
-      setOpenTab('usage');
+      setOpenTab(undefined);
       setOpenKey(service.key);
     }
   }
