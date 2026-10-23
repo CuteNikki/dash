@@ -8,6 +8,19 @@ RUN bun install --frozen-lockfile
 COPY . .
 RUN bun run build
 
+# The database's migrations, which compose's migrate runs before dash starts:
+# Prisma and the migrations alone, at the versions package.json names
+FROM oven/bun:1.4.0-alpine AS migrate
+WORKDIR /app
+COPY package.json ./app.json
+RUN echo '{ "private": true }' > package.json \
+  && bun add \
+    prisma@$(bun -e 'console.log(require("./app.json").devDependencies.prisma)') \
+    dotenv@$(bun -e 'console.log(require("./app.json").devDependencies.dotenv)')
+COPY prisma.config.ts ./
+COPY prisma ./prisma
+CMD ["bunx", "prisma", "migrate", "deploy"]
+
 FROM node:24-alpine
 WORKDIR /app
 # Next listens on HOSTNAME, which Docker sets to the container's id; every address instead

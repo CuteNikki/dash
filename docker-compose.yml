@@ -3,13 +3,12 @@
 services:
   # The database brought up to the schema, before dash starts on it, each
   # time it's started: by Update or `bun run deploy` alike. A migration that
-  # fails leaves the dash that's running as it is. From the image's build
-  # stage, which has Prisma; the dashboard doesn't list it.
+  # fails leaves the dash that's running as it is. From the Dockerfile's
+  # stage of Prisma and the migrations alone; the dashboard doesn't list it.
   migrate:
     build:
       context: .
-      target: build
-    command: ['bun', 'run', 'db:migrate']
+      target: migrate
     env_file: .env
     restart: 'no'
     labels:
