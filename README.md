@@ -25,17 +25,31 @@ to redeploy. New services come from templates and get a site in Caddy.
   step fails.
 - **Updates, found and applied.** New image versions and new commits,
   checked every few hours, and applied from the dashboard: one service, or all
-  of them. The server's own packages too.
-- **Other people, with their own access.** Invite someone with a link, and
-  give them a role and the groups they see: a friend who restarts the game
+  of them. The server's own Ubuntu packages too, security fixes first, with a
+  restart when it asks for one.
+- **A record of the server.** A reading a minute, whether or not anyone's
+  watching: CPU, memory, disk, network, load and how long the disk takes per
+  read or write, for each service too, a week back. Every website's uptime
+  over the last day, week and month, with its outages.
+- **Alerts, by mail.** A service that goes down, the disk filling, a website
+  that stops answering or a certificate about to run out: under the bell in
+  the header, and mailed once it's lasted two minutes, and again when it's
+  right.
+- **Who did what.** Every start, stop, update, file saved, commit and change
+  to someone's access is in the activity log, with whether it worked.
+- **Its storage, browsed.** Garage's buckets as folders of thumbnails, to
+  open, play or delete files from.
+- **Other people, with their own access.** Invite someone by mail, and give
+  them a role and the groups they see: a friend who restarts the game
   servers, a housemate who checks on the media.
 
 ## A closer look
 
 ### A service's window
 
-CPU and memory over the last ten minutes, its container's details and ports,
-and what its app reports: here, PostgreSQL's databases.
+CPU and memory over the last ten minutes, or as far back as a week, its
+container's details and ports, and what its app reports: here, PostgreSQL's
+databases.
 
 ![PostgreSQL's window: its databases with their size and connections, beside CPU and memory charts](docs/screenshots/service.png)
 
@@ -70,6 +84,67 @@ Pick a template, search Docker Hub, paste a `docker run` command or write a
 compose file. Give it an address, and its Caddy site is written for you.
 
 ![New service: templates to pick from, the compose file, and its address](docs/screenshots/new-service.png)
+
+### Updates, the services' and the server's
+
+Every few hours Dashboard asks each image's registry whether its tag has a
+newer image, or a newer version than the one it's pinned to, and each stack
+built from a repository whether its branch has new commits. **Updates** in
+the header lists them; each is applied on its own or all at once, following
+what Docker and Compose print, and a new major version says so before it's
+pulled.
+
+The server's own Ubuntu packages are on its tile: what's waiting, security
+fixes first, what Ubuntu is still rolling out, and a restart when the system
+asks for one. An upgrade runs as a systemd job, so it carries on when Docker
+restarts with it, and the window picks it up again once Dashboard is back.
+
+### History and uptime
+
+Dashboard keeps a reading a minute of the server and every service, whether
+or not anyone has the page open, for a week. **History** on the server's tile
+charts CPU, memory, disk space, disk I/O, network and load over the last hour
+to the last week, and how long the disk took per read or write, where a
+stall shows. A gap in a chart is a time with no readings, as while Dashboard
+was down.
+
+Each website is checked once a minute too. Its window has its uptime over
+the last day, week and month, a strip of the range picked, each stretch
+green, amber or red, and its outages, when each began, how long it lasted,
+and why.
+
+### Alerts
+
+The same minute's readings are checked for what's wrong: a service that was
+running and has stopped, when nobody stopped it from the dashboard; one
+unhealthy or restarting for three minutes; the disk 90% full; a website
+failing three checks in a row; a certificate on any address running out
+within two weeks. Open ones are counted on the bell in the header. Once one
+has lasted two minutes, it's mailed to owners and admins, everything from
+that minute in one mail, and again when it's right. Each can turn the mail
+off in Settings.
+
+![Alerts: what's wrong now, a stopped service, the disk filling, a certificate and a website, above those lately over](docs/screenshots/alerts.png)
+
+### Who did what
+
+Starting and stopping, updates, commands typed into a console, files saved,
+commits and pushes, services added and removed, the server upgraded, and
+changes to people's access: each is in Settings → Activity, by whom and when,
+whether it worked, and why not. Filtered by person, service or anything it
+says, 90 days back.
+
+![The activity log: a day's starts, updates, saved files and commits, two that failed and why](docs/screenshots/activity.png)
+
+### Browsing Garage
+
+Garage's window has a **Browse** tab: its buckets, each folder shown by a few
+of its pictures with how many files it holds and their size. A file opens
+large, to look at, play or open as it is, and files are deleted one at a time
+or picked together. Pictures come straight from the storage, by links signed
+for the hour.
+
+![Garage's Browse tab: a bucket's folders, each shown by its photos](docs/screenshots/garage-browse.png)
 
 ### Light or dark, tiles or a list
 
@@ -115,13 +190,24 @@ Uploaded icons go to an S3 bucket (Garage, on the same server).
 With no account yet, it prints a setup code in its log; make the first
 account, the owner, at `/setup` with it.
 
+A few settings in its `.env` turn on more, each explained in `.env.example`:
+
+| Setting                   | What it's for                                                                                                                                    |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `SMTP_URL`, `EMAIL_FROM`  | Mail: invites, forgotten passwords, confirming an address, and alerts. The login and server as one address, `smtps://user%40example.com:…@mail…` |
+| `MONITOR`                 | The record a minute behind History, uptime and alerts: on by itself where Dashboard runs in production, off in development unless `on`           |
+| `SONARR_API_KEY` and more | The apps' live numbers on their tiles                                                                                                            |
+
 ## People and roles
 
 The owner invites others from Settings → People: a link that works once, for
-a day, with the role it gives and, for the roles that don't see everything,
-the groups they see. Everyone signs in with a password or a passkey, can turn
-on two-factor codes from an authenticator app, and sees and signs out their
-own devices.
+a day, mailed to them or copied, with the role it gives and, for the roles
+that don't see everything, the groups they see. Everyone signs in with a
+password or a passkey, can turn on two-factor codes from an authenticator
+app, sees and signs out their own devices, and once there's mail, resets a
+forgotten password from a link and confirms their address. History, alerts
+and the activity log are for those who see the whole server, owners and
+admins.
 
 | Role         | Sees                     | Can                                              |
 | ------------ | ------------------------ | ------------------------------------------------ |
@@ -198,7 +284,7 @@ leaves the Dashboard that's running as it is.
 | `bun run lint:classes` | Tailwind classes that have a shorter way to be written   |
 | `bun run format`       | Prettier                                                 |
 | `bun run format:check` | Whether everything is as Prettier would write it         |
-| `bun test`             | The parsers' tests                                       |
+| `bun test`             | The tests                                                |
 | `bun run db:diff`      | The SQL that would bring the database up to the schema   |
 | `bun run db:migrate`   | Applies migrations, as each deploy does on its own       |
 
@@ -216,9 +302,11 @@ src/
     new-service/    adding a service, and its templates
     editor/         the file tree, code editor and Markdown preview
     git/            changes, history, branches and diffs
-    host/           the server's stats, processes and disk
+    host/           the server's stats, processes, disk and history
     updates/        finding and applying updates
-    settings/       your account, its security, and other people's
+    alerts/         the bell, and what's wrong
+    storage/        browsing Garage's buckets
+    settings/       your account, its security, other people's, and the activity log
     charts/         graphs and sparklines
     common/         scroll fades, toasts and loading placeholders
     ui/             buttons, dialogs, inputs and the rest
@@ -231,6 +319,10 @@ src/
     stacks/         adding and removing services, Caddy and domains
     templates/      the templates, Docker Hub search and docker run import
     updates/        checking registries and repositories, and applying updates
+    monitor/        the reading a minute, and the history and uptime from it
+    alerts/         what's wrong, from the monitor's readings, and mailing it
+    activity/       who did what, as it's noted and read back
+    mail/           sending mail, and each mail's wording
     icons/          finding icons
   test/           the tests, with their own TypeScript settings
   proxy.ts        signs in whoever isn't, before any page
