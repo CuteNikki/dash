@@ -118,40 +118,31 @@ export function HistoryChart({
         className='size-full overflow-visible'
       >
         {series.flatMap((s) =>
-          runs(s.values).map((run) =>
-            run.values.length === 1 ? (
-              // A reading alone between gaps, as a dot rather than nothing
-              <circle
-                key={`${s.label} ${run.start}`}
-                cx={x(run.start)}
-                cy={y(run.values[0])}
-                r={0.75}
-                fill='currentColor'
-                vectorEffect='non-scaling-stroke'
-                className={cn(
-                  s.dashed && 'opacity-50',
-                  s.faint && 'opacity-30'
-                )}
-              />
-            ) : (
+          runs(s.values).map((run) => {
+            // A reading alone between gaps is a dot: a line of no length,
+            // its round ends making one, as a circle would stretch with the box
+            const alone = run.values.length === 1;
+            const points = (alone ? [run.values[0], run.values[0]] : run.values)
+              .map((v, i) => `${x(run.start + (alone ? 0 : i))},${y(v)}`)
+              .join(' ');
+            return (
               <polyline
                 key={`${s.label} ${run.start}`}
-                points={run.values
-                  .map((v, i) => `${x(run.start + i)},${y(v)}`)
-                  .join(' ')}
+                points={points}
                 fill='none'
                 stroke='currentColor'
-                strokeWidth={s.faint ? 1 : 1.5}
+                strokeWidth={alone ? 3 : s.faint ? 1 : 1.5}
+                strokeLinecap={alone ? 'round' : undefined}
                 strokeLinejoin='round'
                 vectorEffect='non-scaling-stroke'
-                strokeDasharray={s.dashed ? '3 3' : undefined}
+                strokeDasharray={s.dashed && !alone ? '3 3' : undefined}
                 className={cn(
                   s.dashed && 'opacity-50',
                   s.faint && 'opacity-30'
                 )}
               />
-            )
-          )
+            );
+          })
         )}
       </svg>
       {shown !== undefined && (
