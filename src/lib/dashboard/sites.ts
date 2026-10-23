@@ -41,14 +41,33 @@ const recent = (history: number[] | undefined, value: number) => [
   value,
 ];
 
-/** Why a request failed, in a few words: "No answer in 10 s", "ENOTFOUND"… */
+/** The network's errors a site fails with most, in words. */
+const ERROR_WORDS: Record<string, string> = {
+  ENOTFOUND: "Its address doesn't resolve",
+  EAI_AGAIN: "Its address doesn't resolve right now",
+  ECONNREFUSED: 'Refused the connection',
+  // As Bun names it, in development
+  ConnectionRefused: 'Refused the connection',
+  ECONNRESET: 'Dropped the connection',
+  ETIMEDOUT: 'No answer',
+  EHOSTUNREACH: "Can't be reached",
+  CERT_HAS_EXPIRED: 'Its certificate has run out',
+  DEPTH_ZERO_SELF_SIGNED_CERT: 'Its certificate is self-signed',
+  ERR_TLS_CERT_ALTNAME_INVALID: "Its certificate isn't for this address",
+};
+
+/** Why a request failed, in a few words: "No answer in 10 s", "Refused the connection"… */
 function reason(error: unknown) {
   if (error instanceof Error) {
     if (error.name === 'TimeoutError') {
       return `No answer in ${TIMEOUT_MS / 1000} s`;
     }
-    const cause = (error.cause as { code?: string } | undefined)?.code;
-    return cause ?? error.message;
+    const code =
+      (error.cause as { code?: string } | undefined)?.code ??
+      (error as { code?: string }).code ??
+      // Bun puts the code in the message: "getaddrinfo ENOTFOUND example.com"
+      error.message.match(/\b(E[A-Z_]+|[A-Z_]*CERT[A-Z_]*)\b/)?.[1];
+    return (code && ERROR_WORDS[code]) ?? code ?? error.message;
   }
   return String(error);
 }
