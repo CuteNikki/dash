@@ -1,10 +1,29 @@
 # The dashboard: the server's services, their logs, files and git, and the server itself.
 # A clone of the repository, updated by its own Update or `bun run deploy`.
 services:
+  # The database brought up to the schema, before dash starts on it, each
+  # time it's started: by Update or `bun run deploy` alike. A migration that
+  # fails leaves the dash that's running as it is. From the image's build
+  # stage, which has Prisma; the dashboard doesn't list it.
+  migrate:
+    build:
+      context: .
+      target: build
+    command: ['bun', 'run', 'db:migrate']
+    env_file: .env
+    restart: 'no'
+    labels:
+      dash.purpose: the database's migrations, before dash starts
+    networks:
+      - caddy
+
   dash:
     build: .
     container_name: dash
     restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     # Its secrets: the sign-in secret, the database and the image storage's keys.
     # Only on the server, never in the repository.
     env_file: .env

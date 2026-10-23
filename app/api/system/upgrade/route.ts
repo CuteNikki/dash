@@ -11,10 +11,11 @@ export async function POST() {
   } catch (error) {
     return Response.json({ error: (error as Error).message }, { status: 409 });
   }
-  return streamRun(followUpgrade);
+  // Only following it: the upgrade itself carries on under systemd
+  return streamRun(followUpgrade, { watching: true });
 }
 
 /** The running or last upgrade's output, from its start, as after losing the connection to it. */
 export async function GET() {
-  return (await unauthorized()) ?? streamRun(followUpgrade);
+  return (await unauthorized()) ?? streamRun(followUpgrade, { watching: true });
 }

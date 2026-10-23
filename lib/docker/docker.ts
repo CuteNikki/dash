@@ -429,6 +429,24 @@ export async function execRun(container: string, cmd: string[]) {
 }
 
 /**
+ * Commands still running in a container, by container and command. Docker
+ * can't stop one once it's started, so one that hangs is waited on again
+ * rather than started anew on every refresh, piling up beside it.
+ */
+const running = new Map<string, ReturnType<typeof execRun>>();
+
+/** As execRun, but joining the same command if it's still running there. */
+export function execShared(container: string, cmd: string[]) {
+  const key = JSON.stringify([container, cmd]);
+  let exec = running.get(key);
+  if (!exec) {
+    exec = execRun(container, cmd).finally(() => running.delete(key));
+    running.set(key, exec);
+  }
+  return exec;
+}
+
+/**
  * Everything a stream without a TTY sent, as stdout and stderr: frames with
  * an 8-byte header each, the stream (1 or 2) then the length.
  */

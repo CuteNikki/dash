@@ -219,13 +219,18 @@ while systemctl is-active -q ${UNIT}; do sleep 1; done
 sleep 1; kill $j 2>/dev/null
 exit $(cat ${STATUS} 2>/dev/null || echo 1)`)
       );
-      for (;;) {
-        const next = await lines.next();
-        if (next.done) break;
-        if (++seen > sent) {
-          sent = seen;
-          yield next.value;
+      try {
+        for (;;) {
+          const next = await lines.next();
+          if (next.done) break;
+          if (++seen > sent) {
+            sent = seen;
+            yield next.value;
+          }
         }
+      } finally {
+        // Stopped by its window going, its journalctl run goes too
+        await lines.return(0).catch(() => {});
       }
     } catch {
       // Docker went away partway, as upgrading it restarts it

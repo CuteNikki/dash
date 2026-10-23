@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { execRun, type Container } from '@/lib/docker/docker';
+import { execShared, type Container } from '@/lib/docker/docker';
 import type { DetailSection, WidgetStat } from '@/lib/types';
 
 /** How long an app has to answer. */
@@ -39,21 +39,11 @@ export function inTime<T>(promise: Promise<T>, what: string) {
 }
 
 /**
- * Commands still running in a container, by container and command. Docker
- * can't stop one once it's started, so one that hangs is waited on again
- * rather than started anew on every refresh, piling up beside it.
+ * What a command printed in a container, or an error if it failed or took
+ * too long; one still running from the last refresh is waited on again.
  */
-const running = new Map<string, ReturnType<typeof execRun>>();
-
-/** What a command printed in a container, or an error if it failed or took too long. */
 export async function run(c: Container, cmd: string[]) {
-  const key = JSON.stringify([c.id, cmd]);
-  let exec = running.get(key);
-  if (!exec) {
-    exec = execRun(c.id, cmd).finally(() => running.delete(key));
-    running.set(key, exec);
-  }
-  const { stdout, exitCode } = await inTime(exec, cmd[0]);
+  const { stdout, exitCode } = await inTime(execShared(c.id, cmd), cmd[0]);
   if (exitCode !== 0) throw new Error(`${cmd[0]} exited with ${exitCode}`);
   return stdout;
 }

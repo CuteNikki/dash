@@ -182,7 +182,11 @@ an update for itself, and its Update pulls them and rebuilds it, restarting
 dash. `bun run deploy` does the same from here: it pushes `master` (with no
 uncommitted changes), then pulls and runs `docker compose up -d --build` on
 the server. The server's `.env` stays where it is and is never in the
-repository. Database changes go in with `bun run db:migrate`.
+repository.
+
+Either way, the database's migrations run first, in a one-off `migrate`
+container, and dash only starts once they've gone through; one that fails
+leaves the dash that's running as it is.
 
 ## Scripts
 
@@ -196,7 +200,7 @@ repository. Database changes go in with `bun run db:migrate`.
 | `bun run lint:classes` | Tailwind classes that have a shorter way to be written   |
 | `bun run format`       | Prettier                                                 |
 | `bun run db:diff`      | The SQL that would bring the database up to the schema   |
-| `bun run db:migrate`   | Applies migrations                                       |
+| `bun run db:migrate`   | Applies migrations, as each deploy does on its own       |
 
 ## Where things are
 

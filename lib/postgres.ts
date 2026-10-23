@@ -1,14 +1,15 @@
 import 'server-only';
 
-import { execRun } from '@/lib/docker/docker';
+import { execShared } from '@/lib/docker/docker';
 
 /**
  * Rows from a query, run with psql in a Postgres container as its superuser
  * over the container's own socket, so it needs no password. Each row's
- * columns are text.
+ * columns are text. A query still running from the last refresh, as when
+ * the server's busy, is waited on again rather than asked twice.
  */
 export async function postgresRows(containerId: string, sql: string) {
-  const { stdout, stderr, exitCode } = await execRun(containerId, [
+  const { stdout, stderr, exitCode } = await execShared(containerId, [
     'psql',
     '-U',
     'postgres',

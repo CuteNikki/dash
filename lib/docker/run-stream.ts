@@ -7,13 +7,18 @@ import type { RunLine } from '@/lib/docker/runner';
  * then { exitCode }. A run that throws ends with its error as a line and
  * exit code 1. Read it with readRunStream. The run goes on to its end even
  * if whoever asked goes away, as one stopped partway can leave a stack half
- * changed, with nothing put back.
+ * changed, with nothing put back; unless it's `watching`, only following
+ * something that carries on without it, which stops once nobody is.
  */
-export function streamRun(run: () => AsyncGenerator<RunLine, number>) {
+export function streamRun(
+  run: () => AsyncGenerator<RunLine, number>,
+  { watching = false }: { watching?: boolean } = {}
+) {
   const encoder = new TextEncoder();
   // Once the response is closed by the other end, after which there's
   // nobody to send to
   let gone = false;
+  let lines: AsyncGenerator<RunLine, number> | undefined;
   const body = new ReadableStream({
     async start(controller) {
       const send = (value: unknown) => {
@@ -25,7 +30,7 @@ export function streamRun(run: () => AsyncGenerator<RunLine, number>) {
         }
       };
       try {
-        const lines = run();
+        lines = run();
         for (;;) {
           const next = await lines.next();
           if (next.done) {
@@ -46,6 +51,8 @@ export function streamRun(run: () => AsyncGenerator<RunLine, number>) {
     },
     cancel() {
       gone = true;
+      // At its next line, as it may be waiting for one
+      if (watching) void lines?.return(0).catch(() => {});
     },
   });
   return new Response(body, {
