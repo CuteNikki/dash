@@ -26,6 +26,7 @@ import { fetcher } from '@/lib/fetcher';
 import type { Dashboard as DashboardData, Me, Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
+import { AlertsButton, AlertsDialog } from '@/components/alerts/alerts-dialog';
 import { AccountMenu } from '@/components/chrome/account-menu';
 import { Brand } from '@/components/chrome/brand';
 import { ThemeButton } from '@/components/chrome/theme-button';
@@ -91,6 +92,7 @@ export function Dashboard({
   const [adding, setAdding] = useState(false);
   const [showUpdates, setShowUpdates] = useState(false);
   const [showSystem, setShowSystem] = useState(false);
+  const [showAlerts, setShowAlerts] = useState(false);
   // By key, so these follow the live data and survive a recreated container
   const [openKey, setOpenKey] = useState<string>();
   // Logs, when opened from a row's Logs; otherwise the tab it was left on
@@ -248,6 +250,12 @@ export function Dashboard({
                 <ListIcon />
               </ToggleGroupItem>
             </ToggleGroup>
+            {may('server') && (
+              <AlertsButton
+                open={data.alerts ?? []}
+                onClickAction={() => setShowAlerts(true)}
+              />
+            )}
             {may('control') && (
               <Button
                 variant='outline'
@@ -292,7 +300,8 @@ export function Dashboard({
                 </span>
               </Button>
             )}
-            <ThemeButton />
+            {/* In the account menu on a phone, where the line's too short for it */}
+            <ThemeButton className='max-sm:hidden' />
             <AccountMenu me={me} />
           </div>
         </header>
@@ -334,6 +343,11 @@ export function Dashboard({
           groups={allGroups}
           onCloseAction={() => setEditKey(undefined)}
           onSavedAction={() => void mutate()}
+        />
+        <AlertsDialog
+          open={showAlerts}
+          mail={me.mail}
+          onCloseAction={() => setShowAlerts(false)}
         />
         <SystemDialog
           open={showSystem}

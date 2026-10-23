@@ -8,6 +8,7 @@ import { ROLE_INFO } from '@/lib/auth/roles';
 import type { Me } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
+import { ThemeItems } from '@/components/chrome/theme-button';
 import { SettingsDialog } from '@/components/settings/settings-dialog';
 import { useSignOut } from '@/components/settings/sign-in-again';
 import { Button } from '@/components/ui/button';
@@ -53,6 +54,13 @@ export function AccountMenu({ me }: { me: Me }) {
             <SettingsIcon />
             Settings
           </DropdownMenuItem>
+          {/* On a phone the theme's here, as the header has no room for its button */}
+          <div className='sm:hidden'>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>Theme</DropdownMenuLabel>
+            <ThemeItems />
+            <DropdownMenuSeparator />
+          </div>
           <DropdownMenuItem variant='destructive' onSelect={signOut}>
             <LogOutIcon />
             Sign out
