@@ -34,6 +34,7 @@ export const ACTIVITY_ACTIONS = {
   'system.reboot': 'restarted the server',
   'backup.run': 'backed up',
   'backup.restore': 'restored',
+  'backup.folder': 'added to the backups',
   'person.access': 'changed what this person may do:',
   'person.disable': 'disabled',
   'person.enable': 'enabled',

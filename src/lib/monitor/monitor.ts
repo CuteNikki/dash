@@ -10,6 +10,7 @@ import {
   type SiteResult,
 } from '@/lib/alerts/checks';
 import { inBackground } from '@/lib/background';
+import { maybeRunNightly } from '@/lib/backups/backups';
 import { serviceKey, siteUrl } from '@/lib/dashboard/services';
 import { probeSite } from '@/lib/dashboard/sites';
 import { isRunning } from '@/lib/dashboard/status';
@@ -107,6 +108,8 @@ async function tick() {
       if (check.status === 'rejected') console.error('Alerts:', check.reason);
     }
     await notify();
+    // Tonight's backups, once it's time; they run on in the background
+    await maybeRunNightly().catch((error) => console.error('Backups:', error));
     if (Date.now() - monitor.lastPrune > PRUNE_MS) {
       monitor.lastPrune = Date.now();
       await prune();

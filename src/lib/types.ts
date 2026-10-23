@@ -411,3 +411,35 @@ export type SiteUptime = {
   /** Its response time over the range asked for, in milliseconds, of the checks it answered */
   history: History<'ms' | 'up'>;
 };
+
+/** The backups, as the Backups window shows them. */
+export type BackupState = {
+  /** Why they're off, when they are */
+  off?: string;
+  /** Why the backups couldn't be read, when they couldn't */
+  error?: string;
+  /** In the server's own Garage, or somewhere else */
+  where?: 'local' | 'elsewhere';
+  /** "03:30 UTC" */
+  nightlyAt: string;
+  /** A run or a restore going on now */
+  running?: 'backup' | 'restore';
+  /** Bytes the repository takes up */
+  size?: number;
+  lastRun?: {
+    startedAt: number;
+    finishedAt?: number;
+    trigger: string;
+    results: { source: string; ok: boolean; error?: string; added?: string }[];
+  };
+  sources: {
+    id: string;
+    kind: 'postgres' | 'folder';
+    label: string;
+    enabled: boolean;
+    /** A folder added here, rather than found in ~/services */
+    added: boolean;
+    /** Its backups, newest first */
+    snapshots: { id: string; at: number; beforeRestore: boolean }[];
+  }[];
+};

@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import {
   ActivityIcon,
+  ArchiveIcon,
   ArrowDownIcon,
   ArrowUpCircleIcon,
   ArrowUpIcon,
@@ -29,6 +30,7 @@ import type { HostTileKey } from '@/lib/host/host-tiles';
 import type { Capacity, HostStats, Service, SystemUpdates } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
+import { BackupsDialog } from '@/components/backups/backups-dialog';
 import { HistoryChart } from '@/components/charts/history-chart';
 import { TextSkeleton } from '@/components/common/skeletons';
 import { DiskDialog } from '@/components/host/disk-dialog';
@@ -191,6 +193,7 @@ function ServerDetails({
   onSystem: () => void;
 }) {
   const [history, setHistory] = useState(false);
+  const [backups, setBackups] = useState(false);
   return (
     // Its details in as many columns as its own width has room for
     <Card size='sm' className='@container px-3'>
@@ -210,6 +213,16 @@ function ServerDetails({
           {/* Its icon alone on a narrow tile, so the server's name has the room */}
           <ButtonLabel hideOn='tile'>History</ButtonLabel>
         </Button>
+        <Button
+          variant='outline'
+          size='xs'
+          onClick={() => setBackups(true)}
+          aria-label='Backups'
+          className={cn(TILE_BUTTON, 'text-muted-foreground')}
+        >
+          <ArchiveIcon />
+          <ButtonLabel hideOn='tile'>Backups</ButtonLabel>
+        </Button>
         {system && <SystemButton system={system} onClick={onSystem} />}
       </div>
       <HistoryDialog
@@ -217,6 +230,7 @@ function ServerDetails({
         host={host}
         onCloseAction={() => setHistory(false)}
       />
+      <BackupsDialog open={backups} onCloseAction={() => setBackups(false)} />
       <dl className='grid grid-cols-1 gap-x-6 gap-y-3 @md:grid-cols-2 @3xl:grid-cols-4 @7xl:grid-cols-8'>
         {SERVER_DETAILS.map(([label, value]) => (
           <div key={label} className='flex min-w-0 flex-col'>
