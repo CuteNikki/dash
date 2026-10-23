@@ -1,5 +1,8 @@
 # dash
 
+[![CI](https://github.com/CuteNikki/dash/actions/workflows/ci.yml/badge.svg)](https://github.com/CuteNikki/dash/actions/workflows/ci.yml)
+[![MIT license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 **A dashboard for one home server, that runs on it.** Every Docker container
 as a tile, with its status, usage and live numbers, and a window to run it
 from: logs and console, its files in an editor, its git history, and one click
@@ -219,6 +222,8 @@ leaves the dash that's running as it is.
 | `bun run lint`         | ESLint, Tailwind classes included                        |
 | `bun run lint:classes` | Tailwind classes that have a shorter way to be written   |
 | `bun run format`       | Prettier                                                 |
+| `bun run format:check` | Whether everything is as Prettier would write it         |
+| `bun test`             | The parsers' tests                                       |
 | `bun run db:diff`      | The SQL that would bring the database up to the schema   |
 | `bun run db:migrate`   | Applies migrations, as each deploy does on its own       |
 
