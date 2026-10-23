@@ -147,20 +147,45 @@ function AlertRow({ alert, now }: { alert: AlertView; now: number }) {
       >
         {KIND_ICONS[alert.kind]}
       </span>
-      <div className='flex min-w-0 flex-1 flex-col'>
-        <span className='wrap-break-word'>
-          <span className='font-medium'>{alert.subject}</span>{' '}
-          <span className={cn(!alert.resolvedAt && 'text-destructive')}>
-            {alert.message}
+      {/* What it's about, with how long it's lasted beside it, then what's
+          wrong under it, then since when and whether it was mailed */}
+      <div className='flex min-w-0 flex-1 flex-col gap-0.5'>
+        <span className='flex items-baseline justify-between gap-3'>
+          <span className='min-w-0 truncate font-medium'>{alert.subject}</span>
+          <span className='shrink-0 font-mono text-muted-foreground tabular-nums'>
+            {alert.resolvedAt ? lasted : `${lasted} so far`}
           </span>
+        </span>
+        <span
+          className={cn(
+            'wrap-break-word',
+            alert.resolvedAt ? 'text-muted-foreground' : 'text-destructive'
+          )}
+        >
+          {alert.message}
         </span>
         <span className='text-muted-foreground'>
           {alert.resolvedAt
-            ? `${formatPast(alert.since)}, for ${lasted}`
-            : `Since ${formatPast(alert.since)}, ${lasted} so far`}
+            ? `${capitalized(formatPast(alert.since))} to ${sameDay(alert.since, alert.resolvedAt) ? formatTime(alert.resolvedAt) : formatPast(alert.resolvedAt)}`
+            : `Since ${formatPast(alert.since)}`}
           {alert.mailed && ' · mailed'}
         </span>
       </div>
     </li>
   );
 }
+
+/** Whether two moments fall on the same day, in the viewer's own time. */
+const sameDay = (a: number, b: number) =>
+  new Date(a).toDateString() === new Date(b).toDateString();
+
+/** A moment's time alone, as its day's already been said: "01:28 PM". */
+const formatTime = (at: number) =>
+  new Date(at).toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+/** Text as a line starts: "today 01:21 PM" → "Today 01:21 PM". */
+const capitalized = (text: string) =>
+  text.charAt(0).toUpperCase() + text.slice(1);
