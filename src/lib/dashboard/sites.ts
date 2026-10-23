@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { inBackground } from '@/lib/background';
 import type { SiteCheck } from '@/lib/types';
 
 /** How often each site is asked for its page while someone is watching. */
@@ -158,16 +159,17 @@ export async function currentSites(urls: string[]) {
   for (const url of checker.checks.keys()) {
     if (!urls.includes(url)) checker.checks.delete(url);
   }
+  // Apart from the page that asked, which may be a prerender over before the
+  // checks are: its fetch() would reject every one after, and each site be down
   if (!checker.timer) {
-    checker.timer = setInterval(
-      () => void round().catch(console.error),
-      INTERVAL_MS
+    checker.timer = inBackground(() =>
+      setInterval(() => void round().catch(console.error), INTERVAL_MS)
     );
   }
   const unchecked = urls.filter((url) => !checker.checks.has(url));
   if (unchecked.length) {
     await Promise.race([
-      Promise.all(unchecked.map(check)),
+      inBackground(() => Promise.all(unchecked.map(check))),
       new Promise((resolve) => setTimeout(resolve, FIRST_WAIT_MS)),
     ]);
   }
