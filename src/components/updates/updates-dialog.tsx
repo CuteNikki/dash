@@ -1,6 +1,12 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import {
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+  useTransition,
+} from 'react';
 import { toast } from 'sonner';
 
 import { CheckIcon, RefreshCwIcon, XIcon } from 'lucide-react';
@@ -23,7 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { runUpdate } from '@/components/updates/update-dialog';
+import { runUpdate, SELF_UPDATE_URL } from '@/components/updates/update-dialog';
 
 type Row = {
   key: string;
@@ -77,12 +83,14 @@ function rowsOf(services: Service[]): Row[] {
     });
   }
   // The dashboard's own last, as it restarts the dashboard
-  const isDash = (r: Row) => r.service.stack?.project === DASH_PROJECT;
   return [...rows.values()].sort(
     (a, b) =>
-      Number(isDash(a)) - Number(isDash(b)) || a.name.localeCompare(b.name)
+      Number(isDashRow(a)) - Number(isDashRow(b)) ||
+      a.name.localeCompare(b.name)
   );
 }
+
+const isDashRow = (r: Row) => r.service.stack?.project === DASH_PROJECT;
 
 /**
  * Every update waiting, each to run on its own or all together, one after
@@ -94,6 +102,7 @@ export function UpdatesDialog({
   services,
   checkedAt,
   checking,
+  selfUpdating,
   onCloseAction,
   onChangedAction,
 }: {
@@ -101,6 +110,7 @@ export function UpdatesDialog({
   services: Service[];
   checkedAt?: number;
   checking: boolean;
+  selfUpdating: boolean;
   onCloseAction: () => void;
   onChangedAction: () => void;
 }) {
@@ -127,20 +137,29 @@ export function UpdatesDialog({
     }
   }
 
-  async function update(list: Row[]) {
+  async function update(list: Row[], first?: Response) {
     setRunning(true);
     setOutput([]);
+    // What the rows before printed, kept as one's followed again from its start
+    let before: string[] = [];
     try {
       for (const row of list) {
         setOutcomes((o) => ({ ...o, [row.key]: 'running' }));
-        setOutput((lines) => [
-          ...(lines ?? []),
-          ...(lines?.length ? [''] : []),
-          `— ${row.name}`,
-        ]);
-        const exitCode = await runUpdate(row.service, (line) =>
-          setOutput((lines) => [...(lines ?? []), line])
+        // A rebuild followed has its row, though it may no longer be waiting
+        setRows((r) => (r.includes(row) ? r : [...r, row]));
+        const header = [...(before.length ? [''] : []), `— ${row.name}`];
+        let lines = [...before, ...header];
+        const show = (next: string[]) => {
+          lines = next;
+          setOutput(next);
+        };
+        show(lines);
+        const exitCode = await runUpdate(
+          row.service,
+          (line) => show([...lines, line]),
+          { first, onRestart: () => show([...before, ...header]) }
         ).catch(() => 1);
+        before = lines;
         setOutcomes((o) => ({
           ...o,
           [row.key]: exitCode === 0 ? 'done' : 'failed',
@@ -152,6 +171,38 @@ export function UpdatesDialog({
       setRunning(false);
     }
   }
+
+  // The dashboard's own rebuild, going on as the window opens, as when it's
+  // opened again or the dashboard restarted on the new build, is followed
+  // straight away, in a row of its own if it's no longer waiting
+  const followed = useRef(false);
+  const followRebuild = useEffectEvent(() => {
+    if (running || followed.current) return;
+    const dash = services.find(
+      (s) => s.stack?.project === DASH_PROJECT && s.state === 'running'
+    );
+    if (!dash) return;
+    followed.current = true;
+    const row = rows.find(isDashRow) ?? {
+      key: `stack:${DASH_PROJECT}`,
+      service: dash,
+      name: dash.name,
+      what: 'Rebuilding',
+      major: false,
+    };
+    // Once it answers, as following it is waiting on the server
+    void fetch(SELF_UPDATE_URL)
+      .then((res) => update([row], res))
+      .catch(() => (followed.current = false));
+  });
+  // Only as it opens, or learns one is going on
+  useEffect(() => {
+    if (!open) {
+      followed.current = false;
+      return;
+    }
+    if (selfUpdating) followRebuild();
+  }, [open, selfUpdating]);
 
   function checkNow() {
     startCheck(async () => {

@@ -140,7 +140,12 @@ export type Dashboard = {
   /** No stats yet, but they're coming: they take two readings, a few seconds apart */
   hostComing: boolean;
   /** When updates were last looked for, and whether they're being looked for now */
-  updates: { checkedAt?: number; checking: boolean };
+  updates: {
+    checkedAt?: number;
+    checking: boolean;
+    /** Whether the dashboard's own rebuild is going on, to be followed */
+    selfUpdating?: boolean;
+  };
   /** The server's own updates, Ubuntu's packages, once they've been looked at */
   system?: SystemUpdates;
   /** What the monitor finds wrong now, for those who see the server */

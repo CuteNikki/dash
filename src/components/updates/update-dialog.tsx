@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { ExternalLinkIcon } from 'lucide-react';
 
 import { readRunStream } from '@/lib/docker/read-run-stream';
+import { DASH_PROJECT } from '@/lib/site';
 import type { Service } from '@/lib/types';
 import { releasesUrl, updateDescription } from '@/lib/updates/describe';
 
@@ -21,15 +22,53 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 
-/** Updates a service on the server, passing on each line it prints; its exit code. */
+/** How long to keep trying to follow the dashboard's rebuild again, while it restarts. */
+const RECONNECT_MS = 5 * 60_000;
+const RETRY_MS = 3_000;
+
+/** Where the dashboard's own rebuild is followed from, whichever container it's in. */
+export const SELF_UPDATE_URL = '/api/self-update';
+
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Updates a service on the server, passing on each line it prints; its exit
+ * code. The dashboard's own rebuild goes on without it, as it restarts the
+ * dashboard: once the connection breaks, it's followed again from its start
+ * as soon as the dashboard is back, `onRestart` clearing what was shown
+ * first. `first` is a rebuild already going on, being followed.
+ */
 export async function runUpdate(
   service: Service,
-  onLine: (line: string) => void
+  onLine: (line: string) => void,
+  { first, onRestart }: { first?: Response; onRestart?: () => void } = {}
 ) {
-  const res = await fetch(`/api/containers/${service.containerId}/update`, {
-    method: 'POST',
-  });
-  return readRunStream(res, onLine);
+  const url = `/api/containers/${service.containerId}/update`;
+  const res = first ?? (await fetch(url, { method: 'POST' }));
+  let exit = await readRunStream(res, onLine);
+  if (service.stack?.project !== DASH_PROJECT) return exit;
+  const giveUp = Date.now() + RECONNECT_MS;
+  while (exit === undefined) {
+    onLine(
+      '— Lost the connection, as the dashboard restarting does. Following the rebuild again once it is back…'
+    );
+    let again: Response | undefined;
+    // Not back while there's no answer, or only the proxy's in front of it
+    while (!again || again.status >= 500) {
+      if (Date.now() > giveUp) {
+        onLine(
+          '— Still no answer from dash. The rebuild carries on on the server; open Updates again to follow it.'
+        );
+        return 1;
+      }
+      await wait(RETRY_MS);
+      again = await fetch(SELF_UPDATE_URL).catch(() => undefined);
+    }
+    // From its start again, so what's shown is the whole of it
+    onRestart?.();
+    exit = await readRunStream(again, onLine);
+  }
+  return exit;
 }
 
 type Outcome = 'done' | 'failed';
@@ -76,8 +115,10 @@ export function UpdateDialog({
     setOutcome(undefined);
     setRunning(true);
     try {
-      const exitCode = await runUpdate(shown, (line) =>
-        setOutput((lines) => [...(lines ?? []), line])
+      const exitCode = await runUpdate(
+        shown,
+        (line) => setOutput((lines) => [...(lines ?? []), line]),
+        { onRestart: () => setOutput([]) }
       ).catch(() => 1);
       if (exitCode === 0) {
         setOutcome('done');

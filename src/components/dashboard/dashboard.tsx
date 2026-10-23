@@ -364,6 +364,7 @@ export function Dashboard({
           services={services}
           checkedAt={data.updates?.checkedAt}
           checking={data.updates?.checking ?? false}
+          selfUpdating={data.updates?.selfUpdating ?? false}
           onCloseAction={() => setShowUpdates(false)}
           onChangedAction={() => void mutate()}
         />

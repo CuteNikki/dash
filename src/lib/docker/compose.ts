@@ -1,11 +1,6 @@
 import 'server-only';
 
-import {
-  runContainer,
-  runToEnd,
-  startRun,
-  type Run,
-} from '@/lib/docker/runner';
+import { runContainer, runToEnd, type Run } from '@/lib/docker/runner';
 
 /**
  * Docker Compose, run in a short-lived container of the official CLI image,
@@ -17,7 +12,7 @@ const CLI_IMAGE = 'docker:29.9-cli';
 
 export type Stack = { project: string; dir: string; files: string[] };
 
-function composeRun(stack: Stack, args: string[]): Run {
+export function composeRun(stack: Stack, args: string[]): Run {
   return {
     image: CLI_IMAGE,
     cmd: [
@@ -43,19 +38,6 @@ function composeRun(stack: Stack, args: string[]): Run {
  */
 export function runCompose(stack: Stack, args: string[]) {
   return runContainer(composeRun(stack, args));
-}
-
-/**
- * Starts `docker compose <args>` for a stack a couple of seconds from now,
- * and leaves it to run, for one that stops the dashboard itself: by then the dashboard has
- * said it's done.
- */
-export function startCompose(stack: Stack, args: string[]) {
-  const run = composeRun(stack, args);
-  return startRun({
-    ...run,
-    cmd: ['sh', '-c', 'sleep 2 && exec "$@"', 'sh', ...run.cmd],
-  });
 }
 
 /** Runs Compose to the end: its whole output, and whether it succeeded. */

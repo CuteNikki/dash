@@ -24,6 +24,7 @@ import {
 } from '@/lib/docker/docker';
 import { RUN_LABEL } from '@/lib/docker/runner';
 import { readHost, type HostReading } from '@/lib/host/host';
+import { noteSelfUpdate } from '@/lib/updates/self-update';
 
 /** A reading a minute, of the server, its services and the websites. */
 const INTERVAL_MS = 60_000;
@@ -110,6 +111,8 @@ async function tick() {
     await notify();
     // Tonight's backups, once it's time; they run on in the background
     await maybeRunNightly().catch((error) => console.error('Backups:', error));
+    // The dashboard's own rebuild, once it's ended, in the activity log
+    await noteSelfUpdate().catch((error) => console.error('Rebuild:', error));
     if (Date.now() - monitor.lastPrune > PRUNE_MS) {
       monitor.lastPrune = Date.now();
       await prune();

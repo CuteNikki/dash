@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { runCompose, startCompose, type Stack } from '@/lib/docker/compose';
+import { runCompose, type Stack } from '@/lib/docker/compose';
 import type { Container } from '@/lib/docker/docker';
 import type { RunLine } from '@/lib/docker/runner';
 import { gitPull, gitStatus } from '@/lib/git';
@@ -8,6 +8,11 @@ import { readHostFile, writeHostFile } from '@/lib/host/host-files';
 import { DASH_PROJECT } from '@/lib/site';
 import { say, shown } from '@/lib/stacks/service-stacks';
 import { forgetUpdate, updateOf } from '@/lib/updates/check';
+import {
+  followSelfUpdate,
+  startSelfUpdate,
+  type SelfUpdateBy,
+} from '@/lib/updates/self-update';
 
 /** Each line of what something printed, as the run's own. */
 function* printed(output: string): Generator<RunLine> {
@@ -56,10 +61,12 @@ async function bumpImage(stack: Stack, from: string, to: string) {
  * compose file to a newer version, putting the file back if that fails; or,
  * built here, pulls its repository and rebuilds its stack, as more than one
  * of its services can come from it. Nothing else in its stack restarts,
- * other than for a rebuild.
+ * other than for a rebuild. The dashboard's own rebuild notes itself in the
+ * activity log, as by `by`, as the dashboard's gone before it ends.
  */
 export async function* updateService(
-  c: Container
+  c: Container,
+  by: SelfUpdateBy
 ): AsyncGenerator<RunLine, number> {
   const stack = c.stack;
   if (!stack) {
@@ -138,7 +145,7 @@ export async function* updateService(
   const pull = await gitPull(repo.root);
   yield* printed(pull.output);
   if (!pull.ok) return 1;
-  if (stack.project === DASH_PROJECT) return yield* restartDash(stack);
+  if (stack.project === DASH_PROJECT) return yield* restartDash(stack, by);
   yield say(`Rebuilding ${stack.project}…`);
   const up = yield* runCompose(stack, ['up', '-d', '--build']);
   if (up === 0) forgetUpdate(c);
@@ -146,18 +153,15 @@ export async function* updateService(
 }
 
 /**
- * The dashboard's own rebuild: built and its database migrated while it's here to say
- * how that goes, then recreated by a run it doesn't wait for, as recreating
- * it ends this one. A migration that fails leaves this dashboard running.
+ * The dashboard's own rebuild, built, migrated and recreated by a job of its
+ * own, as recreating it ends this request, followed from here for as long as
+ * this dashboard's up to; a window follows the rest from the new one. A
+ * build or migration that fails leaves this dashboard running.
  */
-async function* restartDash(stack: Stack): AsyncGenerator<RunLine, number> {
-  yield say('Building the dashboard…');
-  const built = yield* runCompose(stack, ['build']);
-  if (built !== 0) return built;
-  yield say('Migrating its database…');
-  const migrated = yield* runCompose(stack, ['run', '--rm', 'migrate']);
-  if (migrated !== 0) return migrated;
-  await startCompose(stack, ['up', '-d']);
-  yield say("Restarting the dashboard on the new build; it's back in a moment");
-  return 0;
+async function* restartDash(
+  stack: Stack,
+  by: SelfUpdateBy
+): AsyncGenerator<RunLine, number> {
+  await startSelfUpdate(stack, by);
+  return yield* followSelfUpdate();
 }

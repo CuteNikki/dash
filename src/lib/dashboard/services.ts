@@ -19,9 +19,11 @@ import { currentSystemUpdates } from '@/lib/host/system-updates';
 import { currentUsage } from '@/lib/host/usage';
 import { iconInfo } from '@/lib/icons/icon-search';
 import { isImageUrl } from '@/lib/icons/icon-sets';
+import { DASH_PROJECT } from '@/lib/site';
 import { removable } from '@/lib/stacks/service-stacks';
 import type { Dashboard, Service, SiteCheck } from '@/lib/types';
 import { currentUpdates } from '@/lib/updates/check';
+import { selfUpdateRunning } from '@/lib/updates/self-update';
 
 /**
  * A container's tile key: its compose project and service, which survive the
@@ -292,7 +294,13 @@ export async function getDashboard(who: {
     ),
     host: server ? host : undefined,
     hostComing: server && hostComing,
-    updates: { checkedAt: updates.checkedAt, checking: updates.checking },
+    updates: {
+      checkedAt: updates.checkedAt,
+      checking: updates.checking,
+      selfUpdating:
+        seen.some((s) => s.stack?.project === DASH_PROJECT) &&
+        (await selfUpdateRunning()),
+    },
     system: server ? currentSystemUpdates() : undefined,
     alerts: server ? await openAlerts() : undefined,
   };
