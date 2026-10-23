@@ -37,6 +37,9 @@ to redeploy. New services come from templates and get a site in Caddy.
   right.
 - **Who did what.** Every start, stop, update, file saved, commit and change
   to someone's access is in the activity log, with whether it worked.
+- **Backups, every night.** Each database and each service's folder, the
+  last seven nights kept, and any of them restored from the dashboard: one
+  database or one folder, without touching the rest.
 - **Its storage, browsed.** Garage's buckets as folders of thumbnails, to
   open, play or delete files from.
 - **Other people, with their own access.** Invite someone by mail, and give
@@ -145,6 +148,26 @@ says, 90 days back.
 
 ![The activity log: a day's starts, updates, saved files and commits, two that failed and why](docs/screenshots/activity.png)
 
+### Backups
+
+Every night [restic](https://restic.net) backs up each Postgres database, as
+a dump, and each folder in `~/services`, without what's rebuilt anyway
+(`node_modules`, `.next`) nor Postgres's and Garage's own files. Folders
+elsewhere, as apps' settings in `/docker/config`, are added in the Backups
+window, and any part can be switched off there. Minecraft's world is copied
+with saving held off, so it's whole. The last seven backups of each part are
+kept, and as restic keeps what doesn't change once, seven nights take little
+more than one.
+
+From the server's tile, **Backups** lists each part with its last backup, and
+restores any of them: a database by `pg_restore`, a folder with its services
+stopped while its files are put back. What's there is backed up first, so a
+restore can be undone. A part that fails to back up is an alert.
+
+They go to a bucket in the server's own Garage, which protects against
+mistakes, not against losing the server: for that, keep a copy elsewhere, as
+a host's own backups, or point `BACKUP_REPOSITORY` at storage off the server.
+
 ### Browsing Garage
 
 Garage's window has a **Browse** tab: its buckets, each folder shown by a few
@@ -212,6 +235,7 @@ A few settings in its `.env` turn on more, each explained in `.env.example`:
 | Setting                   | What it's for                                                                                                                                    |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `SMTP_URL`, `EMAIL_FROM`  | Mail: invites, forgotten passwords, confirming an address, and alerts. The login and server as one address, `smtps://user%40example.com:…@mail…` |
+| `BACKUP_PASSWORD`         | Backups: restic's password, which nothing can be read back without; keep a copy off the server                                                   |
 | `MONITOR`                 | The record a minute behind History, uptime and alerts: on by itself where Dashboard runs in production, off in development unless `on`           |
 | `SONARR_API_KEY` and more | The apps' live numbers on their tiles                                                                                                            |
 
@@ -322,6 +346,7 @@ src/
     host/           the server's stats, processes, disk and history
     updates/        finding and applying updates
     alerts/         the bell, and what's wrong
+    backups/        the Backups window
     storage/        browsing Garage's buckets
     settings/       your account, its security, other people's, and the activity log
     charts/         graphs and sparklines
@@ -340,6 +365,7 @@ src/
     alerts/         what's wrong, from the monitor's readings, and mailing it
     activity/       who did what, as it's noted and read back
     mail/           sending mail, and each mail's wording
+    backups/        restic's backups, running them nightly and restoring them
     icons/          finding icons
   test/           the tests, with their own TypeScript settings
   proxy.ts        signs in whoever isn't, before any page
