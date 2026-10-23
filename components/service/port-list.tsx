@@ -1,7 +1,5 @@
 'use client';
 
-import { toast } from 'sonner';
-
 import { CopyIcon } from 'lucide-react';
 
 import { splitAddress } from '@/lib/format';
@@ -9,6 +7,7 @@ import { hostOf, portName } from '@/lib/ports';
 import { SERVER_NAME } from '@/lib/site';
 import type { Service } from '@/lib/types';
 
+import { copyText } from '@/components/common/toasts';
 import { Button } from '@/components/ui/button';
 
 /**
@@ -30,14 +29,9 @@ function hostFor(service: Service) {
 export function PortList({ service }: { service: Service }) {
   const host = hostFor(service);
 
-  async function copy(port: number) {
+  function copy(port: number) {
     const address = `${host}:${port}`;
-    try {
-      await navigator.clipboard.writeText(address);
-      toast.success(`Copied ${address}`);
-    } catch {
-      toast.error("Couldn't copy; select it instead");
-    }
+    return copyText(address, `Copied ${address}`);
   }
 
   return (

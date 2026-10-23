@@ -1,6 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState, useTransition } from 'react';
+import {
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+  useTransition,
+} from 'react';
 import { toast } from 'sonner';
 
 import { PowerIcon, RefreshCwIcon } from 'lucide-react';
@@ -50,13 +56,13 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export function SystemDialog({
   open,
   system,
-  onClose,
-  onChanged,
+  onCloseAction,
+  onChangedAction,
 }: {
   open: boolean;
   system?: SystemUpdates;
-  onClose: () => void;
-  onChanged: () => void;
+  onCloseAction: () => void;
+  onChangedAction: () => void;
 }) {
   const [output, setOutput] = useState<string[]>();
   const [running, setRunning] = useState(false);
@@ -101,25 +107,29 @@ export function SystemDialog({
       }
     } finally {
       setRunning(false);
-      onChanged();
+      onChangedAction();
     }
   }
 
   // An upgrade already running, as one started before a reload, is followed
   // as soon as the window opens
   const followed = useRef(false);
+  // Reads whether it's already following as it is then, without that being
+  // a reason to look again
+  const followRunning = useEffectEvent(() => {
+    if (running || followed.current) return;
+    followed.current = true;
+    void follow(() => fetch('/api/system/upgrade'));
+  });
+  // Only as it opens, or learns one is running
+  const upgrading = system?.upgrading;
   useEffect(() => {
     if (!open) {
       followed.current = false;
       return;
     }
-    if (system?.upgrading && !running && !followed.current) {
-      followed.current = true;
-      void follow(() => fetch('/api/system/upgrade'));
-    }
-    // Only as it opens, or learns one is running
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, system?.upgrading]);
+    if (upgrading) followRunning();
+  }, [open, upgrading]);
 
   function checkNow() {
     startCheck(async () => {
@@ -129,7 +139,7 @@ export function SystemDialog({
           description: result.error,
         });
       }
-      onChanged();
+      onChangedAction();
     });
   }
 
@@ -139,7 +149,7 @@ export function SystemDialog({
       toast.success('Restarting the server', {
         description: 'dash is back in a minute or two',
       });
-      onClose();
+      onCloseAction();
     } else {
       toast.error('Couldn’t restart the server', {
         description: (await res.json().catch(() => null))?.error,
@@ -154,7 +164,7 @@ export function SystemDialog({
 
   return (
     // Not closed while it's upgrading, so its outcome isn't missed
-    <Dialog open={open} onOpenChange={(o) => !o && !running && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && !running && onCloseAction()}>
       <DialogContent className='flex flex-col sm:max-w-2xl'>
         <DialogHeader>
           <DialogTitle>System updates</DialogTitle>

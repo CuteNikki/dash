@@ -321,8 +321,8 @@ export function Dashboard({
       <SystemDialog
         open={showSystem}
         system={data.system}
-        onClose={() => setShowSystem(false)}
-        onChanged={() => void mutate()}
+        onCloseAction={() => setShowSystem(false)}
+        onChangedAction={() => void mutate()}
       />
       <UpdatesDialog
         open={showUpdates}
@@ -335,8 +335,8 @@ export function Dashboard({
       <NewServiceDialog
         open={adding}
         groups={allGroups}
-        onClose={() => setAdding(false)}
-        onCreated={() => void mutate()}
+        onCloseAction={() => setAdding(false)}
+        onCreatedAction={() => void mutate()}
       />
     </div>
   );

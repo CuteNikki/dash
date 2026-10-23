@@ -7,6 +7,7 @@ import { resetTile, restoreTile, saveTile } from '@/actions/tiles';
 import { isSiteKey, MAX_DESCRIPTION } from '@/lib/dashboard/tiles';
 import type { Service } from '@/lib/types';
 
+import { attempt } from '@/components/common/toasts';
 import {
   AddressesField,
   toItems,
@@ -76,46 +77,54 @@ function EditTileForm({
   const [pending, startTransition] = useTransition();
 
   function save() {
-    startTransition(async () => {
-      const result = await saveTile({
-        key: service.key,
-        name,
-        description,
-        icon,
-        addresses: addresses.map((a) => a.value),
-        group,
-        hidden,
-      });
-      if (result?.error) {
-        setError(result.error);
-        return;
-      }
-      toast.success(`Saved ${name}`);
-      onDone();
-    });
+    startTransition(() =>
+      attempt(`Couldn't save ${name}`, async () => {
+        const result = await saveTile({
+          key: service.key,
+          name,
+          description,
+          icon,
+          addresses: addresses.map((a) => a.value),
+          group,
+          hidden,
+        });
+        if (result?.error) {
+          setError(result.error);
+          return;
+        }
+        toast.success(`Saved ${name}`);
+        onDone();
+      })
+    );
   }
 
   // A website elsewhere is nothing but its tile, so resetting it removes it
   const site = isSiteKey(service.key);
 
   function reset() {
-    startTransition(async () => {
-      const before = await resetTile(service.key);
-      toast.success(`${site ? 'Removed' : 'Reset'} ${service.name}`, {
-        description: site
-          ? 'Its tile is gone from the dashboard.'
-          : 'Its name, description, icon, addresses and group are back to defaults.',
-        action: before && {
-          label: 'Undo',
-          onClick: async () => {
-            await restoreTile(before);
-            toast.success(`Restored ${before.name ?? service.name}`);
-            onDone();
-          },
-        },
-      });
-      onDone();
-    });
+    startTransition(() =>
+      attempt(
+        `Couldn't ${site ? 'remove' : 'reset'} ${service.name}`,
+        async () => {
+          const before = await resetTile(service.key);
+          toast.success(`${site ? 'Removed' : 'Reset'} ${service.name}`, {
+            description: site
+              ? 'Its tile is gone from the dashboard.'
+              : 'Its name, description, icon, addresses and group are back to defaults.',
+            action: before && {
+              label: 'Undo',
+              onClick: () =>
+                attempt(`Couldn't restore ${service.name}`, async () => {
+                  await restoreTile(before);
+                  toast.success(`Restored ${before.name ?? service.name}`);
+                  onDone();
+                }),
+            },
+          });
+          onDone();
+        }
+      )
+    );
   }
 
   return (

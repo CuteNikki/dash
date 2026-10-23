@@ -17,6 +17,7 @@ import {
 } from '@/lib/templates/service-templates';
 
 import { RunOutput } from '@/components/common/run-output';
+import { attempt } from '@/components/common/toasts';
 import { GroupField } from '@/components/dashboard/fields/group-field';
 import { CodeEditor } from '@/components/editor/code-editor';
 import { AddressField } from '@/components/new-service/address-field';
@@ -47,19 +48,19 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 export function NewServiceDialog({
   open,
   groups,
-  onClose,
-  onCreated,
+  onCloseAction,
+  onCreatedAction,
 }: {
   open: boolean;
   /** The dashboard's groups, to put it in one */
   groups: string[];
-  onClose: () => void;
-  onCreated: () => void;
+  onCloseAction: () => void;
+  onCreatedAction: () => void;
 }) {
   const [running, setRunning] = useState(false);
   return (
     // Not closed while it's adding, so its outcome isn't missed
-    <Dialog open={open} onOpenChange={(o) => !o && !running && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && !running && onCloseAction()}>
       <DialogContent className='flex flex-col sm:max-w-3xl'>
         {open && (
           <NewServiceBody
@@ -67,8 +68,8 @@ export function NewServiceDialog({
             running={running}
             setRunning={setRunning}
             onCreated={() => {
-              onCreated();
-              onClose();
+              onCreatedAction();
+              onCloseAction();
             }}
           />
         )}
@@ -109,10 +110,21 @@ function NewServiceBody({
       <ToggleGroupItem value='website'>Website</ToggleGroupItem>
     </ToggleGroup>
   );
+  const website = source === 'website';
   return (
     <>
+      {/* One heading for both forms, the shown one's, so the window has a
+          single title and description to be announced by */}
+      <DialogHeader>
+        <DialogTitle>{website ? 'New website' : 'New service'}</DialogTitle>
+        <DialogDescription>
+          {website
+            ? 'A site hosted somewhere else, as a tile that shows whether it’s up and how fast it answers. Nothing changes on the server.'
+            : 'A folder of its own in ~/services, started with Docker Compose, and for a domain, a site in Caddy.'}
+        </DialogDescription>
+      </DialogHeader>
       <NewServiceForm
-        hidden={source === 'website'}
+        hidden={website}
         fromRun={source === 'run'}
         picker={picker}
         groups={groups}
@@ -121,7 +133,7 @@ function NewServiceBody({
         onCreated={onCreated}
       />
       <NewWebsiteForm
-        hidden={source !== 'website'}
+        hidden={!website}
         picker={picker}
         groups={groups}
         onCreated={onCreated}
@@ -252,17 +264,9 @@ function NewServiceForm({
       className='contents'
       onSubmit={(e) => {
         e.preventDefault();
-        void create();
+        void attempt("Couldn't add the service", create);
       }}
     >
-      <DialogHeader>
-        <DialogTitle>New service</DialogTitle>
-        <DialogDescription>
-          A folder of its own in ~/services, started with Docker Compose, and
-          for a domain, a site in Caddy.
-        </DialogDescription>
-      </DialogHeader>
-
       {/* The window is the one column everything's in, its heading too, so
           that when it must scroll, all of it does and nothing's pinned; the
           form and the fieldset, which disables every field while it's adding,
@@ -305,7 +309,7 @@ function NewServiceForm({
           <div className='min-h-32 flex-1 basis-64'>
             <CodeEditor
               value={input.compose}
-              onChange={setCompose}
+              onChangeAction={setCompose}
               fileName='docker-compose.yml'
               label='Compose file'
               readOnly={running}
@@ -319,7 +323,7 @@ function NewServiceForm({
           <div className='h-24'>
             <CodeEditor
               value={env}
-              onChange={setEnv}
+              onChangeAction={setEnv}
               fileName='.env'
               label='.env'
               readOnly={running}

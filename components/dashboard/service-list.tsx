@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 
 import { Sparkline } from '@/components/charts/sparkline';
 import { WidgetStats, widgetStats } from '@/components/charts/widget-stats';
+import { attempt } from '@/components/common/toasts';
 import { addressWords } from '@/components/service/address-text';
 import { ServiceIcon } from '@/components/service/service-icon';
 import { StatePill, StatusDot } from '@/components/service/status-dot';
@@ -91,15 +92,17 @@ export function ServiceList({
     .filter((g) => g.services.length);
 
   function run(service: Service, action: ContainerAction) {
-    startTransition(async () => {
-      const result = await runContainerAction(service.containerId, action);
-      if (result.ok) toast.success(`${DONE[action]} ${service.name}`);
-      else
-        toast.error(`Couldn't ${action} ${service.name}`, {
-          description: result.error,
-        });
-      onChanged();
-    });
+    startTransition(() =>
+      attempt(`Couldn't ${action} ${service.name}`, async () => {
+        const result = await runContainerAction(service.containerId, action);
+        if (result.ok) toast.success(`${DONE[action]} ${service.name}`);
+        else
+          toast.error(`Couldn't ${action} ${service.name}`, {
+            description: result.error,
+          });
+        onChanged();
+      })
+    );
   }
 
   const same = (f: ListFilter) =>

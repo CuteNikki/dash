@@ -25,6 +25,7 @@ import {
   TextSkeleton,
   TreeSkeleton,
 } from '@/components/common/skeletons';
+import { attempt } from '@/components/common/toasts';
 import { CodeEditor } from '@/components/editor/code-editor';
 import { FileTree, isWithin, TreeToolbar } from '@/components/editor/file-tree';
 import { MarkdownPreview } from '@/components/editor/markdown-preview';
@@ -38,10 +39,13 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
  */
 export function FilesPanel({
   containerId,
-  onDeployed,
+  onDeployedAction,
+  onFilesChangedAction,
 }: {
   containerId: string;
-  onDeployed: () => void;
+  onDeployedAction: () => void;
+  /** After a file's saved, made, renamed or deleted, as its repository's status changes with it */
+  onFilesChangedAction: () => void;
 }) {
   const base = `/api/containers/${containerId}/files`;
   const { data: info, error } = useSWR<StackInfo>(base, fetcher, {
@@ -77,20 +81,30 @@ export function FilesPanel({
   const previewing = isMarkdown && previewed.has(path);
 
   function save(then?: 'deploy' | 'build') {
-    startTransition(async () => {
-      setProblem(undefined);
-      if (changed && path) {
-        const result = await saveFile(containerId, path, text);
-        if (!result.ok) {
-          setProblem(result.error);
-          return;
+    startTransition(() =>
+      attempt(
+        changed
+          ? `Couldn't save ${name}`
+          : `Couldn't ${then === 'build' ? 'rebuild' : 'redeploy'}`,
+        async () => {
+          setProblem(undefined);
+          if (changed && path) {
+            const result = await saveFile(containerId, path, text);
+            if (!result.ok) {
+              setProblem(result.error);
+              return;
+            }
+            await mutate({ content: text });
+            // Only what was saved: the editor stays open while Compose checks
+            // it, and anything typed meanwhile is still to save
+            setEdits((e) => (e[path] === text ? without(e, path) : e));
+            onFilesChangedAction();
+            toast.success(`Saved ${name}`);
+          }
+          if (then) await deploy(then === 'build');
         }
-        await mutate({ content: text });
-        setEdits((e) => without(e, path));
-        toast.success(`Saved ${name}`);
-      }
-      if (then) await deploy(then === 'build');
-    });
+      )
+    );
   }
 
   async function deploy(build: boolean) {
@@ -109,7 +123,7 @@ export function FilesPanel({
         description: 'See its output below the file',
       });
     }
-    onDeployed();
+    onDeployedAction();
   }
 
   return (
@@ -139,6 +153,7 @@ export function FilesPanel({
               setEdits((e) => mapKeys(e, move));
               setPreviewed((p) => new Set([...p].map(move)));
             }}
+            onChangedAction={onFilesChangedAction}
             onDeleted={(gone) => {
               const kept = (p: string) => !isWithin(gone, p);
               if (!kept(path)) setChosen(undefined);
@@ -163,7 +178,9 @@ export function FilesPanel({
               <CodeEditor
                 key={path}
                 value={text}
-                onChange={(value) => setEdits((e) => ({ ...e, [path]: value }))}
+                onChangeAction={(value) =>
+                  setEdits((e) => ({ ...e, [path]: value }))
+                }
                 fileName={name}
                 label={name}
               />

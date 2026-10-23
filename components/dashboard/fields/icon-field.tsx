@@ -1,6 +1,6 @@
 'use client';
 
-import { useDeferredValue, useRef, useTransition } from 'react';
+import { useRef, useTransition } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 
@@ -9,8 +9,11 @@ import { LoaderIcon, UploadIcon } from 'lucide-react';
 import { uploadIcon } from '@/actions/icons';
 import { fetcher } from '@/lib/fetcher';
 import type { IconMatch } from '@/lib/icons/icon-search';
+import { isImageUrl } from '@/lib/icons/icon-sets';
 import { cn } from '@/lib/utils';
 
+import { attempt } from '@/components/common/toasts';
+import { useDebounced } from '@/components/common/use-debounced';
 import { ServiceIcon } from '@/components/service/service-icon';
 import {
   InputGroup,
@@ -26,7 +29,7 @@ import {
 
 /**
  * An icon by name, with matches from every icon set to pick from below. Any
- * name the tile understands works: "mdi-…", "si-…", "sh-…" or an https://
+ * name the tile understands works: "mdi-…", "si-…", "sh-…" or an image's
  * address.
  */
 export function IconField({
@@ -41,12 +44,11 @@ export function IconField({
   name: string;
   onChange: (icon: string) => void;
 }) {
-  // Searches as typing pauses, keeping the last matches up meanwhile
-  const query = useDeferredValue(value.trim());
+  // Searches once typing pauses, not for every key, keeping the last
+  // matches up meanwhile
+  const query = useDebounced(value.trim());
   const { data: matches = [] } = useSWR<IconMatch[]>(
-    /^https:\/\//.test(query)
-      ? null
-      : `/api/icons?q=${encodeURIComponent(query)}`,
+    isImageUrl(query) ? null : `/api/icons?q=${encodeURIComponent(query)}`,
     fetcher,
     { keepPreviousData: true, revalidateOnFocus: false }
   );
@@ -55,16 +57,20 @@ export function IconField({
   const [uploading, startUpload] = useTransition();
 
   function upload(file: File) {
-    startUpload(async () => {
-      const form = new FormData();
-      form.set('file', file);
-      const result = await uploadIcon(form);
-      if ('error' in result) {
-        toast.error("Couldn't upload the icon", { description: result.error });
-      } else {
-        onChange(result.url);
-      }
-    });
+    startUpload(() =>
+      attempt("Couldn't upload the icon", async () => {
+        const form = new FormData();
+        form.set('file', file);
+        const result = await uploadIcon(form);
+        if ('error' in result) {
+          toast.error("Couldn't upload the icon", {
+            description: result.error,
+          });
+        } else {
+          onChange(result.url);
+        }
+      })
+    );
   }
 
   return (

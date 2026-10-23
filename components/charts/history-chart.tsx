@@ -14,7 +14,7 @@ import {
 /** Room above the highest reading, so a steady line doesn't run along the top edge. */
 const HEADROOM = 1.25;
 
-export type ChartSeries = {
+type ChartSeries = {
   label: string;
   values: number[];
   measure: Measure;

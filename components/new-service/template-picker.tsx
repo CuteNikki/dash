@@ -1,6 +1,6 @@
 'use client';
 
-import { useDeferredValue, useState } from 'react';
+import { useState } from 'react';
 import useSWR from 'swr';
 
 import { BadgeCheckIcon, FileIcon, SearchIcon } from 'lucide-react';
@@ -15,6 +15,7 @@ import {
 import { cn } from '@/lib/utils';
 
 import { ScrollFade } from '@/components/common/scroll-fade';
+import { useDebounced } from '@/components/common/use-debounced';
 import { ServiceIcon } from '@/components/service/service-icon';
 import {
   InputGroup,
@@ -42,8 +43,9 @@ export function TemplatePicker({
 }) {
   const [search, setSearch] = useState('');
   const typed = search.trim().toLowerCase();
-  // Searches as typing pauses, keeping the last images up meanwhile
-  const query = useDeferredValue(typed);
+  // Docker Hub's searched once typing pauses, not for every key, the last
+  // images staying up meanwhile; the templates narrow at once
+  const query = useDebounced(typed);
   const { data: images, error } = useSWR<HubImage[]>(
     query.length >= 2 ? `/api/images?q=${encodeURIComponent(query)}` : null,
     fetcher,

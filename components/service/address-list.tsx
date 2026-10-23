@@ -1,11 +1,10 @@
 'use client';
 
-import { toast } from 'sonner';
-
 import { CopyIcon, ExternalLinkIcon } from 'lucide-react';
 
 import { formatAddress, isLink, splitAddress } from '@/lib/format';
 
+import { copyText } from '@/components/common/toasts';
 import { AddressText } from '@/components/service/address-text';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,14 +16,9 @@ import {
 /** A service's addresses, each to copy, and links to open as well. */
 export function AddressList({ addresses }: { addresses: string[] }) {
   // The address alone, without what it's for
-  async function copy(entry: string) {
+  function copy(entry: string) {
     const { address } = splitAddress(entry);
-    try {
-      await navigator.clipboard.writeText(address);
-      toast.success(`Copied ${formatAddress(address)}`);
-    } catch {
-      toast.error("Couldn't copy; select it instead");
-    }
+    return copyText(address, `Copied ${formatAddress(address)}`);
   }
 
   return (

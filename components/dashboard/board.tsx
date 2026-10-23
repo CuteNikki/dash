@@ -30,7 +30,7 @@ import {
 import { cn } from '@/lib/utils';
 
 /** A tile on the board, drawn by `render` at the place it has. */
-export type BoardTile = {
+type BoardTile = {
   key: string;
   name: string;
   /** Its size where it hasn't been arranged */

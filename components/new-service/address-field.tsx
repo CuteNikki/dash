@@ -1,6 +1,6 @@
 'use client';
 
-import { useDeferredValue, useState } from 'react';
+import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 
 import { CircleAlertIcon, CircleCheckIcon, LoaderIcon } from 'lucide-react';
@@ -10,6 +10,7 @@ import type { DomainCheck } from '@/lib/stacks/domains';
 import { DOMAIN_PATTERN } from '@/lib/stacks/new-service';
 import { cn } from '@/lib/utils';
 
+import { useDebounced } from '@/components/common/use-debounced';
 import {
   InputGroup,
   InputGroupAddon,
@@ -29,7 +30,7 @@ const OTHER = 'other';
 /**
  * A new service's address: a name, under one of the domains the server's
  * sites are under (or another, typed whole), and whether its DNS points at
- * this server yet, checked as typing pauses.
+ * this server yet, checked once typing pauses.
  */
 export function AddressField({
   id,
@@ -48,11 +49,14 @@ export function AddressField({
   // The server's own domain, its first, until another's picked
   const [picked, setPicked] = useState<string>();
   const zone = picked ?? domains?.[0] ?? OTHER;
-  const whole = (n: string, z: string) => {
-    const typed = n.trim().toLowerCase();
-    return !typed ? '' : z === OTHER ? typed : `${typed}.${z}`;
-  };
-  const domain = whole(name, zone);
+  const typed = name.trim().toLowerCase();
+  const domain = !typed ? '' : zone === OTHER ? typed : `${typed}.${zone}`;
+  // Told of the whole domain whenever it changes, typed or picked or when
+  // the server's domains arrive after a name's typed, which changes the one
+  // it's under without anything being touched
+  useEffect(() => onChange(domain), [domain, onChange]);
+  // Its DNS asked about once typing pauses, not for every key
+  const query = useDebounced(domain);
 
   return (
     <div className='flex flex-col gap-2'>
@@ -60,10 +64,7 @@ export function AddressField({
         <InputGroupInput
           id={id}
           value={name}
-          onChange={(e) => {
-            setName(e.target.value);
-            onChange(whole(e.target.value, zone));
-          }}
+          onChange={(e) => setName(e.target.value)}
           placeholder={zone === OTHER ? 'app.example.com' : 'app'}
           className='font-mono'
           autoComplete='off'
@@ -72,14 +73,7 @@ export function AddressField({
         {/* Its arrow as far from the edge as a select's own, the addon's
             padding being taken up by the select's */}
         <InputGroupAddon align='inline-end' className='pr-1'>
-          <Select
-            value={zone}
-            onValueChange={(z) => {
-              setPicked(z);
-              onChange(whole(name, z));
-            }}
-            disabled={disabled}
-          >
+          <Select value={zone} onValueChange={setPicked} disabled={disabled}>
             <SelectTrigger
               size='sm'
               aria-label='Domain'
@@ -98,17 +92,16 @@ export function AddressField({
           </Select>
         </InputGroupAddon>
       </InputGroup>
-      {domain && <DnsStatus domain={domain} />}
+      {domain && query && <DnsStatus domain={query} />}
     </div>
   );
 }
 
-/** Whether a domain points at this server yet, checked as typing pauses. */
+/** Whether a domain points at this server yet. */
 function DnsStatus({ domain }: { domain: string }) {
-  const query = useDeferredValue(domain);
-  const valid = DOMAIN_PATTERN.test(query);
+  const valid = DOMAIN_PATTERN.test(domain);
   const { data, isLoading } = useSWR<DomainCheck>(
-    valid ? `/api/domains?check=${encodeURIComponent(query)}` : null,
+    valid ? `/api/domains?check=${encodeURIComponent(domain)}` : null,
     fetcher,
     { revalidateOnFocus: false }
   );
@@ -116,19 +109,23 @@ function DnsStatus({ domain }: { domain: string }) {
 
   const [tone, Icon, text] =
     !data || isLoading
-      ? (['quiet', LoaderIcon, `Checking ${query}…`] as const)
+      ? (['quiet', LoaderIcon, `Checking ${domain}…`] as const)
       : data.points === 'here'
-        ? (['good', CircleCheckIcon, `${query} points at this server`] as const)
+        ? ([
+            'good',
+            CircleCheckIcon,
+            `${domain} points at this server`,
+          ] as const)
         : data.points === 'nowhere'
           ? ([
               'bad',
               CircleAlertIcon,
-              `${query} has no DNS record yet: point an A record at ${data.server.join(' or ')}`,
+              `${domain} has no DNS record yet: point an A record at ${data.server.join(' or ')}`,
             ] as const)
           : ([
               'bad',
               CircleAlertIcon,
-              `${query} points at ${data.addresses.join(', ')}, not this server (${data.server.join(' or ')})`,
+              `${domain} points at ${data.addresses.join(', ')}, not this server (${data.server.join(' or ')})`,
             ] as const);
   return (
     <p

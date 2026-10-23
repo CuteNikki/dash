@@ -12,6 +12,7 @@ import { formatBytes, formatCpu, formatDuration } from '@/lib/format';
 import type { HostProcess, ProcessDetails, Service } from '@/lib/types';
 
 import { TextSkeleton } from '@/components/common/skeletons';
+import { attempt } from '@/components/common/toasts';
 import { ServiceIcon } from '@/components/service/service-icon';
 import {
   AlertDialog,
@@ -93,26 +94,28 @@ function Details({
 
   function stop(force: boolean) {
     if (!data) return;
-    startTransition(async () => {
-      const result = await stopProcess(data.pid, data.start, force);
-      if (result.ok) {
-        toast.success(
-          result.outcome === 'gone'
-            ? `${data.name} had already ended`
-            : `Stopped ${data.name}`
-        );
-        onClose();
-      } else if (result.outcome === 'running') {
-        setStubborn(result.error);
-      } else {
-        toast.error(`Couldn't stop ${data.name}`, {
-          description: result.error,
-        });
-        if (result.outcome === 'replaced') onClose();
-        else await mutate();
-      }
-      setConfirming(false);
-    });
+    startTransition(() =>
+      attempt(`Couldn't stop ${data.name}`, async () => {
+        const result = await stopProcess(data.pid, data.start, force);
+        if (result.ok) {
+          toast.success(
+            result.outcome === 'gone'
+              ? `${data.name} had already ended`
+              : `Stopped ${data.name}`
+          );
+          onClose();
+        } else if (result.outcome === 'running') {
+          setStubborn(result.error);
+        } else {
+          toast.error(`Couldn't stop ${data.name}`, {
+            description: result.error,
+          });
+          if (result.outcome === 'replaced') onClose();
+          else await mutate();
+        }
+        setConfirming(false);
+      })
+    );
   }
 
   return (

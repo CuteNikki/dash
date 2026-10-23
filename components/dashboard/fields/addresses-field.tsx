@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/input-group';
 
 /** An address with an id of its own, so its field keeps its place while dragged. */
-export type AddressItem = { id: string; value: string };
+type AddressItem = { id: string; value: string };
 
 export function toItems(addresses: string[]): AddressItem[] {
   return addresses.map((value) => ({ id: crypto.randomUUID(), value }));
@@ -65,14 +65,14 @@ export function AddressesField({
     })
   );
 
-  /** Puts fields in after `index`, then moves the cursor to the last of them. */
-  function insertAfter(index: number, values: string[]) {
+  /**
+   * Puts fields in after `index`, then moves the cursor to the last of them.
+   * Into `from` when the same change alters a field too, as pasting does, so
+   * it's one change rather than two from the same items, the first lost.
+   */
+  function insertAfter(index: number, values: string[], from = items) {
     const added = toItems(values);
-    onChange([
-      ...items.slice(0, index + 1),
-      ...added,
-      ...items.slice(index + 1),
-    ]);
+    onChange([...from.slice(0, index + 1), ...added, ...from.slice(index + 1)]);
     requestAnimationFrame(() =>
       list.current
         ?.querySelector<HTMLInputElement>(
@@ -82,8 +82,9 @@ export function AddressesField({
     );
   }
 
-  function update(index: number, value: string) {
-    onChange(items.map((item, i) => (i === index ? { ...item, value } : item)));
+  /** The items with one field's value changed. */
+  function withValue(index: number, value: string) {
+    return items.map((item, i) => (i === index ? { ...item, value } : item));
   }
 
   function onDragEnd({ active, over }: DragEndEvent) {
@@ -106,13 +107,12 @@ export function AddressesField({
               key={item.id}
               item={item}
               inputId={index === 0 ? id : undefined}
-              onChange={(value) => update(index, value)}
+              onChange={(value) => onChange(withValue(index, value))}
               onRemove={() => onChange(items.filter((i) => i.id !== item.id))}
               onEnter={() => insertAfter(index, [''])}
-              onPasteLines={(lines) => {
-                update(index, lines[0]);
-                insertAfter(index, lines.slice(1));
-              }}
+              onPasteLines={(lines) =>
+                insertAfter(index, lines.slice(1), withValue(index, lines[0]))
+              }
             />
           ))}
         </SortableContext>

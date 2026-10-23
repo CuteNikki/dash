@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils';
 
 import { ScrollFade } from '@/components/common/scroll-fade';
 import { TextSkeleton } from '@/components/common/skeletons';
+import { attempt } from '@/components/common/toasts';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -143,10 +144,12 @@ function DiskUsage() {
             variant='outline'
             disabled={!scan || scan.state === 'scanning' || measuring}
             onClick={() =>
-              startMeasuring(async () => {
-                await measureDisk();
-                await mutate();
-              })
+              startMeasuring(() =>
+                attempt("Couldn't measure", async () => {
+                  await measureDisk();
+                  await mutate();
+                })
+              )
             }
           >
             <RefreshCwIcon
@@ -211,16 +214,18 @@ function DockerSection({
   const [pending, startTransition] = useTransition();
 
   function prune(what: Prunable) {
-    startTransition(async () => {
-      const result = await pruneDocker(what);
-      if (result.ok) {
-        toast.success(`Freed ${formatBytes(result.freed)}`);
-        onFreed();
-      } else {
-        toast.error('Couldn’t free it', { description: result.error });
-      }
-      setAsking(undefined);
-    });
+    startTransition(() =>
+      attempt('Couldn’t free it', async () => {
+        const result = await pruneDocker(what);
+        if (result.ok) {
+          toast.success(`Freed ${formatBytes(result.freed)}`);
+          onFreed();
+        } else {
+          toast.error('Couldn’t free it', { description: result.error });
+        }
+        setAsking(undefined);
+      })
+    );
   }
 
   return (

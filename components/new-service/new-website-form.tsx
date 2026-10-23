@@ -6,14 +6,10 @@ import { toast } from 'sonner';
 import { addSite } from '@/actions/tiles';
 import { MAX_DESCRIPTION } from '@/lib/dashboard/tiles';
 
+import { attempt } from '@/components/common/toasts';
 import { GroupField } from '@/components/dashboard/fields/group-field';
 import { Button } from '@/components/ui/button';
-import {
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -28,7 +24,7 @@ export function NewWebsiteForm({
   onCreated,
 }: {
   hidden: boolean;
-  /** Where to start from, Template, docker run or Website, under the heading */
+  /** Where to start from, Template, docker run or Website, under the window's heading */
   picker: ReactNode;
   groups: string[];
   onCreated: () => void;
@@ -41,15 +37,17 @@ export function NewWebsiteForm({
   const [pending, startTransition] = useTransition();
 
   function create() {
-    startTransition(async () => {
-      const result = await addSite({ name, address, group, description });
-      if (result?.error) {
-        setError(result.error);
-        return;
-      }
-      toast.success(`Added ${name.trim()}`);
-      onCreated();
-    });
+    startTransition(() =>
+      attempt(`Couldn't add ${name.trim()}`, async () => {
+        const result = await addSite({ name, address, group, description });
+        if (result?.error) {
+          setError(result.error);
+          return;
+        }
+        toast.success(`Added ${name.trim()}`);
+        onCreated();
+      })
+    );
   }
 
   return (
@@ -61,14 +59,6 @@ export function NewWebsiteForm({
         create();
       }}
     >
-      <DialogHeader>
-        <DialogTitle>New website</DialogTitle>
-        <DialogDescription>
-          A site hosted somewhere else, as a tile that shows whether it’s up and
-          how fast it answers. Nothing changes on the server.
-        </DialogDescription>
-      </DialogHeader>
-
       <fieldset disabled={pending} className='contents'>
         {picker}
         <div className='grid gap-4 sm:grid-cols-2'>

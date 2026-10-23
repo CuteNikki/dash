@@ -16,6 +16,7 @@ import { fetcher } from '@/lib/fetcher';
 import type { FileDiff, GitStatus } from '@/lib/git';
 
 import { CodeSkeleton } from '@/components/common/skeletons';
+import { attempt } from '@/components/common/toasts';
 import { BranchPicker } from '@/components/git/branch-picker';
 import {
   DiffLayoutToggle,
@@ -88,23 +89,25 @@ export function GitPanel({
     run: () => Promise<{ ok: boolean; output: string }>,
     done: string
   ) {
-    startTransition(async () => {
-      const result = await run();
-      const output = result.output.trim();
-      if (result.ok) {
-        toast.success(done, {
-          description: output && <GitOutput text={output} />,
-        });
-      } else {
-        // Until closed, as git's reason is worth reading
-        toast.error('Git refused', {
-          description: <GitOutput text={output || 'It gave no reason'} />,
-          duration: Infinity,
-          closeButton: true,
-        });
-      }
-      await onChanged();
-    });
+    startTransition(() =>
+      attempt("Couldn't run git", async () => {
+        const result = await run();
+        const output = result.output.trim();
+        if (result.ok) {
+          toast.success(done, {
+            description: output && <GitOutput text={output} />,
+          });
+        } else {
+          // Until closed, as git's reason is worth reading
+          toast.error('Git refused', {
+            description: <GitOutput text={output || 'It gave no reason'} />,
+            duration: Infinity,
+            closeButton: true,
+          });
+        }
+        await onChanged();
+      })
+    );
   }
 
   function switchTo(branch: string, create: boolean) {

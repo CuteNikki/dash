@@ -4,6 +4,7 @@ import { syntaxHighlighting } from '@codemirror/language';
 import { EditorState, type Extension } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import CodeMirror from '@uiw/react-codemirror';
+import { useMemo } from 'react';
 
 import { highlight, languageFor } from '@/components/editor/highlighting';
 
@@ -53,13 +54,13 @@ export function codeLooks(fileName: string): Extension[] {
 
 export function CodeEditor({
   value,
-  onChange,
+  onChangeAction,
   fileName,
   label,
   readOnly,
 }: {
   value: string;
-  onChange?: (value: string) => void;
+  onChangeAction?: (value: string) => void;
   /** Picks how it's highlighted: YAML, JSON, Dockerfile, shell, TOML, .env, diff */
   fileName: string;
   /** What's being edited, for screen readers */
@@ -67,10 +68,18 @@ export function CodeEditor({
   /** For showing text, such as a diff, rather than editing it */
   readOnly?: boolean;
 }) {
+  // The same each render, as CodeMirror reconfigures for a new array
+  const extensions = useMemo(
+    () => [
+      ...codeLooks(fileName),
+      ...(readOnly ? [EditorState.readOnly.of(true)] : []),
+    ],
+    [fileName, readOnly]
+  );
   return (
     <CodeMirror
       value={value}
-      onChange={onChange}
+      onChange={onChangeAction}
       theme={fill}
       height='100%'
       className='h-full overflow-hidden rounded-lg font-mono text-xs/relaxed'
@@ -82,10 +91,7 @@ export function CodeEditor({
         highlightActiveLine: !readOnly,
         highlightActiveLineGutter: !readOnly,
       }}
-      extensions={[
-        ...codeLooks(fileName),
-        ...(readOnly ? [EditorState.readOnly.of(true)] : []),
-      ]}
+      extensions={extensions}
     />
   );
 }

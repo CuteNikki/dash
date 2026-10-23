@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils';
 import { HistoryChart } from '@/components/charts/history-chart';
 import { ScrollFade } from '@/components/common/scroll-fade';
 import { TextSkeleton } from '@/components/common/skeletons';
+import { attempt } from '@/components/common/toasts';
 import { FilesPanel } from '@/components/editor/files-panel';
 import { GitPanel } from '@/components/git/git-panel';
 import { AddressList } from '@/components/service/address-list';
@@ -85,8 +86,23 @@ export function ServiceDialog({
   /** The server's memory, in bytes, which a container's is charted against */
   memoryTotal?: number;
 }) {
+  // Its removal's window, here rather than in the body, so the service it's
+  // removing can be held on to
+  const [removing, setRemoving] = useState(false);
+  const [last, setLast] = useState(service);
+  if (service && service !== last) setLast(service);
+  // Removing takes its containers down, and with them the service from the
+  // dashboard's next look; the window stays on the last one seen until its
+  // removal's closed, so what that printed and how it went aren't lost
+  const shown = service ?? (removing ? last : undefined);
+
+  function close() {
+    setRemoving(false);
+    onClose();
+  }
+
   return (
-    <Dialog open={!!service} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={!!shown} onOpenChange={(open) => !open && close()}>
       {/* Full screen on a phone, a large window in the middle on a computer */}
       <DialogContent
         className='flex h-full max-h-none max-w-full flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-5/6 sm:max-w-7xl sm:rounded-xl'
@@ -97,13 +113,15 @@ export function ServiceDialog({
           (e.currentTarget as HTMLElement).focus();
         }}
       >
-        {service && (
+        {shown && (
           <ServiceBody
-            service={service}
+            service={shown}
+            confirmRemove={removing}
+            setConfirmRemove={setRemoving}
             onChanged={onChanged}
             onRemoved={() => {
               onChanged();
-              onClose();
+              close();
             }}
             onEdit={onEdit}
             tab={tab}
@@ -117,6 +135,8 @@ export function ServiceDialog({
 
 function ServiceBody({
   service,
+  confirmRemove,
+  setConfirmRemove,
   onChanged,
   onRemoved,
   onEdit,
@@ -124,6 +144,9 @@ function ServiceBody({
   memoryTotal,
 }: {
   service: Service;
+  /** Whether its removal's window is open */
+  confirmRemove: boolean;
+  setConfirmRemove: (open: boolean) => void;
   onChanged: () => void;
   /** Called once its stack is removed, which closes the window */
   onRemoved: () => void;
@@ -133,7 +156,6 @@ function ServiceBody({
 }) {
   const [pending, startTransition] = useTransition();
   const [confirmStop, setConfirmStop] = useState(false);
-  const [confirmRemove, setConfirmRemove] = useState(false);
   const [confirmUpdate, setConfirmUpdate] = useState(false);
   const running = isRunning(service.state);
   // A website elsewhere: nothing to start or stop, only how it answers
@@ -146,42 +168,51 @@ function ServiceBody({
   );
 
   function run(action: ContainerAction) {
-    startTransition(async () => {
-      const result = await runContainerAction(service.containerId, action);
-      if (result.ok) toast.success(`${DONE[action]} ${service.name}`);
-      else
-        toast.error(`Couldn't ${action} ${service.name}`, {
-          description: result.error,
-        });
-      onChanged();
-    });
+    startTransition(() =>
+      attempt(`Couldn't ${action} ${service.name}`, async () => {
+        const result = await runContainerAction(service.containerId, action);
+        if (result.ok) toast.success(`${DONE[action]} ${service.name}`);
+        else
+          toast.error(`Couldn't ${action} ${service.name}`, {
+            description: result.error,
+          });
+        onChanged();
+      })
+    );
   }
 
   /** A website is only its tile: removing it forgets that, with Undo. */
   function removeSite() {
-    startTransition(async () => {
-      const before = await resetTile(service.key);
-      toast.success(`Removed ${service.name}`, {
-        action: before && {
-          label: 'Undo',
-          onClick: async () => {
-            await restoreTile(before);
-            toast.success(`Restored ${service.name}`);
-            onChanged();
+    startTransition(() =>
+      attempt(`Couldn't remove ${service.name}`, async () => {
+        const before = await resetTile(service.key);
+        toast.success(`Removed ${service.name}`, {
+          action: before && {
+            label: 'Undo',
+            onClick: () =>
+              attempt(`Couldn't restore ${service.name}`, async () => {
+                await restoreTile(before);
+                toast.success(`Restored ${service.name}`);
+                onChanged();
+              }),
           },
-        },
-      });
-      onRemoved();
-    });
+        });
+        onRemoved();
+      })
+    );
   }
 
   function reloadConfig() {
-    startTransition(async () => {
-      const result = await reloadCaddyConfig(service.containerId);
-      if (result.ok) toast.success('Caddy is using the new Caddyfile');
-      else
-        toast.error('Caddy kept its old config', { description: result.error });
-    });
+    startTransition(() =>
+      attempt('Caddy kept its old config', async () => {
+        const result = await reloadCaddyConfig(service.containerId);
+        if (result.ok) toast.success('Caddy is using the new Caddyfile');
+        else
+          toast.error('Caddy kept its old config', {
+            description: result.error,
+          });
+      })
+    );
   }
 
   return (
@@ -336,7 +367,8 @@ function ServiceBody({
               <FilesPanel
                 key={service.stack.dir}
                 containerId={service.containerId}
-                onDeployed={onChanged}
+                onDeployedAction={onChanged}
+                onFilesChangedAction={() => void rereadGit()}
               />
             </TabsContent>
           )}

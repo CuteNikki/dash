@@ -5,6 +5,7 @@ import { useState } from 'react';
 import {
   ICON_SETS,
   iconFileUrl,
+  isImageUrl,
   parseIcon,
   type IconVariants,
 } from '@/lib/icons/icon-sets';
@@ -19,11 +20,11 @@ type IconSource =
 /**
  * Where an icon comes from, named the way Homepage names them: "jellyfin"
  * from dashboard-icons, "mdi-…", "si-…" or "sh-…" from the other sets, or a
- * full https:// address, such as an uploaded one.
+ * full address, such as an uploaded one or a site's favicon.
  */
-export function iconSource(icon: string): IconSource {
+function iconSource(icon: string): IconSource {
   if (!icon) return { kind: 'letter' };
-  if (/^https:\/\//.test(icon)) return { kind: 'image', url: icon };
+  if (isImageUrl(icon)) return { kind: 'image', url: icon };
   // A path is one of Homepage's own files, which only Homepage can serve
   if (icon.includes('/')) return { kind: 'letter' };
   const url = iconFileUrl(icon);

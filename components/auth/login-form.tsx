@@ -18,29 +18,37 @@ export function LoginForm() {
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
 
-  function done(result: AuthResult) {
-    if (result?.error) {
-      setError(result.error.message ?? "Couldn't sign in");
-      return;
-    }
-    router.replace('/');
-    router.refresh();
+  /** Signs in one way or another, saying why not where it couldn't. */
+  function signIn(how: () => Promise<AuthResult>) {
+    startTransition(async () => {
+      const result = await how().catch(() => ({
+        error: { message: "dash didn't answer; try again in a moment" },
+      }));
+      if (result?.error) {
+        setError(result.error.message ?? "Couldn't sign in");
+        return;
+      }
+      router.replace('/');
+      router.refresh();
+    });
   }
 
   return (
     <div className='flex flex-col gap-4'>
       <form
         className='flex flex-col gap-4'
-        action={(form) =>
-          startTransition(async () =>
-            done(
-              await authClient.signIn.email({
-                email: String(form.get('email')),
-                password: String(form.get('password')),
-              })
-            )
-          )
-        }
+        // Sent from here rather than as the form's action, which would empty
+        // the fields after, the email too when only the password was wrong
+        onSubmit={(e) => {
+          e.preventDefault();
+          const form = new FormData(e.currentTarget);
+          signIn(() =>
+            authClient.signIn.email({
+              email: String(form.get('email')),
+              password: String(form.get('password')),
+            })
+          );
+        }}
       >
         <FormField
           id='email'
@@ -63,9 +71,7 @@ export function LoginForm() {
       <Button
         variant='outline'
         disabled={pending}
-        onClick={() =>
-          startTransition(async () => done(await authClient.signIn.passkey()))
-        }
+        onClick={() => signIn(() => authClient.signIn.passkey())}
       >
         <KeyRoundIcon />
         Sign in with a passkey

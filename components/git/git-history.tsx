@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
 import useSWR from 'swr';
 import useSWRInfinite from 'swr/infinite';
 
@@ -13,6 +12,7 @@ import type { FileDiff, GitCommit, GitCommitDetails } from '@/lib/git';
 
 import { ScrollFade } from '@/components/common/scroll-fade';
 import { CodeSkeleton, TextSkeleton } from '@/components/common/skeletons';
+import { copyText } from '@/components/common/toasts';
 import { DiffView, type DiffLayout } from '@/components/git/diff-view';
 import { ChangeStatus } from '@/components/git/git-change';
 import { Button } from '@/components/ui/button';
@@ -186,13 +186,8 @@ function CommitView({
     { revalidateOnFocus: false }
   );
 
-  async function copy(id: string) {
-    try {
-      await navigator.clipboard.writeText(id);
-      toast.success(`Copied ${id.slice(0, 12)}`);
-    } catch {
-      toast.error("Couldn't copy; select it instead");
-    }
+  function copy(id: string) {
+    return copyText(id, `Copied ${id.slice(0, 12)}`);
   }
 
   if (error) {

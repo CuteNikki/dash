@@ -16,29 +16,37 @@ export function SetupForm() {
   return (
     <form
       className='flex flex-col gap-4'
-      action={(form) =>
+      // Sent from here rather than as the form's action, which would empty
+      // every field after, when only the code might be wrong
+      onSubmit={(e) => {
+        e.preventDefault();
+        const form = new FormData(e.currentTarget);
+        const field = (name: string) => String(form.get(name) ?? '');
         startTransition(async () => {
-          const field = (name: string) => String(form.get(name) ?? '');
           const result = await createAccount({
             code: field('code'),
             name: field('name'),
             email: field('email'),
             password: field('password'),
-          });
+          }).catch(() => ({
+            error: "dash didn't answer; try again in a moment",
+          }));
           if (result?.error) {
             setError(result.error);
             return;
           }
           router.replace('/');
           router.refresh();
-        })
-      }
+        });
+      }}
     >
       <FormField
         id='code'
         label='Setup code'
-        inputMode='numeric'
+        // Letters and digits, as the log prints it, not a phone's keypad
         autoComplete='one-time-code'
+        autoCapitalize='characters'
+        spellCheck={false}
         className='font-mono'
       />
       <FormField id='name' label='Name' autoComplete='name' />

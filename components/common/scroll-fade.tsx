@@ -11,7 +11,7 @@ const EDGE_SLACK_PX = 2;
  * Room kept at the right edge for a scrollbar drawn over the list, as an
  * iPhone's is, which takes no width of its own to measure.
  */
-export const OVERLAY_BAR_PX = 6;
+const OVERLAY_BAR_PX = 6;
 
 /**
  * A scrolling area whose edges fade out while there's more to scroll to that

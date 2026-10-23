@@ -30,6 +30,7 @@ import type { HostEntry } from '@/lib/host/host-files';
 import { cn } from '@/lib/utils';
 
 import { TextSkeleton, TreeSkeleton } from '@/components/common/skeletons';
+import { attempt, copyText } from '@/components/common/toasts';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -110,6 +111,7 @@ export function FileTree({
   onChoose,
   onRenamed,
   onDeleted,
+  onChangedAction,
   keysFrom,
 }: {
   containerId: string;
@@ -124,6 +126,8 @@ export function FileTree({
   onChoose: (path: string) => void;
   onRenamed: (from: string, to: string) => void;
   onDeleted: (path: string) => void;
+  /** After an entry's made, renamed or deleted, so what follows the files, as git's status, does too */
+  onChangedAction: () => void;
   /** Where F2 renames: the row it's pressed on, or else the open file, as from its editor */
   keysFrom: React.RefObject<HTMLElement | null>;
 }) {
@@ -199,8 +203,15 @@ export function FileTree({
     sending.current = true;
     startTransition(async () => {
       try {
-        const path = await sendDraft(current, trimmed);
-        if (fromKey && path) focusNext.current = path;
+        await attempt(
+          current.action === 'create'
+            ? `Couldn't make ${trimmed}`
+            : `Couldn't rename ${nameOf(current.path)}`,
+          async () => {
+            const path = await sendDraft(current, trimmed);
+            if (fromKey && path) focusNext.current = path;
+          }
+        );
       } finally {
         sending.current = false;
       }
@@ -225,6 +236,7 @@ export function FileTree({
       if (!result.ok) return void toast.error(result.error);
       const path = current.folder ? `${current.folder}/${name}` : name;
       await refresh(current.folder);
+      onChangedAction();
       setDraft(undefined);
       if (current.kind === 'file') onChoose(path);
       else setOpen((o) => new Set(o).add(path));
@@ -235,6 +247,7 @@ export function FileTree({
     const folder = parentOf(current.path);
     const path = folder ? `${folder}/${name}` : name;
     await refresh(folder);
+    onChangedAction();
     setDraft(undefined);
     // Open folders inside it stay open under the new name
     setOpen(
@@ -277,21 +290,23 @@ export function FileTree({
   function confirmDelete() {
     const target = deleting;
     if (!target) return;
-    startTransition(async () => {
-      const result = await deleteEntry(containerId, target.path);
-      if (!result.ok) return void toast.error(result.error);
-      await refresh(parentOf(target.path));
-      setOpen((o) => new Set([...o].filter((p) => !isWithin(target.path, p))));
-      setDeleting(undefined);
-      onDeleted(target.path);
-      toast.success(`Deleted ${nameOf(target.path)}`);
-    });
+    startTransition(() =>
+      attempt(`Couldn't delete ${nameOf(target.path)}`, async () => {
+        const result = await deleteEntry(containerId, target.path);
+        if (!result.ok) return void toast.error(result.error);
+        await refresh(parentOf(target.path));
+        setOpen(
+          (o) => new Set([...o].filter((p) => !isWithin(target.path, p)))
+        );
+        setDeleting(undefined);
+        onDeleted(target.path);
+        onChangedAction();
+        toast.success(`Deleted ${nameOf(target.path)}`);
+      })
+    );
   }
 
-  async function copyPath(path: string) {
-    await navigator.clipboard.writeText(path);
-    toast.success('Copied', { description: path });
-  }
+  const copyPath = (path: string) => copyText(path, 'Copied', path);
 
   const tree: Tree = {
     chosen,
@@ -611,13 +626,7 @@ function Entry({
                 <CopyIcon />
                 Copy Path
               </ContextMenuItem>
-              <ContextMenuItem
-                onSelect={() =>
-                  navigator.clipboard
-                    .writeText(path)
-                    .then(() => toast.success('Copied', { description: path }))
-                }
-              >
+              <ContextMenuItem onSelect={() => copyText(path, 'Copied', path)}>
                 <CopyIcon />
                 Copy Relative Path
               </ContextMenuItem>

@@ -7,6 +7,7 @@ import { ChevronRightIcon, CornerDownLeftIcon } from 'lucide-react';
 
 import { sendToConsole } from '@/actions/containers';
 
+import { attempt } from '@/components/common/toasts';
 import {
   InputGroup,
   InputGroupAddon,
@@ -42,19 +43,21 @@ export function ConsoleInput({
   function send() {
     const sent = command.trim();
     if (!sent || pending) return;
-    startTransition(async () => {
-      const result = await sendToConsole(containerId, sent);
-      if (!result.ok) {
-        toast.error("Couldn't send that", { description: result.error });
-        return;
-      }
-      setHistory((old) =>
-        [...old.filter((c) => c !== sent), sent].slice(-MAX_HISTORY)
-      );
-      browsing.current = undefined;
-      setCommand('');
-      onSent();
-    });
+    startTransition(() =>
+      attempt("Couldn't send that", async () => {
+        const result = await sendToConsole(containerId, sent);
+        if (!result.ok) {
+          toast.error("Couldn't send that", { description: result.error });
+          return;
+        }
+        setHistory((old) =>
+          [...old.filter((c) => c !== sent), sent].slice(-MAX_HISTORY)
+        );
+        browsing.current = undefined;
+        setCommand('');
+        onSent();
+      })
+    );
   }
 
   function go(step: -1 | 1) {
