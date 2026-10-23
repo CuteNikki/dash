@@ -9,7 +9,8 @@ import { ROLE_INFO, roleOf, ROLES, type Role } from '@/lib/auth/roles';
 import { groupNames } from '@/lib/dashboard/groups';
 import { getDashboard } from '@/lib/dashboard/services';
 import { db } from '@/lib/db';
-import { SITE_URL } from '@/lib/site';
+import { mailReady, sendMail } from '@/lib/mail/mail';
+import { SERVER_NAME, SITE_URL } from '@/lib/site';
 
 /** Groups given to one person, far past any real number */
 const MAX_GROUPS = 200;
@@ -44,6 +45,8 @@ export type People = {
   invites: PendingInvite[];
   /** Every group there is, to give people */
   groups: string[];
+  /** The dashboard can send mail, so an invite can go by it */
+  mail: boolean;
 };
 
 export type PeopleResult = { error: string } | undefined;
@@ -91,6 +94,7 @@ export async function listPeople(): Promise<People> {
       invitedBy: i.invitedBy.name,
     })),
     groups: groupNames(dashboard.services, dashboard.groupOrder),
+    mail: mailReady(),
   };
 }
 
@@ -210,16 +214,25 @@ const NewInvite = Access.extend({
 });
 
 export type InviteResult =
-  { link: string; expiresAt: number } | { error: string };
+  | {
+      link: string;
+      expiresAt: number;
+      /** Mailed to them; or why it couldn't be, when it was meant to */
+      sent: boolean;
+      sendError?: string;
+    }
+  | { error: string };
 
 /**
  * An invite for someone to make their account with: its link, shown this
- * once, as only its hash is kept. It works for a day, once.
+ * once, as only its hash is kept. It works for a day, once. With `send`,
+ * it's mailed to them too.
  */
 export async function createInvite(input: {
   email: string;
   role: Role;
   groups: string[];
+  send?: boolean;
 }): Promise<InviteResult> {
   const access = await requireAccess('users');
   const parsed = NewInvite.safeParse(input);
@@ -230,6 +243,26 @@ export async function createInvite(input: {
   }
   const token = newToken();
   const expiresAt = new Date(Date.now() + INVITE_MS);
+  const link = new URL(`/invite/${token}`, SITE_URL).href;
+  let sendError: string | undefined;
+  if (input.send) {
+    const info = ROLE_INFO[role];
+    try {
+      await sendMail({
+        to: email,
+        subject: `You're invited to ${SERVER_NAME ?? 'the dashboard'}`,
+        paragraphs: [
+          'Hi,',
+          `${access.user.name} invited you to the dashboard of ${SERVER_NAME ?? 'their server'}, as ${info.name.toLowerCase()}: ${info.description.toLowerCase()}.`,
+          'Make your account with the link below. It works once, for 24 hours.',
+        ],
+        action: { label: 'Make my account', url: link },
+        footer: `Sent by the dashboard of ${SERVER_NAME ?? 'a server'} for ${access.user.name}. If you weren't expecting it, there's nothing to do: the link runs out by itself.`,
+      });
+    } catch (error) {
+      sendError = (error as Error).message;
+    }
+  }
   await db.invite.create({
     data: {
       tokenHash: tokenHash(token),
@@ -237,17 +270,24 @@ export async function createInvite(input: {
       role,
       groups,
       invitedById: access.user.id,
+      emailed: !!input.send && !sendError,
       expiresAt,
     },
   });
   await record(access, {
     action: 'invite.create',
     target: email,
-    detail: [ROLE_INFO[role].name, ...groups].join(', '),
+    detail: [
+      ROLE_INFO[role].name,
+      ...groups,
+      ...(input.send ? [sendError ? 'not mailed' : 'by mail'] : []),
+    ].join(', '),
   });
   return {
-    link: new URL(`/invite/${token}`, SITE_URL).href,
+    link,
     expiresAt: expiresAt.getTime(),
+    sent: !!input.send && !sendError,
+    sendError,
   };
 }
 

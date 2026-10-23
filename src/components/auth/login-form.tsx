@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
@@ -24,7 +25,12 @@ const wantsCode = (data: unknown) =>
   'twoFactorRedirect' in data &&
   data.twoFactorRedirect === true;
 
-export function LoginForm() {
+export function LoginForm({
+  canReset,
+}: {
+  /** There's mail, to send a forgotten password's reset link */
+  canReset: boolean;
+}) {
   const router = useRouter();
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
@@ -104,6 +110,14 @@ export function LoginForm() {
           type='password'
           autoComplete='current-password'
         />
+        {canReset && (
+          <Link
+            href='/forgot-password'
+            className='-mt-2 self-end text-muted-foreground underline-offset-4 hover:text-foreground hover:underline'
+          >
+            Forgot your password?
+          </Link>
+        )}
         {error && <p className='text-destructive'>{error}</p>}
         <Button type='submit' disabled={pending}>
           Sign in

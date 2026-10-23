@@ -12,6 +12,7 @@ import { defaultStatements } from 'better-auth/plugins/admin/access';
 import { MIN_PASSWORD } from '@/lib/auth/password';
 import { accountBeingCreated } from '@/lib/auth/setup';
 import { db } from '@/lib/db';
+import { mailReady, sendMail } from '@/lib/mail/mail';
 import { SERVER_NAME, SITE_URL } from '@/lib/site';
 
 /**
@@ -50,13 +51,71 @@ const ADMIN_PATHS = [
   'has-permission',
 ].map((path) => `/admin/${path}`);
 
+/** How long a link sent by mail works: a password reset's or an address's. */
+const LINK_SECONDS = 60 * 60;
+
 export const auth = betterAuth({
   database: prismaAdapter(db, { provider: 'postgresql' }),
-  emailAndPassword: { enabled: true, minPasswordLength: MIN_PASSWORD },
+  emailAndPassword: {
+    enabled: true,
+    minPasswordLength: MIN_PASSWORD,
+    // A forgotten password is reset from a link by mail, once there's mail;
+    // the new one signs out everywhere else, as whoever knew the old might be
+    sendResetPassword: mailReady()
+      ? async ({ user, url }) =>
+          sendMail({
+            to: user.email,
+            subject: 'Reset your password',
+            paragraphs: [
+              `Hi ${user.name},`,
+              'Someone asked to reset the password of your account on the dashboard. If it was you, pick a new one here; the link works for an hour.',
+              "If it wasn't, there's nothing to do: your password stays as it is.",
+            ],
+            action: { label: 'Pick a new password', url },
+          })
+      : undefined,
+    resetPasswordTokenExpiresIn: LINK_SECONDS,
+    revokeSessionsOnPasswordReset: true,
+  },
+  // Once there's mail, an address is confirmed by a link sent to it
+  emailVerification: mailReady()
+    ? {
+        expiresIn: LINK_SECONDS,
+        autoSignInAfterVerification: true,
+        sendVerificationEmail: async ({ user, url }) =>
+          sendMail({
+            to: user.email,
+            subject: 'Confirm your email address',
+            paragraphs: [
+              `Hi ${user.name},`,
+              "Confirm this is your address, so the dashboard's mail reaches you: a forgotten password, and alerts if you get them. The link works for an hour.",
+            ],
+            action: { label: 'Confirm my address', url },
+          }),
+      }
+    : undefined,
   user: {
-    // There's no mail to confirm a new address with, so it changes at once,
-    // for someone signed in as themselves
-    changeEmail: { enabled: true, updateEmailWithoutVerification: true },
+    changeEmail: {
+      enabled: true,
+      // One that isn't confirmed changes at once, and the new one is sent a
+      // link to confirm it, once there's mail; without mail it just changes
+      updateEmailWithoutVerification: true,
+      // One that's confirmed changes once the old address agrees, then the
+      // new one is confirmed in turn
+      sendChangeEmailConfirmation: mailReady()
+        ? async ({ user, newEmail, url }) =>
+            sendMail({
+              to: user.email,
+              subject: 'Change your email address?',
+              paragraphs: [
+                `Hi ${user.name},`,
+                `Someone signed in as you asked to change your account's address to ${newEmail}. If it was you, agree to it here; the new address is then sent a link to confirm it.`,
+                "If it wasn't, don't open the link, and change your password.",
+              ],
+              action: { label: `Change it to ${newEmail}`, url },
+            })
+        : undefined,
+    },
   },
   // Accounts are made by /setup's and invites' actions, through auth.api,
   // which doesn't go by these; signing up over HTTP isn't a way in at all

@@ -129,6 +129,7 @@ export function PeoplePanel() {
       <InviteDialog
         open={inviting}
         allGroups={data?.groups ?? []}
+        mail={data?.mail ?? false}
         onOpenChangeAction={setInviting}
         onCreatedAction={reload}
       />

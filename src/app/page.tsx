@@ -10,6 +10,7 @@ import {
   VIEW_COOKIE,
   viewFromCookie,
 } from '@/lib/dashboard/view';
+import { mailReady } from '@/lib/mail/mail';
 import { SERVER_NAME } from '@/lib/site';
 
 import { Dashboard } from '@/components/dashboard/dashboard';
@@ -43,6 +44,8 @@ export default async function Home() {
       me={{
         name: access.user.name,
         email: access.user.email,
+        emailVerified: access.user.emailVerified,
+        mail: mailReady(),
         role: access.role,
         groups: access.groups,
       }}

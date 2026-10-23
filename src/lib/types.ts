@@ -116,6 +116,10 @@ export type UsageHistory = {
 export type Me = {
   name: string;
   email: string;
+  /** Their address has been confirmed, by a link sent to it */
+  emailVerified: boolean;
+  /** The dashboard can send mail, to confirm an address and so on */
+  mail: boolean;
   role: Role;
   /** The groups they see; every one for a role that sees all */
   groups: string[];

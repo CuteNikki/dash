@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
+import { BadgeCheckIcon } from 'lucide-react';
+
 import { authClient } from '@/lib/auth/auth-client';
 import { MIN_PASSWORD } from '@/lib/auth/password';
 import type { Me } from '@/lib/types';
@@ -34,6 +36,7 @@ function ProfileForm({ me }: { me: Me }) {
   const newName = name.trim();
   const newEmail = email.trim().toLowerCase();
   const changed = newName !== me.name || newEmail !== me.email.toLowerCase();
+  const confirmsByMail = me.mail && me.emailVerified;
 
   function save() {
     setError(undefined);
@@ -47,9 +50,21 @@ function ProfileForm({ me }: { me: Me }) {
           }
         }
         if (newEmail !== me.email.toLowerCase()) {
-          const { error } = await authClient.changeEmail({ newEmail });
+          const { error } = await authClient.changeEmail({
+            newEmail,
+            callbackURL: '/',
+          });
           if (error) {
             setError(error.message ?? "Couldn't change your email");
+            router.refresh();
+            return;
+          }
+          // A confirmed address changes once the mail to it is agreed to
+          if (confirmsByMail) {
+            toast.success(`Check your mail at ${me.email}`, {
+              description: `Agree to the change there, then confirm ${newEmail} from the mail sent to it`,
+            });
+            setEmail(me.email);
             router.refresh();
             return;
           }
@@ -99,10 +114,7 @@ function ProfileForm({ me }: { me: Me }) {
             autoComplete='email'
             required
           />
-          <p className='text-muted-foreground'>
-            What you sign in with. The dashboard sends no email, so it changes
-            at once.
-          </p>
+          <EmailStatus me={me} />
         </div>
         {error && <p className='text-destructive'>{error}</p>}
         <Button
@@ -214,5 +226,56 @@ function PasswordForm() {
         </Button>
       </form>
     </Panel>
+  );
+}
+
+/** Whether their address is confirmed, and if not, a way to, once there's mail. */
+function EmailStatus({ me }: { me: Me }) {
+  const [pending, startTransition] = useTransition();
+  if (!me.mail) {
+    return (
+      <p className='text-muted-foreground'>
+        What you sign in with. The dashboard can&apos;t send mail yet, so it
+        changes at once.
+      </p>
+    );
+  }
+  if (me.emailVerified) {
+    return (
+      <p className='flex items-center gap-1 text-muted-foreground [&_svg]:size-3.5'>
+        <BadgeCheckIcon className='text-success' />
+        Confirmed. A new one changes once both addresses agree, by mail.
+      </p>
+    );
+  }
+  return (
+    <div className='flex flex-wrap items-center gap-2'>
+      <p className='text-warning'>Not confirmed yet.</p>
+      <Button
+        type='button'
+        variant='outline'
+        size='xs'
+        disabled={pending}
+        onClick={() =>
+          startTransition(() =>
+            attempt("Couldn't send the link", async () => {
+              const { error } = await authClient.sendVerificationEmail({
+                email: me.email,
+                callbackURL: '/',
+              });
+              if (error) {
+                toast.error("Couldn't send the link", {
+                  description: error.message,
+                });
+                return;
+              }
+              toast.success(`Sent a link to ${me.email}`);
+            })
+          )
+        }
+      >
+        Send me a link to confirm it
+      </Button>
+    </div>
   );
 }

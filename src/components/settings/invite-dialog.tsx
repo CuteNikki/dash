@@ -21,20 +21,24 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 
 /**
  * Invites someone by email, with the role and groups their account will
- * have; then shows the invite's link, this once, to send them however suits.
- * The dashboard sends no email itself.
+ * have: mails them the link, once there's mail, and shows it, this once,
+ * to send them however suits otherwise.
  */
 export function InviteDialog({
   open,
   allGroups,
+  mail,
   onOpenChangeAction,
   onCreatedAction,
 }: {
   open: boolean;
   allGroups: string[];
+  /** The dashboard can send mail */
+  mail: boolean;
   onOpenChangeAction: (open: boolean) => void;
   onCreatedAction: () => void;
 }) {
@@ -43,7 +47,11 @@ export function InviteDialog({
       <DialogContent>
         {/* Mounted while open, so the next invite starts empty */}
         {open && (
-          <InviteForm allGroups={allGroups} onCreatedAction={onCreatedAction} />
+          <InviteForm
+            allGroups={allGroups}
+            mail={mail}
+            onCreatedAction={onCreatedAction}
+          />
         )}
       </DialogContent>
     </Dialog>
@@ -52,11 +60,15 @@ export function InviteDialog({
 
 function InviteForm({
   allGroups,
+  mail,
   onCreatedAction,
 }: {
   allGroups: string[];
+  mail: boolean;
   onCreatedAction: () => void;
 }) {
+  const [send, setSend] = useState(mail);
+  const [sent, setSent] = useState<{ ok: boolean; error?: string }>();
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<Role>('viewer');
   const [groups, setGroups] = useState<string[]>([]);
@@ -72,12 +84,14 @@ function InviteForm({
           email,
           role,
           groups: seesAllGroups(role) ? [] : groups,
+          send: mail && send,
         });
         if ('error' in result) {
           setError(result.error);
           return;
         }
         setLink(result.link);
+        if (mail && send) setSent({ ok: result.sent, error: result.sendError });
         onCreatedAction();
       })
     );
@@ -87,12 +101,23 @@ function InviteForm({
     return (
       <div className='flex flex-col gap-6'>
         <DialogHeader>
-          <DialogTitle>Send them this link</DialogTitle>
+          <DialogTitle>
+            {sent?.ok ? `Sent to ${email}` : 'Send them this link'}
+          </DialogTitle>
           <DialogDescription>
-            It makes {email}&apos;s account. It works once, for 24 hours, and
-            won&apos;t be shown again: only a hash of it is kept.
+            {sent?.ok
+              ? "It's in their mail, and here too, should it not arrive."
+              : `It makes ${email}'s account.`}{' '}
+            It works once, for 24 hours, and won&apos;t be shown again: only a
+            hash of it is kept.
           </DialogDescription>
         </DialogHeader>
+        {sent && !sent.ok && (
+          <p className='text-destructive'>
+            Couldn&apos;t mail it{sent.error ? `: ${sent.error}` : ''}. Send
+            them the link yourself.
+          </p>
+        )}
         <div className='flex items-center gap-2'>
           <Input
             readOnly
@@ -154,11 +179,17 @@ function InviteForm({
           onRoleChangeAction={setRole}
           onGroupsChangeAction={setGroups}
         />
+        {mail && (
+          <div className='flex items-center gap-2'>
+            <Switch id='invite-send' checked={send} onCheckedChange={setSend} />
+            <Label htmlFor='invite-send'>Mail them the link</Label>
+          </div>
+        )}
         {error && <p className='text-destructive'>{error}</p>}
       </div>
       <DialogFooter>
         <Button type='submit' disabled={pending}>
-          Make the link
+          {mail && send ? 'Send the invite' : 'Make the link'}
         </Button>
       </DialogFooter>
     </form>

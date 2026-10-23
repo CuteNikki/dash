@@ -46,6 +46,6 @@ export const config = {
   // signing in. Each is skipped whole, or with what's under it, so /setupx or
   // /api/authors still come through here.
   matcher: [
-    '/((?!(?:login|setup|invite|api/auth|favicon[.]ico|icon[.]svg|apple-icon[.]png|manifest[.]webmanifest|robots[.]txt)(?:/|$)|_next/).*)',
+    '/((?!(?:login|setup|invite|forgot-password|reset-password|api/auth|favicon[.]ico|icon[.]svg|apple-icon[.]png|manifest[.]webmanifest|robots[.]txt)(?:/|$)|_next/).*)',
   ],
 };

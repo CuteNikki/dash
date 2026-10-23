@@ -1,7 +1,6 @@
 import 'server-only';
 
 import type { ActivityAction } from '@/lib/activity/actions';
-import type { Access } from '@/lib/auth/access';
 import { db } from '@/lib/db';
 
 /** The longest a target, detail or error is kept: a line, not a whole log. */
@@ -15,7 +14,7 @@ const cut = (text?: string) =>
  * what it notes: a log that couldn't be written is said in the server's log.
  */
 export async function record(
-  who: Pick<Access, 'user'> | undefined,
+  who: { user: { id: string; name: string } } | undefined,
   entry: {
     action: ActivityAction;
     target?: string;
@@ -64,7 +63,7 @@ export async function tried(
  * exited 0, else with the last error it printed.
  */
 export function recordRun(
-  who: Pick<Access, 'user'> | undefined,
+  who: { user: { id: string; name: string } } | undefined,
   entry: { action: ActivityAction; target?: string; detail?: string }
 ) {
   return (exitCode: number, lastError?: string) =>

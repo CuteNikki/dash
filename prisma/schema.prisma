@@ -185,6 +185,8 @@ model Invite {
   groups      String[]  @default([])
   invitedById String
   invitedBy   User      @relation(fields: [invitedById], references: [id], onDelete: Cascade)
+  /// Sent by mail, so whoever has the link has the address too
+  emailed     Boolean   @default(false)
   expiresAt   DateTime
   usedAt      DateTime?
   createdAt   DateTime  @default(now())

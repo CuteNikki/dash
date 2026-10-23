@@ -19,7 +19,7 @@ import { listContainers, type Container } from '@/lib/docker/docker';
 
 /** Who's signed in, what they may do, and the groups they see. */
 export type Access = {
-  user: { id: string; name: string; email: string };
+  user: { id: string; name: string; email: string; emailVerified: boolean };
   role: Role;
   /** The groups they're given; every one for a role that sees all */
   groups: string[];
@@ -37,9 +37,9 @@ export const getAccess = cache(async (): Promise<Access | undefined> => {
     select: { role: true, allowedGroups: true },
   });
   if (!row) return undefined;
-  const { id, name, email } = session.user;
+  const { id, name, email, emailVerified } = session.user;
   return {
-    user: { id, name, email },
+    user: { id, name, email, emailVerified },
     role: roleOf(row.role),
     groups: row.allowedGroups,
   };

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
 import { getUser, hasAccount } from '@/lib/auth/session';
+import { mailReady } from '@/lib/mail/mail';
 
 import { AuthCard } from '@/components/auth/auth-card';
 import { LoginForm } from '@/components/auth/login-form';
@@ -20,7 +21,7 @@ export default async function LoginPage() {
       title='Sign in'
       description='to manage the services on this server'
     >
-      <LoginForm />
+      <LoginForm canReset={mailReady()} />
     </AuthCard>
   );
 }
