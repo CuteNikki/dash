@@ -12,8 +12,12 @@ import type { HostProcess, HostStats, UsageHistory } from '@/lib/types';
 
 /** How often the server and its containers are measured while someone is watching. */
 const INTERVAL_MS = 5_000;
-/** Measuring stops this long after the dashboard was last asked for usage. */
-const IDLE_MS = 60_000;
+/**
+ * Measuring stops this long after the dashboard was last asked for usage.
+ * A browser stops asking while its tab is hidden, as when another window
+ * is in front, so a few minutes keeps a glance away from leaving a gap.
+ */
+const IDLE_MS = 5 * 60_000;
 
 type Sampler = {
   usage: Map<string, Usage & { history: UsageHistory }>;

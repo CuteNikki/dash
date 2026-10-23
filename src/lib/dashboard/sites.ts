@@ -6,8 +6,8 @@ import type { SiteCheck } from '@/lib/types';
 
 /** How often each site is asked for its page while someone is watching. */
 const INTERVAL_MS = 30_000;
-/** Checking stops this long after the dashboard last asked about the sites. */
-const IDLE_MS = 120_000;
+/** Checking stops this long after the dashboard last asked about the sites, as for usage. */
+const IDLE_MS = 5 * 60_000;
 /** A site that hasn't answered by now is down. */
 const TIMEOUT_MS = 10_000;
 /** The longest a page load waits for a site's first check. */
