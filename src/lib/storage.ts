@@ -81,6 +81,8 @@ export type StoredFile = {
   modified: number;
   /** A signed link to it, for an hour at the least */
   url: string;
+  /** The same, saving it rather than showing it */
+  download: string;
   /** A small picture of it, for a picture */
   thumb?: string;
 };
@@ -163,6 +165,7 @@ export async function listFolder(
         .map(async (f) => ({
           ...f,
           url: await signedLink(client, bucket, f.key),
+          download: await signedLink(client, bucket, f.key, true),
           thumb: thumbLink(bucket, f.key, f.modified),
         }))
     ),
@@ -215,11 +218,23 @@ export async function peekFolder(
  * hour, so the same file has the same link all that hour, and the browser
  * shows it from its cache rather than loading it again each refresh.
  */
-async function signedLink(client: AwsClient, bucket: string, key: string) {
+async function signedLink(
+  client: AwsClient,
+  bucket: string,
+  key: string,
+  download = false
+) {
   const hour = new Date();
   hour.setUTCMinutes(0, 0, 0);
   const url = new URL(objectUrl(bucket, key));
   url.searchParams.set('X-Amz-Expires', `${LINK_HOURS * 60 * 60}`);
+  if (download) {
+    const name = key.split('/').pop() ?? key;
+    url.searchParams.set(
+      'response-content-disposition',
+      `attachment; filename*=UTF-8''${encodeURIComponent(name)}`
+    );
+  }
   const signed = await client.sign(url, {
     method: 'GET',
     aws: {
@@ -247,6 +262,54 @@ const THUMBABLE = /\.(png|jpe?g|gif|webp|avif|tiff?|svg)$/i;
 /** A file, as the storage answers with it. */
 export async function readFile(bucket: string, key: string) {
   return answered(await storage().fetch(objectUrl(bucket, key)), bucket);
+}
+
+/** Every file under a prefix, all the way down, up to `max` of them. */
+export async function allKeys(bucket: string, prefix: string, max: number) {
+  const client = storage();
+  const keys: string[] = [];
+  let after: string | undefined;
+  do {
+    const page = await listing(client, bucket, {
+      prefix,
+      'continuation-token': after,
+    });
+    keys.push(...page.files.map((f) => f.key));
+    after = page.next;
+  } while (after && keys.length <= max);
+  return keys;
+}
+
+/** The most of a file read to show it as text. */
+const TEXT_BYTES = 64 * 1024;
+
+/** The start of a file as text, or that it isn't text. */
+export type TextPeek = { text: string; cut: boolean } | { binary: true };
+
+/** A file's first TEXT_BYTES, as text where it's text: no NUL bytes, and UTF-8 throughout. */
+export async function peekText(bucket: string, key: string): Promise<TextPeek> {
+  const res = await storage().fetch(objectUrl(bucket, key), {
+    headers: { range: `bytes=0-${TEXT_BYTES - 1}` },
+  });
+  // An empty file has no range to answer with
+  if (res.status === 416) return { text: '', cut: false };
+  await answered(res, bucket);
+  const all = new Uint8Array(await res.arrayBuffer());
+  const bytes = all.subarray(0, TEXT_BYTES);
+  const total = Number(
+    res.headers.get('content-range')?.split('/')[1] ?? all.length
+  );
+  const cut = total > bytes.length;
+  if (bytes.includes(0)) return { binary: true };
+  try {
+    // A character cut off at the end isn't held against it
+    const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes, {
+      stream: cut,
+    });
+    return { text, cut };
+  } catch {
+    return { binary: true };
+  }
 }
 
 /** Deletes a file from a bucket; one already gone is fine. */

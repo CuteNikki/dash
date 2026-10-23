@@ -1,25 +1,47 @@
 'use client';
 
-import { Fragment, useEffect, useRef, useState, useTransition } from 'react';
+import {
+  createElement,
+  Fragment,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+} from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 import useSWRInfinite from 'swr/infinite';
 
 import {
   ArrowUpIcon,
+  DownloadIcon,
   ExternalLinkIcon,
+  FileArchiveIcon,
+  FileBracesIcon,
+  FileCodeIcon,
   FileIcon,
+  FileImageIcon,
+  FileMusicIcon,
+  FileTextIcon,
   FileVideoIcon,
   FolderIcon,
+  LayoutGridIcon,
+  ListIcon,
   RefreshCwIcon,
   Trash2Icon,
+  type LucideIcon,
 } from 'lucide-react';
 
 import { deleteStoredFiles } from '@/actions/storage';
 import { fetcher } from '@/lib/fetcher';
-import { formatBytes, formatMoment } from '@/lib/format';
-import { mediaKind } from '@/lib/media';
-import type { FolderPeek, StoredFile, StoredPage } from '@/lib/storage';
+import { formatBytes, formatMoment, formatPast } from '@/lib/format';
+import { fileKind, mediaKind, type FileKind } from '@/lib/media';
+import type {
+  FolderPeek,
+  StoredFile,
+  StoredPage,
+  TextPeek,
+} from '@/lib/storage';
 import { cn } from '@/lib/utils';
 
 import { ScrollFade } from '@/components/common/scroll-fade';
@@ -56,10 +78,21 @@ import {
 /** How far ahead of the grid's end its next page is asked for. */
 const LOAD_AHEAD = '400px';
 
-type Bucket = { name: string; objects: number; size: number };
+type Bucket = {
+  name: string;
+  objects: number;
+  size: number;
+  /** It holds the backups, which restic looks after */
+  backups: boolean;
+};
+
+type View = 'grid' | 'list';
 
 /** "icons/a/cat.png" → "cat.png"; "icons/a/" → "a" */
 const nameOf = (path: string) => path.replace(/\/$/, '').split('/').pop()!;
+
+/** A key that's a folder, as "icons/a/", rather than a file. */
+const isFolder = (key: string) => key.endsWith('/');
 
 const ROW = 'flex w-full flex-col rounded-md px-2 py-1 text-left';
 
@@ -69,10 +102,31 @@ const ROW = 'flex w-full flex-col rounded-md px-2 py-1 text-left';
  */
 const TILE = '[contain-intrinsic-size:auto_12rem] [content-visibility:auto]';
 
+/** A row of the list, likewise. */
+const LIST_ROW =
+  '[contain-intrinsic-size:auto_2.25rem] [content-visibility:auto]';
+
+/** Each sort of file's icon, where it isn't shown as a picture. */
+const ICONS: Record<FileKind, LucideIcon> = {
+  image: FileImageIcon,
+  video: FileVideoIcon,
+  audio: FileMusicIcon,
+  pdf: FileTextIcon,
+  text: FileTextIcon,
+  code: FileCodeIcon,
+  data: FileBracesIcon,
+  archive: FileArchiveIcon,
+};
+
+const iconOf = (key: string) => {
+  const kind = fileKind(key);
+  return kind ? ICONS[kind] : FileIcon;
+};
+
 /**
- * What Garage stores: its buckets in a list, and the one picked as a grid,
- * its folders to open and its files to look at, each a picture where it is
- * one, picked to delete one or many at a time.
+ * What Garage stores: its buckets in a list, and the one picked as a grid
+ * or a list, its folders to open and its files to look at, each a picture
+ * where it is one, picked to delete one or many at a time.
  */
 export function BucketBrowser({ containerId }: { containerId: string }) {
   const base = `/api/containers/${containerId}/browse`;
@@ -129,7 +183,7 @@ export function BucketBrowser({ containerId }: { containerId: string }) {
         className='hidden shrink-0 flex-col overflow-hidden rounded-lg bg-muted sm:flex sm:w-60'
       >
         <ScrollFade
-          className='h-full scrollbar-gutter-stable overflow-auto p-1'
+          className='h-full overflow-auto p-1'
           fadeFrom='from-muted'
           fill
         >
@@ -179,6 +233,7 @@ export function BucketBrowser({ containerId }: { containerId: string }) {
           base={base}
           containerId={containerId}
           bucket={bucket}
+          backups={!!buckets?.find((b) => b.name === bucket)?.backups}
           prefix={prefix}
           onOpenAction={(prefix) => setAt({ bucket, prefix })}
           onDeletedAction={() => void rereadBuckets()}
@@ -192,6 +247,7 @@ function Folder({
   base,
   containerId,
   bucket,
+  backups,
   prefix,
   onOpenAction,
   onDeletedAction,
@@ -199,6 +255,7 @@ function Folder({
   base: string;
   containerId: string;
   bucket: string;
+  backups: boolean;
   /** The folder open, "" for the bucket's top, else ending in "/" */
   prefix: string;
   onOpenAction: (prefix: string) => void;
@@ -221,10 +278,22 @@ function Folder({
   const folders = data?.flatMap((page) => page.folders) ?? [];
   const files = data?.flatMap((page) => page.files) ?? [];
   const more = !!data?.at(-1)?.next;
+  // Folders by their key, as "a/b/", files by theirs
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [viewing, setViewing] = useState<StoredFile>();
   const [confirming, setConfirming] = useState<string[]>();
   const [pending, startTransition] = useTransition();
+  // As it was last switched to in this bucket; else a grid where there are
+  // pictures to see, or only folders, and a list of files that aren't
+  const [chosenView, setView] = useKept<View | undefined>(
+    `browse:${containerId}:view:${bucket}`,
+    undefined
+  );
+  const view: View =
+    chosenView ??
+    (data && files.length && !files.some((f) => mediaKind(f.key))
+      ? 'list'
+      : 'grid');
 
   // The next page once the end of the grid comes near
   const end = useRef<HTMLDivElement>(null);
@@ -260,11 +329,7 @@ function Folder({
           });
           return;
         }
-        toast.success(
-          keys.length === 1
-            ? `Deleted ${nameOf(keys[0])}`
-            : `Deleted ${keys.length} files`
-        );
+        toast.success(`Deleted ${described(keys)}`);
         setSelected((was) => {
           const next = new Set(was);
           for (const key of keys) next.delete(key);
@@ -285,7 +350,9 @@ function Folder({
       name,
       prefix: `${all.slice(0, i + 1).join('/')}/`,
     }));
-  const all = files.length > 0 && files.every((f) => selected.has(f.key));
+  const everything = [...folders, ...files.map((f) => f.key)];
+  const all = everything.length > 0 && everything.every((k) => selected.has(k));
+  const picking = selected.size > 0;
 
   return (
     <section
@@ -335,21 +402,11 @@ function Folder({
             })}
           </nav>
         </div>
+        {/* The box to pick all by last but the buttons that never come and
+            go, so it stays where it is as what's picked changes, to be
+            unticked again straight away */}
         <div className='ml-auto flex items-center gap-2'>
-          {files.length > 0 && (
-            <label className='flex items-center gap-2 whitespace-nowrap text-muted-foreground'>
-              <Checkbox
-                checked={all ? true : selected.size ? 'indeterminate' : false}
-                onCheckedChange={(on) =>
-                  setSelected(
-                    on === true ? new Set(files.map((f) => f.key)) : new Set()
-                  )
-                }
-              />
-              {selected.size ? `${selected.size} picked` : 'Pick all'}
-            </label>
-          )}
-          {selected.size > 0 && (
+          {picking && (
             <Button
               variant='destructive'
               disabled={pending}
@@ -359,6 +416,26 @@ function Folder({
               Delete
             </Button>
           )}
+          {everything.length > 0 && (
+            <label className='flex items-center gap-2 whitespace-nowrap text-muted-foreground'>
+              {picking ? `${selected.size} picked` : 'Pick all'}
+              <Checkbox
+                checked={all ? true : picking ? 'indeterminate' : false}
+                onCheckedChange={(on) =>
+                  setSelected(on === true ? new Set(everything) : new Set())
+                }
+              />
+            </label>
+          )}
+          <Button
+            variant='outline'
+            size='icon'
+            aria-label={view === 'grid' ? 'Show as a list' : 'Show as a grid'}
+            title={view === 'grid' ? 'Show as a list' : 'Show as a grid'}
+            onClick={() => setView(view === 'grid' ? 'list' : 'grid')}
+          >
+            {view === 'grid' ? <ListIcon /> : <LayoutGridIcon />}
+          </Button>
           <Button
             variant='outline'
             size='icon'
@@ -384,15 +461,46 @@ function Folder({
               Couldn&apos;t read {bucket}: {error.message}
             </p>
           ) : !data ? (
-            <TileGrid>
-              {Array.from({ length: 8 }, (_, i) => (
-                <div key={i} className='aspect-square rounded-lg bg-muted' />
-              ))}
-            </TileGrid>
+            view === 'list' ? (
+              <div className='flex flex-col gap-3 p-2'>
+                {Array.from({ length: 6 }, (_, i) => (
+                  <TextSkeleton key={i} className='w-2/3' />
+                ))}
+              </div>
+            ) : (
+              <TileGrid>
+                {Array.from({ length: 8 }, (_, i) => (
+                  <div key={i} className='aspect-square rounded-lg bg-muted' />
+                ))}
+              </TileGrid>
+            )
           ) : folders.length === 0 && files.length === 0 ? (
             <p className='text-muted-foreground'>
               {prefix ? 'This folder is empty.' : 'This bucket is empty.'}
             </p>
+          ) : view === 'list' ? (
+            <ul className='flex flex-col'>
+              {folders.map((folder) => (
+                <FolderRow
+                  key={folder}
+                  base={base}
+                  bucket={bucket}
+                  folder={folder}
+                  picked={selected.has(folder)}
+                  onPickAction={(on) => toggle(folder, on)}
+                  onOpenAction={() => onOpenAction(folder)}
+                />
+              ))}
+              {files.map((file) => (
+                <FileRow
+                  key={file.key}
+                  file={file}
+                  picked={selected.has(file.key)}
+                  onPickAction={(on) => toggle(file.key, on)}
+                  onOpenAction={() => setViewing(file)}
+                />
+              ))}
+            </ul>
           ) : (
             <TileGrid>
               {folders.map((folder) => (
@@ -401,6 +509,9 @@ function Folder({
                   base={base}
                   bucket={bucket}
                   folder={folder}
+                  picked={selected.has(folder)}
+                  picking={picking}
+                  onPickAction={(on) => toggle(folder, on)}
                   onOpenAction={() => onOpenAction(folder)}
                 />
               ))}
@@ -409,7 +520,7 @@ function Folder({
                   key={file.key}
                   file={file}
                   picked={selected.has(file.key)}
-                  picking={selected.size > 0}
+                  picking={picking}
                   onPickAction={(on) => toggle(file.key, on)}
                   onOpenAction={() => setViewing(file)}
                 />
@@ -422,6 +533,8 @@ function Folder({
 
       <FileView
         file={viewing}
+        bucket={bucket}
+        backups={backups}
         pending={pending}
         onCloseAction={() => setViewing(undefined)}
         onDeleteAction={(file) => setConfirming([file.key])}
@@ -433,18 +546,28 @@ function Folder({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Delete{' '}
-              {confirming?.length === 1
-                ? nameOf(confirming[0])
-                : `${confirming?.length} files`}
-              ?
+              Delete {confirming && described(confirming)}?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {confirming?.length === 1 ? 'It goes' : 'They go'} from {bucket}{' '}
-              for good, and anything showing{' '}
-              {confirming?.length === 1 ? 'it' : 'them'} stops being able to.
+              {confirming?.length === 1 && !isFolder(confirming[0])
+                ? 'It goes'
+                : 'They go'}{' '}
+              from {bucket} for good
+              {confirming?.some(isFolder) && ', with all that’s in them'}, and
+              anything showing{' '}
+              {confirming?.length === 1 && !isFolder(confirming[0])
+                ? 'it'
+                : 'them'}{' '}
+              stops being able to.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {backups && (
+            <p className='text-xs/relaxed text-warning'>
+              These are the backups&apos; own files, which restic looks after:
+              deleting any can leave every backup unreadable. Old backups go by
+              themselves, as only the last few are kept.
+            </p>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
@@ -458,6 +581,23 @@ function Folder({
       </AlertDialog>
     </section>
   );
+}
+
+/** What's to be deleted, in words: "cat.png", "the folder a", "2 folders and 3 files". */
+function described(keys: string[]) {
+  if (keys.length === 1) {
+    return isFolder(keys[0])
+      ? `the folder ${nameOf(keys[0])}`
+      : nameOf(keys[0]);
+  }
+  const folders = keys.filter(isFolder).length;
+  const files = keys.length - folders;
+  return [
+    folders && `${folders} ${folders === 1 ? 'folder' : 'folders'}`,
+    files && `${files} ${files === 1 ? 'file' : 'files'}`,
+  ]
+    .filter(Boolean)
+    .join(' and ');
 }
 
 function TileGrid({ children }: { children: React.ReactNode }) {
@@ -509,72 +649,132 @@ function useSeen<T extends Element>() {
 }
 
 /**
- * A folder as a tile: a few of the pictures in it, how many files it holds
- * and how big they are, looked into once it comes near the view, as a page
- * can hold a thousand folders.
+ * A look into a folder, once it comes near the view, as a page can hold a
+ * thousand folders.
  */
-function FolderTile({
-  base,
-  bucket,
-  folder,
-  onOpenAction,
-}: {
-  base: string;
-  bucket: string;
-  folder: string;
-  onOpenAction: () => void;
-}) {
-  const [ref, seen] = useSeen<HTMLButtonElement>();
-  const { data: peek } = useSWR<FolderPeek>(
+function useFolderPeek<T extends Element>(
+  base: string,
+  bucket: string,
+  folder: string
+) {
+  const [ref, seen] = useSeen<T>();
+  const { data } = useSWR<FolderPeek>(
     seen
       ? `${base}?${new URLSearchParams({ bucket, prefix: folder, peek: '' })}`
       : null,
     fetcher,
     { revalidateOnFocus: false }
   );
+  return [ref, data] as const;
+}
+
+/** "12 files · 3.4 MB", "1000+ files · …" */
+const peekSummary = (peek: FolderPeek) =>
+  `${peek.files}${peek.more ? '+' : ''} ${peek.files === 1 && !peek.more ? 'file' : 'files'} · ${formatBytes(peek.size)}`;
+
+/** A box to pick a tile by, shown once it's pointed at or any are picked, so the pictures are clear otherwise. */
+function TileCheckbox({
+  name,
+  picked,
+  picking,
+  onPickAction,
+}: {
+  name: string;
+  picked: boolean;
+  picking: boolean;
+  onPickAction: (on: boolean) => void;
+}) {
+  return (
+    <Checkbox
+      checked={picked}
+      onCheckedChange={(on) => onPickAction(on === true)}
+      aria-label={`Pick ${name}`}
+      // Solid, and bordered strongly, to be seen against any picture
+      className={cn(
+        'absolute top-2 left-2 size-5 border-foreground/50 bg-background/90 shadow-md backdrop-blur-sm',
+        !picked &&
+          !picking &&
+          'opacity-0 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100'
+      )}
+    />
+  );
+}
+
+/** A tile's frame, outlined once it's picked. */
+const tileFrame = (picked: boolean) =>
+  cn(
+    TILE,
+    'group relative flex flex-col overflow-hidden rounded-lg border bg-muted dark:bg-muted/40',
+    picked
+      ? 'border-primary'
+      : 'border-foreground/10 hover:border-foreground/25'
+  );
+
+/**
+ * A folder as a tile: a few of the pictures in it, how many files it holds
+ * and how big they are, and a box to pick it by.
+ */
+function FolderTile({
+  base,
+  bucket,
+  folder,
+  picked,
+  picking,
+  onPickAction,
+  onOpenAction,
+}: {
+  base: string;
+  bucket: string;
+  folder: string;
+  picked: boolean;
+  picking: boolean;
+  onPickAction: (on: boolean) => void;
+  onOpenAction: () => void;
+}) {
+  const [ref, peek] = useFolderPeek<HTMLDivElement>(base, bucket, folder);
   const pictures = peek?.pictures ?? [];
   return (
-    <button
-      ref={ref}
-      type='button'
-      onClick={onOpenAction}
-      className={cn(
-        TILE,
-        'flex flex-col overflow-hidden rounded-lg border border-foreground/10 bg-muted text-left hover:border-foreground/25 dark:bg-muted/40'
-      )}
-    >
-      {pictures.length ? (
-        // One picture whole, two side by side, more as four
-        <span
-          className={cn(
-            'grid aspect-square gap-px bg-foreground/10',
-            pictures.length > 1 && 'grid-cols-2',
-            pictures.length > 2 && 'grid-rows-2'
-          )}
-        >
-          {pictures.map((url) => (
-            <Thumb key={url} src={url} />
-          ))}
+    <div ref={ref} className={tileFrame(picked)}>
+      <button
+        type='button'
+        onClick={onOpenAction}
+        className='flex flex-col text-left'
+      >
+        {pictures.length ? (
+          // One picture whole, two side by side, more as four
+          <span
+            className={cn(
+              'grid aspect-square gap-px bg-foreground/10',
+              pictures.length > 1 && 'grid-cols-2',
+              pictures.length > 2 && 'grid-rows-2'
+            )}
+          >
+            {pictures.map((url) => (
+              <Thumb key={url} src={url} />
+            ))}
+          </span>
+        ) : (
+          <span className='flex aspect-square items-center justify-center bg-foreground/5 text-muted-foreground'>
+            <FolderIcon className='size-10' strokeWidth={1.25} />
+          </span>
+        )}
+        <span className='flex flex-col border-t border-foreground/10 px-2 py-1.5'>
+          <span className='flex min-w-0 items-center gap-1.5'>
+            <FolderIcon className='size-3.5 shrink-0 text-muted-foreground' />
+            <span className='truncate font-mono'>{nameOf(folder)}</span>
+          </span>
+          <span className='text-muted-foreground tabular-nums'>
+            {peek ? peekSummary(peek) : <TextSkeleton className='w-2/3' />}
+          </span>
         </span>
-      ) : (
-        <span className='flex aspect-square items-center justify-center bg-foreground/5 text-muted-foreground'>
-          <FolderIcon className='size-10' strokeWidth={1.25} />
-        </span>
-      )}
-      <span className='flex flex-col border-t border-foreground/10 px-2 py-1.5'>
-        <span className='flex min-w-0 items-center gap-1.5'>
-          <FolderIcon className='size-3.5 shrink-0 text-muted-foreground' />
-          <span className='truncate font-mono'>{nameOf(folder)}</span>
-        </span>
-        <span className='text-muted-foreground tabular-nums'>
-          {peek ? (
-            `${peek.files}${peek.more ? '+' : ''} ${peek.files === 1 && !peek.more ? 'file' : 'files'} · ${formatBytes(peek.size)}`
-          ) : (
-            <TextSkeleton className='w-2/3' />
-          )}
-        </span>
-      </span>
-    </button>
+      </button>
+      <TileCheckbox
+        name={nameOf(folder)}
+        picked={picked}
+        picking={picking}
+        onPickAction={onPickAction}
+      />
+    </div>
   );
 }
 
@@ -593,17 +793,8 @@ function FileTile({
   onPickAction: (on: boolean) => void;
   onOpenAction: () => void;
 }) {
-  const kind = mediaKind(file.key);
   return (
-    <div
-      className={cn(
-        TILE,
-        'group relative flex flex-col overflow-hidden rounded-lg border bg-muted dark:bg-muted/40',
-        picked
-          ? 'border-primary'
-          : 'border-foreground/10 hover:border-foreground/25'
-      )}
-    >
+    <div className={tileFrame(picked)}>
       <button
         type='button'
         onClick={onOpenAction}
@@ -611,19 +802,14 @@ function FileTile({
         aria-label={`Look at ${nameOf(file.key)}`}
       >
         <span className='flex aspect-square items-center justify-center overflow-hidden bg-foreground/5'>
-          {kind === 'image' ? (
+          {mediaKind(file.key) === 'image' ? (
             <Thumb src={file.thumb} fallback={file.url} />
-          ) : kind === 'video' ? (
-            // An icon, not the video: a grid of them loading would crawl
-            <FileVideoIcon
-              className='size-10 text-muted-foreground'
-              strokeWidth={1.25}
-            />
           ) : (
-            <FileIcon
-              className='size-10 text-muted-foreground'
-              strokeWidth={1.25}
-            />
+            // An icon for a video too, not the video: a grid of them loading would crawl
+            createElement(iconOf(file.key), {
+              className: 'size-10 text-muted-foreground',
+              strokeWidth: 1.25,
+            })
           )}
         </span>
         <span className='flex flex-col border-t border-foreground/10 px-2 py-1.5'>
@@ -633,32 +819,133 @@ function FileTile({
           </span>
         </span>
       </button>
-      {/* Shown once it's pointed at or any are picked, so the pictures are
-          clear otherwise */}
-      <Checkbox
-        checked={picked}
-        onCheckedChange={(on) => onPickAction(on === true)}
-        aria-label={`Pick ${nameOf(file.key)}`}
-        // Solid, and bordered strongly, to be seen against any picture
-        className={cn(
-          'absolute top-2 left-2 size-5 border-foreground/50 bg-background/90 shadow-md backdrop-blur-sm',
-          !picked &&
-            !picking &&
-            'opacity-0 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100'
-        )}
+      <TileCheckbox
+        name={nameOf(file.key)}
+        picked={picked}
+        picking={picking}
+        onPickAction={onPickAction}
       />
     </div>
   );
 }
 
-/** A file large, as it is, with when it was written, to open or delete. */
+/** One line of the list: a box to pick it by, then what it is, opened by the rest of the line. */
+function ListRow({
+  name,
+  icon: Icon,
+  size,
+  when,
+  picked,
+  onPickAction,
+  onOpenAction,
+  rowRef,
+}: {
+  name: string;
+  icon: LucideIcon;
+  size: React.ReactNode;
+  when?: string;
+  picked: boolean;
+  onPickAction: (on: boolean) => void;
+  onOpenAction: () => void;
+  rowRef?: React.Ref<HTMLLIElement>;
+}) {
+  return (
+    <li
+      ref={rowRef}
+      className={cn(
+        LIST_ROW,
+        'flex items-center gap-3 rounded-md px-2 hover:bg-foreground/5',
+        picked && 'bg-foreground/5'
+      )}
+    >
+      <Checkbox
+        checked={picked}
+        onCheckedChange={(on) => onPickAction(on === true)}
+        aria-label={`Pick ${name}`}
+      />
+      <button
+        type='button'
+        onClick={onOpenAction}
+        className='flex min-w-0 flex-1 items-center gap-3 py-2 text-left'
+      >
+        <Icon className='size-4 shrink-0 text-muted-foreground' />
+        <span className='min-w-0 flex-1 truncate font-mono'>{name}</span>
+        <span className='shrink-0 text-muted-foreground tabular-nums'>
+          {size}
+        </span>
+        <span className='w-32 shrink-0 text-right text-muted-foreground tabular-nums max-sm:hidden'>
+          {when}
+        </span>
+      </button>
+    </li>
+  );
+}
+
+function FolderRow({
+  base,
+  bucket,
+  folder,
+  picked,
+  onPickAction,
+  onOpenAction,
+}: {
+  base: string;
+  bucket: string;
+  folder: string;
+  picked: boolean;
+  onPickAction: (on: boolean) => void;
+  onOpenAction: () => void;
+}) {
+  const [ref, peek] = useFolderPeek<HTMLLIElement>(base, bucket, folder);
+  return (
+    <ListRow
+      rowRef={ref}
+      name={nameOf(folder)}
+      icon={FolderIcon}
+      size={peek ? peekSummary(peek) : <TextSkeleton className='w-24' />}
+      picked={picked}
+      onPickAction={onPickAction}
+      onOpenAction={onOpenAction}
+    />
+  );
+}
+
+function FileRow({
+  file,
+  picked,
+  onPickAction,
+  onOpenAction,
+}: {
+  file: StoredFile;
+  picked: boolean;
+  onPickAction: (on: boolean) => void;
+  onOpenAction: () => void;
+}) {
+  return (
+    <ListRow
+      name={nameOf(file.key)}
+      icon={iconOf(file.key)}
+      size={formatBytes(file.size)}
+      when={formatPast(file.modified)}
+      picked={picked}
+      onPickAction={onPickAction}
+      onOpenAction={onOpenAction}
+    />
+  );
+}
+
+/** A file large, as it is, with when it was written, to open, save or delete. */
 function FileView({
   file,
+  bucket,
+  backups,
   pending,
   onCloseAction,
   onDeleteAction,
 }: {
   file?: StoredFile;
+  bucket: string;
+  backups: boolean;
   pending: boolean;
   onCloseAction: () => void;
   onDeleteAction: (file: StoredFile) => void;
@@ -667,7 +954,7 @@ function FileView({
   const [last, setLast] = useState(file);
   if (file && file !== last) setLast(file);
   const shown = file ?? last;
-  const kind = shown && mediaKind(shown.key);
+  const kind = shown && fileKind(shown.key);
   return (
     <Dialog open={!!file} onOpenChange={(open) => !open && onCloseAction()}>
       <DialogContent className='flex max-h-[90vh] flex-col gap-3 sm:max-w-3xl'>
@@ -698,10 +985,20 @@ function FileView({
                 />
               ) : kind === 'audio' ? (
                 <audio src={shown.url} controls className='m-6 w-full' />
-              ) : (
+              ) : kind === 'pdf' ? (
+                <iframe
+                  src={shown.url}
+                  title={nameOf(shown.key)}
+                  className='h-[65vh] w-full'
+                />
+              ) : backups ? (
                 <p className='p-6 text-muted-foreground'>
-                  No preview for this kind of file.
+                  One of the backups&apos; files, encrypted by restic: they come
+                  back through the Backups window.
                 </p>
+              ) : (
+                // Anything else shown as text, where it's text
+                <TextView key={shown.key} bucket={bucket} file={shown} />
               )}
             </div>
             <p className='truncate font-mono text-muted-foreground'>
@@ -717,6 +1014,12 @@ function FileView({
                 Delete
               </Button>
               <Button variant='outline' className='ml-auto' asChild>
+                <a href={shown.download}>
+                  <DownloadIcon />
+                  Download
+                </a>
+              </Button>
+              <Button variant='outline' asChild>
                 <a href={shown.url} target='_blank' rel='noreferrer'>
                   <ExternalLinkIcon />
                   Open
@@ -727,5 +1030,52 @@ function FileView({
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** The start of a file as text, or that it isn't any. */
+function TextView({ bucket, file }: { bucket: string; file: StoredFile }) {
+  const { data, error } = useSWR<TextPeek>(
+    `/api/storage/text?${new URLSearchParams({ bucket, key: file.key, v: `${file.modified}` })}`,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
+  if (error) {
+    return (
+      <p className='p-6 text-muted-foreground'>
+        Couldn&apos;t read it: {error.message}
+      </p>
+    );
+  }
+  if (!data) {
+    return (
+      <div className='flex w-full flex-col gap-3 self-start p-4'>
+        <TextSkeleton className='w-2/3' />
+        <TextSkeleton className='w-1/2' />
+        <TextSkeleton className='w-3/4' />
+      </div>
+    );
+  }
+  if ('binary' in data) {
+    return (
+      <p className='p-6 text-muted-foreground'>
+        Not a text file, so there&apos;s nothing to show here.
+      </p>
+    );
+  }
+  if (!data.text) {
+    return <p className='p-6 text-muted-foreground'>It&apos;s empty.</p>;
+  }
+  return (
+    <div className='flex max-h-[65vh] w-full flex-col self-stretch overflow-auto'>
+      <pre className='p-4 font-mono text-xs/relaxed wrap-break-word whitespace-pre-wrap'>
+        {data.text}
+      </pre>
+      {data.cut && (
+        <p className='px-4 pb-4 text-muted-foreground'>
+          Only its start is shown; download it for the rest.
+        </p>
+      )}
+    </div>
   );
 }

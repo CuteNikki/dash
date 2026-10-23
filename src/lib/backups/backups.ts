@@ -36,6 +36,9 @@ const BIN = '/var/lib/dash/restic';
 const CACHE = '/var/cache/dash-restic';
 /** The bucket in the server's Garage. */
 const BUCKET = 'backups';
+/** The bucket in the server's Garage the backups are kept in; none when they're kept elsewhere. */
+export const backupBucket = () =>
+  process.env.BACKUP_REPOSITORY ? undefined : BUCKET;
 /** Each part's last so many backups are kept. */
 export const KEEP = 7;
 /**
