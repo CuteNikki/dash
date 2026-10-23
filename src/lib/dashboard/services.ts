@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { can, seesGroup, type Role } from '@/lib/auth/roles';
 import { DEFAULT_GROUP } from '@/lib/dashboard/groups';
 import { currentSites } from '@/lib/dashboard/sites';
 import { isSiteKey } from '@/lib/dashboard/tiles';
@@ -27,6 +28,14 @@ import { currentUpdates } from '@/lib/updates/check';
  */
 export function serviceKey(c: Container) {
   return c.stack ? `${c.stack.project}/${c.stack.service}` : c.name;
+}
+
+/**
+ * The group a container's tile is in: the one it's been given here, else its
+ * Homepage label's, else Other. What's shown and who may see it go by this.
+ */
+export function groupOf(c: Container, tile?: { group: string | null } | null) {
+  return tile?.group || c.labels['homepage.group'] || DEFAULT_GROUP;
 }
 
 /** The first of some addresses that's a web link, without its label. */
@@ -169,7 +178,10 @@ function iconName(label?: string) {
  * comes from the container's Homepage labels, so the dashboard starts out
  * looking like Homepage did, then from its name.
  */
-export async function getDashboard(): Promise<Dashboard> {
+export async function getDashboard(who: {
+  role: Role;
+  groups: readonly string[];
+}): Promise<Dashboard> {
   const [
     containers,
     { containers: usage, host, hostComing },
@@ -210,7 +222,7 @@ export async function getDashboard(): Promise<Dashboard> {
       containerId: c.id,
       containerName: c.name,
       name: tile?.name || l['homepage.name'] || prettyName(c),
-      group: tile?.group || l['homepage.group'] || DEFAULT_GROUP,
+      group: groupOf(c, tile),
       icon:
         tile?.icon ||
         iconName(l['homepage.icon']) ||
@@ -260,14 +272,28 @@ export async function getDashboard(): Promise<Dashboard> {
     service.iconVariants = info?.variants;
     service.iconMissing = info?.missing;
   }
+  // Only the groups they see, and the server itself only to those who may
+  // look after it
+  const seen = services.filter((s) => seesGroup(who, s.group));
+  const keys = new Set(seen.map((s) => s.key));
+  const server = can(who.role, 'server');
   return {
-    services,
-    groupOrder: groups.map((g) => g.name),
-    hostTiles: arrangeHostTiles(hostTiles),
-    layouts,
-    host,
-    hostComing,
+    services: seen,
+    groupOrder: groups.map((g) => g.name).filter((g) => seesGroup(who, g)),
+    hostTiles: server ? arrangeHostTiles(hostTiles) : [],
+    layouts: layouts.filter(({ key }) =>
+      key.startsWith(GROUP_SECTION)
+        ? seesGroup(who, key.slice(GROUP_SECTION.length))
+        : key.startsWith('host:') || key.startsWith('section:host')
+          ? server
+          : keys.has(key)
+    ),
+    host: server ? host : undefined,
+    hostComing: server && hostComing,
     updates: { checkedAt: updates.checkedAt, checking: updates.checking },
-    system: currentSystemUpdates(),
+    system: server ? currentSystemUpdates() : undefined,
   };
 }
+
+/** A group's own place in the saved layouts. */
+const GROUP_SECTION = 'section:group:';

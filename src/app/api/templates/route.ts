@@ -1,4 +1,4 @@
-import { unauthorized } from '@/lib/auth/session';
+import { denied } from '@/lib/auth/access';
 import { linuxServerTemplates } from '@/lib/templates/linuxserver';
 import { CURATED } from '@/lib/templates/service-templates';
 
@@ -7,8 +7,8 @@ import { CURATED } from '@/lib/templates/service-templates';
  * most pulled first. If its catalogue can't be fetched, just the first.
  */
 export async function GET() {
-  const denied = await unauthorized();
-  if (denied) return denied;
+  const refused = await denied('manage');
+  if (refused) return refused;
   const fetched = await linuxServerTemplates().catch(() => []);
   const curated = new Set(CURATED.map((t) => t.id));
   return Response.json([

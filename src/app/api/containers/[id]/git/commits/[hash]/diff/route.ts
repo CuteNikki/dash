@@ -1,4 +1,4 @@
-import { unauthorized } from '@/lib/auth/session';
+import { denied } from '@/lib/auth/access';
 import { stackOf } from '@/lib/docker/stack-files';
 import { gitCommitDiff } from '@/lib/git';
 
@@ -10,8 +10,8 @@ export async function GET(
   request: Request,
   { params }: RouteContext<'/api/containers/[id]/git/commits/[hash]/diff'>
 ) {
-  const denied = await unauthorized();
-  if (denied) return denied;
+  const refused = await denied('manage');
+  if (refused) return refused;
   const { id, hash } = await params;
   const stack = await stackOf(id);
   const path = new URL(request.url).searchParams.get('path');

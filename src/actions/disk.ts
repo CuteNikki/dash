@@ -1,12 +1,12 @@
 'use server';
 
-import { requireUser } from '@/lib/auth/session';
+import { requireAccess } from '@/lib/auth/access';
 import { dockerPrune } from '@/lib/docker/docker';
 import { startDiskScan } from '@/lib/host/disk-usage';
 
 /** Measures the server's disk again, in the background. */
 export async function measureDisk() {
-  await requireUser();
+  await requireAccess('server');
   startDiskScan();
 }
 
@@ -17,7 +17,7 @@ export async function measureDisk() {
 export async function pruneDocker(
   what: 'buildCache' | 'images'
 ): Promise<{ ok: true; freed: number } | { ok: false; error: string }> {
-  await requireUser();
+  await requireAccess('server');
   try {
     return { ok: true, freed: await dockerPrune(what) };
   } catch (error) {

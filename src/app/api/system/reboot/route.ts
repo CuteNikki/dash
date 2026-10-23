@@ -1,10 +1,10 @@
-import { unauthorized } from '@/lib/auth/session';
+import { denied } from '@/lib/auth/access';
 import { scheduleReboot } from '@/lib/host/system-updates';
 
 /** Restarts the server, in a few seconds, so this answer gets out first. */
 export async function POST() {
-  const denied = await unauthorized();
-  if (denied) return denied;
+  const refused = await denied('server');
+  if (refused) return refused;
   try {
     await scheduleReboot();
     return Response.json({ ok: true });

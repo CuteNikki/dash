@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 
-import { requireUser } from '@/lib/auth/session';
+import { requireAccess } from '@/lib/auth/access';
 import { COLUMNS_COOKIE, columnsFromCookie } from '@/lib/dashboard/layout';
 import { getDashboard } from '@/lib/dashboard/services';
 import {
@@ -29,18 +29,18 @@ const FIRST_COLUMNS = 4;
 export const instant = false;
 
 export default async function Home() {
-  const user = await requireUser();
+  const access = await requireAccess('view');
   // As many columns as the screen had last time, so tiles start where they'll stay
   const cookieStore = await cookies();
   const columns =
     columnsFromCookie(cookieStore.get(COLUMNS_COOKIE)?.value) ?? FIRST_COLUMNS;
   return (
     <Dashboard
-      initial={await getDashboard()}
+      initial={await getDashboard(access)}
       initialColumns={columns}
       initialView={viewFromCookie(cookieStore.get(VIEW_COOKIE)?.value)}
       initialFilter={filterFromCookie(cookieStore.get(FILTER_COOKIE)?.value)}
-      email={user.email}
+      email={access.user.email}
     />
   );
 }

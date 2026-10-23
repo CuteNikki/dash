@@ -1,6 +1,6 @@
 'use server';
 
-import { requireUser } from '@/lib/auth/session';
+import { requireAccess } from '@/lib/auth/access';
 import { stackOf } from '@/lib/docker/stack-files';
 import {
   gitCommit,
@@ -15,7 +15,7 @@ import {
 const MAX_MESSAGE = 5_000;
 
 async function repoOf(containerId: string) {
-  await requireUser();
+  await requireAccess('manage');
   const stack = await stackOf(containerId);
   return stack && gitStatus(stack.dir);
 }

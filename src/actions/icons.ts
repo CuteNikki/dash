@@ -2,7 +2,7 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { requireUser } from '@/lib/auth/session';
+import { requireAccess } from '@/lib/auth/access';
 import { putFile } from '@/lib/storage';
 
 /** Plenty for an icon; bigger is almost certainly a photo. */
@@ -19,7 +19,7 @@ export type UploadResult = { url: string } | { error: string };
 
 /** Puts an icon in the image storage, for a tile to use by its address. */
 export async function uploadIcon(form: FormData): Promise<UploadResult> {
-  await requireUser();
+  await requireAccess('manage');
   const file = form.get('file');
   if (!(file instanceof File)) return { error: 'Choose a file' };
   const extension = TYPES[file.type];

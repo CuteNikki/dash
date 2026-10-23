@@ -61,33 +61,47 @@ model Group {
   position Int
 }
 
-// Better Auth's tables. There's one account: the first one, made on /setup.
+// Better Auth's tables. The first account, made on /setup, is the owner;
+// others are made from the owner's invites.
 
 model User {
-  id            String    @id
-  name          String
-  email         String    @unique
-  emailVerified Boolean   @default(false)
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  sessions      Session[]
-  accounts      Account[]
-  passkeys      Passkey[]
+  id               String      @id
+  name             String
+  email            String      @unique
+  emailVerified    Boolean     @default(false)
+  image            String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  // What they may do: owner, admin, operator or viewer (lib/auth/access.ts)
+  role             String?
+  // Disabled by the owner: no session is given while it's set
+  banned           Boolean?    @default(false)
+  banReason        String?
+  banExpires       DateTime?
+  twoFactorEnabled Boolean?    @default(false)
+  // The groups an operator or viewer sees; an owner or admin sees all
+  allowedGroups    String[]    @default([])
+  sessions         Session[]
+  accounts         Account[]
+  passkeys         Passkey[]
+  twoFactors       TwoFactor[]
+  invites          Invite[]
 
   @@map("user")
 }
 
 model Session {
-  id        String   @id
-  expiresAt DateTime
-  token     String   @unique
-  ipAddress String?
-  userAgent String?
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id
+  expiresAt      DateTime
+  token          String   @unique
+  ipAddress      String?
+  userAgent      String?
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  // Better Auth's admin plugin's, though impersonating is turned off
+  impersonatedBy String?
 
   @@index([userId])
   @@map("session")
@@ -142,4 +156,36 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+// An authenticator app's secret and the backup codes, once two-factor is on
+model TwoFactor {
+  id                      String    @id
+  secret                  String
+  backupCodes             String
+  userId                  String
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verified                Boolean?  @default(true)
+  failedVerificationCount Int?      @default(0)
+  lockedUntil             DateTime?
+
+  @@index([userId])
+  @@index([secret])
+  @@map("twoFactor")
+}
+
+// dash's own: a link the owner sends someone to make their account with,
+// for a day, once. Only the token's hash is kept, so the link can't be read
+// back out of the database.
+model Invite {
+  id          String    @id @default(cuid())
+  tokenHash   String    @unique
+  email       String
+  role        String
+  groups      String[]  @default([])
+  invitedById String
+  invitedBy   User      @relation(fields: [invitedById], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
 }

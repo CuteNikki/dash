@@ -1,4 +1,4 @@
-import { unauthorized } from '@/lib/auth/session';
+import { denied } from '@/lib/auth/access';
 import { listContainers } from '@/lib/docker/docker';
 import { streamRun } from '@/lib/docker/run-stream';
 import { stackOf } from '@/lib/docker/stack-files';
@@ -13,8 +13,8 @@ export async function POST(
   request: Request,
   { params }: RouteContext<'/api/containers/[id]/remove'>
 ) {
-  const denied = await unauthorized();
-  if (denied) return denied;
+  const refused = await denied('manage');
+  if (refused) return refused;
   const stack = await stackOf((await params).id);
   if (!stack) {
     return Response.json(

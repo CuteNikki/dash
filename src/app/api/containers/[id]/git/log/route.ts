@@ -1,4 +1,4 @@
-import { unauthorized } from '@/lib/auth/session';
+import { denied } from '@/lib/auth/access';
 import { stackOf } from '@/lib/docker/stack-files';
 import { gitLog } from '@/lib/git';
 
@@ -13,8 +13,8 @@ export async function GET(
   request: Request,
   { params }: RouteContext<'/api/containers/[id]/git/log'>
 ) {
-  const denied = await unauthorized();
-  if (denied) return denied;
+  const refused = await denied('manage');
+  if (refused) return refused;
   const stack = await stackOf((await params).id);
   if (!stack) return Response.json({ error: 'No stack' }, { status: 404 });
   const skip = Math.max(

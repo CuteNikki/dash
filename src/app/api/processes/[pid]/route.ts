@@ -1,4 +1,4 @@
-import { unauthorized } from '@/lib/auth/session';
+import { denied } from '@/lib/auth/access';
 import { processDetails } from '@/lib/host/processes';
 
 /** One of the server's processes, looked at closely; 404 once it's ended. */
@@ -6,8 +6,8 @@ export async function GET(
   _request: Request,
   { params }: RouteContext<'/api/processes/[pid]'>
 ) {
-  const denied = await unauthorized();
-  if (denied) return denied;
+  const refused = await denied('server');
+  if (refused) return refused;
   const pid = Number((await params).pid);
   if (!Number.isInteger(pid) || pid <= 0) {
     return Response.json({ error: 'Not a process id' }, { status: 400 });

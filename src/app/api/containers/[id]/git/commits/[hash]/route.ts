@@ -1,4 +1,4 @@
-import { unauthorized } from '@/lib/auth/session';
+import { denied } from '@/lib/auth/access';
 import { stackOf } from '@/lib/docker/stack-files';
 import { gitCommitDetails } from '@/lib/git';
 
@@ -7,8 +7,8 @@ export async function GET(
   _request: Request,
   { params }: RouteContext<'/api/containers/[id]/git/commits/[hash]'>
 ) {
-  const denied = await unauthorized();
-  if (denied) return denied;
+  const refused = await denied('manage');
+  if (refused) return refused;
   const { id, hash } = await params;
   const stack = await stackOf(id);
   const details = stack && (await gitCommitDetails(stack.dir, hash));

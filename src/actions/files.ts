@@ -1,6 +1,6 @@
 'use server';
 
-import { requireUser } from '@/lib/auth/session';
+import { requireAccess } from '@/lib/auth/access';
 import type { Stack } from '@/lib/docker/compose';
 import {
   createStackEntry,
@@ -16,7 +16,7 @@ async function onStack(
   containerId: string,
   change: (stack: Stack) => Promise<FileResult | void>
 ): Promise<FileResult> {
-  await requireUser();
+  await requireAccess('manage');
   const stack = await stackOf(containerId);
   if (!stack) {
     return { ok: false, error: 'This container isn’t part of a compose stack' };

@@ -1,6 +1,6 @@
 'use server';
 
-import { requireUser } from '@/lib/auth/session';
+import { requireAccess, serviceForAction } from '@/lib/auth/access';
 import { isRunning } from '@/lib/dashboard/status';
 import {
   containerAction,
@@ -25,12 +25,9 @@ export async function runContainerAction(
   id: string,
   action: ContainerAction
 ): Promise<ActionResult> {
-  await requireUser();
   if (!ACTIONS.includes(action)) return { ok: false, error: 'Unknown action' };
-  const containers = await listContainers();
-  if (!containers.some((c) => c.id === id)) {
-    return { ok: false, error: 'That container no longer exists' };
-  }
+  const found = await serviceForAction(id, 'control');
+  if ('refused' in found) return { ok: false, error: found.refused };
   try {
     await containerAction(id, action);
     return { ok: true };
@@ -47,16 +44,15 @@ export async function sendToConsole(
   id: string,
   command: string
 ): Promise<ActionResult> {
-  await requireUser();
+  // A console can be a shell, or one that runs the server's own commands
+  const found = await serviceForAction(id, 'manage');
+  if ('refused' in found) return { ok: false, error: found.refused };
+  const { container } = found;
   if (/[\r\n]/.test(command)) {
     return { ok: false, error: 'One command at a time, on one line' };
   }
   if (command.length > MAX_COMMAND) {
     return { ok: false, error: 'That command is too long' };
-  }
-  const container = (await listContainers()).find((c) => c.id === id);
-  if (!container) {
-    return { ok: false, error: 'That container no longer exists' };
   }
   if (!(await takesInput(id))) {
     return { ok: false, error: 'Its console takes no input' };
@@ -74,10 +70,11 @@ export async function sendToConsole(
 
 /** Has a running Caddy read its Caddyfile again, keeping the old config if the new one's wrong. */
 export async function reloadCaddyConfig(id: string): Promise<ActionResult> {
-  await requireUser();
-  const containers = await listContainers();
-  const caddy = containers.find((c) => c.id === id);
-  if (!caddy || !isCaddy(caddy.image)) {
+  // Caddy serves every site, so it's the whole server's, not one group's
+  const found = await serviceForAction(id, 'manage');
+  if ('refused' in found) return { ok: false, error: found.refused };
+  const caddy = found.container;
+  if (!isCaddy(caddy.image)) {
     return { ok: false, error: 'That container is not Caddy' };
   }
   try {
@@ -92,7 +89,7 @@ export async function reloadCaddyConfig(id: string): Promise<ActionResult> {
 
 /** Looks for updates everywhere now, rather than when they're next due. */
 export async function checkUpdates(): Promise<ActionResult> {
-  await requireUser();
+  await requireAccess('control');
   try {
     await checkUpdatesNow(await listContainers());
     return { ok: true };

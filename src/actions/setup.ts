@@ -19,20 +19,20 @@ const SetupInput = z.object({
 
 export type SetupResult = { error: string } | undefined;
 
-/** Makes the dashboard's one account, and signs it in. */
+/** Makes the dashboard's first account, its owner, and signs it in. */
 export async function createAccount(
   input: z.input<typeof SetupInput>
 ): Promise<SetupResult> {
   const parsed = SetupInput.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   if (await hasAccount())
-    return { error: 'This dashboard already has its account.' };
+    return { error: 'This dashboard already has its owner.' };
   if (!isSetupCode(parsed.data.code)) {
     return { error: "That's not the code from the server's log." };
   }
   const { name, email, password } = parsed.data;
   try {
-    await whileCreatingAccount(email, () =>
+    await whileCreatingAccount({ email, role: 'owner', first: true }, () =>
       auth.api.signUpEmail({ body: { name, email, password } })
     );
   } catch (error) {

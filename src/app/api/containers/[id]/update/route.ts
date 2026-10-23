@@ -1,22 +1,25 @@
-import { unauthorized } from '@/lib/auth/session';
-import { listContainers } from '@/lib/docker/docker';
+import { AccessError, refusal, serviceForRoute } from '@/lib/auth/access';
+import { can } from '@/lib/auth/roles';
 import { streamRun } from '@/lib/docker/run-stream';
 import { updateService } from '@/lib/updates/apply';
+import { updateOf } from '@/lib/updates/check';
 
 /** Updates the container to what was last found for it, streaming what it does. See updateService. */
 export async function POST(
   _request: Request,
   { params }: RouteContext<'/api/containers/[id]/update'>
 ) {
-  const denied = await unauthorized();
-  if (denied) return denied;
-  const { id } = await params;
-  const container = (await listContainers()).find((c) => c.id === id);
-  if (!container) {
-    return Response.json(
-      { error: 'That container no longer exists' },
-      { status: 404 }
-    );
+  const found = await serviceForRoute((await params).id, 'control');
+  if (found instanceof Response) return found;
+  const { access, container } = found;
+  // New commits rebuild the whole stack, whose other services may be in
+  // groups they don't see, from whatever was pushed: only for those who may
+  // change a stack's files
+  if (
+    updateOf(container).update?.kind === 'commits' &&
+    !can(access.role, 'manage')
+  ) {
+    return refusal(new AccessError(403));
   }
   return streamRun(() => updateService(container));
 }

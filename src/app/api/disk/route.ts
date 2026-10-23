@@ -1,4 +1,4 @@
-import { unauthorized } from '@/lib/auth/session';
+import { denied } from '@/lib/auth/access';
 import { dockerSpace } from '@/lib/docker/docker';
 import { diskScan } from '@/lib/host/disk-usage';
 
@@ -7,8 +7,8 @@ import { diskScan } from '@/lib/host/disk-usage';
  * finished, and what Docker's things take on it.
  */
 export async function GET() {
-  const denied = await unauthorized();
-  if (denied) return denied;
+  const refused = await denied('server');
+  if (refused) return refused;
   try {
     const scan = diskScan();
     const since =

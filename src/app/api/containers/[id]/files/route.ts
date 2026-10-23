@@ -1,4 +1,4 @@
-import { unauthorized } from '@/lib/auth/session';
+import { denied } from '@/lib/auth/access';
 import { stackInfo, stackOf } from '@/lib/docker/stack-files';
 
 /** The stack a container belongs to: its folder, compose files, and whether it builds. */
@@ -6,8 +6,8 @@ export async function GET(
   _request: Request,
   { params }: RouteContext<'/api/containers/[id]/files'>
 ) {
-  const denied = await unauthorized();
-  if (denied) return denied;
+  const refused = await denied('manage');
+  if (refused) return refused;
   const stack = await stackOf((await params).id);
   if (!stack) {
     return Response.json(

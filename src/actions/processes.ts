@@ -1,6 +1,6 @@
 'use server';
 
-import { requireUser } from '@/lib/auth/session';
+import { requireAccess } from '@/lib/auth/access';
 import { stopProcess as stop } from '@/lib/host/processes';
 import type { StopResult } from '@/lib/types';
 
@@ -14,7 +14,7 @@ export async function stopProcess(
   start: number,
   force: boolean
 ): Promise<StopResult> {
-  await requireUser();
+  await requireAccess('server');
   // A server action takes whatever it's sent, so only a process id gets through
   if (!Number.isInteger(pid) || pid <= 0) {
     return { ok: false, outcome: 'failed', error: 'Not a process id' };

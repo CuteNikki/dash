@@ -1,4 +1,4 @@
-import { unauthorized } from '@/lib/auth/session';
+import { serviceForRoute } from '@/lib/auth/access';
 import { containerLogs, DockerError, logLines } from '@/lib/docker/docker';
 
 /** How many earlier lines come first, before following new ones. */
@@ -12,11 +12,11 @@ export async function GET(
   request: Request,
   { params }: RouteContext<'/api/containers/[id]/logs'>
 ) {
-  const denied = await unauthorized();
-  if (denied) return denied;
-  const { id } = await params;
+  // By its exact id, as Docker would also take a name or the start of one
+  const found = await serviceForRoute((await params).id, 'view');
+  if (found instanceof Response) return found;
   try {
-    const { res, tty } = await containerLogs(id, {
+    const { res, tty } = await containerLogs(found.container.id, {
       tail: TAIL,
       signal: request.signal,
     });

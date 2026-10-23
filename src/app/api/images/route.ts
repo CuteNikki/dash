@@ -1,4 +1,4 @@
-import { unauthorized } from '@/lib/auth/session';
+import { denied } from '@/lib/auth/access';
 import { searchImages } from '@/lib/templates/image-search';
 
 /** Images found, a few being enough beside the templates. */
@@ -6,8 +6,8 @@ const LIMIT = 6;
 
 /** Images on Docker Hub matching ?q=, best first. */
 export async function GET(request: Request) {
-  const denied = await unauthorized();
-  if (denied) return denied;
+  const refused = await denied('manage');
+  if (refused) return refused;
   const query = new URL(request.url).searchParams.get('q')?.trim() ?? '';
   if (query.length < 2) return Response.json([]);
   try {
