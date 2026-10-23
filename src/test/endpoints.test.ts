@@ -42,7 +42,8 @@ function exported(text: string) {
 function files(dir: string, name: (file: string) => boolean): string[] {
   return readdirSync(join(src, dir), { recursive: true, encoding: 'utf8' })
     .filter(name)
-    .map((file) => join(dir, file));
+    // With / on Windows too, as the lists above and below write them
+    .map((file) => join(dir, file).replaceAll('\\', '/'));
 }
 
 const doors = [
@@ -55,7 +56,7 @@ const doors = [
 describe('every route and action checks access', () => {
   test.each(doors)('%s', (file) => {
     const text = readFileSync(join(src, file), 'utf8');
-    const rel = relative(src, join(src, file));
+    const rel = relative(src, join(src, file)).replaceAll('\\', '/');
     const helpers = CHECKING_HELPERS[rel] ?? [];
     // A helper that checks for others checks itself
     for (const helper of helpers) {
