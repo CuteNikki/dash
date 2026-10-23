@@ -22,12 +22,14 @@ import type { ContainerAction } from '@/lib/docker/docker';
 import { fetcher } from '@/lib/fetcher';
 import { formatAddress, MEASURES, type Measure } from '@/lib/format';
 import type { GitStatus } from '@/lib/git';
+import { HISTORY_RANGES, type HistoryRange } from '@/lib/monitor/ranges';
 import { isCaddy } from '@/lib/stacks/caddy';
-import type { DetailCell, Service } from '@/lib/types';
+import type { DetailCell, Service, ServiceHistory } from '@/lib/types';
 import { updateLabel } from '@/lib/updates/describe';
 import { cn } from '@/lib/utils';
 
 import { HistoryChart } from '@/components/charts/history-chart';
+import { RangePicker } from '@/components/charts/range-picker';
 import { useCan } from '@/components/common/role';
 import { ScrollFade } from '@/components/common/scroll-fade';
 import { TextSkeleton } from '@/components/common/skeletons';
@@ -490,7 +492,17 @@ function ServiceBody({
   );
 }
 
-/** One measure as a card: its current value, and the last ten minutes of it. */
+/** How far back a service's charts look: its live readings, or the monitor's record. */
+type UsageRange = 'live' | HistoryRange;
+
+const USAGE_RANGES = ['live', '6h', '24h', '7d'] as const;
+
+const LIVE_WORDS = 'the last ten minutes';
+
+const rangeWords = (range: UsageRange) =>
+  range === 'live' ? LIVE_WORDS : HISTORY_RANGES[range].words;
+
+/** One measure as a card: its current value, and a chart of it over a while. */
 function UsageChart({
   label,
   value,
@@ -498,14 +510,17 @@ function UsageChart({
   times,
   measure,
   measuring,
+  words = LIVE_WORDS,
 }: {
   label: string;
   value?: number;
-  values?: number[];
+  values?: (number | null)[];
   times?: number[];
   measure: Measure;
   /** Running, but not measured yet: its value's to come */
   measuring: boolean;
+  /** What the chart covers: "the last day" */
+  words?: string;
 }) {
   return (
     <Panel title={label}>
@@ -519,13 +534,15 @@ function UsageChart({
             '–'
           )}
         </span>
-        <span className='text-muted-foreground'>last ten minutes</span>
+        <span className='text-muted-foreground'>
+          {words.replace(/^the /, '')}
+        </span>
       </span>
       {/* The chart's room, kept until there are readings to draw */}
       <div className='h-16'>
         {values && times && (
           <HistoryChart
-            label={`${label} over the last ten minutes`}
+            label={`${label} over ${words}`}
             times={times}
             series={[{ label, values, measure }]}
             className='h-full text-foreground'
@@ -578,6 +595,16 @@ function UsagePanel({
   memoryTotal?: number;
 }) {
   const usage = service.usage;
+  const [range, setRange] = useState<UsageRange>('live');
+  const { data: history } = useSWR<ServiceHistory>(
+    range === 'live'
+      ? null
+      : `/api/containers/${service.containerId}/history?range=${range}`,
+    fetcher,
+    { refreshInterval: 60_000, keepPreviousData: true }
+  );
+  const recorded = range === 'live' ? undefined : history;
+  const words = rangeWords(range);
   // A running one that hasn't been measured yet, as just after it starts
   const measuring =
     !usage && ['running', 'unhealthy', 'starting'].includes(service.state);
@@ -603,19 +630,28 @@ function UsagePanel({
   return (
     // Columns no wider than the window, whatever's in them
     <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
+      <div className='flex justify-end sm:col-span-2'>
+        <RangePicker
+          ranges={USAGE_RANGES}
+          value={range}
+          onChangeAction={setRange}
+        />
+      </div>
       <UsageChart
         label='CPU'
         value={usage?.cpu}
-        values={usage?.history.cpu}
-        times={usage?.history.at}
+        values={range === 'live' ? usage?.history.cpu : recorded?.cpu}
+        times={range === 'live' ? usage?.history.at : recorded?.at}
         measure={MEASURES.cpu}
         measuring={measuring}
+        words={words}
       />
       <UsageChart
         label='Memory'
         value={usage?.memory}
-        values={usage?.history.memory}
-        times={usage?.history.at}
+        values={range === 'live' ? usage?.history.memory : recorded?.memory}
+        times={range === 'live' ? usage?.history.at : recorded?.at}
+        words={words}
         // Against the server's memory, so a steady amount sits as low as
         // its share is, rather than at the top of a scale it alone sets,
         // and a leak shows as a climb

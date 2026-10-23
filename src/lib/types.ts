@@ -344,3 +344,29 @@ export type SiteCheck = {
   /** The last ten minutes of it, oldest first */
   history: { at: number[]; ms: number[] };
 };
+
+/**
+ * Readings over a while, from the monitor's record: a point for each stretch
+ * of it, from a minute to two hours long, oldest first, and null for one
+ * with none, as while the dashboard was down.
+ */
+export type History<K extends string> = {
+  /** When each stretch starts, in milliseconds since 1970 */
+  at: number[];
+} & Record<K, (number | null)[]>;
+
+/** The server over a while; rates in bytes per second, the disk's wait in milliseconds. */
+export type HostHistory = History<
+  | 'cpu'
+  | 'memory'
+  | 'diskUsed'
+  | 'received'
+  | 'sent'
+  | 'diskRead'
+  | 'diskWritten'
+  | 'diskWait'
+  | 'load'
+>;
+
+/** A service's container over a while: percent of one core, and bytes. */
+export type ServiceHistory = History<'cpu' | 'memory'>;

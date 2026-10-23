@@ -11,6 +11,7 @@ import {
   ChevronRightIcon,
   CpuIcon,
   HardDriveIcon,
+  HistoryIcon,
   MemoryStickIcon,
   NetworkIcon,
   ServerIcon,
@@ -31,6 +32,7 @@ import { cn } from '@/lib/utils';
 import { HistoryChart } from '@/components/charts/history-chart';
 import { TextSkeleton } from '@/components/common/skeletons';
 import { DiskDialog } from '@/components/host/disk-dialog';
+import { HistoryDialog } from '@/components/host/history-dialog';
 import { ProcessList } from '@/components/host/process-list';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -181,16 +183,31 @@ function ServerDetails({
   system?: SystemUpdates;
   onSystem: () => void;
 }) {
+  const [history, setHistory] = useState(false);
   return (
     // Its details in as many columns as its own width has room for
     <Card size='sm' className='@container px-3'>
       <div className='flex items-center gap-2'>
         <ServerIcon className='size-4 text-muted-foreground' />
-        <span className='text-sm font-medium'>
+        <span className='mr-auto text-sm font-medium'>
           {host ? host.system.hostname : <TextSkeleton className='w-16' />}
         </span>
+        <Button
+          variant='outline'
+          size='xs'
+          onClick={() => setHistory(true)}
+          className='text-muted-foreground'
+        >
+          <HistoryIcon />
+          History
+        </Button>
         {system && <SystemButton system={system} onClick={onSystem} />}
       </div>
+      <HistoryDialog
+        open={history}
+        host={host}
+        onCloseAction={() => setHistory(false)}
+      />
       <dl className='grid grid-cols-1 gap-x-6 gap-y-3 @md:grid-cols-2 @3xl:grid-cols-4 @7xl:grid-cols-8'>
         {SERVER_DETAILS.map(([label, value]) => (
           <div key={label} className='flex min-w-0 flex-col'>
@@ -235,7 +252,6 @@ function SystemButton({
       size='xs'
       onClick={onClick}
       className={cn(
-        'ml-auto',
         system.reboot
           ? 'text-warning hover:text-warning'
           : count

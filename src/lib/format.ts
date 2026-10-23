@@ -158,6 +158,13 @@ export const MEASURES = {
   network: { format: formatRate, floor: 128 * KB },
   /** Above the logs and databases an idle server writes anyway */
   disk: { format: formatRate, floor: MB },
+  /**
+   * How long the disk takes per read or write: a few milliseconds is usual,
+   * and a stall of tens of them, as froze the Minecraft server, stands out
+   */
+  diskWait: { format: formatMs, floor: 20 },
+  /** Processes waiting for the CPU: below one, nothing waits */
+  load: { format: (load: number) => load.toFixed(2), floor: 1 },
 } satisfies Record<string, Measure>;
 
 /** A moment either side of now: "5 min ago" once it's passed, "Fri 21:00" while it's to come. */

@@ -14,9 +14,25 @@ import {
 /** Room above the highest reading, so a steady line doesn't run along the top edge. */
 const HEADROOM = 1.25;
 
+/** Readings over longer than this say which day they're from, not just the time. */
+const DAYS_MS = 20 * 60 * 60_000;
+
+/** A line's runs of readings, each drawn on its own, so a gap shows as one. */
+function runs(values: (number | null)[]) {
+  const found: { start: number; values: number[] }[] = [];
+  values.forEach((v, i) => {
+    if (v === null) return;
+    const last = found.at(-1);
+    if (last && last.start + last.values.length === i) last.values.push(v);
+    else found.push({ start: i, values: [v] });
+  });
+  return found;
+}
+
 type ChartSeries = {
   label: string;
-  values: number[];
+  /** Null where there's no reading, as while the dashboard was down: a gap in the line */
+  values: (number | null)[];
   measure: Measure;
   /** Drawn dashed and fainter, to tell it from a solid one beside it */
   dashed?: boolean;
@@ -47,13 +63,14 @@ export function HistoryChart({
 
   const top =
     Math.max(
-      ...series.flatMap((s) => s.values),
+      ...series.flatMap((s) => s.values.filter((v) => v !== null)),
       ...series.map((s) => s.measure.floor)
     ) * HEADROOM;
   // Positions in percent of the chart, so the line and markers stretch with it
   const x = (i: number) => (i / (count - 1)) * 100;
   const y = (v: number) => 100 - (v / top) * 100;
   const shown = index === undefined ? undefined : Math.min(index, count - 1);
+  const days = times[count - 1] - times[0] > DAYS_MS;
 
   function pointAt(clientX: number, element: HTMLElement) {
     const { left, width } = element.getBoundingClientRect();
@@ -100,30 +117,56 @@ export function HistoryChart({
         aria-hidden
         className='size-full overflow-visible'
       >
-        {series.map((s) => (
-          <polyline
-            key={s.label}
-            points={s.values.map((v, i) => `${x(i)},${y(v)}`).join(' ')}
-            fill='none'
-            stroke='currentColor'
-            strokeWidth={s.faint ? 1 : 1.5}
-            strokeLinejoin='round'
-            vectorEffect='non-scaling-stroke'
-            strokeDasharray={s.dashed ? '3 3' : undefined}
-            className={cn(s.dashed && 'opacity-50', s.faint && 'opacity-30')}
-          />
-        ))}
+        {series.flatMap((s) =>
+          runs(s.values).map((run) =>
+            run.values.length === 1 ? (
+              // A reading alone between gaps, as a dot rather than nothing
+              <circle
+                key={`${s.label} ${run.start}`}
+                cx={x(run.start)}
+                cy={y(run.values[0])}
+                r={0.75}
+                fill='currentColor'
+                vectorEffect='non-scaling-stroke'
+                className={cn(
+                  s.dashed && 'opacity-50',
+                  s.faint && 'opacity-30'
+                )}
+              />
+            ) : (
+              <polyline
+                key={`${s.label} ${run.start}`}
+                points={run.values
+                  .map((v, i) => `${x(run.start + i)},${y(v)}`)
+                  .join(' ')}
+                fill='none'
+                stroke='currentColor'
+                strokeWidth={s.faint ? 1 : 1.5}
+                strokeLinejoin='round'
+                vectorEffect='non-scaling-stroke'
+                strokeDasharray={s.dashed ? '3 3' : undefined}
+                className={cn(
+                  s.dashed && 'opacity-50',
+                  s.faint && 'opacity-30'
+                )}
+              />
+            )
+          )
+        )}
       </svg>
       {shown !== undefined && (
         <>
           {series
-            .filter((s) => !s.faint)
+            .filter((s) => !s.faint && s.values[shown] != null)
             .map((s) => (
               <span
                 key={s.label}
                 aria-hidden
                 className='pointer-events-none absolute size-1.5 -translate-1/2 rounded-full bg-foreground'
-                style={{ left: `${x(shown)}%`, top: `${y(s.values[shown])}%` }}
+                style={{
+                  left: `${x(shown)}%`,
+                  top: `${y(s.values[shown]!)}%`,
+                }}
               />
             ))}
           <Tooltip open>
@@ -137,7 +180,13 @@ export function HistoryChart({
             <TooltipContent side='top' updatePositionStrategy='always'>
               <div className='flex flex-col gap-1'>
                 <span className='opacity-70'>
-                  {new Date(times[shown]).toLocaleTimeString()}
+                  {days
+                    ? new Date(times[shown]).toLocaleString(undefined, {
+                        weekday: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
+                    : new Date(times[shown]).toLocaleTimeString()}
                 </span>
                 {series.map((s) => (
                   <span key={s.label} className='flex items-center gap-2'>
@@ -150,7 +199,9 @@ export function HistoryChart({
                       )}
                     />
                     <span className='font-mono font-medium tabular-nums'>
-                      {s.measure.format(s.values[shown])}
+                      {s.values[shown] == null
+                        ? 'No reading'
+                        : s.measure.format(s.values[shown])}
                     </span>
                     {series.length > 1 && (
                       <span className='opacity-70'>{s.label}</span>
