@@ -64,8 +64,9 @@ what was just saved; **Rebuild** builds it again first.
 
 ### Markdown, previewed
 
-A README opens as GitHub would show it: headings, tables, task lists, and code
-blocks colored as their language is in the editor.
+A README opens as GitHub would show it: headings, tables, task lists, alerts
+such as `> [!WARNING]`, its pictures from the stack, and code blocks colored
+as their language is in the editor.
 
 ![A README previewed: headings, a table and colored code blocks](docs/screenshots/markdown.png)
 
@@ -94,10 +95,14 @@ the header lists them; each is applied on its own or all at once, following
 what Docker and Compose print, and a new major version says so before it's
 pulled.
 
+![Updates: newer images and versions for several services, a major Postgres version marked, and new commits for a bot](docs/screenshots/updates.png)
+
 The server's own Ubuntu packages are on its tile: what's waiting, security
 fixes first, what Ubuntu is still rolling out, and a restart when the system
 asks for one. An upgrade runs as a systemd job, so it carries on when Docker
 restarts with it, and the window picks it up again once Dashboard is back.
+
+![System updates: security fixes first, a kernel waiting for a restart, and what Ubuntu is still rolling out](docs/screenshots/system-updates.png)
 
 ### History and uptime
 
@@ -108,10 +113,14 @@ to the last week, and how long the disk took per read or write, where a
 stall shows. A gap in a chart is a time with no readings, as while Dashboard
 was down.
 
+![History over a week: CPU and load rising each evening, two disk stalls standing out in the disk's wait, network up on the evenings someone streams](docs/screenshots/history.png)
+
 Each website is checked once a minute too. Its window has its uptime over
 the last day, week and month, a strip of the range picked, each stretch
 green, amber or red, and its outages, when each began, how long it lasted,
 and why.
+
+![A website's uptime over a month: 99.96%, a strip with three short outages, and each listed with why](docs/screenshots/uptime.png)
 
 ### Alerts
 
@@ -152,6 +161,14 @@ Every view in either theme, as the system has it or picked by hand. The list
 puts each service on a row, filtered by group.
 
 ![The list view in the light theme, filtered to the Downloads group](docs/screenshots/list-light.png)
+
+### On a phone
+
+Everything works on a phone too: the server's tiles and every service one
+under another, the header's buttons down to their icons, with how many alerts
+and updates there are on their corners, and each window filling the screen.
+
+![On a phone: the dashboard, Minecraft's window with its CPU over the last ten minutes, and the alerts](docs/screenshots/phones.png)
 
 ## Apps it knows
 
