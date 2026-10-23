@@ -20,11 +20,23 @@ import { resetTile, restoreTile } from '@/actions/tiles';
 import { isRunning, labelOf } from '@/lib/dashboard/status';
 import type { ContainerAction } from '@/lib/docker/docker';
 import { fetcher } from '@/lib/fetcher';
-import { formatAddress, MEASURES, type Measure } from '@/lib/format';
+import {
+  formatAddress,
+  formatDuration,
+  formatPast,
+  formatUptime,
+  MEASURES,
+  type Measure,
+} from '@/lib/format';
 import type { GitStatus } from '@/lib/git';
 import { HISTORY_RANGES, type HistoryRange } from '@/lib/monitor/ranges';
 import { isCaddy } from '@/lib/stacks/caddy';
-import type { DetailCell, Service, ServiceHistory } from '@/lib/types';
+import type {
+  DetailCell,
+  Service,
+  ServiceHistory,
+  SiteUptime,
+} from '@/lib/types';
 import { updateLabel } from '@/lib/updates/describe';
 import { cn } from '@/lib/utils';
 
@@ -553,9 +565,25 @@ function UsageChart({
   );
 }
 
-/** A website's response time over the last ten minutes, and how it last answered. */
+const SITE_RANGES = ['live', '24h', '7d', '30d'] as const;
+
+/**
+ * A website: its response time, over the last ten minutes or as far back as
+ * a month; how it last answered; and its uptime, from the monitor's check a
+ * minute: the share answered over a day, a week and a month, each stretch
+ * of the range up or down, and the times it was down.
+ */
 function SitePanel({ service }: { service: Service }) {
   const check = service.site?.check;
+  const [range, setRange] = useState<UsageRange>('live');
+  // The month's uptime comes with every range, so it's asked for at once
+  const { data: uptime, error } = useSWR<SiteUptime>(
+    `/api/sites/${encodeURIComponent(service.key)}?range=${range === 'live' ? '24h' : range}`,
+    fetcher,
+    { refreshInterval: 60_000, keepPreviousData: true }
+  );
+  const recorded = range === 'live' ? undefined : uptime?.history;
+  const words = rangeWords(range);
   const facts: { label: string; value: DetailCell }[] = [
     { label: 'Status', value: service.status },
     {
@@ -563,24 +591,173 @@ function SitePanel({ service }: { service: Service }) {
       value: service.url ? formatAddress(service.url) : 'None to check',
     },
     ...(check ? [{ label: 'Last checked', value: { at: check.at } }] : []),
-    { label: 'Checked', value: 'Every 30 seconds' },
+    {
+      label: 'Checked',
+      value: 'Every minute, every 30 s while open',
+    },
   ];
   return (
     <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
+      <div className='flex justify-end sm:col-span-2'>
+        <RangePicker
+          ranges={SITE_RANGES}
+          value={range}
+          onChangeAction={setRange}
+        />
+      </div>
       <UsageChart
         label='Response time'
         value={check?.ms}
-        values={check?.history.ms}
-        times={check?.history.at}
+        values={range === 'live' ? check?.history.ms : recorded?.ms}
+        times={range === 'live' ? check?.history.at : recorded?.at}
         measure={MEASURES.response}
         measuring={!check && !!service.url}
+        words={words}
       />
       <Panel title='Website'>
         <Facts facts={facts} />
       </Panel>
+      <Panel title='Uptime' className='sm:col-span-2'>
+        {error && !uptime ? (
+          <p className='text-destructive'>{error.message}</p>
+        ) : (
+          <SiteUptimeView
+            uptime={uptime}
+            // The strip covers the range picked, the last day for the live one
+            range={range === 'live' ? '24h' : (range as UptimeRange)}
+          />
+        )}
+      </Panel>
     </div>
   );
 }
+
+type UptimeRange = SiteUptime['shares'][number]['range'];
+
+const SHARE_WORDS: Record<UptimeRange, string> = {
+  '24h': 'Last day',
+  '7d': 'Last week',
+  '30d': 'Last month',
+};
+
+/** Where the strip starts, under its left end. */
+const STRIP_START: Record<UptimeRange, string> = {
+  '24h': 'A day ago',
+  '7d': 'A week ago',
+  '30d': 'A month ago',
+};
+
+/** The shares answered, a strip of the range's stretches, and the outages. */
+function SiteUptimeView({
+  uptime,
+  range,
+}: {
+  uptime?: SiteUptime;
+  range: UptimeRange;
+}) {
+  const strip = uptime?.history;
+  return (
+    <div className='flex flex-col gap-4'>
+      <dl className='grid grid-cols-3 gap-3'>
+        {(uptime?.shares ?? SHARE_SKELETONS).map((s) => (
+          <div key={s.range} className='flex flex-col'>
+            <dt className='text-muted-foreground'>{SHARE_WORDS[s.range]}</dt>
+            <dd
+              className={cn(
+                'font-mono text-lg tabular-nums',
+                s.up !== null && s.up < 0.99 && 'text-warning',
+                s.up !== null && s.up < 0.9 && 'text-destructive'
+              )}
+            >
+              {!uptime ? (
+                <TextSkeleton className='w-16' />
+              ) : s.up === null ? (
+                '–'
+              ) : (
+                formatUptime(s.up)
+              )}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      <div className='flex flex-col gap-1'>
+        {/* Each stretch of the range, green when every check answered,
+            amber when some didn't, red when none did, and faint without any */}
+        <div
+          role='img'
+          aria-label={`Up and down over ${HISTORY_RANGES[range].words}`}
+          // Side by side, no gap, as a month is hundreds of them
+          className='flex h-6 overflow-hidden rounded-sm'
+        >
+          {strip?.up.map((up, i) => (
+            <span
+              key={strip.at[i]}
+              title={
+                up === null
+                  ? 'Not checked'
+                  : `${formatPast(strip.at[i])}: ${formatUptime(up)}`
+              }
+              className={cn(
+                'flex-1',
+                up === null
+                  ? 'bg-muted-foreground/15'
+                  : up >= 1
+                    ? 'bg-success'
+                    : up > 0
+                      ? 'bg-warning'
+                      : 'bg-destructive'
+              )}
+            />
+          ))}
+        </div>
+        <span className='flex justify-between text-muted-foreground'>
+          <span>{STRIP_START[range]}</span>
+          <span>Now</span>
+        </span>
+      </div>
+      <div className='flex flex-col gap-2'>
+        <h4 className='text-muted-foreground'>Outages in the last month</h4>
+        {!uptime ? (
+          <TextSkeleton className='w-48' />
+        ) : uptime.outages.length ? (
+          <ul className='flex flex-col divide-y'>
+            {uptime.outages.map((o) => (
+              <li
+                key={o.from}
+                className='flex flex-wrap items-baseline gap-x-3 py-1.5 first:pt-0 last:pb-0'
+              >
+                <span className='font-mono tabular-nums'>
+                  {formatPast(o.from)}
+                </span>
+                <span
+                  className={cn(
+                    'text-muted-foreground',
+                    !o.to && 'text-destructive'
+                  )}
+                >
+                  {o.to
+                    ? `for ${formatDuration((o.to - o.from) / 1000)}`
+                    : 'still down'}
+                </span>
+                <span className='min-w-0 truncate text-muted-foreground'>
+                  {o.reason}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className='text-muted-foreground'>None</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** The shares' places while they're coming. */
+const SHARE_SKELETONS = (['24h', '7d', '30d'] as const).map((range) => ({
+  range,
+  up: null,
+}));
 
 /**
  * What it uses and what it is, each a card, the same for every service: its

@@ -4,6 +4,7 @@ import {
   formatAddress,
   formatBytes,
   formatDuration,
+  formatUptime,
   imageName,
   splitAddress,
 } from '@/lib/format';
@@ -54,5 +55,18 @@ describe('addresses', () => {
     expect(hostOf(':19132')).toBe('');
     expect(hostOf('https://dash.example.com/x')).toBe('dash.example.com');
     expect(hostOf('[::1]:80')).toBe('::1');
+  });
+});
+
+describe('formatUptime', () => {
+  test('is 100% only when every check answered', () => {
+    expect(formatUptime(1)).toBe('100%');
+    expect(formatUptime(0.99999)).toBe('99.99%');
+    expect(formatUptime(43199 / 43200)).toBe('99.99%');
+  });
+  test('cuts down rather than rounding up', () => {
+    expect(formatUptime(0.99996)).toBe('99.99%');
+    expect(formatUptime(0.5)).toBe('50.00%');
+    expect(formatUptime(0)).toBe('0.00%');
   });
 });

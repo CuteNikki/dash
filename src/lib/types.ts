@@ -370,3 +370,20 @@ export type HostHistory = History<
 
 /** A service's container over a while: percent of one core, and bytes. */
 export type ServiceHistory = History<'cpu' | 'memory'>;
+
+/** How a website's answered over the month it's been checked for, a check a minute. */
+export type SiteUptime = {
+  /** The share of checks it answered over the last day, week and month, from 0 to 1; null before any */
+  shares: { range: '24h' | '7d' | '30d'; up: number | null; checks: number }[];
+  /** The times it didn't answer, newest first, each from its first failed check to the next that answered */
+  outages: {
+    /** Milliseconds since 1970 */
+    from: number;
+    /** None while it's still down */
+    to?: number;
+    /** Why, as its first failed check said: "No answer in 10 s", "HTTP 502" */
+    reason: string;
+  }[];
+  /** Its response time over the range asked for, in milliseconds, of the checks it answered */
+  history: History<'ms' | 'up'>;
+};

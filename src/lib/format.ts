@@ -171,3 +171,32 @@ export const MEASURES = {
 export function formatMoment(at: number) {
   return at < Date.now() ? formatAgo(at) : formatWhen(at);
 }
+
+/**
+ * A moment gone by, in the viewer's own time, with the day it was:
+ * "today 03:10", "yesterday 03:10", "Mon 03:10", "12 Oct 03:10".
+ */
+export function formatPast(at: number) {
+  const date = new Date(at);
+  const time = date.toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  const days = Math.round((dayOf(new Date()) - dayOf(date)) / (DAY * 1000));
+  if (days === 0) return `today ${time}`;
+  if (days === 1) return `yesterday ${time}`;
+  if (days > 1 && days < 7) {
+    return `${date.toLocaleDateString(undefined, { weekday: 'short' })} ${time}`;
+  }
+  return `${date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} ${time}`;
+}
+
+/**
+ * A share of checks answered, as uptime is written: "100%" only when every
+ * one was, else cut down rather than rounded up, so a minute down in a
+ * month is "99.97%", never "100%".
+ */
+export function formatUptime(share: number) {
+  if (share >= 1) return '100%';
+  return `${(Math.floor(share * 10_000) / 100).toFixed(2)}%`;
+}

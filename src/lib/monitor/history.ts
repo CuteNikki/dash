@@ -7,10 +7,10 @@ import type { History, HostHistory, ServiceHistory } from '@/lib/types';
 /**
  * A table's readings over a range, a point for each stretch of it, from
  * oldest to now: each column's SQL over the readings in that stretch, or
- * null for one with none, as while the dashboard was down. Only for this
- * file's own tables and columns, which go into the query as they are.
+ * null for one with none, as while the dashboard was down. Only for the
+ * monitor's own tables and columns, which go into the query as they are.
  */
-async function bucketed<K extends string>(
+export async function bucketed<K extends string>(
   table: string,
   columns: Record<K, string>,
   range: HistoryRange,
