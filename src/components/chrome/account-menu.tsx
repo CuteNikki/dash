@@ -33,9 +33,11 @@ export function AccountMenu({ me }: { me: Me }) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align='end' className='w-auto'>
-          <DropdownMenuLabel className='flex flex-col font-normal text-muted-foreground'>
-            {me.email}
-            <span className='text-2xs'>{ROLE_INFO[me.role].name}</span>
+          <DropdownMenuLabel className='flex flex-col font-normal'>
+            <span className='font-medium'>{me.name}</span>
+            <span className='text-muted-foreground'>
+              {ROLE_INFO[me.role].name}
+            </span>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => setSettings(true)}>

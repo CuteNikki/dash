@@ -3,9 +3,15 @@
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
-import { CopyIcon, ShieldCheckIcon, ShieldOffIcon } from 'lucide-react';
+import {
+  CheckIcon,
+  CopyIcon,
+  ShieldCheckIcon,
+  ShieldOffIcon,
+} from 'lucide-react';
 
 import { authClient } from '@/lib/auth/auth-client';
+import { cn } from '@/lib/utils';
 
 import { TextSkeleton } from '@/components/common/skeletons';
 import { attempt, copyText } from '@/components/common/toasts';
@@ -223,10 +229,13 @@ function PasswordStep({
   );
 }
 
+/** Setting it up, a step at a time, so the panel stays short. */
+const SETUP_STEPS = ['Scan', 'Backup codes', 'Confirm'] as const;
+
 /**
  * The app's secret, as a QR code and as text to type in, the backup codes,
- * and a code from the app to show it's set up: until that's given, signing
- * in asks for none.
+ * and a code from the app to show it's set up, one after another: until
+ * the code's given, signing in asks for none.
  */
 function SetupStep({
   totpURI,
@@ -241,6 +250,7 @@ function SetupStep({
   onCancelAction: () => void;
   onDoneAction: () => void;
 }) {
+  const [at, setAt] = useState(0);
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
   const secret = secretOf(totpURI);
@@ -262,67 +272,121 @@ function SetupStep({
     );
   }
 
+  const back = (
+    <Button type='button' variant='ghost' onClick={() => setAt(at - 1)}>
+      Back
+    </Button>
+  );
+  const cancel = (
+    <Button type='button' variant='ghost' onClick={onCancelAction}>
+      Cancel
+    </Button>
+  );
+
   return (
     <div className='flex flex-col gap-4'>
-      <div className='flex flex-col gap-3'>
-        <h4 className='font-medium'>
-          1. Add the dashboard to your authenticator app
-        </h4>
-        <p>
-          Scan this with an app such as 1Password, Google Authenticator or
-          Aegis, or type in the key below it.
-        </p>
-        <QrCode
-          value={totpURI}
-          label='QR code for your authenticator app'
-          className='size-44'
-        />
-        <div className='flex items-center gap-1'>
-          <code className='font-mono break-all'>{secret}</code>
-          <Button
-            variant='ghost'
-            size='icon-xs'
-            aria-label='Copy the key'
-            title='Copy the key'
-            onClick={() => copyText(secret.replace(/ /g, ''), 'Copied the key')}
+      <ol className='flex flex-wrap items-center gap-x-3 gap-y-1'>
+        {SETUP_STEPS.map((name, i) => (
+          <li
+            key={name}
+            aria-current={i === at ? 'step' : undefined}
+            className={cn(
+              'flex items-center gap-1.5',
+              i === at ? 'font-medium' : 'text-muted-foreground'
+            )}
           >
-            <CopyIcon />
-          </Button>
+            <span
+              className={cn(
+                'flex size-4.5 items-center justify-center rounded-full border font-mono text-2xs',
+                i === at && 'border-foreground bg-foreground text-background',
+                i < at && 'border-foreground/40'
+              )}
+            >
+              {i < at ? <CheckIcon className='size-3' /> : i + 1}
+            </span>
+            {name}
+          </li>
+        ))}
+      </ol>
+
+      {at === 0 && (
+        <div className='flex flex-col gap-3'>
+          <div className='flex flex-col gap-4 sm:flex-row sm:items-start'>
+            <QrCode
+              value={totpURI}
+              label='QR code for your authenticator app'
+              className='size-40 shrink-0'
+            />
+            <div className='flex min-w-0 flex-col gap-2'>
+              <p>
+                Scan this with an authenticator app, such as 1Password, Google
+                Authenticator or Aegis, or type in the key instead.
+              </p>
+              <div className='flex items-center gap-1'>
+                <code className='font-mono break-all'>{secret}</code>
+                <Button
+                  variant='ghost'
+                  size='icon-xs'
+                  aria-label='Copy the key'
+                  title='Copy the key'
+                  onClick={() =>
+                    copyText(secret.replace(/ /g, ''), 'Copied the key')
+                  }
+                >
+                  <CopyIcon />
+                </Button>
+              </div>
+            </div>
+          </div>
+          <div className='flex gap-2'>
+            <Button onClick={() => setAt(1)}>Next</Button>
+            {cancel}
+          </div>
         </div>
-      </div>
-      <div className='flex flex-col gap-3'>
-        <h4 className='font-medium'>2. Keep your backup codes</h4>
-        <BackupCodes codes={backupCodes} email={email} />
-      </div>
-      <form
-        className='flex flex-col gap-3'
-        onSubmit={(e) => {
-          e.preventDefault();
-          verify(String(new FormData(e.currentTarget).get('code')).trim());
-        }}
-      >
-        <h4 className='font-medium'>3. Enter the code it shows</h4>
-        <Input
-          name='code'
-          aria-label='Code'
-          inputMode='numeric'
-          autoComplete='one-time-code'
-          pattern='[0-9]{6}'
-          maxLength={6}
-          placeholder='123456'
-          required
-          className='w-28 font-mono tabular-nums'
-        />
-        {error && <p className='text-destructive'>{error}</p>}
-        <div className='flex gap-2'>
-          <Button type='submit' disabled={pending}>
-            Turn on
-          </Button>
-          <Button type='button' variant='ghost' onClick={onCancelAction}>
-            Cancel
-          </Button>
+      )}
+
+      {at === 1 && (
+        <div className='flex flex-col gap-3'>
+          <BackupCodes codes={backupCodes} email={email} />
+          <div className='flex gap-2'>
+            <Button onClick={() => setAt(2)}>I've saved them</Button>
+            {back}
+          </div>
         </div>
-      </form>
+      )}
+
+      {at === 2 && (
+        <form
+          className='flex flex-col gap-3'
+          onSubmit={(e) => {
+            e.preventDefault();
+            verify(String(new FormData(e.currentTarget).get('code')).trim());
+          }}
+        >
+          <Label htmlFor='two-factor-code'>
+            The code your app shows for the dashboard
+          </Label>
+          <Input
+            id='two-factor-code'
+            name='code'
+            inputMode='numeric'
+            autoComplete='one-time-code'
+            pattern='[0-9]{6}'
+            maxLength={6}
+            placeholder='123456'
+            autoFocus
+            required
+            className='w-28 font-mono tabular-nums'
+          />
+          {error && <p className='text-destructive'>{error}</p>}
+          <div className='flex gap-2'>
+            <Button type='submit' disabled={pending}>
+              Turn on
+            </Button>
+            {back}
+          </div>
+        </form>
+      )}
     </div>
   );
 }

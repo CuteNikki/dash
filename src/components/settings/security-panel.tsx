@@ -8,14 +8,17 @@ import { TwoFactor } from '@/components/settings/two-factor';
 /** The ways into this account, and where it's signed in. */
 export function SecurityPanel() {
   return (
-    <div className='grid grid-cols-1 gap-3 lg:grid-cols-2 lg:items-start'>
+    // One under another, each as wide as the window, so one that grows, as
+    // two-factor does while it's being set up, pushes the rest down rather
+    // than leaving a column of empty space beside it
+    <div className='flex flex-col gap-3'>
       <Panel title='Passkeys'>
         <PasskeyList />
       </Panel>
       <Panel title='Two-factor'>
         <TwoFactor />
       </Panel>
-      <Panel title='Signed in' className='lg:col-span-2'>
+      <Panel title='Signed in'>
         <SessionList />
       </Panel>
     </div>
