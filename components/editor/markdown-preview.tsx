@@ -1,6 +1,8 @@
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+import { HighlightedCode } from '@/components/editor/highlighting';
+
 /**
  * How each Markdown element looks, after GitHub's README style: headings
  * with a rule under the big ones, indented lists, code on its own background,
@@ -52,13 +54,23 @@ const components: Components = {
     />
   ),
   hr: (props) => <hr className='my-6' {...props} />,
-  // Inline code; inside a code block, the block styles it
-  code: (props) => (
-    <code
-      className='rounded-sm bg-foreground/10 px-1 py-0.5 font-mono text-xs in-[pre]:bg-transparent in-[pre]:p-0'
-      {...props}
-    />
-  ),
+  // Inline code; inside a code block, the block styles it, and its text is
+  // colored as its language is in the editor: ```ts, ```yaml, ```bash
+  code: ({ className, children, ...props }) => {
+    const language = className?.match(/language-(\S+)/)?.[1];
+    return (
+      <code
+        className='rounded-sm bg-foreground/10 px-1 py-0.5 font-mono text-xs in-[pre]:bg-transparent in-[pre]:p-0'
+        {...props}
+      >
+        {language && typeof children === 'string' ? (
+          <HighlightedCode text={children} language={language} />
+        ) : (
+          children
+        )}
+      </code>
+    );
+  },
   pre: (props) => (
     <pre
       className='my-4 overflow-x-auto rounded-lg bg-surface p-4 font-mono text-xs/relaxed'
