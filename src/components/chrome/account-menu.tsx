@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 
-import { LogOutIcon, SettingsIcon, UserIcon } from 'lucide-react';
+import { LogOutIcon, SettingsIcon } from 'lucide-react';
 
 import { ROLE_INFO } from '@/lib/auth/roles';
 import type { Me } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 import { SettingsDialog } from '@/components/settings/settings-dialog';
 import { useSignOut } from '@/components/settings/sign-in-again';
@@ -28,15 +29,23 @@ export function AccountMenu({ me }: { me: Me }) {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant='ghost' size='icon' aria-label='Account'>
-            <UserIcon />
+          <Button
+            variant='ghost'
+            size='icon'
+            aria-label={`Account: ${me.name}`}
+            className='rounded-full'
+          >
+            <Initial name={me.name} className='size-6' />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align='end' className='w-auto'>
-          <DropdownMenuLabel className='flex flex-col font-normal'>
-            <span className='font-medium'>{me.name}</span>
-            <span className='text-muted-foreground'>
-              {ROLE_INFO[me.role].name}
+        <DropdownMenuContent align='end' className='w-56'>
+          <DropdownMenuLabel className='flex items-center gap-2.5 py-2 text-foreground'>
+            <Initial name={me.name} className='size-8 text-sm' />
+            <span className='flex min-w-0 flex-col'>
+              <span className='truncate text-sm font-medium'>{me.name}</span>
+              <span className='text-muted-foreground'>
+                {ROLE_INFO[me.role].name}
+              </span>
             </span>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
@@ -44,7 +53,7 @@ export function AccountMenu({ me }: { me: Me }) {
             <SettingsIcon />
             Settings
           </DropdownMenuItem>
-          <DropdownMenuItem variant='destructive' onSelect={signOut}>
+          <DropdownMenuItem onSelect={signOut}>
             <LogOutIcon />
             Sign out
           </DropdownMenuItem>
@@ -56,5 +65,20 @@ export function AccountMenu({ me }: { me: Me }) {
         onOpenChangeAction={setSettings}
       />
     </>
+  );
+}
+
+/** Someone's first letter in a circle, standing for them where a picture would. */
+function Initial({ name, className }: { name: string; className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        'flex shrink-0 items-center justify-center rounded-full bg-foreground/10 text-xs font-medium text-foreground uppercase',
+        className
+      )}
+    >
+      {name.trim().charAt(0) || '?'}
+    </span>
   );
 }
