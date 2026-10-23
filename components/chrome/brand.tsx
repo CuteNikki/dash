@@ -12,10 +12,12 @@ export function Brand({ className }: { className?: string }) {
     >
       <BrandIcon className='size-6 shrink-0' />
       Dashboard
-      <span className='flex items-center gap-2 font-normal text-muted-foreground'>
-        <span aria-hidden>·</span>
-        {SERVER_NAME}
-      </span>
+      {SERVER_NAME && (
+        <span className='flex items-center gap-2 font-normal text-muted-foreground'>
+          <span aria-hidden>·</span>
+          {SERVER_NAME}
+        </span>
+      )}
     </span>
   );
 }

@@ -99,7 +99,7 @@ export function formatWhen(at: number) {
 }
 
 /**
- * A label before an address, saying what it's for: "Java: mc.niso.moe:25565".
+ * A label before an address, saying what it's for: "Java: mc.example.com:25565".
  * A space after the colon makes it one, so a host and port never is.
  */
 const LABELLED = /^([^\s:/][^:/]{0,23}):\s+(\S.*)$/;

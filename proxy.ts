@@ -5,7 +5,7 @@ import { SITE_URL } from '@/lib/site';
 
 /**
  * Whether a request that changes something came from the dashboard's own
- * pages. The session cookie is SameSite=Lax, which another *.niso.moe site
+ * pages. The session cookie is SameSite=Lax, which another *.example.com site
  * counts as the same site, so a script there could otherwise reboot the
  * server with it. Next checks this for server actions, but not for routes;
  * Better Auth checks its own.

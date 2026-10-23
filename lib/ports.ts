@@ -28,7 +28,7 @@ export function portName(port: number) {
   return PORT_NAMES[port];
 }
 
-/** The host part of an address as written: "Java: mc.niso.moe:25565" → "mc.niso.moe", ":19132" → "". */
+/** The host part of an address as written: "Java: mc.example.com:25565" → "mc.example.com", ":19132" → "". */
 export function hostOf(address: string) {
   try {
     if (/^https?:\/\//i.test(address)) return new URL(address).hostname;

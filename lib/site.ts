@@ -1,5 +1,9 @@
-/** The server dash is the dashboard of, as its heading and tab title name it. */
-export const SERVER_NAME = 'vps.niso.moe';
+/**
+ * The server dash is the dashboard of, as its heading and tab title name it:
+ * its host name, as vps.example.com. Read when the image is built, as the
+ * browser shows it too; without one, they say "Dashboard" alone.
+ */
+export const SERVER_NAME = process.env.NEXT_PUBLIC_SERVER_NAME || undefined;
 
 /**
  * dash's own compose project, whose update restarts it: updated last, so
@@ -8,10 +12,10 @@ export const SERVER_NAME = 'vps.niso.moe';
 export const DASH_PROJECT = 'dash';
 
 /**
- * Where the dashboard is reached, as BETTER_AUTH_URL names it: passkeys only
- * work on this address, and the icons and manifest are linked from it.
- * Where it isn't set, as while the image is built, it's the server's own.
+ * Where the dashboard is reached, as BETTER_AUTH_URL names it, read when it
+ * starts: passkeys only work on this address, and only its own pages may
+ * change things through the API.
  */
 export const SITE_URL = new URL(
-  process.env.BETTER_AUTH_URL ?? 'https://dash.niso.moe'
+  process.env.BETTER_AUTH_URL ?? 'http://localhost:3000'
 );

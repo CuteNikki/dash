@@ -16,7 +16,9 @@ import { Dashboard } from '@/components/dashboard/dashboard';
 
 /** The tab says which server it's the dashboard of, rather than dash's name. */
 export const metadata: Metadata = {
-  title: { absolute: `Dashboard · ${SERVER_NAME}` },
+  title: {
+    absolute: SERVER_NAME ? `Dashboard · ${SERVER_NAME}` : 'Dashboard',
+  },
 };
 
 /** Columns for a first visit, before the browser's said how wide it is: a laptop's. */

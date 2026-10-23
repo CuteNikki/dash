@@ -4,7 +4,14 @@
 // networks dash shares with them. Each app is looked up when it starts, since
 // a recreated container has a new address, and is then on this machine at the
 // port SONARR_URL and the rest name.
-const SERVER = 'vps.niso.moe';
+// The server as SSH knows it, from .env.local, which Bun reads
+const SERVER = process.env.DASH_SSH_HOST;
+if (!SERVER) {
+  console.error(
+    'Set DASH_SSH_HOST in .env.local to the server, as ssh knows it'
+  );
+  process.exit(1);
+}
 
 /** Where DOCKER_HOST in .env.local expects the server's Docker. */
 const DOCKER = '127.0.0.1:2375';

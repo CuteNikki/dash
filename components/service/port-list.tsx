@@ -11,15 +11,16 @@ import { copyText } from '@/components/common/toasts';
 import { Button } from '@/components/ui/button';
 
 /**
- * The host its ports are reached on: its own address's, as mc.niso.moe, or
- * the server's when it has none that names one.
+ * The host its ports are reached on: its own address's, as mc.example.com,
+ * or the server's when it has none that names one, and lacking that, the
+ * dashboard's own, which is on the same server.
  */
 function hostFor(service: Service) {
   for (const entry of service.addresses) {
     const host = hostOf(splitAddress(entry).address);
     if (host) return host;
   }
-  return SERVER_NAME;
+  return SERVER_NAME ?? location.hostname;
 }
 
 /**

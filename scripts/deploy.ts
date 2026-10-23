@@ -1,8 +1,16 @@
 // Puts the dashboard on the server, as its own Update does there: master is
 // pushed, pulled into ~/services/dash, a clone of the repository, then built
 // and started. Its .env, kept only there, stays.
-const SERVER = 'vps.niso.moe';
-const DIR = '~/services/dash';
+// The server as SSH knows it, and dash's clone there, from .env.local, which
+// Bun reads
+const SERVER = process.env.DASH_SSH_HOST;
+const DIR = process.env.DASH_SERVER_DIR || '~/services/dash';
+if (!SERVER) {
+  console.error(
+    'Set DASH_SSH_HOST in .env.local to the server, as ssh knows it'
+  );
+  process.exit(1);
+}
 const BRANCH = 'master';
 
 /** Runs a command, its output shown, and stops everything if it fails. */
@@ -43,6 +51,6 @@ await run([
   SERVER,
   `set -e; cd ${DIR}; git pull --ff-only; docker compose up -d --build`,
 ]);
-console.log('Done: https://dash.niso.moe');
+console.log('Done');
 
 export {};

@@ -6,6 +6,8 @@ COPY package.json bun.lock prisma.config.ts ./
 COPY prisma ./prisma
 RUN bun install --frozen-lockfile
 COPY . .
+# The server's name, shown in the browser too, so it's built in
+ARG NEXT_PUBLIC_SERVER_NAME
 RUN bun run build
 
 # The database's migrations, which compose's migrate runs before dash starts:

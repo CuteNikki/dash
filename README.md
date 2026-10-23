@@ -107,19 +107,39 @@ Tiles, layouts and the account are kept in PostgreSQL, through Prisma.
 Uploaded icons go to an S3 bucket (Garage, on the same server). There's one
 account, signed in with a password or a passkey.
 
-dash itself is a stack like the others, in `~/services/dash`:
+dash itself is a stack like the others: a clone of this repository in
+`~/services/dash`, with a `.env` beside it holding its secrets (the settings
+in [`.env.example`](.env.example) say where each comes from). Its
+[`docker-compose.yml`](docker-compose.yml) is the one this server runs; for
+yours, change the names in it:
 
 ```yaml
 services:
+  # The database's migrations, run before dash starts
+  migrate:
+    build: { context: ., target: migrate }
+    env_file: .env
+    restart: 'no'
+    labels:
+      dash.purpose: the database's migrations, before dash starts
+
   dash:
-    build: .
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SERVER_NAME: vps.example.com
     container_name: dash
     restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     env_file: .env
     environment:
       BETTER_AUTH_URL: https://dash.example.com
       DOCKER_HOST: unix:///var/run/docker.sock
       STACKS_ROOT: /home/you
+      STORAGE_API_URL: https://s3.example.com
+      STORAGE_PUBLIC_URL: https://images.example.com/dash
     # The server's processes and which container each runs in, not only its own
     pid: host
     cgroup: host
@@ -144,10 +164,10 @@ With no account yet, it prints a setup code in its log; make the account at
 
 ## Developing
 
-You need [Bun](https://bun.sh) and SSH access to the server (as `vps.niso.moe`,
-set in `scripts/`, so a user name other than this machine's goes under
-`Host vps.niso.moe` in `~/.ssh/config`). In development dash still works on
-the real server: its containers, files and database.
+You need [Bun](https://bun.sh) and SSH access to the server, by the name in
+`DASH_SSH_HOST` (a user name other than this machine's goes under that name
+in `~/.ssh/config`). In development dash still works on the real server: its
+containers, files and database.
 
 1. Install, and copy the settings. Each setting in `.env.example` says where
    to find its value.

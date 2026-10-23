@@ -1,9 +1,15 @@
 import 'server-only';
 
+import { homedir } from 'node:os';
+
 import { dockerRequest, logLines } from '@/lib/docker/docker';
 
-/** The folder the stacks live in, mounted into a run at the same path. */
-export const STACKS_ROOT = process.env.STACKS_ROOT ?? '/home/nikki';
+/**
+ * The folder the stacks live in, mounted into a run at the same path: the
+ * home folder of whoever runs dash, unless STACKS_ROOT says otherwise, as it
+ * must in a container or while developing.
+ */
+export const STACKS_ROOT = process.env.STACKS_ROOT ?? homedir();
 
 export type Run = {
   /** e.g. "docker:29.9-cli", pulled the first time it's needed */

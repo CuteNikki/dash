@@ -3,7 +3,7 @@ import 'server-only';
 import { resolve4, resolve6 } from 'node:dns/promises';
 
 import { listHostDir, readHostFile } from '@/lib/host/host-files';
-import { SERVER_NAME } from '@/lib/site';
+import { SERVER_NAME, SITE_URL } from '@/lib/site';
 import { findCaddy } from '@/lib/stacks/service-stacks';
 
 /** Where a domain's DNS points: at this server, somewhere else, or nowhere yet. */
@@ -21,6 +21,9 @@ async function addresses(host: string) {
   return [...v4, ...v6];
 }
 
+/** The server's own name, or the dashboard's, which leads to the same server. */
+const SERVER_HOST = SERVER_NAME ?? SITE_URL.hostname;
+
 /**
  * Whether a domain points at this server, as its own name does: any address
  * they share will do, as either may also have one the other hasn't.
@@ -28,14 +31,14 @@ async function addresses(host: string) {
 export async function checkDomain(domain: string): Promise<DomainCheck> {
   const [found, server] = await Promise.all([
     addresses(domain),
-    addresses(SERVER_NAME),
+    addresses(SERVER_HOST),
   ]);
   if (!found.length) return { points: 'nowhere', server };
   if (found.some((a) => server.includes(a))) return { points: 'here' };
   return { points: 'elsewhere', addresses: found, server };
 }
 
-/** The last two labels of a host name, which its sites share: "git.niso.moe" → "niso.moe". */
+/** The last two labels of a host name, which its sites share: "git.example.com" → "example.com". */
 const zoneOf = (host: string) => host.split('.').slice(-2).join('.');
 
 /**
@@ -43,7 +46,7 @@ const zoneOf = (host: string) => host.split('.').slice(-2).join('.');
  * service's address can end in. Read from Caddy's site files' addresses.
  */
 export async function siteDomains() {
-  const zones = new Set([zoneOf(SERVER_NAME)]);
+  const zones = new Set([zoneOf(SERVER_HOST)]);
   const caddy = await findCaddy().catch(() => undefined);
   if (!caddy) return [...zones];
   const files = (await listHostDir(caddy.sites)).filter((e) =>
