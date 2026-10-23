@@ -29,10 +29,12 @@ const MAX_PAGES = 10;
  * Where an image comes from, as Docker reads its name: a first part with a
  * dot or colon, or "localhost", is a registry; otherwise it's Docker Hub,
  * whose official images are under library/. No tag is "latest". Undefined
- * for one pinned by digest, which never changes.
+ * for one pinned by digest, which never changes, and for an image's own ID,
+ * "sha256:…", which Docker lists a container by once its name is another's.
  */
 export function parseRef(image: string): ImageRef | undefined {
-  if (image.includes('@')) return undefined;
+  if (image.includes('@') || /^sha256:[0-9a-f]{64}$/.test(image))
+    return undefined;
   const slash = image.indexOf('/');
   const first = slash === -1 ? '' : image.slice(0, slash);
   const remote =
