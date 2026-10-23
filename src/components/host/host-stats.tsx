@@ -188,18 +188,20 @@ function ServerDetails({
     // Its details in as many columns as its own width has room for
     <Card size='sm' className='@container px-3'>
       <div className='flex items-center gap-2'>
-        <ServerIcon className='size-4 text-muted-foreground' />
-        <span className='mr-auto text-sm font-medium'>
+        <ServerIcon className='size-4 shrink-0 text-muted-foreground' />
+        <span className='mr-auto min-w-0 truncate text-sm font-medium'>
           {host ? host.system.hostname : <TextSkeleton className='w-16' />}
         </span>
         <Button
           variant='outline'
           size='xs'
           onClick={() => setHistory(true)}
+          aria-label='History'
           className='text-muted-foreground'
         >
           <HistoryIcon />
-          History
+          {/* Its icon alone on a narrow tile, so the server's name has the room */}
+          <span className='@max-md:hidden'>History</span>
         </Button>
         {system && <SystemButton system={system} onClick={onSystem} />}
       </div>
