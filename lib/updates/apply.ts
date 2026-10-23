@@ -1,15 +1,13 @@
 import 'server-only';
 
-import { runCompose, type Stack } from '@/lib/docker/compose';
+import { runCompose, startCompose, type Stack } from '@/lib/docker/compose';
 import type { Container } from '@/lib/docker/docker';
 import type { RunLine } from '@/lib/docker/runner';
 import { gitPull, gitStatus } from '@/lib/git';
 import { readHostFile, writeHostFile } from '@/lib/host/host-files';
+import { DASH_PROJECT } from '@/lib/site';
 import { say, shown } from '@/lib/stacks/service-stacks';
 import { forgetUpdate, updateOf } from '@/lib/updates/check';
-
-/** Stacks never updated from here: dash's own, which `bun run deploy` updates. */
-const SELF = 'dash';
 
 /** Each line of what something printed, as the run's own. */
 function* printed(output: string): Generator<RunLine> {
@@ -69,9 +67,6 @@ export async function* updateService(
       "It isn't part of a compose stack, so dash can't recreate it"
     );
   }
-  if (stack.project === SELF) {
-    throw new Error("dash doesn't update itself: run bun run deploy");
-  }
   const { update, error } = updateOf(c);
   if (error) throw new Error(`Couldn't check it for updates: ${error}`);
   if (!update) throw new Error('There’s no update for it');
@@ -123,8 +118,22 @@ export async function* updateService(
   const pull = await gitPull(repo.root);
   yield* printed(pull.output);
   if (!pull.ok) return 1;
+  if (stack.project === DASH_PROJECT) return yield* restartDash(stack);
   yield say(`Rebuilding ${stack.project}…`);
   const up = yield* runCompose(stack, ['up', '-d', '--build']);
   if (up === 0) forgetUpdate(c);
   return up;
+}
+
+/**
+ * dash's own rebuild: built while it's here to say how that goes, then
+ * recreated by a run it doesn't wait for, as recreating it ends this one.
+ */
+async function* restartDash(stack: Stack): AsyncGenerator<RunLine, number> {
+  yield say('Building dash…');
+  const built = yield* runCompose(stack, ['build']);
+  if (built !== 0) return built;
+  await startCompose(stack, ['up', '-d']);
+  yield say('Restarting dash on the new build; it’s back in a moment');
+  return 0;
 }

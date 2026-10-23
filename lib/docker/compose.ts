@@ -3,6 +3,7 @@ import 'server-only';
 import {
   runContainer,
   runToEnd,
+  startRun,
   type Run,
   type RunLine,
 } from '@/lib/docker/runner';
@@ -45,6 +46,19 @@ export type ComposeLine = RunLine;
  */
 export function runCompose(stack: Stack, args: string[]) {
   return runContainer(composeRun(stack, args));
+}
+
+/**
+ * Starts `docker compose <args>` for a stack a couple of seconds from now,
+ * and leaves it to run, for one that stops dash itself: by then dash has
+ * said it's done.
+ */
+export function startCompose(stack: Stack, args: string[]) {
+  const run = composeRun(stack, args);
+  return startRun({
+    ...run,
+    cmd: ['sh', '-c', 'sleep 2 && exec "$@"', 'sh', ...run.cmd],
+  });
 }
 
 /** Runs Compose to the end: its whole output, and whether it succeeded. */

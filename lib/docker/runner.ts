@@ -124,6 +124,18 @@ export async function* runContainer(run: Run): AsyncGenerator<RunLine, number> {
   }
 }
 
+/**
+ * Starts a command in a short-lived container and leaves it to finish on its
+ * own, unwatched, for one that outlasts the dashboard, as recreating dash's
+ * own container does. It's removed once it exits.
+ */
+export async function startRun(run: Run) {
+  const { Id } = await create(run);
+  await dockerRequest('POST', `/containers/${Id}/start`).then((r) =>
+    r.resume()
+  );
+}
+
 /** Runs to the end: its whole output, line by line, and how it exited. */
 export async function runToEnd(run: Run) {
   const lines: RunLine[] = [];

@@ -1,12 +1,14 @@
-// Puts the dashboard on the server: the committed files go to ~/services/dash,
-// then it's built and started there. Its .env, kept only there, stays.
+// Puts the dashboard on the server, as its own Update does there: master is
+// pushed, pulled into ~/services/dash, a clone of the repository, then built
+// and started. Its .env, kept only there, stays.
 const SERVER = 'vps.niso.moe';
 const DIR = '~/services/dash';
+const BRANCH = 'master';
 
 /** Runs a command, its output shown, and stops everything if it fails. */
-async function run(cmd: string[], stdin?: ReadableStream<Uint8Array>) {
+async function run(cmd: string[]) {
   const child = Bun.spawn(cmd, {
-    stdin: stdin ?? 'inherit',
+    stdin: 'inherit',
     stdout: 'inherit',
     stderr: 'inherit',
   });
@@ -26,24 +28,21 @@ if (changes) {
   console.error(changes);
   process.exit(1);
 }
+// The server follows master, so that's what's sent
+const branch = await git('branch', '--show-current');
+if (branch !== BRANCH) {
+  console.error(`On ${branch || 'no branch'}; the server follows ${BRANCH}`);
+  process.exit(1);
+}
 
-console.log(
-  `Sending ${await git('rev-parse', '--short', 'HEAD')} to ${SERVER}…`
-);
-const archive = Bun.spawn(['git', 'archive', '--format=tar', 'HEAD'], {
-  stdout: 'pipe',
-});
-// Everything but .env is replaced, so files deleted here go there too
-await run(
-  [
-    'ssh',
-    SERVER,
-    `set -e; mkdir -p ${DIR}; cd ${DIR}; find . -mindepth 1 -maxdepth 1 ! -name .env -exec rm -rf {} +; tar -x`,
-  ],
-  archive.stdout
-);
-console.log('Building and starting it…');
-await run(['ssh', SERVER, `cd ${DIR} && docker compose up -d --build`]);
+console.log(`Pushing ${await git('rev-parse', '--short', 'HEAD')}…`);
+await run(['git', 'push', 'origin', BRANCH]);
+console.log(`Pulling it on ${SERVER}, building and starting it…`);
+await run([
+  'ssh',
+  SERVER,
+  `set -e; cd ${DIR}; git pull --ff-only; docker compose up -d --build`,
+]);
 console.log('Done: https://dash.niso.moe');
 
 export {};

@@ -1,5 +1,5 @@
 # The dashboard: the server's services, their logs, files and git, and the server itself.
-# Put here by `bun run deploy`, which builds and starts it.
+# A clone of the repository, updated by its own Update or `bun run deploy`.
 services:
   dash:
     build: .

@@ -7,6 +7,7 @@ import { CheckIcon, RefreshCwIcon, XIcon } from 'lucide-react';
 
 import { checkUpdates } from '@/actions/containers';
 import { formatAgo } from '@/lib/format';
+import { DASH_PROJECT } from '@/lib/site';
 import type { Service } from '@/lib/types';
 import { updateLabel } from '@/lib/updates/describe';
 
@@ -74,7 +75,12 @@ function rowsOf(services: Service[]): Row[] {
       major: update.kind === 'version' && update.major,
     });
   }
-  return [...rows.values()].sort((a, b) => a.name.localeCompare(b.name));
+  // dash's own last, as it restarts dash
+  const isDash = (r: Row) => r.service.stack?.project === DASH_PROJECT;
+  return [...rows.values()].sort(
+    (a, b) =>
+      Number(isDash(a)) - Number(isDash(b)) || a.name.localeCompare(b.name)
+  );
 }
 
 /**

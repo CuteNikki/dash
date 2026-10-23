@@ -60,7 +60,8 @@ in dash. Live numbers are read for an app known by its image's name, or by a
 ## Developing
 
 You need [Bun](https://bun.sh) and SSH access to the server (as `vps.niso.moe`,
-set in `scripts/`). In development dash still works on the real server: its
+set in `scripts/`, so a user name other than this machine's goes under
+`Host vps.niso.moe` in `~/.ssh/config`). In development dash still works on the real server: its
 containers, files and database.
 
 1. `bun install`
@@ -78,10 +79,13 @@ account at `/setup` with it.
 
 ## Deploying
 
-`bun run deploy` sends what's committed (not uncommitted changes) to
-`~/services/dash` on the server, then builds and starts it there with
-`docker compose up -d --build`. The server's `.env` stays where it is and is
-never in the repository. Database changes go in with `bun run db:migrate`.
+On the server, `~/services/dash` is a clone of this repository, following
+`master`, like the other projects there. Once commits are pushed, dash shows
+an update for itself, and its Update pulls them and rebuilds it, restarting
+dash. `bun run deploy` does the same from here: it pushes `master` (with no
+uncommitted changes), then pulls and runs `docker compose up -d --build` on
+the server. The server's `.env` stays where it is and is never in the
+repository. Database changes go in with `bun run db:migrate`.
 
 ## Scripts
 
@@ -89,7 +93,7 @@ never in the repository. Database changes go in with `bun run db:migrate`.
 | -------------------- | -------------------------------------------------------- |
 | `bun dev`            | The development server                                   |
 | `bun run tunnels`    | Tunnels to the server's Docker and apps, for development |
-| `bun run deploy`     | Builds and starts the committed version on the server    |
+| `bun run deploy`     | Pushes master, then pulls and rebuilds it on the server  |
 | `bun run typecheck`  | Type-checks the app and the scripts                      |
 | `bun run lint`       | ESLint                                                   |
 | `bun run format`     | Prettier                                                 |
