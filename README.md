@@ -1,34 +1,89 @@
 # dash
 
-A dashboard for one home server: every Docker container as a tile, with its
-status, usage and live numbers, and a window to manage it: start, stop and
-restart it, read and type into its logs, edit its files, commit and push its
-git changes, and redeploy it. New services can be added from templates, and
-get a site in Caddy if they have a domain.
+**A dashboard for one home server, that runs on it.** Every Docker container
+as a tile, with its status, usage and live numbers, and a window to run it
+from: logs and console, its files in an editor, its git history, and one click
+to redeploy. New services come from templates and get a site in Caddy.
 
-It runs on the server it shows, as a container of its own, behind Caddy.
+![The dashboard: the server's stats above, every service below as a tile, grouped](docs/screenshots/dashboard.png)
 
-## What it does
+- **Everything on the server, at a glance.** CPU, memory, disk, network and
+  processes, then every container in groups, each with a sparkline and the
+  numbers its app knows: downloads in qBittorrent, players on Minecraft, sites
+  in Caddy.
+- **A window for each service.** Start, stop and restart it, read and type
+  into its logs, edit its compose file and `.env` (checked by Compose before
+  they're saved), and see what its app has to say.
+- **Git, built in.** Changes, commits, branches and history, with diffs side
+  by side, for every stack that's a repository, dash's own included.
+- **New services in a minute.** About 200 templates, any image on Docker Hub,
+  a `docker run` command or a compose file of your own. dash makes the folder,
+  starts it, writes its Caddy site and reloads Caddy, and undoes it all if a
+  step fails.
+- **Updates, found and applied.** New image versions and new commits,
+  checked every few hours, and applied from the dashboard: one service, or all
+  of them. The server's own packages too.
 
-- **Tiles and a list** of every container, in groups, arranged by dragging and
-  resizing, for each screen width separately. A tile's name, icon, group,
-  description and addresses can be edited, and websites hosted elsewhere can
-  be added as tiles with an up/down check.
-- **Live numbers** on the tiles of apps it knows: Sonarr, Radarr, Prowlarr,
-  Jellyfin, Jellyseerr, qBittorrent, Gluetun, FlareSolverr, Stalwart,
-  Minecraft, PostgreSQL, Garage, Caddy and the stream relay.
-- **A service's window**: CPU and memory over the last ten minutes, its logs
-  (and console, for one that takes input), its folder's files in an editor,
-  with compose files and `.env` checked by Compose before saving, and its git
-  changes, history and branches.
-- **The server itself**: CPU, memory, disk and network, its processes, and
-  what's using its disk.
-- **New services**: from one of about 200 templates (LinuxServer.io's
-  catalogue, fetched daily, plus a few big apps it doesn't package), any image
-  on Docker Hub, or a compose file of your own. dash makes its folder, starts
-  it, and for a domain writes a Caddy site for it and reloads Caddy, undoing
-  it all if a step fails.
-- **One account**, signed in with a password or a passkey.
+## A closer look
+
+### A service's window
+
+CPU and memory over the last ten minutes, its container's details and ports,
+and what its app reports: here, PostgreSQL's databases.
+
+![PostgreSQL's window: its databases with their size and connections, beside CPU and memory charts](docs/screenshots/service.png)
+
+### Its files, in an editor
+
+The stack's folder as a tree, with files created, renamed and deleted there,
+and opened in an editor with highlighting for TypeScript, YAML, Dockerfiles,
+shell, TOML, `.env` and more. **Redeploy** runs `docker compose up -d` with
+what was just saved; **Rebuild** builds it again first.
+
+![The Files tab: the stack's folder on the left, a TypeScript file open in the editor](docs/screenshots/editor.png)
+
+### Markdown, previewed
+
+A README opens as GitHub would show it: headings, tables, task lists, and code
+blocks colored as their language is in the editor.
+
+![A README previewed: headings, a table and colored code blocks](docs/screenshots/markdown.png)
+
+### Its history, side by side
+
+Each commit's message and files, and each file's changes either unified or
+side by side, unchanged lines folded away. Fetch, pull and push are a click
+each, and a stack that's behind its branch shows as an update on the
+dashboard.
+
+![The Git tab: the commit history on the left, a commit's change shown side by side](docs/screenshots/git.png)
+
+### Adding a service
+
+Pick a template, search Docker Hub, paste a `docker run` command or write a
+compose file. Give it an address, and its Caddy site is written for you.
+
+![New service: templates to pick from, the compose file, and its address](docs/screenshots/new-service.png)
+
+### Light or dark, tiles or a list
+
+Every view in either theme, as the system has it or picked by hand. The list
+puts each service on a row, filtered by group.
+
+![The list view in the light theme, filtered to the Downloads group](docs/screenshots/list-light.png)
+
+## Apps it knows
+
+Tiles show live numbers for Sonarr, Radarr, Prowlarr, Jellyfin, Jellyseerr,
+qBittorrent, Gluetun, FlareSolverr, Stalwart, Minecraft, PostgreSQL, Garage,
+Caddy and the stream relay. An app is known by its image's name, or by a
+`dash.app` label on its container. Everything else gets the same tile, without
+the numbers.
+
+A container's tile starts from its [Homepage](https://gethomepage.dev) labels
+(`homepage.name`, `homepage.icon`, `homepage.group`, `homepage.description`,
+`homepage.href`) until it's edited in dash, so a server already set up for
+Homepage looks right from the start.
 
 ## How it fits together
 
@@ -49,33 +104,75 @@ It expects the server laid out like this:
 ```
 
 Tiles, layouts and the account are kept in PostgreSQL, through Prisma.
-Uploaded icons go to an S3 bucket (Garage, on the same server).
+Uploaded icons go to an S3 bucket (Garage, on the same server). There's one
+account, signed in with a password or a passkey.
 
-A container's tile starts from its
-[Homepage](https://gethomepage.dev) labels (`homepage.name`, `homepage.icon`,
-`homepage.group`, `homepage.description`, `homepage.href`) until it's edited
-in dash. Live numbers are read for an app known by its image's name, or by a
-`dash.app` label for one whose image is named otherwise.
+dash itself is a stack like the others, in `~/services/dash`:
+
+```yaml
+services:
+  dash:
+    build: .
+    container_name: dash
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      BETTER_AUTH_URL: https://dash.example.com
+      DOCKER_HOST: unix:///var/run/docker.sock
+      STACKS_ROOT: /home/you
+    # The server's processes and which container each runs in, not only its own
+    pid: host
+    cgroup: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/you:/home/you
+    networks:
+      - caddy
+
+networks:
+  caddy:
+    external: true
+```
+
+With no account yet, it prints a setup code in its log; make the account at
+`/setup` with it.
+
+> [!WARNING]
+> dash has the Docker socket and the server's processes, so whoever signs in
+> to it controls the server. Keep it behind HTTPS, and use a passkey or a
+> strong password.
 
 ## Developing
 
 You need [Bun](https://bun.sh) and SSH access to the server (as `vps.niso.moe`,
 set in `scripts/`, so a user name other than this machine's goes under
-`Host vps.niso.moe` in `~/.ssh/config`). In development dash still works on the real server: its
-containers, files and database.
+`Host vps.niso.moe` in `~/.ssh/config`). In development dash still works on
+the real server: its containers, files and database.
 
-1. `bun install`
-2. Copy `.env.example` to `.env.local` and fill it in. Each setting says where
+1. Install, and copy the settings. Each setting in `.env.example` says where
    to find its value.
-3. Once, on the server, start the helper container that lets dash read the
-   server's CPU, memory and processes from outside it (the command is in
-   `.env.example`), and set `HOST_HELPER_CONTAINER` to its name.
-4. `bun run tunnels`, in a terminal of its own, and leave it running: it
-   tunnels to the server's Docker and to the apps whose numbers show on tiles.
-5. `bun dev`, and open http://localhost:3000.
 
-With no account yet, the server prints a setup code in its log; make the
-account at `/setup` with it.
+   ```bash
+   bun install
+   cp .env.example .env.local
+   ```
+
+2. Once, on the server, start the helper container that lets dash read the
+   server's CPU, memory and processes from outside it, and set
+   `HOST_HELPER_CONTAINER=dash-dev-stats`:
+
+   ```bash
+   docker run -d --name dash-dev-stats --pid host --restart unless-stopped alpine:3.22 sleep infinity
+   ```
+
+3. Open the tunnels to the server's Docker and to the apps whose numbers show
+   on tiles, in a terminal of their own, and leave them running. Then start
+   dash and open http://localhost:3000.
+
+   ```bash
+   bun run tunnels
+   bun dev
+   ```
 
 ## Deploying
 
@@ -89,16 +186,17 @@ repository. Database changes go in with `bun run db:migrate`.
 
 ## Scripts
 
-| Script               | What it does                                             |
-| -------------------- | -------------------------------------------------------- |
-| `bun dev`            | The development server                                   |
-| `bun run tunnels`    | Tunnels to the server's Docker and apps, for development |
-| `bun run deploy`     | Pushes master, then pulls and rebuilds it on the server  |
-| `bun run typecheck`  | Type-checks the app and the scripts                      |
-| `bun run lint`       | ESLint                                                   |
-| `bun run format`     | Prettier                                                 |
-| `bun run db:diff`    | The SQL that would bring the database up to the schema   |
-| `bun run db:migrate` | Applies migrations                                       |
+| Script                 | What it does                                             |
+| ---------------------- | -------------------------------------------------------- |
+| `bun dev`              | The development server                                   |
+| `bun run tunnels`      | Tunnels to the server's Docker and apps, for development |
+| `bun run deploy`       | Pushes master, then pulls and rebuilds it on the server  |
+| `bun run typecheck`    | Type-checks the app and the scripts                      |
+| `bun run lint`         | ESLint, Tailwind classes included                        |
+| `bun run lint:classes` | Tailwind classes that have a shorter way to be written   |
+| `bun run format`       | Prettier                                                 |
+| `bun run db:diff`      | The SQL that would bring the database up to the schema   |
+| `bun run db:migrate`   | Applies migrations                                       |
 
 ## Where things are
 
@@ -111,9 +209,10 @@ components/
   dashboard/    tiles, the list, the board they're arranged on
   service/      a service's window: logs, details, status
   new-service/  adding a service, and its templates
-  editor/       the file tree and code editor
+  editor/       the file tree, code editor and Markdown preview
   git/          changes, history, branches and diffs
   host/         the server's stats, processes and disk
+  updates/      finding and applying updates
   charts/       graphs and sparklines
   common/       scroll fades and loading placeholders
   ui/           buttons, dialogs, inputs and the rest
@@ -125,7 +224,9 @@ lib/          what runs on the server, and what the browser shares with it
   host/         the server's stats, processes, disk and files
   stacks/       adding and removing services, Caddy and domains
   templates/    the templates, Docker Hub search and docker run import
+  updates/      checking registries and repositories, and applying updates
   icons/        finding icons
 prisma/       the database schema and migrations
-scripts/      deploy and tunnels
+scripts/      deploy, tunnels and the class check
+docs/         the screenshots here
 ```
