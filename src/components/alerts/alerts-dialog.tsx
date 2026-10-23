@@ -9,6 +9,7 @@ import {
   GlobeIcon,
   HardDriveIcon,
   LockIcon,
+  MailCheckIcon,
   ServerCrashIcon,
 } from 'lucide-react';
 
@@ -138,11 +139,15 @@ function AlertRow({ alert, now }: { alert: AlertView; now: number }) {
   const end = alert.resolvedAt ?? now;
   const lasted = formatDuration((end - alert.since) / 1000);
   return (
-    <li className='flex items-start gap-3 py-2'>
+    <li className='flex items-center gap-3 py-2.5 max-sm:items-start max-sm:gap-2.5'>
+      {/* Its kind, in a square of its own beside all three lines, red while
+          it's open; on a phone, a small one by the name, for the text's room */}
       <span
         className={cn(
-          'mt-0.5 [&_svg]:size-4',
-          alert.resolvedAt ? 'text-muted-foreground' : 'text-destructive'
+          'flex size-9 shrink-0 items-center justify-center rounded-md max-sm:size-6 max-sm:rounded-sm [&_svg]:size-4 max-sm:[&_svg]:size-3.5',
+          alert.resolvedAt
+            ? 'bg-muted text-muted-foreground'
+            : 'bg-destructive/10 text-destructive'
         )}
       >
         {KIND_ICONS[alert.kind]}
@@ -151,10 +156,21 @@ function AlertRow({ alert, now }: { alert: AlertView; now: number }) {
           wrong under it, then since when and whether it was mailed */}
       <div className='flex min-w-0 flex-1 flex-col gap-0.5'>
         <span className='flex items-baseline justify-between gap-3'>
-          <span className='min-w-0 truncate font-medium'>{alert.subject}</span>
-          <span className='shrink-0 font-mono text-muted-foreground tabular-nums'>
+          {/* Whole, on two lines if it must: it's what the alert's about */}
+          <span className='min-w-0 font-medium wrap-break-word'>
+            {alert.subject}
+          </span>
+          {/* On a phone, on a line of its own at the end, so the name has
+              this one, and an envelope in its place if it was mailed */}
+          <span className='shrink-0 font-mono text-muted-foreground tabular-nums max-sm:hidden'>
             {alert.resolvedAt ? lasted : `${lasted} so far`}
           </span>
+          {alert.mailed && (
+            <MailCheckIcon
+              aria-label='mailed'
+              className='size-3.5 shrink-0 self-center text-muted-foreground sm:hidden'
+            />
+          )}
         </span>
         <span
           className={cn(
@@ -168,7 +184,10 @@ function AlertRow({ alert, now }: { alert: AlertView; now: number }) {
           {alert.resolvedAt
             ? `${capitalized(formatPast(alert.since))} to ${sameDay(alert.since, alert.resolvedAt) ? formatTime(alert.resolvedAt) : formatPast(alert.resolvedAt)}`
             : `Since ${formatPast(alert.since)}`}
-          {alert.mailed && ' · mailed'}
+          {alert.mailed && <span className='max-sm:hidden'> · mailed</span>}
+        </span>
+        <span className='font-mono text-muted-foreground tabular-nums sm:hidden'>
+          {alert.resolvedAt ? lasted : `${lasted} so far`}
         </span>
       </div>
     </li>
