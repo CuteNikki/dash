@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { inBackground } from '@/lib/background';
 import { imageDetails, type Container } from '@/lib/docker/docker';
 import { imageName } from '@/lib/format';
 import { gitFetch, gitStatus } from '@/lib/git';
@@ -117,7 +118,7 @@ async function refresh(containers: Container[], force: boolean) {
           dir,
           await find(async () => {
             const before = await gitStatus(dir);
-            // Not a repository, as dash's own copy isn't, or one with no branch to follow
+            // Not a repository, as a folder put there by hand isn't, or one with no branch to follow
             if (!before?.upstream) return undefined;
             const fetched = await gitFetch(before.root);
             if (!fetched.ok)
@@ -138,7 +139,8 @@ async function refresh(containers: Container[], force: boolean) {
 }
 
 function start(containers: Container[], force: boolean) {
-  checker.running ??= refresh(containers, force)
+  // Apart from the page that asked, which may be a prerender over before it is
+  checker.running ??= inBackground(() => refresh(containers, force))
     .catch(console.error)
     .finally(() => {
       checker.running = undefined;
