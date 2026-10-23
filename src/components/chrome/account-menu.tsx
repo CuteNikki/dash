@@ -1,13 +1,14 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import { useState } from 'react';
 
-import { KeyRoundIcon, LogOutIcon, UserIcon } from 'lucide-react';
+import { LogOutIcon, SettingsIcon, UserIcon } from 'lucide-react';
 
-import { authClient } from '@/lib/auth/auth-client';
+import { ROLE_INFO } from '@/lib/auth/roles';
 import type { Me } from '@/lib/types';
 
+import { SettingsDialog } from '@/components/settings/settings-dialog';
+import { useSignOut } from '@/components/settings/sign-in-again';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -19,46 +20,39 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 export function AccountMenu({ me }: { me: Me }) {
-  const router = useRouter();
-
-  async function addPasskey() {
-    const result = await authClient.passkey.addPasskey();
-    if (result?.error) {
-      toast.error("Couldn't add the passkey", {
-        description: result.error.message,
-      });
-    } else {
-      toast.success('Passkey added. You can sign in with it next time.');
-    }
-  }
-
-  async function signOut() {
-    await authClient.signOut();
-    router.replace('/login');
-    router.refresh();
-  }
+  const signOut = useSignOut();
+  // Beside the menu rather than in it, so it stays open once the menu closes
+  const [settings, setSettings] = useState(false);
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant='ghost' size='icon' aria-label='Account'>
-          <UserIcon />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align='end' className='w-auto'>
-        <DropdownMenuLabel className='font-normal text-muted-foreground'>
-          {me.email}
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={addPasskey}>
-          <KeyRoundIcon />
-          Add a passkey
-        </DropdownMenuItem>
-        <DropdownMenuItem variant='destructive' onSelect={signOut}>
-          <LogOutIcon />
-          Sign out
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant='ghost' size='icon' aria-label='Account'>
+            <UserIcon />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align='end' className='w-auto'>
+          <DropdownMenuLabel className='flex flex-col font-normal text-muted-foreground'>
+            {me.email}
+            <span className='text-2xs'>{ROLE_INFO[me.role].name}</span>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={() => setSettings(true)}>
+            <SettingsIcon />
+            Settings
+          </DropdownMenuItem>
+          <DropdownMenuItem variant='destructive' onSelect={signOut}>
+            <LogOutIcon />
+            Sign out
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <SettingsDialog
+        me={me}
+        open={settings}
+        onOpenChangeAction={setSettings}
+      />
+    </>
   );
 }
