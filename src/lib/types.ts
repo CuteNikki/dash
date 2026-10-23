@@ -416,16 +416,12 @@ export type SiteUptime = {
 export type BackupState = {
   /** Why they're off, when they are */
   off?: string;
-  /** Why the backups couldn't be read, when they couldn't */
-  error?: string;
   /** In the server's own Garage, or somewhere else */
   where?: 'local' | 'elsewhere';
   /** "03:30 UTC" */
   nightlyAt: string;
   /** A run or a restore going on now */
   running?: 'backup' | 'restore';
-  /** Bytes the repository takes up */
-  size?: number;
   lastRun?: {
     startedAt: number;
     finishedAt?: number;
@@ -439,7 +435,22 @@ export type BackupState = {
     enabled: boolean;
     /** A folder added here, rather than found in ~/services */
     added: boolean;
-    /** Its backups, newest first */
-    snapshots: { id: string; at: number; beforeRestore: boolean }[];
   }[];
+};
+
+/** Every backup there is, newest first, read apart from the rest as it takes restic a moment. */
+export type BackupSnapshots = {
+  snapshots: {
+    id: string;
+    /** Milliseconds since 1970 */
+    at: number;
+    /** The part it's of */
+    source: string;
+    /** Taken just before a restore, of what was there */
+    beforeRestore: boolean;
+  }[];
+  /** Bytes they take up */
+  size?: number;
+  /** Why they couldn't be read */
+  error?: string;
 };

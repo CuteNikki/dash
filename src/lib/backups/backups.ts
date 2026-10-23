@@ -178,12 +178,16 @@ export async function listSources(containers?: Container[]) {
   return sources;
 }
 
+/** The longest restic has to answer when only reading, as it retries a store that won't answer for many minutes. */
+const READ_SECONDS = 30;
+
 /**
  * A script run on the server with restic ready: installed from its image the
- * first time, at the version above, its repository made if there isn't one.
- * `r` runs it.
+ * first time, at the version above. `r` runs it. Backing up makes its
+ * repository if there isn't one; anything else that finds none says
+ * NOREPO and stops, having made nothing.
  */
-function withRestic(body: string) {
+function withRestic(body: string, { create = false } = {}) {
   return `set -e
 BIN=${BIN}
 if ! [ -x "$BIN" ] || ! "$BIN" version | grep -q "restic ${RESTIC} "; then
@@ -194,12 +198,17 @@ if ! [ -x "$BIN" ] || ! "$BIN" version | grep -q "restic ${RESTIC} "; then
   mv "$BIN.new" "$BIN"
 fi
 r() { "$BIN" --cache-dir ${CACHE} "$@"; }
-r cat config >/dev/null 2>&1 || { echo "Making the backups' repository…"; r init; }
+if ! timeout ${READ_SECONDS} "$BIN" --cache-dir ${CACHE} cat config >/dev/null 2>&1; then
+  ${create ? `echo "Making the backups' repository…"; r init` : 'echo NOREPO; exit 0'}
+fi
 ${body}`;
 }
 
-function hostRun(config: Config, body: string) {
-  return asHost(withRestic(body), { shell: '/bin/bash', env: config.env });
+function hostRun(config: Config, body: string, options?: { create?: boolean }) {
+  return asHost(withRestic(body, options), {
+    shell: '/bin/bash',
+    env: config.env,
+  });
 }
 
 /** Lets the dashboard's key into the bucket in Garage, making it the first time. */
@@ -305,7 +314,7 @@ export async function* runBackups(
       yield { stream: 'stdout', line: `— ${source.label}` };
       const lines: string[] = [];
       const it = runContainer(
-        hostRun(config, backupCommand(source, containers))
+        hostRun(config, backupCommand(source, containers), { create: true })
       );
       let code: number;
       for (;;) {
@@ -383,28 +392,74 @@ export type Snapshot = {
   beforeRestore: boolean;
 };
 
+type Snapshots = { snapshots: Snapshot[]; size?: number };
+
+/**
+ * The last read, or why it failed, each kept a while, as each read starts a
+ * privileged container and asks the store; and the read going on now, which
+ * whoever asks meanwhile waits on rather than starting another.
+ */
 const snapshotsCache: {
   at: number;
-  value?: { snapshots: Snapshot[]; size?: number };
+  value?: Snapshots;
+  error?: string;
+  pending?: Promise<Snapshots>;
 } = { at: 0 };
 
-/** Every backup there is, newest first, and what the repository takes up; read again a minute on. */
-export async function readSnapshots() {
+/** How long a read's kept, and a failed one before it's tried again. */
+const READ_FRESH_MS = 60_000;
+const FAILED_FRESH_MS = 30_000;
+
+/** Every backup there is, newest first, and what the repository takes up. */
+export async function readSnapshots(): Promise<Snapshots> {
   const config = backupConfig();
-  if ('off' in config) return { snapshots: [] as Snapshot[] };
-  if (snapshotsCache.value && Date.now() - snapshotsCache.at < 60_000) {
-    return snapshotsCache.value;
+  if ('off' in config) return { snapshots: [] };
+  const age = Date.now() - snapshotsCache.at;
+  if (snapshotsCache.value && age < READ_FRESH_MS) return snapshotsCache.value;
+  if (snapshotsCache.error && age < FAILED_FRESH_MS) {
+    throw new Error(snapshotsCache.error);
   }
+  snapshotsCache.pending ??= readFresh(config)
+    .then((value) => {
+      Object.assign(snapshotsCache, {
+        value,
+        error: undefined,
+        at: Date.now(),
+      });
+      return value;
+    })
+    .catch((error: Error) => {
+      Object.assign(snapshotsCache, { error: error.message, at: Date.now() });
+      throw error;
+    })
+    .finally(() => (snapshotsCache.pending = undefined));
+  return snapshotsCache.pending;
+}
+
+async function readFresh(config: Config): Promise<Snapshots> {
+  // Before the first backup there's no bucket, nor anything to read
+  if (config.local) {
+    const garage = (await listContainers()).find(
+      (c) => isGarage(c) && c.state === 'running'
+    );
+    if (!garage) throw new Error("Garage isn't running, where the backups are");
+    if (!(await buckets(garage)).some((b) => b.name === BUCKET)) {
+      return { snapshots: [], size: 0 };
+    }
+  }
+  const read = `timeout ${READ_SECONDS} "$BIN" --cache-dir ${CACHE} --no-lock`;
   const { ok, lines } = await runToEnd(
     hostRun(
       config,
-      `echo "SNAPSHOTS $(r snapshots --json --no-lock)"
-echo "STATS $(r stats --mode raw-data --json --no-lock)"`
+      `echo "SNAPSHOTS $(${read} snapshots --json)"
+echo "STATS $(${read} stats --mode raw-data --json)"`
     )
   );
+  if (lines.some((l) => l.line === 'NOREPO')) return { snapshots: [], size: 0 };
   if (!ok) {
     throw new Error(
-      lines.filter((l) => l.stream === 'stderr').at(-1)?.line ?? 'restic failed'
+      lines.filter((l) => l.stream === 'stderr').at(-1)?.line ??
+        "restic didn't answer"
     );
   }
   const json = (name: string) => {
@@ -427,13 +482,10 @@ echo "STATS $(r stats --mode raw-data --json --no-lock)"`
     }))
     .filter((s) => s.source)
     .sort((a, b) => b.at - a.at);
-  const value = {
+  return {
     snapshots,
     size: (json('STATS') as { total_size?: number } | undefined)?.total_size,
   };
-  snapshotsCache.value = value;
-  snapshotsCache.at = Date.now();
-  return value;
 }
 
 /**

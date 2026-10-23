@@ -21,7 +21,7 @@ import {
 import { readRunStream } from '@/lib/docker/read-run-stream';
 import { fetcher } from '@/lib/fetcher';
 import { formatAgo, formatBytes, formatPast } from '@/lib/format';
-import type { BackupState } from '@/lib/types';
+import type { BackupSnapshots, BackupState } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 import { RunOutput } from '@/components/common/run-output';
@@ -55,6 +55,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 
 type Source = BackupState['sources'][number];
+type Snapshot = BackupSnapshots['snapshots'][number];
 
 /**
  * The backups: when they run and where they're kept, each database and
@@ -74,6 +75,33 @@ export function BackupsDialog({
     fetcher,
     { refreshInterval: (d) => (d?.running ? 5_000 : 60_000) }
   );
+  // Apart, as reading them takes restic a moment: the list shows meanwhile
+  const { data: backups, mutate: rereadBackups } = useSWR<BackupSnapshots>(
+    open && data && !data.off ? '/api/backups/snapshots' : null,
+    fetcher,
+    { refreshInterval: 60_000 }
+  );
+  const snapshotsOf = (id: string) =>
+    backups?.snapshots.filter((s) => s.source === id);
+
+  /** Switches a part on or off at once, then saves it. */
+  async function toggle(source: Source, enabled: boolean) {
+    void mutate(
+      (d) =>
+        d && {
+          ...d,
+          sources: d.sources.map((s) =>
+            s.id === source.id ? { ...s, enabled } : s
+          ),
+        },
+      { revalidate: false }
+    );
+    const { error } = await setBackupSource(source.id, enabled).catch(() => ({
+      error: "The dashboard didn't answer",
+    }));
+    if (error) toast.error("Couldn't change that", { description: error });
+    void mutate();
+  }
   const [output, setOutput] = useState<string[]>();
   const [busy, setBusy] = useState(false);
   const [restoring, setRestoring] = useState<Source>();
@@ -100,6 +128,7 @@ export function BackupsDialog({
     } finally {
       setBusy(false);
       void mutate();
+      void rereadBackups();
     }
   }
 
@@ -122,8 +151,8 @@ export function BackupsDialog({
                     data.where === 'local'
                       ? 'in Garage on this server'
                       : 'off the server',
-                    data.size !== undefined &&
-                      `${formatBytes(data.size)} in all`,
+                    backups?.size !== undefined &&
+                      `${formatBytes(backups.size)} in all`,
                   ]
                     .filter(Boolean)
                     .join(', ')}
@@ -134,9 +163,9 @@ export function BackupsDialog({
           {error && !data && (
             <p className='text-destructive'>{error.message}</p>
           )}
-          {data?.error && (
+          {backups?.error && (
             <p className='text-destructive'>
-              Couldn&apos;t read the backups: {data.error}
+              Couldn&apos;t read the backups: {backups.error}
             </p>
           )}
           {data?.lastRun && (
@@ -159,8 +188,10 @@ export function BackupsDialog({
                   <SourceRow
                     key={s.id}
                     source={s}
+                    snapshots={snapshotsOf(s.id)}
                     disabled={running || !!data.off}
                     onRestoreAction={() => setRestoring(s)}
+                    onToggleAction={(on) => void toggle(s, on)}
                     onChangedAction={() => void mutate()}
                   />
                 ))}
@@ -170,8 +201,10 @@ export function BackupsDialog({
                   <SourceRow
                     key={s.id}
                     source={s}
+                    snapshots={snapshotsOf(s.id)}
                     disabled={running || !!data.off}
                     onRestoreAction={() => setRestoring(s)}
+                    onToggleAction={(on) => void toggle(s, on)}
                     onChangedAction={() => void mutate()}
                   />
                 ))}
@@ -200,6 +233,7 @@ export function BackupsDialog({
 
       <RestoreDialog
         source={restoring}
+        snapshots={restoring ? (snapshotsOf(restoring.id) ?? []) : []}
         onCloseAction={() => setRestoring(undefined)}
         onRestoreAction={(snapshot, when) => {
           const source = restoring!;
@@ -283,17 +317,22 @@ function LastRun({
 /** A part: its last backup and how many are kept, on or off, and its restore. */
 function SourceRow({
   source,
+  snapshots,
   disabled,
   onRestoreAction,
+  onToggleAction,
   onChangedAction,
 }: {
   source: Source;
+  /** Its backups, newest first; none while they're read */
+  snapshots?: Snapshot[];
   disabled: boolean;
   onRestoreAction: () => void;
+  onToggleAction: (on: boolean) => void;
   onChangedAction: () => void;
 }) {
   const [pending, startTransition] = useTransition();
-  const kept = source.snapshots.filter((s) => !s.beforeRestore);
+  const kept = snapshots?.filter((s) => !s.beforeRestore) ?? [];
   const last = kept[0];
   return (
     <li className='flex flex-wrap items-center gap-x-3 gap-y-1 py-2'>
@@ -307,17 +346,21 @@ function SourceRow({
           {source.label}
         </span>
         <span className='text-muted-foreground'>
-          {!source.enabled
-            ? 'Switched off'
-            : last
-              ? `Backed up ${formatAgo(last.at)}, ${kept.length} kept`
-              : 'Not backed up yet'}
+          {!source.enabled ? (
+            'Switched off'
+          ) : !snapshots ? (
+            <TextSkeleton className='w-40' />
+          ) : last ? (
+            `Backed up ${formatAgo(last.at)}, ${kept.length} kept`
+          ) : (
+            'Not backed up yet'
+          )}
         </span>
       </div>
       <Button
         variant='outline'
         size='sm'
-        disabled={disabled || source.snapshots.length === 0}
+        disabled={disabled || !snapshots?.length}
         onClick={onRestoreAction}
       >
         <ArchiveRestoreIcon />
@@ -343,14 +386,7 @@ function SourceRow({
         <Switch
           aria-label={`Back up ${source.label}`}
           checked={source.enabled}
-          disabled={pending}
-          onCheckedChange={(on) =>
-            startTransition(async () => {
-              const { error } = await setBackupSource(source.id, on);
-              if (error) toast.error(error);
-              onChangedAction();
-            })
-          }
+          onCheckedChange={onToggleAction}
         />
       )}
     </li>
@@ -405,15 +441,16 @@ function AddFolder({ onAddedAction }: { onAddedAction: () => void }) {
 /** Picks which of a part's backups to put back, and says what that does first. */
 function RestoreDialog({
   source,
+  snapshots,
   onCloseAction,
   onRestoreAction,
 }: {
   source?: Source;
+  snapshots: Snapshot[];
   onCloseAction: () => void;
   onRestoreAction: (snapshot: string, when: string) => void;
 }) {
   const [picked, setPicked] = useState<string>();
-  const snapshots = source?.snapshots ?? [];
   const chosen = snapshots.find((s) => s.id === picked) ?? snapshots[0];
   const when = (s: { at: number; beforeRestore: boolean }) =>
     `${formatPast(s.at)}${s.beforeRestore ? ', before a restore' : ''}`;
