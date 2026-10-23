@@ -100,15 +100,21 @@ async function readHead(res: Response) {
   return Buffer.concat(chunks).toString('utf8');
 }
 
+/** How a site answered one check, or didn't. */
+export type SiteProbe = Pick<
+  SiteCheck,
+  'ok' | 'status' | 'error' | 'icon' | 'ms'
+>;
+
 /**
- * Asks a site for its page, following redirects, and notes how it went. Its
- * icon is found the first time it answers with a page, and kept.
+ * Asks a site for its page, following redirects, and says how it went, and
+ * when asked to, the icon its page names, if it answers with one.
  */
-async function check(url: string) {
+export async function probeSite(
+  url: string,
+  findIcon = false
+): Promise<SiteProbe> {
   const start = performance.now();
-  const before = checker.checks.get(url);
-  let result: Pick<SiteCheck, 'ok' | 'status' | 'error' | 'icon'>;
-  let ms: number;
   try {
     const res = await fetch(url, {
       redirect: 'follow',
@@ -117,26 +123,31 @@ async function check(url: string) {
       headers: { 'user-agent': 'Dashboard (status check)' },
     });
     // How fast it answers, not how long its page takes to arrive
-    ms = performance.now() - start;
+    const ms = performance.now() - start;
     const ok = res.status < 400;
-    let icon = before?.icon;
-    if (!icon && ok && res.headers.get('content-type')?.includes('html')) {
+    let icon: string | undefined;
+    if (findIcon && ok && res.headers.get('content-type')?.includes('html')) {
       icon = pageIcon(await readHead(res).catch(() => ''), res.url || url);
     } else {
       await res.body?.cancel();
     }
-    result = { ok, status: res.status, icon };
+    return { ok, status: res.status, icon, ms };
   } catch (error) {
-    ms = performance.now() - start;
-    result = { ok: false, error: reason(error), icon: before?.icon };
+    return { ok: false, error: reason(error), ms: performance.now() - start };
   }
+}
+
+/** Checks a site and notes how it went, its icon kept from the first time it had one. */
+async function check(url: string) {
+  const before = checker.checks.get(url);
+  const result = await probeSite(url, !before?.icon);
   const at = Date.now();
   const last = before?.history;
   checker.checks.set(url, {
     ...result,
-    ms,
+    icon: result.icon ?? before?.icon,
     at,
-    history: { at: recent(last?.at, at), ms: recent(last?.ms, ms) },
+    history: { at: recent(last?.at, at), ms: recent(last?.ms, result.ms) },
   });
 }
 

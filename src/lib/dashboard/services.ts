@@ -45,7 +45,7 @@ function firstLink(addresses: string[]) {
 }
 
 /** A tile's first web link, without its label, as one to request, if it's a valid one. */
-function siteUrl(addresses: string[]) {
+export function siteUrl(addresses: string[]) {
   const link = firstLink(addresses);
   if (!link) return undefined;
   try {

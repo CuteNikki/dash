@@ -189,3 +189,57 @@ model Invite {
   usedAt      DateTime?
   createdAt   DateTime  @default(now())
 }
+
+// What the server and its services did, kept for a while by the monitor
+// (lib/monitor), which takes a reading a minute whether or not anyone's
+// watching, so "what happened last night" has an answer.
+
+/// The server over one minute: averages over it, and what was in use at its end.
+model HostSample {
+  at          DateTime @id
+  /// Percent of all cores together
+  cpu         Float
+  /// Bytes
+  memory      Float
+  diskUsed    Float
+  /// Bytes per second
+  received    Float
+  sent        Float
+  diskRead    Float
+  diskWritten Float
+  /// Milliseconds the disk took per read or write, on average; a stall shows here
+  diskWait    Float
+  /// Processes waiting for the CPU, over the last minute
+  load        Float
+}
+
+/// One service's container over one minute.
+model ContainerSample {
+  /// The service's tile key, which outlives its container being recreated
+  key    String
+  at     DateTime
+  /// Percent of one core
+  cpu    Float
+  /// Bytes
+  memory Float
+
+  @@id([key, at])
+  // For clearing out the old ones, every service's at once
+  @@index([at])
+}
+
+/// One look at a website tile's page: whether it answered, and how fast.
+model SiteCheckLog {
+  /// The site's tile key, "site:…"
+  key    String
+  at     DateTime
+  ok     Boolean
+  ms     Float
+  /// The HTTP status it answered with, if it answered
+  status Int?
+  /// Why it didn't answer, if it didn't
+  error  String?
+
+  @@id([key, at])
+  @@index([at])
+}

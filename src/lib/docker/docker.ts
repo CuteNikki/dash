@@ -246,6 +246,32 @@ export async function containerUsage(id: string): Promise<Usage> {
   };
 }
 
+/** A container's counters as they stand, to measure a longer time against. */
+export type UsageCounters = {
+  /** Nanoseconds of CPU it's used since it started */
+  cpu: number;
+  /** Nanoseconds of CPU the whole server has had, all cores together */
+  system: number;
+  cores: number;
+  /** Bytes in use, without the page cache, as in Usage */
+  memory: number;
+};
+
+/** One reading of its counters, at once, without Docker's second to compare. */
+export async function containerCounters(id: string): Promise<UsageCounters> {
+  const s = await dockerJson<RawStats>(
+    'GET',
+    `/containers/${encodeURIComponent(id)}/stats?stream=false&one-shot=true`
+  );
+  return {
+    cpu: s.cpu_stats.cpu_usage.total_usage,
+    system: s.cpu_stats.system_cpu_usage ?? 0,
+    cores: s.cpu_stats.online_cpus ?? 1,
+    memory:
+      (s.memory_stats.usage ?? 0) - (s.memory_stats.stats?.inactive_file ?? 0),
+  };
+}
+
 /**
  * Whether each container keeps its console's input open (compose's
  * stdin_open), as a game server's console does. Docker sets it when it makes

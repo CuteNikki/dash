@@ -94,8 +94,11 @@ export type HostReading = {
   memory: Capacity;
   /** Of the disk the root filesystem is on */
   disk: Capacity;
-  /** Bytes read from and written to the server's disks since boot */
-  diskIo: { read: number; written: number };
+  /**
+   * Bytes read from and written to the server's disks since boot, how many
+   * reads and writes that was, and the milliseconds they took together
+   */
+  diskIo: { read: number; written: number; ops: number; waitMs: number };
   /** Every process, by its id */
   processes: Map<number, ProcessReading>;
   /** Bytes received and sent since boot, on the interface to the internet */
@@ -129,16 +132,21 @@ const SECTOR_BYTES = 512;
 const WHOLE_DISK = /^(sd[a-z]+|vd[a-z]+|xvd[a-z]+|nvme\d+n\d+|mmcblk\d+)$/;
 
 function parseDiskIo(diskstats: string) {
-  // major minor name reads merged sectors-read ms writes merged sectors-written …
+  // major minor name reads merged sectors-read ms-reading writes merged
+  // sectors-written ms-writing …
   let read = 0;
   let written = 0;
+  let ops = 0;
+  let waitMs = 0;
   for (const line of diskstats.split('\n')) {
     const cols = line.trim().split(/\s+/);
     if (!WHOLE_DISK.test(cols[2] ?? '')) continue;
     read += Number(cols[5]) * SECTOR_BYTES;
     written += Number(cols[9]) * SECTOR_BYTES;
+    ops += Number(cols[3]) + Number(cols[7]);
+    waitMs += Number(cols[6]) + Number(cols[10]);
   }
-  return { read, written };
+  return { read, written, ops, waitMs };
 }
 
 function parseProcesses(raw: Raw, id: string) {
