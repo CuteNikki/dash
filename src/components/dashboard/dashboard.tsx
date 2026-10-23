@@ -44,6 +44,7 @@ import { HostTileContent } from '@/components/host/host-stats';
 import { SystemDialog } from '@/components/host/system-dialog';
 import { NewServiceDialog } from '@/components/new-service/new-service-dialog';
 import { ServiceDialog } from '@/components/service/service-dialog';
+import { EmailNotice } from '@/components/settings/email-notice';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { UpdatesDialog } from '@/components/updates/updates-dialog';
@@ -303,6 +304,7 @@ export function Dashboard({
             {/* In the account menu on a phone, where the line's too short for it */}
             <ThemeButton className='max-sm:hidden' />
             <AccountMenu me={me} />
+            <EmailNotice me={me} />
           </div>
         </header>
         <Board

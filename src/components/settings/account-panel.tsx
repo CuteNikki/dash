@@ -14,6 +14,7 @@ import type { Me } from '@/lib/types';
 
 import { attempt } from '@/components/common/toasts';
 import { Panel } from '@/components/service/app-details';
+import { changingUrl, CONFIRMED_URL } from '@/components/settings/email-notice';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -56,7 +57,7 @@ function ProfileForm({ me }: { me: Me }) {
         if (newEmail !== me.email.toLowerCase()) {
           const { error } = await authClient.changeEmail({
             newEmail,
-            callbackURL: '/',
+            callbackURL: changingUrl(newEmail),
           });
           if (error) {
             setError(error.message ?? "Couldn't change your email");
@@ -265,7 +266,7 @@ function EmailStatus({ me }: { me: Me }) {
             attempt("Couldn't send the link", async () => {
               const { error } = await authClient.sendVerificationEmail({
                 email: me.email,
-                callbackURL: '/',
+                callbackURL: CONFIRMED_URL,
               });
               if (error) {
                 toast.error("Couldn't send the link", {
