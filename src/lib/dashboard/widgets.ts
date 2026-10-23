@@ -2,6 +2,7 @@ import 'server-only';
 
 import { APPS } from '@/lib/apps';
 import { env, type AppContext } from '@/lib/apps/app';
+import { devTunnelUrl } from '@/lib/apps/tunnels';
 import { isRunning } from '@/lib/dashboard/status';
 import type { Container } from '@/lib/docker/docker';
 import { imageName } from '@/lib/format';
@@ -21,9 +22,9 @@ function appOf(c: Container) {
 
 /**
  * Where an app is: its container, and for one read over HTTP, SONARR_URL
- * and so on, or its container by name on a network the dashboard shares with it.
- * qBittorrent behind a VPN container needs its URL set, to the VPN
- * container's name.
+ * and so on, or its container by name on a network the dashboard shares with it;
+ * in development, its tunnel from `bun run tunnels`. qBittorrent behind a VPN
+ * container needs its URL set on the server, to the VPN container's name.
  */
 function contextOf(app: string, c: Container): AppContext {
   const { port } = APPS[app];
@@ -32,6 +33,9 @@ function contextOf(app: string, c: Container): AppContext {
     url:
       // "ludo-server" → LUDO_SERVER_URL
       env(`${app.toUpperCase().replace(/\W/g, '_')}_URL`)?.replace(/\/$/, '') ??
+      (process.env.NODE_ENV === 'development'
+        ? devTunnelUrl(app)
+        : undefined) ??
       (port ? `http://${c.name}:${port}` : ''),
   };
 }

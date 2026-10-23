@@ -3,7 +3,9 @@
 // show on their tiles, which on the server are only reached by name on the
 // networks the dashboard shares with them. Each app is looked up when it starts, since
 // a recreated container has a new address, and is then on this machine at the
-// port SONARR_URL and the rest name.
+// port the dashboard looks for it at in development (src/lib/apps/tunnels.ts).
+import { DEV_TUNNELS } from '../src/lib/apps/tunnels';
+
 // The server as SSH knows it, from .env.local, which Bun reads
 const SERVER = process.env.DASH_SSH_HOST;
 if (!SERVER) {
@@ -16,20 +18,8 @@ if (!SERVER) {
 /** Where DOCKER_HOST in .env.local expects the server's Docker. */
 const DOCKER = '127.0.0.1:2375';
 
-/** Each app's container, its port there, and its port here. */
-const APPS = [
-  { container: 'sonarr', port: 8989, local: 18989 },
-  { container: 'radarr', port: 7878, local: 17878 },
-  { container: 'prowlarr', port: 9696, local: 19696 },
-  { container: 'jellyfin', port: 8096, local: 18096 },
-  { container: 'jellyseerr', port: 5055, local: 15055 },
-  { container: 'flaresolverr', port: 8191, local: 18191 },
-  { container: 'stalwart', port: 8080, local: 18088 },
-  { container: 'ludo-server', port: 3001, local: 13001 },
-  // qBittorrent shares the VPN container's network, so it's reached through
-  // it, at its own port: it turns away a request whose address has another
-  { container: 'gluetun', port: 8080, local: 8080 },
-];
+/** Each app's container, its port there, and its port here, as the dashboard expects them. */
+const APPS = DEV_TUNNELS;
 
 const lookup = Bun.spawn([
   'ssh',
@@ -66,5 +56,3 @@ const tunnel = Bun.spawn(
   }
 );
 process.exit(await tunnel.exited);
-
-export {};
