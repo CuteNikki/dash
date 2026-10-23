@@ -122,7 +122,7 @@ function ActivityRow({ entry }: { entry: ActivityEntry }) {
         })}
       </time>
       <div className='flex min-w-0 flex-col'>
-        <span className='break-words'>
+        <span className='wrap-break-word'>
           <span className='font-medium'>{entry.user}</span>{' '}
           {actionWords(entry.action)}
           {entry.target && (
