@@ -57,11 +57,16 @@ function SelectTrigger({
   );
 }
 
+/**
+ * The options, below what opens them as a menu does, from its left edge,
+ * and above it only where there's no room below, rather than over it with
+ * the picked one lined up on it.
+ */
 function SelectContent({
   className,
   children,
-  position = 'item-aligned',
-  align = 'center',
+  position = 'popper',
+  align = 'start',
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Content>) {
   return (
@@ -82,10 +87,8 @@ function SelectContent({
         <SelectScrollUpButton />
         <SelectPrimitive.Viewport
           data-position={position}
-          className={cn(
-            'data-[position=popper]:h-(--radix-select-trigger-height) data-[position=popper]:w-full data-[position=popper]:min-w-(--radix-select-trigger-width)',
-            position === 'popper' && ''
-          )}
+          // Its options inset from its edges, as a dropdown menu's are
+          className='p-1 data-[position=popper]:h-(--radix-select-trigger-height) data-[position=popper]:w-full data-[position=popper]:min-w-(--radix-select-trigger-width)'
         >
           {children}
         </SelectPrimitive.Viewport>
