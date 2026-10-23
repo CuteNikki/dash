@@ -1,4 +1,5 @@
-import { denied } from '@/lib/auth/access';
+import { record } from '@/lib/activity/record';
+import { denied, getAccess } from '@/lib/auth/access';
 import { streamRun } from '@/lib/docker/run-stream';
 import { followUpgrade, startUpgrade } from '@/lib/host/system-updates';
 
@@ -11,6 +12,8 @@ export async function POST() {
   } catch (error) {
     return Response.json({ error: (error as Error).message }, { status: 409 });
   }
+  // As it starts: it carries on under systemd, whether or not it's followed
+  await record(await getAccess(), { action: 'system.upgrade' });
   // Only following it: the upgrade itself carries on under systemd
   return streamRun(followUpgrade, { watching: true });
 }

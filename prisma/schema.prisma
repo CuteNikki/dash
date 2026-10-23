@@ -243,3 +243,24 @@ model SiteCheckLog {
   @@id([key, at])
   @@index([at])
 }
+
+/// Something done from the dashboard, by whom and when: starting and stopping,
+/// updates, files, people's accounts… Kept for 90 days.
+model Activity {
+  id     String   @id @default(cuid())
+  at     DateTime @default(now())
+  /// Who, by id while their account's there, and by name as it was then
+  userId String?
+  user   String
+  /// What they did: "stop", "update", "file.save"… (lib/activity)
+  action String
+  /// What to: a service, a file, someone's account
+  target String?
+  /// More about it: a command typed, a commit's message, a role
+  detail String?
+  /// Whether it worked; one that didn't says why in error
+  ok     Boolean  @default(true)
+  error  String?
+
+  @@index([at])
+}

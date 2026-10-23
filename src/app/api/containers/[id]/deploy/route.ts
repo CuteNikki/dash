@@ -1,4 +1,5 @@
-import { denied } from '@/lib/auth/access';
+import { recordRun } from '@/lib/activity/record';
+import { denied, getAccess } from '@/lib/auth/access';
 import { runCompose } from '@/lib/docker/compose';
 import { streamRun } from '@/lib/docker/run-stream';
 import { stackOf } from '@/lib/docker/stack-files';
@@ -22,7 +23,14 @@ export async function POST(
   }
   // ?build=1 builds the stack's images afresh first, for a changed Dockerfile
   const build = new URL(request.url).searchParams.get('build') === '1';
-  return streamRun(() =>
-    runCompose(stack, ['up', '-d', ...(build ? ['--build'] : [])])
+  return streamRun(
+    () => runCompose(stack, ['up', '-d', ...(build ? ['--build'] : [])]),
+    {
+      done: recordRun(await getAccess(), {
+        action: 'deploy',
+        target: stack.project,
+        detail: build ? 'building its images afresh' : undefined,
+      }),
+    }
   );
 }

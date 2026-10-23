@@ -2,10 +2,11 @@
 
 import { z } from 'zod';
 
+import { record } from '@/lib/activity/record';
 import { auth } from '@/lib/auth/auth';
 import { tokenHash } from '@/lib/auth/invites';
 import { MIN_PASSWORD } from '@/lib/auth/password';
-import { roleOf } from '@/lib/auth/roles';
+import { ROLE_INFO, roleOf } from '@/lib/auth/roles';
 import { whileCreatingAccount } from '@/lib/auth/setup';
 import { db } from '@/lib/db';
 
@@ -54,10 +55,18 @@ export async function acceptInvite(input: {
           body: { name, email: invite.email, password },
         })
     );
-    await db.user.update({
+    const person = await db.user.update({
       where: { email: invite.email },
       data: { allowedGroups: invite.groups },
+      select: { id: true, name: true },
     });
+    await record(
+      { user: { id: person.id, name: person.name, email: invite.email } },
+      {
+        action: 'invite.accept',
+        target: ROLE_INFO[roleOf(invite.role)].name,
+      }
+    );
   } catch (error) {
     await db.invite.update({
       where: { id: invite.id },

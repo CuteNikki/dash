@@ -2,10 +2,11 @@
 
 import { z } from 'zod';
 
+import { record } from '@/lib/activity/record';
 import { requireAccess } from '@/lib/auth/access';
 import { MAX_COLUMNS, MAX_ROWS } from '@/lib/dashboard/layout';
 import { ensureTiles } from '@/lib/dashboard/services';
-import { MAX_DESCRIPTION, SITE_PREFIX } from '@/lib/dashboard/tiles';
+import { isSiteKey, MAX_DESCRIPTION, SITE_PREFIX } from '@/lib/dashboard/tiles';
 import { db } from '@/lib/db';
 
 const MAX_NAME = 80;
@@ -42,7 +43,7 @@ export type TileResult = { error: string } | void;
 
 /** Saves how a tile looks. No addresses means none, not the labels' link. */
 export async function saveTile(input: TileInput): Promise<TileResult> {
-  await requireAccess('manage');
+  const access = await requireAccess('manage');
   const parsed = TileInput.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const { key, ...tile } = parsed.data;
@@ -52,6 +53,7 @@ export async function saveTile(input: TileInput): Promise<TileResult> {
     create: { key, ...data },
     update: data,
   });
+  await record(access, { action: 'tile.edit', target: tile.name });
 }
 
 /** A web address as typed, "https://" assumed when it has none. */
@@ -88,7 +90,7 @@ export type SiteInput = z.input<typeof SiteInput>;
  * over HTTP: its favicon for an icon until it's given one in Edit tile.
  */
 export async function addSite(input: SiteInput): Promise<TileResult> {
-  await requireAccess('manage');
+  const access = await requireAccess('manage');
   const parsed = SiteInput.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const { name, address, description, group } = parsed.data;
@@ -106,6 +108,7 @@ export async function addSite(input: SiteInput): Promise<TileResult> {
       group: group || null,
     },
   });
+  await record(access, { action: 'site.add', target: name, detail: address });
 }
 
 const LayoutInput = z.object({
@@ -165,9 +168,14 @@ export type TileSnapshot = NonNullable<
 export async function resetTile(
   key: string
 ): Promise<TileSnapshot | undefined> {
-  await requireAccess('manage');
+  const access = await requireAccess('manage');
   const tile = await db.tile.findUnique({ where: { key } });
   await db.tile.deleteMany({ where: { key } });
+  // A website is only its tile, so resetting it removes it
+  await record(access, {
+    action: isSiteKey(key) ? 'site.remove' : 'tile.reset',
+    target: tile?.name ?? key,
+  });
   return tile ?? undefined;
 }
 
@@ -187,7 +195,7 @@ const TileSnapshot = z.object({
 
 /** Puts back a tile's edits as a reset found them. */
 export async function restoreTile(tile: TileSnapshot): Promise<TileResult> {
-  await requireAccess('manage');
+  const access = await requireAccess('manage');
   const parsed = TileSnapshot.safeParse(tile);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const { key, ...data } = parsed.data;
@@ -196,6 +204,7 @@ export async function restoreTile(tile: TileSnapshot): Promise<TileResult> {
     create: { key, ...data },
     update: data,
   });
+  await record(access, { action: 'tile.restore', target: data.name ?? key });
 }
 
 const SECTION_KEY = 'section:group:';
@@ -211,7 +220,7 @@ export async function renameGroup(
   /** The services in it now, some of which may only be in it by their labels */
   keys: string[]
 ): Promise<TileResult> {
-  await requireAccess('manage');
+  const access = await requireAccess('manage');
   const input = z
     .object({
       from: Group,
@@ -249,4 +258,9 @@ export async function renameGroup(
     db.$executeRaw`UPDATE "user" SET "allowedGroups" = ARRAY(SELECT DISTINCT g FROM unnest(array_replace("allowedGroups", ${old}, ${name})) g) WHERE ${old} = ANY("allowedGroups")`,
     db.$executeRaw`UPDATE "Invite" SET "groups" = ARRAY(SELECT DISTINCT g FROM unnest(array_replace("groups", ${old}, ${name})) g) WHERE ${old} = ANY("groups")`,
   ]);
+  await record(access, {
+    action: 'group.rename',
+    target: old,
+    detail: `to ${name}`,
+  });
 }

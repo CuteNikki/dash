@@ -2,9 +2,10 @@
 
 import { z } from 'zod';
 
+import { record } from '@/lib/activity/record';
 import { requireAccess } from '@/lib/auth/access';
 import { INVITE_MS, newToken, tokenHash } from '@/lib/auth/invites';
-import { roleOf, ROLES, type Role } from '@/lib/auth/roles';
+import { ROLE_INFO, roleOf, ROLES, type Role } from '@/lib/auth/roles';
 import { groupNames } from '@/lib/dashboard/groups';
 import { getDashboard } from '@/lib/dashboard/services';
 import { db } from '@/lib/db';
@@ -128,7 +129,7 @@ export async function setPersonAccess(
   userId: string,
   input: { role: Role; groups: string[] }
 ): Promise<PeopleResult> {
-  await requireAccess('users');
+  const access = await requireAccess('users');
   const parsed = Access.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const { role, groups } = parsed.data;
@@ -136,9 +137,15 @@ export async function setPersonAccess(
     const kept = await keepsAnOwner(userId);
     if (kept) return { error: kept };
   }
-  await db.user.update({
+  const person = await db.user.update({
     where: { id: userId },
     data: { role, allowedGroups: groups },
+    select: { name: true },
+  });
+  await record(access, {
+    action: 'person.access',
+    target: person.name,
+    detail: [ROLE_INFO[role].name, ...groups].join(', '),
   });
 }
 
@@ -159,22 +166,31 @@ export async function setPersonDisabled(
     const kept = await keepsAnOwner(userId);
     if (kept) return { error: kept };
   }
-  await db.$transaction([
+  const [person] = await db.$transaction([
     db.user.update({
       where: { id: userId },
+      select: { name: true },
       data: disabled
         ? { banned: true, banReason: 'Disabled by the owner' }
         : { banned: false, banReason: null, banExpires: null },
     }),
     ...(disabled ? [db.session.deleteMany({ where: { userId } })] : []),
   ]);
+  await record(access, {
+    action: disabled ? 'person.disable' : 'person.enable',
+    target: person.name,
+  });
 }
 
 /** Signs someone out on every device; they can sign in again. */
 export async function signOutPerson(userId: string): Promise<PeopleResult> {
-  await requireAccess('users');
+  const access = await requireAccess('users');
   if (typeof userId !== 'string') return { error: 'Who?' };
   await db.session.deleteMany({ where: { userId } });
+  await record(access, {
+    action: 'person.signout',
+    target: (await db.user.findUnique({ where: { id: userId } }))?.name,
+  });
 }
 
 /** Removes someone's account, with its passkeys, sessions and invites. */
@@ -185,7 +201,8 @@ export async function removePerson(userId: string): Promise<PeopleResult> {
   }
   const kept = await keepsAnOwner(userId);
   if (kept) return { error: kept };
-  await db.user.delete({ where: { id: userId } });
+  const person = await db.user.delete({ where: { id: userId } });
+  await record(access, { action: 'person.remove', target: person.name });
 }
 
 const NewInvite = Access.extend({
@@ -223,6 +240,11 @@ export async function createInvite(input: {
       expiresAt,
     },
   });
+  await record(access, {
+    action: 'invite.create',
+    target: email,
+    detail: [ROLE_INFO[role].name, ...groups].join(', '),
+  });
   return {
     link: new URL(`/invite/${token}`, SITE_URL).href,
     expiresAt: expiresAt.getTime(),
@@ -231,7 +253,10 @@ export async function createInvite(input: {
 
 /** Takes an invite back, so its link no longer works. */
 export async function revokeInvite(id: string): Promise<PeopleResult> {
-  await requireAccess('users');
+  const access = await requireAccess('users');
   if (typeof id !== 'string') return { error: 'Which invite?' };
-  await db.invite.deleteMany({ where: { id, usedAt: null } });
+  const invite = await db.invite.findFirst({ where: { id, usedAt: null } });
+  if (!invite) return;
+  await db.invite.delete({ where: { id } });
+  await record(access, { action: 'invite.revoke', target: invite.email });
 }

@@ -8,11 +8,19 @@ import type { RunLine } from '@/lib/docker/runner';
  * exit code 1. Read it with readRunStream. The run goes on to its end even
  * if whoever asked goes away, as one stopped partway can leave a stack half
  * changed, with nothing put back; unless it's `watching`, only following
- * something that carries on without it, which stops once nobody is.
+ * something that carries on without it, which stops once nobody is. Once
+ * it's done, `done` is told how it exited and the last error it printed,
+ * for the activity log.
  */
 export function streamRun(
   run: () => AsyncGenerator<RunLine, number>,
-  { watching = false }: { watching?: boolean } = {}
+  {
+    watching = false,
+    done,
+  }: {
+    watching?: boolean;
+    done?: (exitCode: number, lastError?: string) => Promise<void>;
+  } = {}
 ) {
   const encoder = new TextEncoder();
   // Once the response is closed by the other end, after which there's
@@ -29,20 +37,26 @@ export function streamRun(
           gone = true;
         }
       };
+      let exitCode = 1;
+      let lastError: string | undefined;
       try {
         lines = run();
         for (;;) {
           const next = await lines.next();
           if (next.done) {
-            send({ exitCode: next.value });
+            exitCode = next.value;
+            send({ exitCode });
             break;
           }
+          if (next.value.stream === 'stderr') lastError = next.value.line;
           send(next.value);
         }
       } catch (error) {
-        send({ stream: 'stderr', line: (error as Error).message });
+        lastError = (error as Error).message;
+        send({ stream: 'stderr', line: lastError });
         send({ exitCode: 1 });
       }
+      await done?.(exitCode, lastError);
       try {
         controller.close();
       } catch {

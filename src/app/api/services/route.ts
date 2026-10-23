@@ -1,3 +1,4 @@
+import { recordRun } from '@/lib/activity/record';
 import { AccessError, denied, getAccess, refusal } from '@/lib/auth/access';
 import { getDashboard } from '@/lib/dashboard/services';
 import { streamRun } from '@/lib/docker/run-stream';
@@ -22,5 +23,10 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
-  return streamRun(() => createService(input.data));
+  return streamRun(() => createService(input.data), {
+    done: recordRun(await getAccess(), {
+      action: 'service.create',
+      target: input.data.name,
+    }),
+  });
 }

@@ -1,5 +1,6 @@
 'use server';
 
+import { outcome, record, tried } from '@/lib/activity/record';
 import { requireAccess, serviceForAction } from '@/lib/auth/access';
 import { isRunning } from '@/lib/dashboard/status';
 import {
@@ -28,12 +29,13 @@ export async function runContainerAction(
   if (!ACTIONS.includes(action)) return { ok: false, error: 'Unknown action' };
   const found = await serviceForAction(id, 'control');
   if ('refused' in found) return { ok: false, error: found.refused };
-  try {
-    await containerAction(id, action);
-    return { ok: true };
-  } catch (error) {
-    return { ok: false, error: (error as Error).message };
-  }
+  const result = await tried(() => containerAction(id, action));
+  await record(found.access, {
+    action,
+    target: found.container.name,
+    ...outcome(result),
+  });
+  return result;
 }
 
 /**
@@ -60,12 +62,14 @@ export async function sendToConsole(
   if (!isRunning(container.state)) {
     return { ok: false, error: "It isn't running" };
   }
-  try {
-    await sendInput(id, `${command}\n`);
-    return { ok: true };
-  } catch (error) {
-    return { ok: false, error: (error as Error).message };
-  }
+  const result = await tried(() => sendInput(id, `${command}\n`));
+  await record(found.access, {
+    action: 'console',
+    target: container.name,
+    detail: command,
+    ...outcome(result),
+  });
+  return result;
 }
 
 /** Has a running Caddy read its Caddyfile again, keeping the old config if the new one's wrong. */
@@ -77,14 +81,16 @@ export async function reloadCaddyConfig(id: string): Promise<ActionResult> {
   if (!isCaddy(caddy.image)) {
     return { ok: false, error: 'That container is not Caddy' };
   }
-  try {
+  const result = await tried(async () => {
     const { stderr, exitCode } = await execRun(id, RELOAD_CADDY);
-    return exitCode === 0
-      ? { ok: true }
-      : { ok: false, error: reloadError(stderr) };
-  } catch (error) {
-    return { ok: false, error: (error as Error).message };
-  }
+    if (exitCode !== 0) throw new Error(reloadError(stderr));
+  });
+  await record(found.access, {
+    action: 'caddy.reload',
+    target: caddy.name,
+    ...outcome(result),
+  });
+  return result;
 }
 
 /** Looks for updates everywhere now, rather than when they're next due. */

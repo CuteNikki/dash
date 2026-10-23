@@ -1,4 +1,5 @@
-import { denied } from '@/lib/auth/access';
+import { recordRun } from '@/lib/activity/record';
+import { denied, getAccess } from '@/lib/auth/access';
 import { listContainers } from '@/lib/docker/docker';
 import { streamRun } from '@/lib/docker/run-stream';
 import { stackOf } from '@/lib/docker/stack-files';
@@ -29,5 +30,11 @@ export async function POST(
     );
   }
   const files = new URL(request.url).searchParams.get('files') === '1';
-  return streamRun(() => removeService(stack, { files }));
+  return streamRun(() => removeService(stack, { files }), {
+    done: recordRun(await getAccess(), {
+      action: 'service.remove',
+      target: stack.project,
+      detail: files ? 'with its folder and volumes' : 'keeping its folder',
+    }),
+  });
 }

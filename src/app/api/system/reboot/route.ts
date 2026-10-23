@@ -1,4 +1,5 @@
-import { denied } from '@/lib/auth/access';
+import { record } from '@/lib/activity/record';
+import { denied, getAccess } from '@/lib/auth/access';
 import { scheduleReboot } from '@/lib/host/system-updates';
 
 /** Restarts the server, in a few seconds, so this answer gets out first. */
@@ -7,6 +8,7 @@ export async function POST() {
   if (refused) return refused;
   try {
     await scheduleReboot();
+    await record(await getAccess(), { action: 'system.reboot' });
     return Response.json({ ok: true });
   } catch (error) {
     return Response.json({ error: (error as Error).message }, { status: 500 });

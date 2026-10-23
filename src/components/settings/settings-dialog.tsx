@@ -1,10 +1,11 @@
 'use client';
 
-import { ROLE_INFO } from '@/lib/auth/roles';
+import { can, ROLE_INFO } from '@/lib/auth/roles';
 import type { Me } from '@/lib/types';
 
 import { ScrollFade } from '@/components/common/scroll-fade';
 import { AccountPanel } from '@/components/settings/account-panel';
+import { ActivityPanel } from '@/components/settings/activity-panel';
 import { PeoplePanel } from '@/components/settings/people-panel';
 import { SecurityPanel } from '@/components/settings/security-panel';
 import {
@@ -18,8 +19,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 /**
  * The signed-in account's own settings, over the dashboard: its name, email
- * and password; its passkeys, two-factor and sessions; and for the owner,
- * everyone else's accounts.
+ * and password; its passkeys, two-factor and sessions; for the owner,
+ * everyone else's accounts; and for those who see the whole server, what's
+ * been done from the dashboard.
  */
 export function SettingsDialog({
   me,
@@ -62,6 +64,9 @@ export function SettingsDialog({
             {me.role === 'owner' && (
               <TabsTrigger value='people'>People</TabsTrigger>
             )}
+            {can(me.role, 'server') && (
+              <TabsTrigger value='activity'>Activity</TabsTrigger>
+            )}
           </TabsList>
           <Tab value='account'>
             <AccountPanel me={me} />
@@ -72,6 +77,11 @@ export function SettingsDialog({
           {me.role === 'owner' && (
             <Tab value='people'>
               <PeoplePanel />
+            </Tab>
+          )}
+          {can(me.role, 'server') && (
+            <Tab value='activity'>
+              <ActivityPanel />
             </Tab>
           )}
         </Tabs>

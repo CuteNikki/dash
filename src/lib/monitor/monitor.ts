@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { KEEP_ACTIVITY_DAYS } from '@/lib/activity/read';
 import { inBackground } from '@/lib/background';
 import { serviceKey, siteUrl } from '@/lib/dashboard/services';
 import { probeSite } from '@/lib/dashboard/sites';
@@ -183,15 +184,17 @@ async function recordSites(at: Date) {
   await db.siteCheckLog.createMany({ data: rows, skipDuplicates: true });
 }
 
-/** Clears out readings older than they're kept for. */
+/** Clears out readings, and the activity log, older than they're kept for. */
 async function prune() {
   const now = Date.now();
   const usage = new Date(now - KEEP_USAGE_DAYS * DAY_MS);
   const checks = new Date(now - KEEP_CHECKS_DAYS * DAY_MS);
+  const activity = new Date(now - KEEP_ACTIVITY_DAYS * DAY_MS);
   await db.$transaction([
     db.hostSample.deleteMany({ where: { at: { lt: usage } } }),
     db.containerSample.deleteMany({ where: { at: { lt: usage } } }),
     db.siteCheckLog.deleteMany({ where: { at: { lt: checks } } }),
+    db.activity.deleteMany({ where: { at: { lt: activity } } }),
   ]);
 }
 

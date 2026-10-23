@@ -1,6 +1,8 @@
 'use server';
 
-import { requireAccess } from '@/lib/auth/access';
+import type { ActivityAction } from '@/lib/activity/actions';
+import { record } from '@/lib/activity/record';
+import { requireAccess, type Access } from '@/lib/auth/access';
 import { stackOf } from '@/lib/docker/stack-files';
 import {
   gitCommit,
@@ -15,9 +17,27 @@ import {
 const MAX_MESSAGE = 5_000;
 
 async function repoOf(containerId: string) {
-  await requireAccess('manage');
+  const access = await requireAccess('manage');
   const stack = await stackOf(containerId);
-  return stack && gitStatus(stack.dir);
+  const repo = stack && (await gitStatus(stack.dir));
+  return repo && { ...repo, access, project: stack.project };
+}
+
+/** Notes what git did in the activity log, a failure by git's last line. */
+async function noted(
+  repo: { access: Access; project: string },
+  action: ActivityAction,
+  result: GitResult,
+  detail?: string
+) {
+  await record(repo.access, {
+    action,
+    target: repo.project,
+    detail,
+    ok: result.ok,
+    error: result.output.trim().split('\n').at(-1),
+  });
+  return result;
 }
 
 const noRepo: GitResult = {
@@ -37,7 +57,7 @@ export async function runGit(
   if (!Object.hasOwn(runs, action)) {
     return { ok: false, output: 'Unknown action' };
   }
-  return runs[action](repo.root);
+  return noted(repo, `git.${action}`, await runs[action](repo.root));
 }
 
 /** Commits the chosen changed files with a message, and pushes if asked. */
@@ -62,8 +82,9 @@ export async function commitChanges(
     c.from && chosen.includes(c.path) ? [c.from] : []
   );
   const committed = await gitCommit(repo.root, text, chosen, renamedFrom);
+  await noted(repo, 'git.commit', committed, text.split('\n')[0]);
   if (!committed.ok || !push) return committed;
-  const pushed = await gitPush(repo.root);
+  const pushed = await noted(repo, 'git.push', await gitPush(repo.root));
   return {
     ok: pushed.ok,
     output: `${committed.output}\n${pushed.output}`.trim(),
@@ -85,5 +106,10 @@ export async function switchBranch(
   if (!create && !known.includes(branch)) {
     return { ok: false, output: "There's no branch by that name" };
   }
-  return gitSwitch(repo.root, branch, create);
+  return noted(
+    repo,
+    'git.switch',
+    await gitSwitch(repo.root, branch, create),
+    create ? `to a new branch, ${branch}` : `to ${branch}`
+  );
 }

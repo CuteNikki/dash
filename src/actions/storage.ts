@@ -1,6 +1,7 @@
 'use server';
 
 import type { ActionResult } from '@/actions/containers';
+import { outcome, record, tried } from '@/lib/activity/record';
 import { withAccess } from '@/lib/apps/garage';
 import { serviceForAction } from '@/lib/auth/access';
 import { canBrowse } from '@/lib/dashboard/widgets';
@@ -26,16 +27,21 @@ export async function deleteStoredFiles(
   if (keys.length > MAX_FILES) {
     return { ok: false, error: `At most ${MAX_FILES} files at once` };
   }
-  try {
-    await withAccess(container, bucket, async () => {
+  const result = await tried(() =>
+    withAccess(container, bucket, async () => {
       for (let i = 0; i < keys.length; i += AT_ONCE) {
         await Promise.all(
           keys.slice(i, i + AT_ONCE).map((key) => deleteFile(bucket, key))
         );
       }
-    });
-    return { ok: true };
-  } catch (error) {
-    return { ok: false, error: (error as Error).message };
-  }
+    })
+  );
+  await record(found.access, {
+    action: 'storage.delete',
+    target: bucket,
+    detail:
+      keys.length === 1 ? keys[0] : `${keys.length} files, ${keys[0]} first`,
+    ...outcome(result),
+  });
+  return result;
 }
