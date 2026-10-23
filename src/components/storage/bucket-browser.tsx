@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState, useTransition } from 'react';
+import { Fragment, useEffect, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 import useSWRInfinite from 'swr/infinite';
 
 import {
+  ArrowUpIcon,
   ExternalLinkIcon,
   FileIcon,
   FileVideoIcon,
@@ -44,6 +45,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 /** How far ahead of the grid's end its next page is asked for. */
 const LOAD_AHEAD = '400px';
@@ -84,9 +92,41 @@ export function BucketBrowser({ containerId }: { containerId: string }) {
 
   return (
     <div className='flex min-h-0 flex-1 flex-col gap-3 sm:flex-row'>
+      {/* On a phone, the buckets to pick from in a menu, the grid having the room */}
+      <Select
+        value={bucket ?? ''}
+        onValueChange={(name) => setAt({ bucket: name, prefix: '' })}
+        disabled={!buckets?.length}
+      >
+        <SelectTrigger
+          aria-label='Bucket'
+          className='w-full font-mono sm:hidden'
+        >
+          <SelectValue
+            placeholder={
+              bucketsError && !buckets
+                ? `Couldn't list the buckets: ${bucketsError.message}`
+                : buckets
+                  ? 'No buckets yet'
+                  : 'Reading the buckets…'
+            }
+          />
+        </SelectTrigger>
+        <SelectContent>
+          {buckets?.map((b) => (
+            <SelectItem key={b.name} value={b.name} className='pr-7 font-mono'>
+              {b.name}
+              <span className='font-sans text-muted-foreground tabular-nums'>
+                {b.objects} {b.objects === 1 ? 'file' : 'files'} ·{' '}
+                {formatBytes(b.size)}
+              </span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       <section
         aria-label='Buckets'
-        className='flex h-40 shrink-0 flex-col overflow-hidden rounded-lg bg-muted sm:h-auto sm:w-60'
+        className='hidden shrink-0 flex-col overflow-hidden rounded-lg bg-muted sm:flex sm:w-60'
       >
         <ScrollFade
           className='h-full scrollbar-gutter-stable overflow-auto p-1'
@@ -252,64 +292,84 @@ function Folder({
       aria-label={`${bucket}/${prefix}`}
       className='flex min-h-0 min-w-0 flex-1 flex-col gap-3'
     >
+      {/* Where it is on a line of its own, the folders above shortening
+          first, and what's picked beside it where there's room */}
       <div className='flex min-h-7 flex-wrap items-center gap-2'>
-        <nav
-          aria-label='Folder'
-          className='flex min-w-0 flex-1 flex-wrap items-center font-mono'
-        >
-          <button
-            type='button'
-            className='rounded-sm px-1 hover:bg-foreground/5'
-            onClick={() => onOpenAction('')}
+        <div className='flex min-w-0 flex-1 basis-48 items-center gap-1'>
+          {prefix && (
+            <Button
+              variant='ghost'
+              size='icon'
+              aria-label='Up a folder'
+              title='Up a folder'
+              onClick={() => onOpenAction(crumbs.at(-2)?.prefix ?? '')}
+            >
+              <ArrowUpIcon />
+            </Button>
+          )}
+          <nav
+            aria-label='Folder'
+            className='flex min-w-0 flex-1 items-center overflow-hidden font-mono whitespace-nowrap'
           >
-            {bucket}
-          </button>
-          {crumbs.map((c) => (
-            <span key={c.prefix} className='flex items-center'>
-              <span className='text-muted-foreground'>/</span>
-              <button
-                type='button'
-                className='rounded-sm px-1 hover:bg-foreground/5'
-                onClick={() => onOpenAction(c.prefix)}
-              >
-                {c.name}
-              </button>
-            </span>
-          ))}
-        </nav>
-        {files.length > 0 && (
-          <label className='flex items-center gap-2 text-muted-foreground'>
-            <Checkbox
-              checked={all ? true : selected.size ? 'indeterminate' : false}
-              onCheckedChange={(on) =>
-                setSelected(
-                  on === true ? new Set(files.map((f) => f.key)) : new Set()
-                )
-              }
-            />
-            {selected.size ? `${selected.size} picked` : 'Pick all'}
-          </label>
-        )}
-        {selected.size > 0 && (
+            {[{ name: bucket, prefix: '' }, ...crumbs].map((c, i, all) => {
+              const last = i === all.length - 1;
+              return (
+                <Fragment key={c.prefix}>
+                  {i > 0 && (
+                    <span className='shrink-0 text-muted-foreground'>/</span>
+                  )}
+                  <button
+                    type='button'
+                    title={c.name}
+                    aria-current={last || undefined}
+                    className={cn(
+                      'min-w-0 truncate rounded-sm px-1 hover:bg-foreground/5',
+                      last ? 'shrink' : 'shrink-[4] text-muted-foreground'
+                    )}
+                    onClick={() => onOpenAction(c.prefix)}
+                  >
+                    {c.name}
+                  </button>
+                </Fragment>
+              );
+            })}
+          </nav>
+        </div>
+        <div className='ml-auto flex items-center gap-2'>
+          {files.length > 0 && (
+            <label className='flex items-center gap-2 whitespace-nowrap text-muted-foreground'>
+              <Checkbox
+                checked={all ? true : selected.size ? 'indeterminate' : false}
+                onCheckedChange={(on) =>
+                  setSelected(
+                    on === true ? new Set(files.map((f) => f.key)) : new Set()
+                  )
+                }
+              />
+              {selected.size ? `${selected.size} picked` : 'Pick all'}
+            </label>
+          )}
+          {selected.size > 0 && (
+            <Button
+              variant='destructive'
+              disabled={pending}
+              onClick={() => setConfirming([...selected])}
+            >
+              <Trash2Icon />
+              Delete
+            </Button>
+          )}
           <Button
-            variant='destructive'
-            disabled={pending}
-            onClick={() => setConfirming([...selected])}
+            variant='outline'
+            size='icon'
+            aria-label='Read again'
+            title='Read again'
+            disabled={isValidating}
+            onClick={() => void mutate()}
           >
-            <Trash2Icon />
-            Delete
+            <RefreshCwIcon className={cn(isValidating && 'animate-spin')} />
           </Button>
-        )}
-        <Button
-          variant='outline'
-          size='icon'
-          aria-label='Read again'
-          title='Read again'
-          disabled={isValidating}
-          onClick={() => void mutate()}
-        >
-          <RefreshCwIcon className={cn(isValidating && 'animate-spin')} />
-        </Button>
+        </div>
       </div>
 
       {/* What's left of the column, the grid scrolling within it */}
@@ -402,7 +462,7 @@ function Folder({
 
 function TileGrid({ children }: { children: React.ReactNode }) {
   return (
-    <div className='grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-3'>
+    <div className='grid grid-cols-[repeat(auto-fill,minmax(8rem,1fr))] gap-3'>
       {children}
     </div>
   );
