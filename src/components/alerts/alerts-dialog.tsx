@@ -17,6 +17,7 @@ import { formatDuration, formatPast } from '@/lib/format';
 import type { AlertView } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
+import { ButtonCount } from '@/components/common/button-count';
 import { TextSkeleton } from '@/components/common/skeletons';
 import { Button } from '@/components/ui/button';
 import {
@@ -50,10 +51,13 @@ export function AlertsButton({
       variant='outline'
       aria-label={count ? `Alerts, ${count} open` : 'Alerts'}
       onClick={onClickAction}
-      className={cn(count > 0 && 'text-destructive hover:text-destructive')}
+      className={cn(
+        'relative',
+        count > 0 && 'text-destructive hover:text-destructive'
+      )}
     >
       <BellIcon />
-      {count > 0 && <span className='font-mono tabular-nums'>{count}</span>}
+      {count > 0 && <ButtonCount count={count} tone='destructive' />}
     </Button>
   );
 }

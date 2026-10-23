@@ -30,6 +30,7 @@ import { AlertsButton, AlertsDialog } from '@/components/alerts/alerts-dialog';
 import { AccountMenu } from '@/components/chrome/account-menu';
 import { Brand } from '@/components/chrome/brand';
 import { ThemeButton } from '@/components/chrome/theme-button';
+import { ButtonCount } from '@/components/common/button-count';
 import { RoleProvider } from '@/components/common/role';
 import {
   Board,
@@ -265,6 +266,7 @@ export function Dashboard({
                 }
                 onClick={() => setShowUpdates(true)}
                 className={cn(
+                  'relative',
                   updateCount > 0 && 'text-update hover:text-update'
                 )}
               >
@@ -272,7 +274,7 @@ export function Dashboard({
                 {/* Its icon alone on a phone, with how many are waiting */}
                 <span className='max-sm:hidden'>Updates</span>
                 {updateCount > 0 && (
-                  <span className='font-mono tabular-nums'>{updateCount}</span>
+                  <ButtonCount count={updateCount} tone='update' />
                 )}
               </Button>
             )}
