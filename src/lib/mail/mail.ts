@@ -5,36 +5,30 @@ import nodemailer, { type Transporter } from 'nodemailer';
 import { SERVER_NAME } from '@/lib/site';
 
 /**
- * Mail goes out through an SMTP server, Stalwart on this one, from an
- * account of its own: SMTP_HOST, SMTP_PORT (465, TLS from the start, unless
- * set otherwise), SMTP_USER, SMTP_PASSWORD, and MAIL_FROM, the address it's
- * from, as "Dashboard <dash@example.com>". Without SMTP_HOST and MAIL_FROM
- * nothing is sent, and what would be says so.
+ * Mail goes out through an SMTP server, Stalwart on this one, as the other
+ * sites' does: SMTP_URL is the login and the server as one address,
+ * smtps://dash%40example.com:password@mail.example.com, the @ in the user
+ * written as %40; EMAIL_FROM is who it's from, "Dashboard <dash@example.com>",
+ * an address that account may send as, its own or an alias of it, else the
+ * account's own. Without SMTP_URL nothing is sent, and what would be says so.
  */
-const HOST = process.env.SMTP_HOST || undefined;
-const PORT = Number(process.env.SMTP_PORT) || 465;
-const FROM = process.env.MAIL_FROM || undefined;
+const SMTP_URL = process.env.SMTP_URL || undefined;
 
 /** Whether the dashboard can send mail. */
-export const mailReady = () => Boolean(HOST && FROM);
+export const mailReady = () => Boolean(SMTP_URL);
 
-// One connection pool for the process, as the database's is
+/** Who mail's from: EMAIL_FROM, or the account it's sent with. */
+function sender() {
+  if (process.env.EMAIL_FROM) return process.env.EMAIL_FROM;
+  const user = decodeURIComponent(new URL(SMTP_URL!).username);
+  return `Dashboard <${user}>`;
+}
+
+// One transport for the process, kept across development's hot reloads
 const kept = globalThis as typeof globalThis & { mailer?: Transporter };
 
 function mailer() {
-  kept.mailer ??= nodemailer.createTransport({
-    host: HOST,
-    port: PORT,
-    // 465 speaks TLS from the start, and 587 must upgrade to it; on any
-    // other port it's used when the server offers it
-    secure: PORT === 465,
-    requireTLS: PORT === 587,
-    auth: process.env.SMTP_USER
-      ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD }
-      : undefined,
-    pool: true,
-    connectionTimeout: 15_000,
-  });
+  kept.mailer ??= nodemailer.createTransport(SMTP_URL);
   return kept.mailer;
 }
 
@@ -88,12 +82,10 @@ ${p(footer, 'color:#888;font-size:12px;margin:24px 0 0')}
 /** Sends a mail, or throws why it couldn't, as when mail isn't set up. */
 export async function sendMail(mail: Mail) {
   if (!mailReady()) {
-    throw new Error(
-      "Mail isn't set up: SMTP_HOST and MAIL_FROM in the dashboard's .env"
-    );
+    throw new Error("Mail isn't set up: SMTP_URL in the dashboard's .env");
   }
   await mailer().sendMail({
-    from: FROM,
+    from: sender(),
     to: mail.to,
     subject: mail.subject,
     ...render(mail),
