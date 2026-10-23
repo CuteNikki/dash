@@ -4,7 +4,9 @@ import { Slot } from 'radix-ui';
 import * as React from 'react';
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-md border border-transparent bg-clip-padding text-xs/relaxed font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  // A ButtonLabel that's hidden at this width leaves its icon alone, in a
+  // square as an icon button's is, rather than in a label's width of padding
+  "group/button inline-flex shrink-0 items-center justify-center rounded-md border border-transparent bg-clip-padding text-xs/relaxed font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 max-sm:has-[>[data-label=screen]]:aspect-square max-sm:has-[>[data-label=screen]]:px-0 @max-md:has-[>[data-label=tile]]:aspect-square @max-md:has-[>[data-label=tile]]:px-0 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
@@ -65,4 +67,26 @@ function Button({
   );
 }
 
-export { Button, buttonVariants };
+/**
+ * A button's words, left out where there's no room for them, so it's its
+ * icon alone, square: on a phone's screen, or in a narrow tile (its nearest
+ * @container). Give the button an aria-label, as the words are gone there.
+ */
+function ButtonLabel({
+  hideOn,
+  children,
+}: {
+  hideOn: 'screen' | 'tile';
+  children: React.ReactNode;
+}) {
+  return (
+    <span
+      data-label={hideOn}
+      className={hideOn === 'screen' ? 'max-sm:hidden' : '@max-md:hidden'}
+    >
+      {children}
+    </span>
+  );
+}
+
+export { Button, ButtonLabel, buttonVariants };

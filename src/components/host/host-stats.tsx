@@ -34,7 +34,7 @@ import { TextSkeleton } from '@/components/common/skeletons';
 import { DiskDialog } from '@/components/host/disk-dialog';
 import { HistoryDialog } from '@/components/host/history-dialog';
 import { ProcessList } from '@/components/host/process-list';
-import { Button } from '@/components/ui/button';
+import { Button, ButtonLabel } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -201,7 +201,7 @@ function ServerDetails({
         >
           <HistoryIcon />
           {/* Its icon alone on a narrow tile, so the server's name has the room */}
-          <span className='@max-md:hidden'>History</span>
+          <ButtonLabel hideOn='tile'>History</ButtonLabel>
         </Button>
         {system && <SystemButton system={system} onClick={onSystem} />}
       </div>

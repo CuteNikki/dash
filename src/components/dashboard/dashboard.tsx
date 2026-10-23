@@ -46,7 +46,7 @@ import { SystemDialog } from '@/components/host/system-dialog';
 import { NewServiceDialog } from '@/components/new-service/new-service-dialog';
 import { ServiceDialog } from '@/components/service/service-dialog';
 import { EmailNotice } from '@/components/settings/email-notice';
-import { Button } from '@/components/ui/button';
+import { Button, ButtonLabel } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { UpdatesDialog } from '@/components/updates/updates-dialog';
 
@@ -272,7 +272,7 @@ export function Dashboard({
               >
                 <ArrowUpCircleIcon />
                 {/* Its icon alone on a phone, with how many are waiting */}
-                <span className='max-sm:hidden'>Updates</span>
+                <ButtonLabel hideOn='screen'>Updates</ButtonLabel>
                 {updateCount > 0 && (
                   <ButtonCount count={updateCount} tone='update' />
                 )}
@@ -286,7 +286,7 @@ export function Dashboard({
               >
                 <PlusIcon />
                 {/* Its plus alone on a phone, where the header's room is short */}
-                <span className='max-sm:hidden'>New service</span>
+                <ButtonLabel hideOn='screen'>New service</ButtonLabel>
               </Button>
             )}
             {may('manage') && (
@@ -298,9 +298,9 @@ export function Dashboard({
               >
                 <PencilIcon />
                 {/* Its pencil alone on a phone, as New service's plus is */}
-                <span className='max-sm:hidden'>
+                <ButtonLabel hideOn='screen'>
                   {editing ? 'Done' : 'Edit'}
-                </span>
+                </ButtonLabel>
               </Button>
             )}
             {/* In the account menu on a phone, where the line's too short for it */}
