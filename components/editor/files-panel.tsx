@@ -169,32 +169,35 @@ export function FilesPanel({
               />
             )}
             {isMarkdown && opened?.content !== undefined && (
-              <ToggleGroup
-                type='single'
-                variant='segmented'
-                value={previewing ? 'preview' : 'edit'}
-                // Picking the shown one again would unpick it; keep one picked
-                onValueChange={(v) =>
-                  v &&
-                  setPreviewed((e) => {
-                    const next = new Set(e);
-                    if (v === 'preview') next.add(path);
-                    else next.delete(path);
-                    return next;
-                  })
-                }
-                aria-label='Show the file as'
-                className='absolute top-3 right-4'
-              >
-                <ToggleGroupItem value='edit'>
-                  <PencilIcon />
-                  Edit
-                </ToggleGroupItem>
-                <ToggleGroupItem value='preview'>
-                  <EyeIcon />
-                  Preview
-                </ToggleGroupItem>
-              </ToggleGroup>
+              // A solid backing, as the track's own fill is see-through in
+              // dark mode and the file would show through it
+              <div className='absolute top-3 right-4 rounded-md bg-background'>
+                <ToggleGroup
+                  type='single'
+                  variant='segmented'
+                  value={previewing ? 'preview' : 'edit'}
+                  // Picking the shown one again would unpick it; keep one picked
+                  onValueChange={(v) =>
+                    v &&
+                    setPreviewed((e) => {
+                      const next = new Set(e);
+                      if (v === 'preview') next.add(path);
+                      else next.delete(path);
+                      return next;
+                    })
+                  }
+                  aria-label='Show the file as'
+                >
+                  <ToggleGroupItem value='edit'>
+                    <PencilIcon />
+                    Edit
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value='preview'>
+                    <EyeIcon />
+                    Preview
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
             )}
           </div>
         </div>
