@@ -7,7 +7,7 @@ import { describe, expect, test } from 'bun:test';
  * anything, through lib/auth/access.ts, so one added later can't forget to.
  * Read from the source, as each is a door into the server.
  */
-const src = join(import.meta.dirname, '../..');
+const src = join(import.meta.dirname, '..');
 
 /** What counts as checking. */
 const CHECKS = [

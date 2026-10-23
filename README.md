@@ -232,7 +232,7 @@ src/
     templates/      the templates, Docker Hub search and docker run import
     updates/        checking registries and repositories, and applying updates
     icons/          finding icons
-  test/           the tests' setup; each test sits beside what it tests
+  test/           the tests, with their own TypeScript settings
   proxy.ts        signs in whoever isn't, before any page
 prisma/         the database schema and migrations
 scripts/        deploy, tunnels and the class check
