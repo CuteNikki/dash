@@ -10,7 +10,8 @@ import { groupNames } from '@/lib/dashboard/groups';
 import { getDashboard } from '@/lib/dashboard/services';
 import { db } from '@/lib/db';
 import { mailReady, sendMail } from '@/lib/mail/mail';
-import { SERVER_NAME, SITE_URL } from '@/lib/site';
+import { inviteMail } from '@/lib/mail/templates';
+import { SITE_URL } from '@/lib/site';
 
 /** Groups given to one person, far past any real number */
 const MAX_GROUPS = 200;
@@ -246,19 +247,10 @@ export async function createInvite(input: {
   const link = new URL(`/invite/${token}`, SITE_URL).href;
   let sendError: string | undefined;
   if (input.send) {
-    const info = ROLE_INFO[role];
     try {
-      await sendMail({
-        to: email,
-        subject: `You're invited to ${SERVER_NAME ?? 'the dashboard'}`,
-        paragraphs: [
-          'Hi,',
-          `${access.user.name} invited you to the dashboard of ${SERVER_NAME ?? 'their server'}, as ${info.name.toLowerCase()}: ${info.description.toLowerCase()}.`,
-          'Make your account with the link below. It works once, for 24 hours.',
-        ],
-        action: { label: 'Make my account', url: link },
-        footer: `Sent by the dashboard of ${SERVER_NAME ?? 'a server'} for ${access.user.name}. If you weren't expecting it, there's nothing to do: the link runs out by itself.`,
-      });
+      await sendMail(
+        inviteMail({ email, role, invitedBy: access.user.name, url: link })
+      );
     } catch (error) {
       sendError = (error as Error).message;
     }

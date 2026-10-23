@@ -13,6 +13,11 @@ import { MIN_PASSWORD } from '@/lib/auth/password';
 import { accountBeingCreated } from '@/lib/auth/setup';
 import { db } from '@/lib/db';
 import { mailReady, sendMail } from '@/lib/mail/mail';
+import {
+  changeAddressMail,
+  confirmAddressMail,
+  resetPasswordMail,
+} from '@/lib/mail/templates';
 import { SERVER_NAME, SITE_URL } from '@/lib/site';
 
 /**
@@ -62,17 +67,7 @@ export const auth = betterAuth({
     // A forgotten password is reset from a link by mail, once there's mail;
     // the new one signs out everywhere else, as whoever knew the old might be
     sendResetPassword: mailReady()
-      ? async ({ user, url }) =>
-          sendMail({
-            to: user.email,
-            subject: 'Reset your password',
-            paragraphs: [
-              `Hi ${user.name},`,
-              'Someone asked to reset the password of your account on the dashboard. If it was you, pick a new one here; the link works for an hour.',
-              "If it wasn't, there's nothing to do: your password stays as it is.",
-            ],
-            action: { label: 'Pick a new password', url },
-          })
+      ? async ({ user, url }) => sendMail(resetPasswordMail(user, url))
       : undefined,
     resetPasswordTokenExpiresIn: LINK_SECONDS,
     revokeSessionsOnPasswordReset: true,
@@ -83,15 +78,7 @@ export const auth = betterAuth({
         expiresIn: LINK_SECONDS,
         autoSignInAfterVerification: true,
         sendVerificationEmail: async ({ user, url }) =>
-          sendMail({
-            to: user.email,
-            subject: 'Confirm your email address',
-            paragraphs: [
-              `Hi ${user.name},`,
-              "Confirm this is your address, so the dashboard's mail reaches you: a forgotten password, and alerts if you get them. The link works for an hour.",
-            ],
-            action: { label: 'Confirm my address', url },
-          }),
+          sendMail(confirmAddressMail(user, url)),
       }
     : undefined,
   user: {
@@ -104,16 +91,7 @@ export const auth = betterAuth({
       // new one is confirmed in turn
       sendChangeEmailConfirmation: mailReady()
         ? async ({ user, newEmail, url }) =>
-            sendMail({
-              to: user.email,
-              subject: 'Change your email address?',
-              paragraphs: [
-                `Hi ${user.name},`,
-                `Someone signed in as you asked to change your account's address to ${newEmail}. If it was you, agree to it here; the new address is then sent a link to confirm it.`,
-                "If it wasn't, don't open the link, and change your password.",
-              ],
-              action: { label: `Change it to ${newEmail}`, url },
-            })
+            sendMail(changeAddressMail(user, newEmail, url))
         : undefined,
     },
   },

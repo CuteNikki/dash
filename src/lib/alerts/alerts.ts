@@ -2,9 +2,8 @@ import 'server-only';
 
 import { can, ROLES } from '@/lib/auth/roles';
 import { db } from '@/lib/db';
-import { formatDuration } from '@/lib/format';
 import { mailReady, sendMail } from '@/lib/mail/mail';
-import { SERVER_NAME, SITE_URL } from '@/lib/site';
+import { alertsMail } from '@/lib/mail/templates';
 
 /** What a check finds wrong now. Whatever it checks and doesn't find is fine. */
 export type Finding = {
@@ -102,44 +101,8 @@ export async function notify() {
   if (!due.length && !resolved.length) return;
   const to = await recipients();
   if (to.length) {
-    const server = SERVER_NAME ?? 'the server';
-    const subject =
-      due.length === 1 && !resolved.length
-        ? `${due[0].subject}: ${due[0].message}`
-        : !due.length && resolved.length === 1
-          ? `${resolved[0].subject} is all right again`
-          : `${due.length ? `${due.length} new alert${due.length === 1 ? '' : 's'}` : ''}${due.length && resolved.length ? ', ' : ''}${resolved.length ? `${resolved.length} resolved` : ''} on ${server}`;
     try {
-      await sendMail({
-        to,
-        subject,
-        paragraphs: [
-          ...(due.length
-            ? [
-                `Wrong on ${server}:`,
-                due
-                  .map(
-                    (a) =>
-                      `• ${a.subject}: ${a.message}, for ${formatDuration((now - a.since.getTime()) / 1000)}`
-                  )
-                  .join('\n'),
-              ]
-            : []),
-          ...(resolved.length
-            ? [
-                'All right again:',
-                resolved
-                  .map(
-                    (a) =>
-                      `• ${a.subject}, after ${formatDuration((a.resolvedAt!.getTime() - a.since.getTime()) / 1000)}`
-                  )
-                  .join('\n'),
-              ]
-            : []),
-        ],
-        action: { label: 'Open the dashboard', url: SITE_URL.href },
-        footer: `Sent by the dashboard of ${server} to those who see the server. Turn these off in Settings → Account.`,
-      });
+      await sendMail(alertsMail(to, due, resolved, now));
     } catch (error) {
       // Tried again next round, as nothing's marked
       console.error("Couldn't mail the alerts:", error);
