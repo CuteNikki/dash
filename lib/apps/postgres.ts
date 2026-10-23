@@ -37,7 +37,7 @@ export const postgres: App = {
       columns: [
         { label: 'Name' },
         { label: 'Size', numeric: true },
-        { label: 'Connections', numeric: true },
+        { label: 'Conns', numeric: true },
       ],
       // Biggest first, those no one's connected to quiet
       rows: (await inTime(postgresDatabases(c.id), 'psql')).map((db) => ({
