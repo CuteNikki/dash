@@ -1,4 +1,4 @@
-# dash
+# Dashboard
 
 [![CI](https://github.com/CuteNikki/dash/actions/workflows/ci.yml/badge.svg)](https://github.com/CuteNikki/dash/actions/workflows/ci.yml)
 [![MIT license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -18,9 +18,9 @@ to redeploy. New services come from templates and get a site in Caddy.
   into its logs, edit its compose file and `.env` (checked by Compose before
   they're saved), and see what its app has to say.
 - **Git, built in.** Changes, commits, branches and history, with diffs side
-  by side, for every stack that's a repository, dash's own included.
+  by side, for every stack that's a repository, Dashboard's own included.
 - **New services in a minute.** About 200 templates, any image on Docker Hub,
-  a `docker run` command or a compose file of your own. dash makes the folder,
+  a `docker run` command or a compose file of your own. Dashboard makes the folder,
   starts it, writes its Caddy site and reloads Caddy, and undoes it all if a
   step fails.
 - **Updates, found and applied.** New image versions and new commits,
@@ -85,12 +85,12 @@ the numbers.
 
 A container's tile starts from its [Homepage](https://gethomepage.dev) labels
 (`homepage.name`, `homepage.icon`, `homepage.group`, `homepage.description`,
-`homepage.href`) until it's edited in dash, so a server already set up for
+`homepage.href`) until it's edited in Dashboard, so a server already set up for
 Homepage looks right from the start.
 
 ## How it fits together
 
-dash is a Next.js app. On the server it has the Docker socket and the home
+Dashboard is a Next.js app. On the server it has the Docker socket and the home
 folder mounted at the same path as on the host, so it can list and run
 containers and reach their files where Compose expects them. It runs Compose
 and git in short-lived containers of the official images, so its own image
@@ -110,7 +110,7 @@ Tiles, layouts and the account are kept in PostgreSQL, through Prisma.
 Uploaded icons go to an S3 bucket (Garage, on the same server). There's one
 account, signed in with a password or a passkey.
 
-dash itself is a stack like the others: a clone of this repository in
+Dashboard itself is a stack like the others: a clone of this repository in
 `~/services/dash`, with a `.env` beside it holding its secrets (the settings
 in [`.env.example`](.env.example) say where each comes from). Its
 [`docker-compose.yml`](docker-compose.yml) is the one this server runs; for
@@ -161,7 +161,7 @@ With no account yet, it prints a setup code in its log; make the account at
 `/setup` with it.
 
 > [!WARNING]
-> dash has the Docker socket and the server's processes, so whoever signs in
+> Dashboard has the Docker socket and the server's processes, so whoever signs in
 > to it controls the server. Keep it behind HTTPS, and use a passkey or a
 > strong password.
 
@@ -169,7 +169,7 @@ With no account yet, it prints a setup code in its log; make the account at
 
 You need [Bun](https://bun.sh) and SSH access to the server, by the name in
 `DASH_SSH_HOST` (a user name other than this machine's goes under that name
-in `~/.ssh/config`). In development dash still works on the real server: its
+in `~/.ssh/config`). In development Dashboard still works on the real server: its
 containers, files and database.
 
 1. Install, and copy the settings. Each setting in `.env.example` says where
@@ -180,7 +180,7 @@ containers, files and database.
    cp .env.example .env.local
    ```
 
-2. Once, on the server, start the helper container that lets dash read the
+2. Once, on the server, start the helper container that lets Dashboard read the
    server's CPU, memory and processes from outside it, and set
    `HOST_HELPER_CONTAINER=dash-dev-stats`:
 
@@ -190,7 +190,7 @@ containers, files and database.
 
 3. Open the tunnels to the server's Docker and to the apps whose numbers show
    on tiles, in a terminal of their own, and leave them running. Then start
-   dash and open http://localhost:3000.
+   Dashboard and open http://localhost:3000.
 
    ```bash
    bun run tunnels
@@ -200,16 +200,16 @@ containers, files and database.
 ## Deploying
 
 On the server, `~/services/dash` is a clone of this repository, following
-`master`, like the other projects there. Once commits are pushed, dash shows
+`master`, like the other projects there. Once commits are pushed, Dashboard shows
 an update for itself, and its Update pulls them and rebuilds it, restarting
-dash. `bun run deploy` does the same from here: it pushes `master` (with no
+Dashboard. `bun run deploy` does the same from here: it pushes `master` (with no
 uncommitted changes), then pulls and runs `docker compose up -d --build` on
 the server. The server's `.env` stays where it is and is never in the
 repository.
 
 Either way, the database's migrations run first, in a one-off `migrate`
-container, and dash only starts once they've gone through; one that fails
-leaves the dash that's running as it is.
+container, and Dashboard only starts once they've gone through; one that fails
+leaves the Dashboard that's running as it is.
 
 ## Scripts
 
