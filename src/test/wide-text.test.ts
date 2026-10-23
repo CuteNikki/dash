@@ -22,7 +22,10 @@ describe('splitWide', () => {
   });
 
   test('takes a symbol asked to be an emoji as wide', () => {
-    expect(splitWide('☑️x')).toEqual([{ text: '☑️', wide: true }, { text: 'x' }]);
+    expect(splitWide('☑️x')).toEqual([
+      { text: '☑️', wide: true },
+      { text: 'x' },
+    ]);
   });
 
   test('keeps a joined emoji and its skin tone together', () => {
