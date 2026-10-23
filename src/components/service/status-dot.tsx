@@ -49,7 +49,7 @@ export function StatePill({
   return (
     <span
       className={cn(
-        'inline-flex rounded-md px-1.5 py-0.5 font-medium',
+        'inline-flex rounded-full px-2 py-0.5 font-medium',
         health === 'ok' && 'bg-success/15 text-success',
         health === 'attention' && 'bg-warning/15 text-warning',
         health === 'off' && 'bg-muted text-muted-foreground',

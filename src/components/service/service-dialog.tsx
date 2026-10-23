@@ -253,7 +253,7 @@ function ServiceBody({
           <StatePill
             state={service.state}
             label={labelOf(service)}
-            className='mr-1 h-7 items-center px-2'
+            className='mr-1 h-7 items-center px-3'
           />
           {site || !controls ? null : running ? (
             <Button
