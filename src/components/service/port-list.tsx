@@ -36,7 +36,7 @@ export function PortList({ service }: { service: Service }) {
   }
 
   return (
-    <ul className='flex flex-col'>
+    <ul className='flex flex-col gap-1'>
       {service.ports!.map(({ port, protocols }) => (
         <li key={port} className='flex items-center gap-2'>
           <span className='w-14 shrink-0 font-mono font-medium tabular-nums'>
@@ -50,12 +50,13 @@ export function PortList({ service }: { service: Service }) {
           </span>
           <Button
             variant='outline'
-            size='icon-sm'
+            size='icon-xs'
             aria-label={`Copy ${host}:${port}`}
             title={`Copy ${host}:${port}`}
             onClick={() => copy(port)}
           >
-            <CopyIcon />
+            {/* A size up from the button's own, to be made out at a glance */}
+            <CopyIcon className='size-3' />
           </Button>
         </li>
       ))}
