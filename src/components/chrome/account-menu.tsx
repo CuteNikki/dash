@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { KeyRoundIcon, LogOutIcon, UserIcon } from 'lucide-react';
 
 import { authClient } from '@/lib/auth/auth-client';
+import type { Me } from '@/lib/types';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -17,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-export function AccountMenu({ email }: { email: string }) {
+export function AccountMenu({ me }: { me: Me }) {
   const router = useRouter();
 
   async function addPasskey() {
@@ -46,7 +47,7 @@ export function AccountMenu({ email }: { email: string }) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align='end' className='w-auto'>
         <DropdownMenuLabel className='font-normal text-muted-foreground'>
-          {email}
+          {me.email}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={addPasskey}>

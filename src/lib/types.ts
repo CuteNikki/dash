@@ -1,3 +1,4 @@
+import type { Role } from '@/lib/auth/roles';
 import type { SavedCell } from '@/lib/dashboard/layout';
 import type { ContainerState, DockerInfo } from '@/lib/docker/docker';
 import type { HostTile } from '@/lib/host/host-tiles';
@@ -107,6 +108,15 @@ export type UsageHistory = {
   cpu: number[];
   /** Bytes */
   memory: number[];
+};
+
+/** Whoever's signed in, as the page knows them: what they may do follows from their role. */
+export type Me = {
+  name: string;
+  email: string;
+  role: Role;
+  /** The groups they see; every one for a role that sees all */
+  groups: string[];
 };
 
 export type Dashboard = {

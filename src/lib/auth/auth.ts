@@ -9,6 +9,7 @@ import { admin, twoFactor } from 'better-auth/plugins';
 import { createAccessControl } from 'better-auth/plugins/access';
 import { defaultStatements } from 'better-auth/plugins/admin/access';
 
+import { MIN_PASSWORD } from '@/lib/auth/password';
 import { accountBeingCreated } from '@/lib/auth/setup';
 import { db } from '@/lib/db';
 import { SERVER_NAME, SITE_URL } from '@/lib/site';
@@ -51,7 +52,7 @@ const ADMIN_PATHS = [
 
 export const auth = betterAuth({
   database: prismaAdapter(db, { provider: 'postgresql' }),
-  emailAndPassword: { enabled: true },
+  emailAndPassword: { enabled: true, minPasswordLength: MIN_PASSWORD },
   user: {
     // There's no mail to confirm a new address with, so it changes at once,
     // for someone signed in as themselves

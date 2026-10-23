@@ -3,10 +3,10 @@
 import { z } from 'zod';
 
 import { auth } from '@/lib/auth/auth';
+import { MIN_PASSWORD } from '@/lib/auth/password';
 import { hasAccount } from '@/lib/auth/session';
 import { isSetupCode, whileCreatingAccount } from '@/lib/auth/setup';
 
-const MIN_PASSWORD = 12;
 
 const SetupInput = z.object({
   code: z.string().min(1, 'Enter the setup code'),

@@ -22,7 +22,7 @@ import {
   type View,
 } from '@/lib/dashboard/view';
 import { fetcher } from '@/lib/fetcher';
-import type { Dashboard as DashboardData, Service } from '@/lib/types';
+import type { Dashboard as DashboardData, Me, Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 import { AccountMenu } from '@/components/chrome/account-menu';
@@ -53,7 +53,7 @@ export function Dashboard({
   initialColumns,
   initialView,
   initialFilter,
-  email,
+  me,
 }: {
   initial: DashboardData;
   /** The columns the screen had last time, so the first paint has them */
@@ -62,7 +62,8 @@ export function Dashboard({
   initialView: View;
   /** The list's filter, as picked last time */
   initialFilter: ListFilter;
-  email: string;
+  /** Whoever's signed in, whose role says what shows */
+  me: Me;
 }) {
   const columns = useColumns(initialColumns);
   const [view, setView] = useState(initialView);
@@ -276,7 +277,7 @@ export function Dashboard({
             <span className='max-sm:hidden'>{editing ? 'Done' : 'Edit'}</span>
           </Button>
           <ThemeButton />
-          <AccountMenu email={email} />
+          <AccountMenu me={me} />
         </div>
       </header>
       <Board

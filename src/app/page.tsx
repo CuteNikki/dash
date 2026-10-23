@@ -40,7 +40,12 @@ export default async function Home() {
       initialColumns={columns}
       initialView={viewFromCookie(cookieStore.get(VIEW_COOKIE)?.value)}
       initialFilter={filterFromCookie(cookieStore.get(FILTER_COOKIE)?.value)}
-      email={access.user.email}
+      me={{
+        name: access.user.name,
+        email: access.user.email,
+        role: access.role,
+        groups: access.groups,
+      }}
     />
   );
 }

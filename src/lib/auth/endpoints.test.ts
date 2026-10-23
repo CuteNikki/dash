@@ -25,7 +25,10 @@ const CHECKING_HELPERS: Record<string, string[]> = {
 };
 
 /** Doors meant for whoever isn't signed in yet. */
-const OPEN = new Set(['actions/setup.ts:createAccount']);
+const OPEN = new Set([
+  'actions/setup.ts:createAccount',
+  'actions/invites.ts:acceptInvite',
+]);
 
 /** Each exported function in a file, with its body up to the next export. */
 function exported(text: string) {
