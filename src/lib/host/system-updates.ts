@@ -25,10 +25,21 @@ const STATUS = `/run/${UNIT}.status`;
 /** How long what was found is trusted, as each look starts a privileged container. */
 const FRESH_MS = 10 * 60_000;
 
-/** A command run as the server, as root, with its own tools to hand. */
-function asHost(script: string): Run {
+/**
+ * A command run as the server, as root, with its own tools to hand: by its
+ * sh, or by bash for a script that needs it, as one piping a command into
+ * another that has to fail when the first one does.
+ */
+export function asHost(
+  script: string,
+  {
+    shell = '/bin/sh',
+    env,
+  }: { shell?: string; env?: Record<string, string> } = {}
+): Run {
   return {
     image: IMAGE,
+    env,
     cmd: [
       'nsenter',
       '-t',
@@ -39,7 +50,7 @@ function asHost(script: string): Run {
       '-n',
       '-p',
       '--',
-      '/bin/sh',
+      shell,
       '-c',
       `export PATH=/usr/sbin:/usr/bin:/sbin:/bin LC_ALL=C; ${script}`,
     ],

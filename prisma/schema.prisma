@@ -292,3 +292,28 @@ model Alert {
   @@index([key, resolvedAt])
   @@index([since])
 }
+
+/// One run of the backups, every part of it, nightly or asked for: how
+/// each part went. The backups themselves are restic's snapshots.
+model BackupRun {
+  id         String    @id @default(cuid())
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  /// "schedule", or the name of who asked for it
+  trigger    String
+  /// Each part's outcome: [{ source, ok, error?, added? }]
+  results    Json      @default("[]")
+
+  @@index([startedAt])
+}
+
+/// A part of the backups as it's been set here: one switched off, as a
+/// game server nobody plays on, or a folder added outside ~/services, as
+/// apps' settings kept elsewhere. Every other part is backed up as found.
+model BackupSource {
+  /// "postgres/dash", "folder/papermc", "path:/docker/config"
+  id      String  @id
+  enabled Boolean @default(true)
+  /// For a folder added here: where it is on the server
+  path    String?
+}

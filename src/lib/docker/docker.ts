@@ -90,6 +90,7 @@ type RawContainer = {
     PublicPort?: number;
     Type: string;
   }[];
+  Mounts?: { Type: string; Source: string; Destination: string }[];
 };
 
 export type ContainerState =
@@ -114,6 +115,8 @@ export type Container = {
   created: number;
   labels: Record<string, string>;
   ports: { ip?: string; private: number; public?: number; type: string }[];
+  /** The server's folders it mounts, by where they are on the server */
+  binds: string[];
   /** The compose stack it belongs to, if any */
   stack?: { project: string; service: string; dir: string; files: string[] };
 };
@@ -144,6 +147,9 @@ function toContainer(raw: RawContainer): Container {
       public: p.PublicPort,
       type: p.Type,
     })),
+    binds: (raw.Mounts ?? [])
+      .filter((m) => m.Type === 'bind')
+      .map((m) => m.Source),
     stack: project
       ? {
           project,
