@@ -265,9 +265,14 @@ function SystemButton({
       {count > 0 || system.reboot ? <ArrowUpCircleIcon /> : <CheckIcon />}
       {/* On a narrow tile, as History is, its icon and how many wait, its
           color saying whether a restart's needed */}
-      <span className='@max-md:hidden'>{words.join(', ')}</span>
-      {count > 0 && (
-        <span className='font-mono tabular-nums @md:hidden'>{count}</span>
+      {count > 0 ? (
+        <>
+          <span className='@max-md:hidden'>{words.join(', ')}</span>
+          <span className='font-mono tabular-nums @md:hidden'>{count}</span>
+        </>
+      ) : (
+        // Nothing waiting: its icon alone, square as History is
+        <ButtonLabel hideOn='tile'>{words.join(', ')}</ButtonLabel>
       )}
     </Button>
   );
