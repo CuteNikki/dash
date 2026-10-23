@@ -120,6 +120,8 @@ export type Me = {
   emailVerified: boolean;
   /** The dashboard can send mail, to confirm an address and so on */
   mail: boolean;
+  /** They're mailed the monitor's alerts, if they see the server */
+  alertMail: boolean;
   role: Role;
   /** The groups they see; every one for a role that sees all */
   groups: string[];
@@ -141,6 +143,24 @@ export type Dashboard = {
   updates: { checkedAt?: number; checking: boolean };
   /** The server's own updates, Ubuntu's packages, once they've been looked at */
   system?: SystemUpdates;
+  /** What the monitor finds wrong now, for those who see the server */
+  alerts?: AlertView[];
+};
+
+/** Something wrong the monitor noticed, as the browser shows it. */
+export type AlertView = {
+  id: string;
+  kind: 'service' | 'disk' | 'site' | 'cert' | 'backup';
+  /** What it's about: "minecraft", "niso.moe" */
+  subject: string;
+  /** What's wrong: "Stopped, exit code 137" */
+  message: string;
+  /** Milliseconds since 1970 */
+  since: number;
+  /** Over, and when; none while it's open */
+  resolvedAt?: number;
+  /** It was mailed to those who get alerts */
+  mailed: boolean;
 };
 
 /** The server's packages waiting to be updated, and what else Ubuntu says about it. */

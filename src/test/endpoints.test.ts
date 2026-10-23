@@ -40,10 +40,12 @@ function exported(text: string) {
 }
 
 function files(dir: string, name: (file: string) => boolean): string[] {
-  return readdirSync(join(src, dir), { recursive: true, encoding: 'utf8' })
-    .filter(name)
-    // With / on Windows too, as the lists above and below write them
-    .map((file) => join(dir, file).replaceAll('\\', '/'));
+  return (
+    readdirSync(join(src, dir), { recursive: true, encoding: 'utf8' })
+      .filter(name)
+      // With / on Windows too, as the lists above and below write them
+      .map((file) => join(dir, file).replaceAll('\\', '/'))
+  );
 }
 
 const doors = [

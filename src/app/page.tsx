@@ -10,6 +10,7 @@ import {
   VIEW_COOKIE,
   viewFromCookie,
 } from '@/lib/dashboard/view';
+import { db } from '@/lib/db';
 import { mailReady } from '@/lib/mail/mail';
 import { SERVER_NAME } from '@/lib/site';
 
@@ -31,6 +32,10 @@ export const instant = false;
 
 export default async function Home() {
   const access = await requireAccess('view');
+  const settings = await db.user.findUnique({
+    where: { id: access.user.id },
+    select: { alertMail: true },
+  });
   // As many columns as the screen had last time, so tiles start where they'll stay
   const cookieStore = await cookies();
   const columns =
@@ -46,6 +51,7 @@ export default async function Home() {
         email: access.user.email,
         emailVerified: access.user.emailVerified,
         mail: mailReady(),
+        alertMail: settings?.alertMail ?? false,
         role: access.role,
         groups: access.groups,
       }}

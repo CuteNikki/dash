@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { openAlerts } from '@/lib/alerts/read';
 import { can, seesGroup, type Role } from '@/lib/auth/roles';
 import { DEFAULT_GROUP } from '@/lib/dashboard/groups';
 import { currentSites } from '@/lib/dashboard/sites';
@@ -293,6 +294,7 @@ export async function getDashboard(who: {
     hostComing: server && hostComing,
     updates: { checkedAt: updates.checkedAt, checking: updates.checking },
     system: server ? currentSystemUpdates() : undefined,
+    alerts: server ? await openAlerts() : undefined,
   };
 }
 

@@ -1,6 +1,14 @@
 import 'server-only';
 
 import { KEEP_ACTIVITY_DAYS } from '@/lib/activity/read';
+import { KEEP_ALERTS_DAYS, notify } from '@/lib/alerts/alerts';
+import {
+  checkCerts,
+  checkDisk,
+  checkServices,
+  checkSites,
+  type SiteResult,
+} from '@/lib/alerts/checks';
 import { inBackground } from '@/lib/background';
 import { serviceKey, siteUrl } from '@/lib/dashboard/services';
 import { probeSite } from '@/lib/dashboard/sites';
@@ -82,11 +90,23 @@ async function tick() {
   try {
     const at = minuteOf(Date.now());
     const containers = await listContainers().catch(() => undefined);
-    await Promise.all([
+    const [host, , sites] = await Promise.all([
       recordHost(at),
       containers && recordContainers(at, containers),
       recordSites(at),
     ]);
+    // Then what's wrong, from the same readings, each check on its own so
+    // one failing doesn't keep the others from saying theirs
+    const checks = await Promise.allSettled([
+      containers && checkServices(containers),
+      checkDisk(host.disk),
+      checkSites(sites),
+      containers && checkCerts(containers),
+    ]);
+    for (const check of checks) {
+      if (check.status === 'rejected') console.error('Alerts:', check.reason);
+    }
+    await notify();
     if (Date.now() - monitor.lastPrune > PRUNE_MS) {
       monitor.lastPrune = Date.now();
       await prune();
@@ -104,7 +124,7 @@ async function recordHost(at: Date) {
   const last = monitor.lastHost;
   monitor.lastHost = now;
   // A restart starts the kernel's counters again
-  if (!last || now.uptime < last.uptime) return;
+  if (!last || now.uptime < last.uptime) return now;
   const seconds = (now.at - last.at) / 1000;
   const rate = (from: number, to: number) => Math.max(0, to - from) / seconds;
   const ticks = now.cpu.total - last.cpu.total;
@@ -124,6 +144,7 @@ async function recordHost(at: Date) {
     },
     select: { at: true },
   });
+  return now;
 }
 
 /**
@@ -162,18 +183,18 @@ async function recordContainers(at: Date, containers: Container[]) {
 }
 
 /** Asks each website tile's page how it is, as the dashboard does. */
-async function recordSites(at: Date) {
+async function recordSites(at: Date): Promise<SiteResult[]> {
   const tiles = await db.tile.findMany({
     where: { key: { startsWith: SITE_PREFIX } },
-    select: { key: true, addresses: true },
+    select: { key: true, name: true, addresses: true },
   });
-  const rows = await Promise.all(
+  const results = await Promise.all(
     tiles.flatMap((t) => {
       const url = siteUrl(t.addresses);
       if (!url) return [];
       return probeSite(url.href).then((p) => ({
         key: t.key,
-        at,
+        name: t.name || url.host,
         ok: p.ok,
         ms: p.ms,
         status: p.status,
@@ -181,10 +202,21 @@ async function recordSites(at: Date) {
       }));
     })
   );
-  await db.siteCheckLog.createMany({ data: rows, skipDuplicates: true });
+  await db.siteCheckLog.createMany({
+    data: results.map((r) => ({
+      key: r.key,
+      at,
+      ok: r.ok,
+      ms: r.ms,
+      status: r.status,
+      error: r.error,
+    })),
+    skipDuplicates: true,
+  });
+  return results;
 }
 
-/** Clears out readings, and the activity log, older than they're kept for. */
+/** Clears out readings, the activity log and alerts long over, older than they're kept for. */
 async function prune() {
   const now = Date.now();
   const usage = new Date(now - KEEP_USAGE_DAYS * DAY_MS);
@@ -195,6 +227,11 @@ async function prune() {
     db.containerSample.deleteMany({ where: { at: { lt: usage } } }),
     db.siteCheckLog.deleteMany({ where: { at: { lt: checks } } }),
     db.activity.deleteMany({ where: { at: { lt: activity } } }),
+    db.alert.deleteMany({
+      where: {
+        resolvedAt: { lt: new Date(now - KEEP_ALERTS_DAYS * DAY_MS) },
+      },
+    }),
   ]);
 }
 

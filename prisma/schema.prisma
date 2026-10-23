@@ -81,6 +81,8 @@ model User {
   twoFactorEnabled Boolean?    @default(false)
   // The groups an operator or viewer sees; an owner or admin sees all
   allowedGroups    String[]    @default([])
+  // Mailed the monitor's alerts, for those who see the server
+  alertMail        Boolean     @default(true)
   sessions         Session[]
   accounts         Account[]
   passkeys         Passkey[]
@@ -265,4 +267,28 @@ model Activity {
   error  String?
 
   @@index([at])
+}
+
+/// Something wrong the monitor noticed, from when it began until it was
+/// right again: a service down, the disk filling, a website not answering,
+/// a certificate running out, a backup failing. Kept 90 days once it's over.
+model Alert {
+  id         String    @id @default(cuid())
+  /// What it's about, the same each time: "service:papermc/minecraft-paper",
+  /// "disk", "site:…", "cert:example.com", "backup:postgres"
+  key        String
+  /// service, disk, site, cert or backup
+  kind       String
+  /// What's wrong, in a few words, as it was last found: "Stopped, exit code 137"
+  message    String
+  /// What it's about, for reading: "minecraft", "niso.moe"
+  subject    String
+  since      DateTime  @default(now())
+  /// Mailed to those who get alerts; none until it's lasted long enough
+  notifiedAt DateTime?
+  /// Over, as it was right again; none while it's open
+  resolvedAt DateTime?
+
+  @@index([key, resolvedAt])
+  @@index([since])
 }

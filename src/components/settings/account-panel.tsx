@@ -6,8 +6,10 @@ import { toast } from 'sonner';
 
 import { BadgeCheckIcon } from 'lucide-react';
 
+import { setAlertMail } from '@/actions/account';
 import { authClient } from '@/lib/auth/auth-client';
 import { MIN_PASSWORD } from '@/lib/auth/password';
+import { can } from '@/lib/auth/roles';
 import type { Me } from '@/lib/types';
 
 import { attempt } from '@/components/common/toasts';
@@ -16,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 
 /** Who they are, as the dashboard knows them, and the password they sign in with. */
 export function AccountPanel({ me }: { me: Me }) {
@@ -23,6 +26,7 @@ export function AccountPanel({ me }: { me: Me }) {
     <div className='grid grid-cols-1 gap-3 lg:grid-cols-2 lg:items-start'>
       <ProfileForm me={me} />
       <PasswordForm />
+      {can(me.role, 'server') && <AlertsForm me={me} />}
     </div>
   );
 }
@@ -277,5 +281,43 @@ function EmailStatus({ me }: { me: Me }) {
         Send me a link to confirm it
       </Button>
     </div>
+  );
+}
+
+/** Whether the monitor's alerts are mailed to them, for those who see the server. */
+function AlertsForm({ me }: { me: Me }) {
+  const router = useRouter();
+  const [on, setOn] = useState(me.alertMail);
+  const [pending, startTransition] = useTransition();
+  return (
+    <Panel title='Alerts'>
+      <div className='flex items-center gap-2'>
+        <Switch
+          id='alert-mail'
+          checked={on}
+          disabled={pending || !me.mail}
+          onCheckedChange={(next) => {
+            setOn(next);
+            startTransition(() =>
+              attempt("Couldn't change that", async () => {
+                const { error } = await setAlertMail(next);
+                if (error) {
+                  setOn(!next);
+                  toast.error("Couldn't change that", { description: error });
+                  return;
+                }
+                router.refresh();
+              })
+            );
+          }}
+        />
+        <Label htmlFor='alert-mail'>Mail me alerts</Label>
+      </div>
+      <p className='text-muted-foreground'>
+        {me.mail
+          ? `When a service goes down, the disk fills, a website stops answering, a certificate is running out or a backup fails, mailed to ${me.email}, and again once it's right.`
+          : "Mail isn't set up yet, so alerts only show under the bell at the top."}
+      </p>
+    </Panel>
   );
 }
