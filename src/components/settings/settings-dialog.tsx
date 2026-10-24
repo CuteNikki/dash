@@ -34,9 +34,12 @@ export function SettingsDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChangeAction}>
-      {/* Full screen on a phone, a large window in the middle on a computer */}
+      {/* Full screen on a phone; on a computer, a large window in the middle
+          as tall as its tab, up to 5/6 of the screen, so a short one leaves
+          no empty space under it. Its least height keeps a short tab from
+          shrinking the window much when switched to */}
       <DialogContent
-        className='flex h-full max-h-none max-w-full flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-5/6 sm:max-w-5xl sm:rounded-xl'
+        className='flex h-full max-h-none max-w-full flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-fit sm:max-h-5/6 sm:min-h-[min(32rem,83vh)] sm:max-w-5xl sm:rounded-xl'
         // Focus the window itself, not its first field or button; Tab still
         // reaches each
         onOpenAutoFocus={(e) => {
@@ -90,7 +93,7 @@ export function SettingsDialog({
   );
 }
 
-/** A tab's panel, scrolling within the window, as the service window's do. */
+/** A tab's panel, scrolling within the window once it's taller than there's room for. */
 function Tab({
   value,
   children,
@@ -99,10 +102,10 @@ function Tab({
   children: React.ReactNode;
 }) {
   return (
-    <TabsContent value={value} className='min-h-0'>
+    <TabsContent value={value} className='flex min-h-0 flex-col'>
       <ScrollFade
-        fill
-        className='h-full overflow-x-hidden overflow-y-auto'
+        shrink
+        className='min-h-0 overflow-x-hidden overflow-y-auto'
         fadeFrom='from-popover'
       >
         {children}
