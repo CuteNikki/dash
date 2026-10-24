@@ -17,6 +17,7 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from '@/components/ui/input-group';
+import { Toggle } from '@/components/ui/toggle';
 
 type Page = { entries: ActivityEntry[]; more: boolean };
 
@@ -30,11 +31,13 @@ const REFRESH_MS = 30_000;
 export function ActivityPanel() {
   const [search, setSearch] = useState('');
   const query = useDebounced(search.trim());
+  const [failed, setFailed] = useState(false);
   const { data, error, size, setSize, isValidating } = useSWRInfinite<Page>(
     (index, previous: Page | null) => {
       if (previous && !previous.more) return null;
       const params = new URLSearchParams();
       if (query) params.set('q', query);
+      if (failed) params.set('failed', '1');
       const last = previous?.entries.at(-1);
       if (last) params.set('before', String(last.at));
       return `/api/activity?${params}`;
@@ -56,17 +59,29 @@ export function ActivityPanel() {
             days
           </p>
         </div>
-        <InputGroup className='h-8 w-full sm:w-56'>
-          <InputGroupAddon>
-            <SearchIcon />
-          </InputGroupAddon>
-          <InputGroupInput
-            placeholder='Filter by person, service…'
-            aria-label='Filter the activity'
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </InputGroup>
+        <div className='flex w-full gap-2 sm:w-auto'>
+          <InputGroup className='h-8 flex-1 sm:w-56 sm:flex-none'>
+            <InputGroupAddon>
+              <SearchIcon />
+            </InputGroupAddon>
+            <InputGroupInput
+              placeholder='Filter by person, service…'
+              aria-label='Filter the activity'
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </InputGroup>
+          <Toggle
+            variant='outline'
+            size='lg'
+            pressed={failed}
+            onPressedChange={setFailed}
+            className='data-[state=on]:text-destructive'
+          >
+            <XCircleIcon />
+            Failed
+          </Toggle>
+        </div>
       </div>
       {error && !data ? (
         <p className='text-destructive'>{error.message}</p>
@@ -78,7 +93,11 @@ export function ActivityPanel() {
         </div>
       ) : entries.length === 0 ? (
         <p className='text-muted-foreground'>
-          {query ? 'Nothing matches that.' : 'Nothing done yet.'}
+          {query
+            ? 'Nothing matches that.'
+            : failed
+              ? 'Nothing has failed.'
+              : 'Nothing done yet.'}
         </p>
       ) : (
         <div className='flex flex-col gap-4'>

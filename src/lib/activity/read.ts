@@ -11,19 +11,23 @@ export const KEEP_ACTIVITY_DAYS = 90;
 
 /**
  * A page of the log, newest first, from before a moment if given, and only
- * entries whose person, target or detail has `search` in it, if given.
+ * entries whose person, target or detail has `search` in it, if given;
+ * only those that didn't work, if `failed`.
  */
 export async function readActivity({
   before,
   search,
+  failed,
 }: {
   before?: number;
   search?: string;
+  failed?: boolean;
 }): Promise<{ entries: ActivityEntry[]; more: boolean }> {
   const text = search?.trim();
   const rows = await db.activity.findMany({
     where: {
       ...(before ? { at: { lt: new Date(before) } } : {}),
+      ...(failed ? { ok: false } : {}),
       ...(text
         ? {
             OR: (['user', 'target', 'detail', 'action'] as const).map(
