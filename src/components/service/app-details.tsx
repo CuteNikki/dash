@@ -8,9 +8,51 @@ import type { DetailCell, DetailSection } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 import { TextSkeleton } from '@/components/common/skeletons';
+import { useKeptShape } from '@/components/common/use-kept';
 
 /** How often an app's details are read again while its window is open. */
 const REFRESH_MS = 10_000;
+
+/**
+ * A cell as last seen, while it's read again: how many characters it had,
+ * which in the mono type it's in is how wide it was, and whether it had a
+ * progress bar.
+ */
+type Placeholder = { chars: number; bar?: boolean };
+type ShownCell = DetailCell | Placeholder;
+/** A section as shown: read, or as it was last time, its cells placeholders. */
+type ShownSection =
+  | (Omit<Extract<DetailSection, { kind: 'table' }>, 'rows'> & {
+      rows: { cells: ShownCell[]; dim?: boolean }[];
+    })
+  | (Omit<Extract<DetailSection, { kind: 'facts' }>, 'facts'> & {
+      facts: { label: string; value: ShownCell }[];
+    });
+
+function placeholderOf(cell: DetailCell): Placeholder {
+  if (typeof cell === 'string') return { chars: cell.length };
+  if ('at' in cell) return { chars: formatMoment(cell.at).length };
+  return { chars: `${Math.round(cell.progress * 100)}%`.length, bar: true };
+}
+
+/** A section with its cells as placeholders as wide as theirs, to keep. */
+function shapeOf(section: DetailSection): ShownSection {
+  return section.kind === 'facts'
+    ? {
+        ...section,
+        facts: section.facts.map((f) => ({
+          ...f,
+          value: placeholderOf(f.value),
+        })),
+      }
+    : {
+        ...section,
+        rows: section.rows.map((r) => ({
+          ...r,
+          cells: r.cells.map(placeholderOf),
+        })),
+      };
+}
 
 /**
  * A card in a service's window: its title, how many of something if it
@@ -57,7 +99,7 @@ export function Panel({
 export function Facts({
   facts,
 }: {
-  facts: { label: string; value: DetailCell }[];
+  facts: { label: string; value: ShownCell }[];
 }) {
   return (
     <dl className='grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] gap-x-4 gap-y-3'>
@@ -80,6 +122,12 @@ export function AppDetails({ containerId }: { containerId: string }) {
     fetcher,
     { refreshInterval: REFRESH_MS }
   );
+  // While they're read, the sections as they were last time
+  const kept = useKeptShape<ShownSection[] | undefined>(
+    `details:${containerId}`,
+    data?.map(shapeOf),
+    undefined
+  );
   if (error && !data) {
     return (
       <Panel title='Details'>
@@ -89,9 +137,10 @@ export function AppDetails({ containerId }: { containerId: string }) {
       </Panel>
     );
   }
+  if (!data && kept) return <Sections sections={kept} />;
   if (!data) {
-    // Its sections' shapes aren't known until they're read, so a card of a
-    // few lines stands in for the first
+    // Its sections' shapes aren't known until they're first read, so a
+    // card of a few lines stands in for the first
     return (
       <Panel title='Details'>
         <div className='flex flex-col gap-2'>
@@ -102,7 +151,12 @@ export function AppDetails({ containerId }: { containerId: string }) {
       </Panel>
     );
   }
-  return data.map((section) =>
+  return <Sections sections={data} />;
+}
+
+/** Each section as a card: its facts, or its table and how many rows it has. */
+function Sections({ sections }: { sections: ShownSection[] }) {
+  return sections.map((section) =>
     section.kind === 'facts' ? (
       <Panel key={section.title} title={section.title}>
         <Facts facts={section.facts} />
@@ -126,7 +180,7 @@ export function AppDetails({ containerId }: { containerId: string }) {
 function DetailTable({
   section,
 }: {
-  section: Extract<DetailSection, { kind: 'table' }>;
+  section: Extract<ShownSection, { kind: 'table' }>;
 }) {
   // With numbers in it, the first column takes what's left and cuts its text
   // short; the rest keep to their content, together at the right, so a row's
@@ -191,8 +245,26 @@ function DetailTable({
   );
 }
 
-function Cell({ cell }: { cell: DetailCell }) {
+function Cell({ cell }: { cell: ShownCell }) {
   if (typeof cell === 'string') return cell;
+  if ('chars' in cell) {
+    const placeholder = (
+      <span
+        className='inline-block align-top'
+        style={{ width: `${cell.chars}ch` }}
+      >
+        <TextSkeleton className='w-full' />
+      </span>
+    );
+    return cell.bar ? (
+      <span className='flex items-center justify-end gap-2'>
+        <span aria-hidden className='h-1 w-16 rounded-full bg-foreground/10' />
+        {placeholder}
+      </span>
+    ) : (
+      placeholder
+    );
+  }
   if ('at' in cell) return formatMoment(cell.at);
   const percent = Math.round(cell.progress * 100);
   return (
