@@ -147,6 +147,7 @@ async function recordHost(at: Date) {
       diskWritten: rate(last.diskIo.written, now.diskIo.written),
       diskWait: ops > 0 ? (now.diskIo.waitMs - last.diskIo.waitMs) / ops : 0,
       load: now.load[0],
+      steal: ticks > 0 ? ((now.cpu.steal - last.cpu.steal) / ticks) * 100 : 0,
     },
     select: { at: true },
   });

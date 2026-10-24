@@ -191,15 +191,18 @@ function parseProcesses(raw: Raw, id: string) {
   return processes;
 }
 
-/** CPU time, and the part of it spent busy, in clock ticks */
-export type CpuTime = { busy: number; total: number };
+/**
+ * CPU time, the part of it spent busy, and the part of that taken by other
+ * machines on the same host (steal), in clock ticks
+ */
+export type CpuTime = { busy: number; total: number; steal: number };
 
 /** cpu  user nice system idle iowait irq softirq steal …, for all or one core */
 function cpuTime(line: string): CpuTime {
   const fields = line.trim().split(/\s+/).slice(1).map(Number);
   const total = fields.reduce((a, b) => a + b, 0);
   const idle = fields[3] + (fields[4] ?? 0);
-  return { busy: total - idle, total };
+  return { busy: total - idle, total, steal: fields[7] ?? 0 };
 }
 
 function parseCpu(stat: string) {

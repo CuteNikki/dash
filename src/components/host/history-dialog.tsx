@@ -111,6 +111,14 @@ export function HistoryDialog({
       measure: MEASURES.load,
       lines: (h) => [{ label: 'Load', values: h.load }],
     },
+    {
+      // The provider's other machines' share of this one's CPU; a stall
+      // here, not in the disk's wait, is the host being busy elsewhere
+      title: 'CPU steal',
+      measure: MEASURES.steal,
+      lines: (h) => [{ label: 'Taken', values: h.steal }],
+      peak: true,
+    },
   ];
 
   return (

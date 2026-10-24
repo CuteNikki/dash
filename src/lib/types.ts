@@ -395,6 +395,7 @@ export type HostHistory = History<
   | 'diskWritten'
   | 'diskWait'
   | 'load'
+  | 'steal'
 >;
 
 /** A service's container over a while: percent of one core, and bytes. */

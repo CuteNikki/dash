@@ -151,6 +151,8 @@ export const MEASURES = {
    * still shows
    */
   serverCpu: { format: formatCpu, floor: 25 },
+  /** A few percent is already worth seeing, where the CPU's own scale would flatten it */
+  steal: { format: formatCpu, floor: 5 },
   memory: { format: formatBytes, floor: 64 * MB },
   /** A page that takes a second is slow; one that takes a tenth isn't worth a line */
   response: { format: formatMs, floor: 1000 },

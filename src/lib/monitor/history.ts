@@ -47,8 +47,9 @@ export async function bucketed<K extends string>(
 }
 
 /**
- * The server over a range: averages, but the slowest the disk was, as a
- * stall a few seconds long is what's looked for, and the disk at its fullest.
+ * The server over a range: averages, but the slowest the disk was and the
+ * most CPU taken by other machines, as a stall a few seconds long is what's
+ * looked for, and the disk at its fullest.
  */
 export function hostHistory(range: HistoryRange): Promise<HostHistory> {
   return bucketed(
@@ -63,6 +64,7 @@ export function hostHistory(range: HistoryRange): Promise<HostHistory> {
       diskWritten: 'avg("diskWritten")',
       diskWait: 'max("diskWait")',
       load: 'avg(load)',
+      steal: 'max(steal)',
     },
     range
   );

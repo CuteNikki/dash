@@ -215,6 +215,10 @@ model HostSample {
   diskWait    Float
   /// Processes waiting for the CPU, over the last minute
   load        Float
+  /// Percent of all cores' time the provider gave to other machines on the
+  /// same host instead; while it's high, everything here runs slower
+  /// Null in readings from before it was kept
+  steal       Float?
 }
 
 /// One service's container over one minute.
