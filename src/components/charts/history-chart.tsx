@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { Measure } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -59,8 +59,8 @@ type ChartSeries = {
 };
 
 /**
- * Recent readings as lines on one scale. Hovering, or the arrow keys once it
- * has focus, shows what each line read at that moment.
+ * Recent readings as lines on one scale. Hovering, a tap, or the arrow keys
+ * once it has focus, shows what each line read at that moment.
  */
 export function HistoryChart({
   times,
@@ -76,6 +76,33 @@ export function HistoryChart({
   className?: string;
 }) {
   const [index, setIndex] = useState<number>();
+  const ref = useRef<HTMLDivElement>(null);
+  const showing = index !== undefined;
+  // Gone once anything else is touched, the tooltip or another chart
+  // included, or the chart's scrolled along with what it's in: Safari on a
+  // phone neither focuses the chart when it's tapped nor blurs it when
+  // something else is. A log beside it scrolling on its own leaves it be.
+  useEffect(() => {
+    if (!showing) return;
+    const outside = (e: PointerEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setIndex(undefined);
+    };
+    const scrolled = (e: Event) => {
+      const target = e.target as Node;
+      if (target === document || target.contains(ref.current)) {
+        setIndex(undefined);
+      }
+    };
+    document.addEventListener('pointerdown', outside, true);
+    document.addEventListener('scroll', scrolled, {
+      capture: true,
+      passive: true,
+    });
+    return () => {
+      document.removeEventListener('pointerdown', outside, true);
+      document.removeEventListener('scroll', scrolled, true);
+    };
+  }, [showing]);
   const count = times.length;
   if (count < 2) return null;
 
@@ -118,14 +145,17 @@ export function HistoryChart({
 
   return (
     <div
+      ref={ref}
       role='img'
       aria-label={label}
       tabIndex={0}
       // A tap shows the moment under it too, and on a touch screen it stays
-      // once the finger lifts, until something else is tapped (the blur)
+      // once the finger lifts, until something else is tapped or it scrolls;
+      // a finger that starts scrolling the page from it hides it at once
       onPointerDown={(e) => pointAt(e.clientX, e.currentTarget)}
       onPointerMove={(e) => pointAt(e.clientX, e.currentTarget)}
       onPointerLeave={(e) => e.pointerType === 'mouse' && setIndex(undefined)}
+      onPointerCancel={() => setIndex(undefined)}
       onFocus={() => setIndex((i) => i ?? count - 1)}
       onBlur={() => setIndex(undefined)}
       onKeyDown={onKeyDown}
