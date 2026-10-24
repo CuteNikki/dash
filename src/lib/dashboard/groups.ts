@@ -43,3 +43,44 @@ export function groupServices(
 export function groupNames(services: Service[], order: string[] = []) {
   return groupServices(services, order).map((g) => g.name);
 }
+
+/** A group's heading among the list's rows, apart from the services' keys. */
+export const HEADING = 'heading:';
+
+/** The list's rows as dragged among: each group's heading, then its services. */
+export function listRows(groups: ServiceGroup[]) {
+  return groups.flatMap((g) => [
+    HEADING + g.name,
+    ...g.services.map((s) => s.key),
+  ]);
+}
+
+/**
+ * The rows with one moved to another's place, or a heading's: from below,
+ * it goes last in the group above; from above, first in the heading's own.
+ * Above the first heading, it's first in that group.
+ */
+export function moveRow(rows: string[], row: string, on: string) {
+  const next = rows.filter((r) => r !== row);
+  next.splice(rows.indexOf(on), 0, row);
+  if (!next[0].startsWith(HEADING)) next.splice(1, 0, next.shift()!);
+  return next;
+}
+
+/** Each group's services, by the headings above them. */
+export function groupsOf(rows: string[]) {
+  const byGroup = new Map<string, string[]>();
+  let group = '';
+  for (const id of rows) {
+    if (id.startsWith(HEADING)) {
+      group = id.slice(HEADING.length);
+      byGroup.set(group, []);
+    } else byGroup.get(group)!.push(id);
+  }
+  return byGroup;
+}
+
+/** Each group's services once a row's been dropped on another, or on a heading. */
+export function dropRow(rows: string[], row: string, on: string) {
+  return groupsOf(moveRow(rows, row, on));
+}

@@ -160,6 +160,42 @@ export async function saveLayout(input: LayoutInput): Promise<TileResult> {
   ]);
 }
 
+const OrderInput = z.object({
+  /** Every group, in the order they're listed */
+  groups: z.array(Group).max(MAX_RENAMED),
+  /** Every service, in the order they're listed, and its group if it moved to another */
+  services: z
+    .array(z.object({ key: z.string().min(1), group: Group.optional() }))
+    .max(MAX_RENAMED),
+});
+
+export type OrderInput = z.input<typeof OrderInput>;
+
+/**
+ * Saves the list's order, as its rows and groups were dragged: one order for
+ * every screen, apart from the tiles', which each width has its own of.
+ */
+export async function saveListOrder(input: OrderInput): Promise<TileResult> {
+  await requireAccess('manage');
+  const parsed = OrderInput.safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const { groups, services } = parsed.data;
+  await ensureTiles(services.map((s) => s.key));
+  await db.$transaction([
+    ...groups.map((name, position) =>
+      db.group.upsert({
+        where: { name },
+        create: { name, position },
+        update: { position },
+      })
+    ),
+    // updateMany, as for the layout: a container removed meanwhile has no row
+    ...services.map(({ key, group }, position) =>
+      db.tile.updateMany({ where: { key }, data: { position, group } })
+    ),
+  ]);
+}
+
 export type TileSnapshot = NonNullable<
   Awaited<ReturnType<typeof db.tile.findUnique>>
 >;
