@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 
 /** What the password's asked for, and the button that sends it. */
 const PURPOSES = {
@@ -60,7 +61,20 @@ export function TwoFactor() {
   const user = session?.user;
   const on = !!user?.twoFactorEnabled;
 
-  if (isPending && !user) return <TextSkeleton className='w-40' />;
+  if (isPending && !user) {
+    // Its badge and line, and a button's room under them
+    return (
+      <div className='flex flex-col gap-3'>
+        <div className='flex flex-wrap items-center gap-2'>
+          <Skeleton className='h-5 w-12 rounded-full bg-foreground/10' />
+          <span className='min-w-0 flex-1'>
+            <TextSkeleton className='w-96 max-w-full' />
+          </span>
+        </div>
+        <Skeleton className='h-7 w-20 bg-foreground/10' />
+      </div>
+    );
+  }
 
   return (
     <div className='flex flex-col gap-3'>

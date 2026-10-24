@@ -10,6 +10,7 @@ import { authClient } from '@/lib/auth/auth-client';
 
 import { TextSkeleton } from '@/components/common/skeletons';
 import { attempt } from '@/components/common/toasts';
+import { useKeptCount } from '@/components/common/use-kept';
 import { isStale, SignInAgain } from '@/components/settings/sign-in-again';
 import { describeAgent, parseAgent } from '@/components/settings/user-agent';
 import {
@@ -24,6 +25,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type Session = {
   id: string;
@@ -80,6 +82,8 @@ export function SessionList() {
         : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
   const others = sessions.filter((s) => s.id !== current?.session.id);
+  // While they're listed, as many rows as last time
+  const rows = useKeptCount('sessions', data?.length, 1);
 
   function signOut(session: Session) {
     const name = describeAgent(session.userAgent);
@@ -117,7 +121,37 @@ export function SessionList() {
   }
 
   if (isStale(error)) return <SignInAgain />;
-  if (isLoading) return <TextSkeleton className='w-48' />;
+  if (isLoading) {
+    // As many rows as last time, each with its columns, and the button to
+    // sign the others out if there were others
+    return (
+      <div className='flex flex-col gap-3'>
+        <ul className='flex flex-col gap-2'>
+          {Array.from({ length: rows }, (_, i) => (
+            <li key={i} className='flex items-center gap-3'>
+              <MonitorIcon className='size-3.5 shrink-0 text-muted-foreground' />
+              <span className='flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-0.5'>
+                <span className='w-48 min-w-0'>
+                  <TextSkeleton className='w-32' />
+                </span>
+                <span className='w-32 shrink-0'>
+                  <TextSkeleton className='w-24' />
+                </span>
+                <span className='w-36 shrink-0'>
+                  <TextSkeleton className='w-28' />
+                </span>
+                <span className='w-36 shrink-0'>
+                  <TextSkeleton className='w-28' />
+                </span>
+              </span>
+              <span className='size-7 shrink-0' />
+            </li>
+          ))}
+        </ul>
+        {rows > 1 && <Skeleton className='h-7 w-44 bg-foreground/10' />}
+      </div>
+    );
+  }
   if (error) {
     return (
       <p className='text-destructive'>

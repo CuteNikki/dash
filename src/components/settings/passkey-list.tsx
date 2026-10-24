@@ -17,6 +17,7 @@ import { authClient } from '@/lib/auth/auth-client';
 
 import { TextSkeleton } from '@/components/common/skeletons';
 import { attempt } from '@/components/common/toasts';
+import { useKeptCount } from '@/components/common/use-kept';
 import { isStale, SignInAgain } from '@/components/settings/sign-in-again';
 import { describeAgent } from '@/components/settings/user-agent';
 import {
@@ -57,6 +58,8 @@ export function PasskeyList() {
     message?: string;
   }>();
   const [removing, setRemoving] = useState<Passkey>();
+  // While they're listed, as many rows as last time
+  const rows = useKeptCount('passkeys', passkeys?.length, 1);
 
   function add() {
     setAddError(undefined);
@@ -99,7 +102,26 @@ export function PasskeyList() {
         with no password to type.
       </p>
       {isPending && !passkeys ? (
-        <TextSkeleton className='w-40' />
+        rows ? (
+          <ul className='flex flex-col gap-1'>
+            {Array.from({ length: rows }, (_, i) => (
+              <li key={i} className='flex min-h-7 items-center gap-3'>
+                <KeyRoundIcon className='size-3.5 shrink-0 text-muted-foreground' />
+                {/* Its name and when it was added, under it on a phone */}
+                <span className='flex min-w-0 flex-1 flex-col sm:flex-row sm:items-center sm:gap-3'>
+                  <span className='sm:flex-1'>
+                    <TextSkeleton className='w-32' />
+                  </span>
+                  <TextSkeleton className='w-32' />
+                </span>
+                {/* Its two buttons' room */}
+                <span className='h-7 w-15 shrink-0' />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className='text-muted-foreground'>None yet.</p>
+        )
       ) : error && !passkeys ? (
         <p className='text-destructive'>
           Couldn't list them: {error.message || error.statusText}
