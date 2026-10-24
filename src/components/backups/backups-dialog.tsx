@@ -24,6 +24,7 @@ import { formatAgo, formatBytes, formatPast } from '@/lib/format';
 import type { BackupSnapshots, BackupState } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
+import { Failure } from '@/components/common/failure';
 import { RunOutput } from '@/components/common/run-output';
 import { TextSkeleton } from '@/components/common/skeletons';
 import {
@@ -334,10 +335,10 @@ function LastRun({
             : `The last run, ${formatPast(run.startedAt)}, backed up all ${run.results.length}.`}
       </p>
       {failed.length > 0 && (
-        <ul className='mt-1'>
+        <ul className='mt-1 flex flex-col gap-1'>
           {failed.map((r) => (
             <li key={r.source}>
-              {label(r.source)}: {r.error}
+              <Failure>{`${label(r.source)}${r.error ? `: ${r.error}` : ''}`}</Failure>
             </li>
           ))}
         </ul>
