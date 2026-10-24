@@ -82,6 +82,8 @@ export function HistoryChart({
   // included, or the chart's scrolled along with what it's in: Safari on a
   // phone neither focuses the chart when it's tapped nor blurs it when
   // something else is. A log beside it scrolling on its own leaves it be.
+  // Once the finger lifts rather than as it lands: gone as it lands, a
+  // dialog it's in would take a tap on it for one outside, and close.
   useEffect(() => {
     if (!showing) return;
     const outside = (e: PointerEvent) => {
@@ -93,13 +95,13 @@ export function HistoryChart({
         setIndex(undefined);
       }
     };
-    document.addEventListener('pointerdown', outside, true);
+    document.addEventListener('pointerup', outside, true);
     document.addEventListener('scroll', scrolled, {
       capture: true,
       passive: true,
     });
     return () => {
-      document.removeEventListener('pointerdown', outside, true);
+      document.removeEventListener('pointerup', outside, true);
       document.removeEventListener('scroll', scrolled, true);
     };
   }, [showing]);
