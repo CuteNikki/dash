@@ -207,6 +207,11 @@
   [role='button']:not(:disabled) {
     cursor: pointer;
   }
+  /* An icon keeps its size beside words too long for the row, rather than
+     being squeezed; a shrink-* class still overrides it, being a utility */
+  svg.lucide {
+    @apply shrink-0;
+  }
 
   /* Slim scrollbars in the theme's colours, rather than the system's own (on Windows a wide grey bar with arrows).
      Chromium and Safari draw them from these ::-webkit-scrollbar styles, which leave the arrows out. Chromium ignores
