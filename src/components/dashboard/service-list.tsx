@@ -428,16 +428,28 @@ function Row({
                 <ScrollTextIcon />
               </ActionButton>
               {controls && (
-                <ActionButton label='Restart' onClick={() => onRun('restart')}>
+                <ActionButton
+                  label='Restart'
+                  variant='warning'
+                  onClick={() => onRun('restart')}
+                >
                   <RotateCwIcon />
                 </ActionButton>
               )}
               {!controls ? null : running ? (
-                <ActionButton label='Stop' onClick={() => onRun('stop')}>
+                <ActionButton
+                  label='Stop'
+                  variant='destructive'
+                  onClick={() => onRun('stop')}
+                >
                   <SquareIcon />
                 </ActionButton>
               ) : (
-                <ActionButton label='Start' onClick={() => onRun('start')}>
+                <ActionButton
+                  label='Start'
+                  variant='success'
+                  onClick={() => onRun('start')}
+                >
                   <PlayIcon />
                 </ActionButton>
               )}
@@ -449,23 +461,28 @@ function Row({
   );
 }
 
+/** In the service window's colours: red to stop, amber to restart, green to start. */
 function ActionButton({
   label,
+  variant = 'outline',
   onClick,
   children,
 }: {
   label: string;
+  variant?: 'outline' | 'destructive' | 'warning' | 'success';
   onClick: () => void;
   children: React.ReactNode;
 }) {
   return (
     <Button
-      variant='outline'
+      variant={variant}
       size='icon-sm'
       aria-label={label}
       title={label}
       onClick={onClick}
-      className='text-muted-foreground hover:text-foreground'
+      className={cn(
+        variant === 'outline' && 'text-muted-foreground hover:text-foreground'
+      )}
     >
       {children}
     </Button>
