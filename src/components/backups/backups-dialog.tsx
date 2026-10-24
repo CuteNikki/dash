@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils';
 import { Failure } from '@/components/common/failure';
 import { RunOutput } from '@/components/common/run-output';
 import { TextSkeleton } from '@/components/common/skeletons';
+import { useKeptCount } from '@/components/common/use-kept';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -163,8 +164,27 @@ export function BackupsDialog({
   }
 
   const running = busy || !!data?.running;
-  const databases = data?.sources.filter((s) => s.kind === 'postgres') ?? [];
-  const folders = data?.sources.filter((s) => s.kind === 'folder') ?? [];
+  const databases = data?.sources.filter((s) => s.kind === 'postgres');
+  const folders = data?.sources.filter((s) => s.kind === 'folder');
+  // While they're read, as many rows as last time, and the last run's box
+  // if there was one, so nothing moves once they're in
+  const databaseRows = useKeptCount('backups:databases', databases?.length, 3);
+  const folderRows = useKeptCount('backups:folders', folders?.length, 8);
+  // Folders added by hand come last, with a button to remove in place of a switch
+  const addedRows = useKeptCount(
+    'backups:added',
+    folders?.filter((s) => s.added).length,
+    0
+  );
+  const hadLastRun = useKeptCount(
+    'backups:last-run',
+    data && (data.lastRun ? 1 : 0),
+    1
+  );
+  const placeholders = (n: number, added = 0) =>
+    Array.from({ length: n }, (_, i) => (
+      <SourceRow key={i} index={i} added={i >= n - added} />
+    ));
   const row = (s: Source) => (
     <SourceRow
       key={s.id}
@@ -219,26 +239,31 @@ export function BackupsDialog({
               Couldn&apos;t read the backups: {readError}
             </p>
           )}
-          {data?.lastRun && (
+          {data?.lastRun ? (
             <LastRun run={data.lastRun} sources={data.sources} />
+          ) : (
+            !data &&
+            !error &&
+            hadLastRun > 0 && (
+              <div className='rounded-lg bg-muted p-3'>
+                <p>
+                  <TextSkeleton className='w-96 max-w-full' />
+                </p>
+              </div>
+            )
           )}
 
           {output && (
             <RunOutput lines={output} placeholder='Starting restic…' />
           )}
 
-          {!data ? (
-            <div className='flex flex-col gap-3'>
-              <TextSkeleton className='w-64' />
-              <TextSkeleton className='w-48' />
-            </div>
-          ) : (
+          {!(error && !data) && (
             <>
               <Section title='Databases' icon={<DatabaseIcon />}>
-                {databases.map(row)}
+                {databases?.map(row) ?? placeholders(databaseRows)}
               </Section>
               <Section title='Folders' icon={<FolderIcon />}>
-                {folders.map(row)}
+                {folders?.map(row) ?? placeholders(folderRows, addedRows)}
               </Section>
               <AddFolder onAddedAction={() => void mutate()} />
             </>
@@ -349,45 +374,57 @@ function LastRun({
 
 /**
  * A part: its last backup and how many are kept, on or off, backing it up
- * now on its own, and its restore.
+ * now on its own, and its restore. Without one, the same row with
+ * placeholders, while the parts are read.
  */
 function SourceRow({
   source,
+  index = 0,
+  added = source?.added,
   snapshots,
-  disabled,
+  disabled = true,
   backingUp,
   onBackUpAction,
   onRestoreAction,
   onToggleAction,
   onChangedAction,
 }: {
-  source: Source;
+  source?: Source;
+  /** A placeholder's place, for its name's length */
+  index?: number;
+  /** A placeholder for a folder added by hand */
+  added?: boolean;
   /** Its backups, newest first; none while they're read */
   snapshots?: Snapshot[];
-  disabled: boolean;
+  disabled?: boolean;
   /** Being backed up on its own now */
-  backingUp: boolean;
-  onBackUpAction: () => void;
-  onRestoreAction: () => void;
-  onToggleAction: (on: boolean) => void;
-  onChangedAction: () => void;
+  backingUp?: boolean;
+  onBackUpAction?: () => void;
+  onRestoreAction?: () => void;
+  onToggleAction?: (on: boolean) => void;
+  onChangedAction?: () => void;
 }) {
   const [pending, startTransition] = useTransition();
   const kept = snapshots?.filter((s) => !s.beforeRestore) ?? [];
   const last = kept[0];
+  const label = source?.label ?? 'a part';
   return (
     <li className='flex flex-wrap items-center gap-x-3 gap-y-1 py-2'>
       <div className='flex min-w-0 flex-1 flex-col'>
         <span
           className={cn(
             'font-mono wrap-break-word',
-            !source.enabled && 'text-muted-foreground'
+            source && !source.enabled && 'text-muted-foreground'
           )}
         >
-          {source.label}
+          {source?.label ?? (
+            <TextSkeleton className={index % 2 ? 'w-40' : 'w-28'} />
+          )}
         </span>
         <span className='text-muted-foreground'>
-          {!source.enabled ? (
+          {!source ? (
+            <TextSkeleton className='w-48' />
+          ) : !source.enabled ? (
             'Switched off'
           ) : !snapshots ? (
             <TextSkeleton className='w-40' />
@@ -403,8 +440,8 @@ function SourceRow({
           <Button
             variant='outline'
             size='icon-sm'
-            aria-label={`Back up ${source.label} now`}
-            disabled={disabled || !source.enabled}
+            aria-label={`Back up ${label} now`}
+            disabled={disabled || !source?.enabled}
             onClick={onBackUpAction}
           >
             <RefreshCwIcon className={cn(backingUp && 'animate-spin')} />
@@ -421,17 +458,18 @@ function SourceRow({
         <ArchiveRestoreIcon />
         Restore
       </Button>
-      {source.added ? (
+      {added ? (
         <Button
           variant='outline'
           size='icon-sm'
-          aria-label={`Stop backing up ${source.label}`}
-          disabled={pending}
+          aria-label={`Stop backing up ${label}`}
+          disabled={pending || !source}
           onClick={() =>
             startTransition(async () => {
+              if (!source) return;
               const { error } = await removeBackupFolder(source.id);
               if (error) toast.error(error);
-              onChangedAction();
+              onChangedAction?.();
             })
           }
         >
@@ -439,8 +477,9 @@ function SourceRow({
         </Button>
       ) : (
         <Switch
-          aria-label={`Back up ${source.label}`}
-          checked={source.enabled}
+          aria-label={`Back up ${label}`}
+          checked={source?.enabled ?? true}
+          disabled={!source}
           onCheckedChange={onToggleAction}
         />
       )}
