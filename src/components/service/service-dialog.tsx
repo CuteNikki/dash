@@ -50,7 +50,7 @@ import { useCan } from '@/components/common/role';
 import { ScrollFade } from '@/components/common/scroll-fade';
 import { TextSkeleton } from '@/components/common/skeletons';
 import { attempt } from '@/components/common/toasts';
-import { useKept } from '@/components/common/use-kept';
+import { useKept, useKeptShape } from '@/components/common/use-kept';
 import { FilesPanel } from '@/components/editor/files-panel';
 import { GitPanel } from '@/components/git/git-panel';
 import { AddressList } from '@/components/service/address-list';
@@ -194,6 +194,14 @@ function ServiceBody({
       : null,
     fetcher,
     { revalidateOnFocus: false }
+  );
+  // While that's read, its tab as it was last time, so the tabs don't move
+  const lastGit = useKeptShape(
+    `git:${service.containerId}`,
+    git === undefined
+      ? undefined
+      : { repo: !!git, changes: git?.changes.length },
+    { repo: false, changes: 0 }
   );
 
   // The kept tab while it's there for them to see; Usage otherwise
@@ -428,7 +436,7 @@ function ServiceBody({
               {service.browse && manages && (
                 <TabsTrigger value='browse'>Browse</TabsTrigger>
               )}
-              {git && (
+              {git ? (
                 <TabsTrigger value='git'>
                   Git
                   {git.changes.length > 0 && (
@@ -437,6 +445,23 @@ function ServiceBody({
                     </span>
                   )}
                 </TabsTrigger>
+              ) : (
+                git === undefined &&
+                manages &&
+                service.stack &&
+                lastGit.repo && (
+                  <TabsTrigger value='git' disabled>
+                    Git
+                    {!!lastGit.changes && (
+                      <span
+                        className='font-mono'
+                        style={{ width: `${String(lastGit.changes).length}ch` }}
+                      >
+                        <TextSkeleton className='w-full' />
+                      </span>
+                    )}
+                  </TabsTrigger>
+                )
               )}
             </TabsList>
             {shownTab === 'usage' && (
