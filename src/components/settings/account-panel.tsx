@@ -126,8 +126,11 @@ function ProfileForm({ me }: { me: Me }) {
           </div>
         </div>
         {error && <p className='text-destructive'>{error}</p>}
+        {/* Quiet until there's something to save, rather than a solid
+            button greyed out, which looks broken */}
         <Button
           type='submit'
+          variant={changed ? 'default' : 'outline'}
           disabled={pending || !changed}
           className='self-start'
         >
