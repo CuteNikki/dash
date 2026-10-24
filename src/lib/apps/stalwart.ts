@@ -40,6 +40,9 @@ function headersOf() {
   return {
     Authorization: `Bearer ${env('STALWART_API_KEY')}`,
     'Content-Type': 'application/json',
+    // Its web listener expects Caddy in front and logs a warning for every
+    // request that doesn't say who it's for; this comes straight from here
+    'X-Forwarded-For': '127.0.0.1',
   };
 }
 
