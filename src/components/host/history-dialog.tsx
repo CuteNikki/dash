@@ -54,9 +54,10 @@ export function HistoryDialog({
   );
   const words = HISTORY_RANGES[range].words;
 
-  // In pairs, side by side: the CPU and what's taken from it, how busy it
-  // is and the memory, the disk's space and its stalls, then what goes
-  // through the disk and the network
+  // In pairs, a row each: the CPU and what's taken from it; how full the
+  // memory and disk are; what's waiting, as load counts what waits on the
+  // disk too, beside the disk's own wait; then what goes through the disk
+  // and the network
   const charts: {
     title: string;
     measure: Measure;
@@ -80,11 +81,6 @@ export function HistoryDialog({
       peak: true,
     },
     {
-      title: 'Load',
-      measure: MEASURES.load,
-      lines: (h) => [{ label: 'Load', values: h.load }],
-    },
-    {
       title: 'Memory',
       measure: host
         ? { ...MEASURES.memory, floor: host.memory.total }
@@ -99,6 +95,11 @@ export function HistoryDialog({
         : MEASURES.memory,
       lines: (h) => [{ label: 'Used', values: h.diskUsed }],
       latest: true,
+    },
+    {
+      title: 'Load',
+      measure: MEASURES.load,
+      lines: (h) => [{ label: 'Load', values: h.load }],
     },
     {
       title: 'Disk wait',
