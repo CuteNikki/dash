@@ -8,7 +8,7 @@ as a tile, with its status, usage and live numbers, and a window to run it
 from: logs and console, its files in an editor, its git history, and one click
 to redeploy. New services come from templates and get a site in Caddy.
 
-![The dashboard: the server's stats above, every service below as a tile, grouped](docs/screenshots/dashboard.png)
+![The dashboard: the server's stats above, every service below as a tile, grouped, each with its app's numbers: indexers and grabs in Prowlarr, what's downloading in qBittorrent, movies and shows in Jellyfin](docs/screenshots/dashboard.png)
 
 - **Everything on the server, at a glance.** CPU, memory, disk, network and
   processes, then every container in groups, each with a sparkline and the
@@ -47,6 +47,51 @@ to redeploy. New services come from templates and get a site in Caddy.
   servers, a housemate who checks on the media.
 
 ## A closer look
+
+### Arranging it
+
+**Edit** in the header turns the dashboard into a grid to arrange. Each tile
+gets a tab on its top edge to drag it by and a knob on its corner to resize it
+by, and each section, the server's and every group's, gets the same two at the
+end of its heading. A click on a tile while editing opens its settings: its
+name, icon, group, addresses, and whether it's hidden.
+
+![Editing the dashboard: Prowlarr dragged out to two columns and two rows, a badge saying 2 × 2, its CPU now a graph of its own, and the tiles it grew into pushed down](docs/screenshots/arranging.png)
+
+- **A grid of columns.** The page has a column for about every 300 pixels of
+  screen: one on a phone, four on a 1440-pixel laptop, eight from 2496 pixels
+  up. Each row is at least a tile tall, and taller when what's in it needs it.
+- **Resizing a tile.** Its corner knob snaps to whole columns and rows, up to
+  its section's width and six rows tall, with its size, as 2 × 2, on a badge
+  while it's dragged. The tiles it grows into are pushed down.
+- **What a size shows.** A tile more than a row tall draws its CPU, or a
+  website's response time, as a graph on a row of its own; a wider one draws
+  its sparkline wider. The server's tiles put their details in as many columns
+  as their width has room for, and stretch their graphs to the height they're
+  given.
+- **Moving a tile.** A tile is dragged by its tab, or with a mouse from
+  anywhere on it, and lands where it's let go, pushing down whatever it lands
+  on. Nothing moves up into the room it left, so a gap stays where it's put.
+  Dropped in another group's section, the service joins that group; the
+  server's tiles stay in the server's section.
+- **Sections.** Sections sit on the page's grid as tiles sit in them. A
+  narrower section lays its tiles out again in the columns it has left, so two
+  narrow ones can sit side by side, and a taller one spans the rows of the
+  sections stacked beside it. No empty rows are left between sections.
+
+![Downloads narrowed to one column while it's resized, 1 × 1 on its heading, its four tiles laid out one under another](docs/screenshots/arranging-section.png)
+
+- **Each width its own.** Every number of columns keeps an arrangement of its
+  own, so arranging on a laptop leaves the phone's as it was. A width that's
+  never been arranged starts from the nearest one that has, the wider on a
+  tie: the same tiles in the same order and sizes, packed into the columns it
+  has. A service started since goes at the bottom.
+- **Keyboard and phone.** From a tile's or section's tab, the arrow keys move
+  it a cell at a time, and with Shift resize it. On a phone, holding a tile for
+  a moment picks it up, so a swipe still scrolls; its tab and knob take it at
+  once.
+
+Each change is saved as it's made, for everyone who sees the dashboard.
 
 ### A service's window
 
@@ -184,6 +229,15 @@ Every view in either theme, as the system has it or picked by hand. The list
 puts each service on a row, filtered by group.
 
 ![The list view in the light theme, filtered to the Downloads group](docs/screenshots/list-light.png)
+
+While editing, the list's rows are dragged by the handles at their start, to
+another place or another group, and groups by their headings, each with its
+rows. The list makes room where it's going as it's dragged, and its copy
+follows the pointer; Escape puts it back. From a handle, Space picks it up and
+the arrow keys move it. The list keeps one order for every screen, apart from
+the tiles' arrangements.
+
+![Editing the list: Tinderhaj Bot dragged into Downloads, the list making room for it under Prowlarr](docs/screenshots/list-reorder.png)
 
 ### On a phone
 
