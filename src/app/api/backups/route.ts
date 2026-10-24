@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import { recordRun } from '@/lib/activity/record';
 import { denied, getAccess } from '@/lib/auth/access';
 import { runBackups } from '@/lib/backups/backups';
@@ -15,12 +17,27 @@ export async function GET() {
   }
 }
 
-/** Backs everything up now, streaming what restic says. */
-export async function POST() {
+const Input = z
+  .object({
+    /** One part, rather than everything */
+    source: z.string().min(1).max(300).optional(),
+  })
+  .nullable();
+
+/** Backs everything up now, or one part, streaming what restic says. */
+export async function POST(request: Request) {
   const refused = await denied('server');
   if (refused) return refused;
+  const input = Input.safeParse(await request.json().catch(() => null));
+  if (!input.success) {
+    return Response.json({ error: 'Back up what?' }, { status: 400 });
+  }
+  const source = input.data?.source;
   const access = await getAccess();
-  return streamRun(() => runBackups(access?.user.name ?? 'Someone'), {
-    done: recordRun(access, { action: 'backup.run', target: 'everything' }),
+  return streamRun(() => runBackups(access?.user.name ?? 'Someone', source), {
+    done: recordRun(access, {
+      action: 'backup.run',
+      target: source ?? 'everything',
+    }),
   });
 }

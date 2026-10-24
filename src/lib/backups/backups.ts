@@ -295,24 +295,37 @@ const state: State = ((
 export const backupRunning = () => state.running;
 
 /**
- * Backs up every part that's on, one after another, then forgets all but
- * each one's last seven and frees what nothing needs any more. Yields what
- * restic says, and returns how it went: 0, or 1 if any part failed, each
- * part's outcome being kept with the run and failures raised as alerts.
+ * Backs up every part that's on, or only `only`, one after another, then
+ * forgets all but each one's last seven and frees what nothing needs any
+ * more. Yields what restic says, and returns how it went: 0, or 1 if any
+ * part failed, each part's outcome being kept with the run and failures
+ * raised as alerts.
  */
 export async function* runBackups(
-  trigger: string
+  trigger: string,
+  only?: string
 ): AsyncGenerator<RunLine, number> {
   const config = backupConfig();
   if ('off' in config) throw new Error(config.off);
   if (state.running) throw new Error('Backups are already running');
   state.running = 'backup';
+  let containers: Container[];
+  let sources: Source[];
+  try {
+    containers = await listContainers();
+    const all = await listSources(containers);
+    sources = only
+      ? all.filter((s) => s.id === only)
+      : all.filter((s) => s.enabled);
+    if (only && !sources.length) throw new Error('No such part to back up');
+  } catch (error) {
+    state.running = undefined;
+    throw error;
+  }
   const run = await db.backupRun.create({ data: { trigger } });
   const results: Result[] = [];
   try {
-    const containers = await listContainers();
     await ensureBucket(config, containers);
-    const sources = (await listSources(containers)).filter((s) => s.enabled);
     for (const source of sources) {
       yield { stream: 'stdout', line: `— ${source.label}` };
       const lines: string[] = [];
@@ -348,9 +361,18 @@ export async function* runBackups(
             }
       );
     }
-    yield { stream: 'stdout', line: `— Keeping each part's last ${KEEP}` };
+    yield {
+      stream: 'stdout',
+      line: only
+        ? `— Keeping its last ${KEEP}`
+        : `— Keeping each part's last ${KEEP}`,
+    };
+    const tag = only ? ` --tag ${quote(`source=${only}`)}` : '';
     const prune = runContainer(
-      hostRun(config, `r forget --group-by tags --keep-last ${KEEP} --prune`)
+      hostRun(
+        config,
+        `r forget${tag} --group-by tags --keep-last ${KEEP} --prune`
+      )
     );
     for (;;) {
       const next = await prune.next();
@@ -369,10 +391,13 @@ export async function* runBackups(
   }
 }
 
-/** A part that failed is an alert, until it's backed up again. */
+/**
+ * A part that failed is an alert, until it's backed up again, or switched
+ * off or gone, as nothing will back it up then.
+ */
 async function raiseFailures(results: Result[]) {
-  const sources = await listSources().catch(() => []);
-  const label = (id: string) => sources.find((s) => s.id === id)?.label ?? id;
+  const sources = await listSources().catch(() => undefined);
+  const label = (id: string) => sources?.find((s) => s.id === id)?.label ?? id;
   const findings: Finding[] = results
     .filter((r) => !r.ok)
     .map((r) => ({
@@ -382,8 +407,21 @@ async function raiseFailures(results: Result[]) {
       message: r.error ?? 'Failed',
     }));
   const covered = new Set(results.map((r) => `backup:${r.source}`));
-  await reconcile((a) => a.kind === 'backup' && covered.has(a.key), findings);
+  // Unless they couldn't be listed, which isn't to say they're all gone
+  const backedUp = sources
+    ? new Set(sources.filter((s) => s.enabled).map((s) => `backup:${s.id}`))
+    : undefined;
+  await reconcile(
+    (a) =>
+      a.kind === 'backup' &&
+      (covered.has(a.key) || (!!backedUp && !backedUp.has(a.key))),
+    findings
+  );
 }
+
+/** A part switched off or taken out, whose failure no run will ever clear. */
+export const forgetFailure = (id: string) =>
+  reconcile((a) => a.key === `backup:${id}`, []);
 
 /** One backup of a part, as restic keeps it. */
 export type Snapshot = {

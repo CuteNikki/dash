@@ -53,6 +53,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 type Source = BackupState['sources'][number];
 type Snapshot = BackupSnapshots['snapshots'][number];
@@ -112,6 +117,8 @@ export function BackupsDialog({
   const [output, setOutput] = useState<string[]>();
   const [busy, setBusy] = useState(false);
   const [restoring, setRestoring] = useState<Source>();
+  /** The part being backed up on its own, if one is */
+  const [backingUp, setBackingUp] = useState<string>();
 
   /** Follows a backup or restore to its end, showing what it says. */
   async function follow(
@@ -134,18 +141,54 @@ export function BackupsDialog({
       toast.error(failed, { description: "The dashboard didn't answer" });
     } finally {
       setBusy(false);
+      setBackingUp(undefined);
       void mutate();
       void rereadBackups();
     }
   }
 
+  /** Backs up one part now, on its own. */
+  function backUp(source: Source) {
+    setBackingUp(source.id);
+    void follow(
+      fetch('/api/backups', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ source: source.id }),
+      }),
+      `${source.label} is backed up`,
+      `${source.label} couldn't be backed up`
+    );
+  }
+
   const running = busy || !!data?.running;
   const databases = data?.sources.filter((s) => s.kind === 'postgres') ?? [];
   const folders = data?.sources.filter((s) => s.kind === 'folder') ?? [];
+  const row = (s: Source) => (
+    <SourceRow
+      key={s.id}
+      source={s}
+      snapshots={snapshotsOf(s.id)}
+      disabled={running || !!data?.off}
+      backingUp={backingUp === s.id}
+      onBackUpAction={() => backUp(s)}
+      onRestoreAction={() => setRestoring(s)}
+      onToggleAction={(on) => void toggle(s, on)}
+      onChangedAction={() => void mutate()}
+    />
+  );
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && !busy && onCloseAction()}>
-      <DialogContent className='flex max-h-[90dvh] flex-col sm:max-w-3xl'>
+      <DialogContent
+        className='flex max-h-[90dvh] flex-col sm:max-w-3xl'
+        // Focus the window itself, not its first button, whose tooltip
+        // would open with it; Tab still reaches every button
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          (e.currentTarget as HTMLElement).focus();
+        }}
+      >
         <DialogHeader>
           <DialogTitle>Backups</DialogTitle>
           <DialogDescription>
@@ -191,30 +234,10 @@ export function BackupsDialog({
           ) : (
             <>
               <Section title='Databases' icon={<DatabaseIcon />}>
-                {databases.map((s) => (
-                  <SourceRow
-                    key={s.id}
-                    source={s}
-                    snapshots={snapshotsOf(s.id)}
-                    disabled={running || !!data.off}
-                    onRestoreAction={() => setRestoring(s)}
-                    onToggleAction={(on) => void toggle(s, on)}
-                    onChangedAction={() => void mutate()}
-                  />
-                ))}
+                {databases.map(row)}
               </Section>
               <Section title='Folders' icon={<FolderIcon />}>
-                {folders.map((s) => (
-                  <SourceRow
-                    key={s.id}
-                    source={s}
-                    snapshots={snapshotsOf(s.id)}
-                    disabled={running || !!data.off}
-                    onRestoreAction={() => setRestoring(s)}
-                    onToggleAction={(on) => void toggle(s, on)}
-                    onChangedAction={() => void mutate()}
-                  />
-                ))}
+                {folders.map(row)}
               </Section>
               <AddFolder onAddedAction={() => void mutate()} />
             </>
@@ -232,8 +255,10 @@ export function BackupsDialog({
               )
             }
           >
-            <RefreshCwIcon className={cn(running && 'animate-spin')} />
-            {running ? 'Running…' : 'Back up now'}
+            <RefreshCwIcon
+              className={cn(running && !backingUp && 'animate-spin')}
+            />
+            {running && !backingUp ? 'Running…' : 'Back up now'}
           </Button>
         </div>
       </DialogContent>
@@ -321,11 +346,16 @@ function LastRun({
   );
 }
 
-/** A part: its last backup and how many are kept, on or off, and its restore. */
+/**
+ * A part: its last backup and how many are kept, on or off, backing it up
+ * now on its own, and its restore.
+ */
 function SourceRow({
   source,
   snapshots,
   disabled,
+  backingUp,
+  onBackUpAction,
   onRestoreAction,
   onToggleAction,
   onChangedAction,
@@ -334,6 +364,9 @@ function SourceRow({
   /** Its backups, newest first; none while they're read */
   snapshots?: Snapshot[];
   disabled: boolean;
+  /** Being backed up on its own now */
+  backingUp: boolean;
+  onBackUpAction: () => void;
   onRestoreAction: () => void;
   onToggleAction: (on: boolean) => void;
   onChangedAction: () => void;
@@ -364,6 +397,20 @@ function SourceRow({
           )}
         </span>
       </div>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant='outline'
+            size='icon-sm'
+            aria-label={`Back up ${source.label} now`}
+            disabled={disabled || !source.enabled}
+            onClick={onBackUpAction}
+          >
+            <RefreshCwIcon className={cn(backingUp && 'animate-spin')} />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Back up now</TooltipContent>
+      </Tooltip>
       <Button
         variant='outline'
         size='sm'
@@ -371,7 +418,7 @@ function SourceRow({
         onClick={onRestoreAction}
       >
         <ArchiveRestoreIcon />
-        Restore…
+        Restore
       </Button>
       {source.added ? (
         <Button
