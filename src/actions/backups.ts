@@ -4,6 +4,7 @@ import { posix } from 'node:path';
 
 import { record } from '@/lib/activity/record';
 import { requireAccess } from '@/lib/auth/access';
+import { forgetFailure } from '@/lib/backups/backups';
 import { db } from '@/lib/db';
 
 /** Switches a part of the backups on or off, as a game server nobody plays on. */
@@ -20,6 +21,7 @@ export async function setBackupSource(
     create: { id, enabled },
     update: { enabled },
   });
+  if (!enabled) await forgetFailure(id);
   return {};
 }
 
@@ -54,5 +56,6 @@ export async function removeBackupFolder(
     return { error: 'Only a folder added here can be taken out' };
   }
   await db.backupSource.deleteMany({ where: { id } });
+  await forgetFailure(id);
   return {};
 }
