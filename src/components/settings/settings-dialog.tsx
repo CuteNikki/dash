@@ -103,10 +103,13 @@ function Tab({
   children: React.ReactNode;
 }) {
   return (
-    <TabsContent value={value} className='flex min-h-0 flex-col'>
+    // Reaching into the window's padding on the right, with as much of its
+    // own, so the scrollbar is beside what's in it rather than over it, as
+    // a phone's is drawn, taking no room
+    <TabsContent value={value} className='-mr-3 flex min-h-0 flex-col'>
       <ScrollFade
         shrink
-        className='min-h-0 overflow-x-hidden overflow-y-auto'
+        className='min-h-0 overflow-x-hidden overflow-y-auto pr-3'
         fadeFrom='from-popover'
       >
         {children}
