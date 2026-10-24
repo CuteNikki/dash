@@ -12,7 +12,13 @@ import {
   PlusIcon,
 } from 'lucide-react';
 
-import { renameGroup, saveLayout, type TileResult } from '@/actions/tiles';
+import {
+  renameGroup,
+  saveLayout,
+  saveListOrder,
+  type OrderInput,
+  type TileResult,
+} from '@/actions/tiles';
 import { can, type Ability } from '@/lib/auth/roles';
 import { groupNames, groupServices } from '@/lib/dashboard/groups';
 import {
@@ -145,6 +151,30 @@ export function Dashboard({
       }),
       () => saveLayout({ cells, moved }),
       "Couldn't save where tiles go"
+    );
+  }
+
+  function saveOrder(order: OrderInput) {
+    const at = new Map(order.services.map((s, i) => [s.key, i]));
+    const moved = new Map(
+      order.services.flatMap((s) => (s.group ? [[s.key, s.group]] : []))
+    );
+    void change(
+      (d) => ({
+        ...d,
+        groupOrder: order.groups,
+        services: d.services.map((s) =>
+          at.has(s.key)
+            ? {
+                ...s,
+                position: at.get(s.key),
+                group: moved.get(s.key) ?? s.group,
+              }
+            : s
+        ),
+      }),
+      () => saveListOrder(order),
+      "Couldn't save the list's order"
     );
   }
 
@@ -329,6 +359,7 @@ export function Dashboard({
               setOpenKey(service.key);
             }}
             onChangedAction={() => mutate()}
+            onReorderAction={saveOrder}
           />
         )}
         <ServiceDialog
