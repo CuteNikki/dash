@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import useSWRInfinite from 'swr/infinite';
 
 import { SearchIcon, XCircleIcon } from 'lucide-react';
 
 import { actionWords, type ActivityEntry } from '@/lib/activity/actions';
 import { fetcher } from '@/lib/fetcher';
+import { cn } from '@/lib/utils';
 
 import { TextSkeleton } from '@/components/common/skeletons';
 import { useDebounced } from '@/components/common/use-debounced';
@@ -135,16 +136,57 @@ function ActivityRow({ entry }: { entry: ActivityEntry }) {
             <span className='text-muted-foreground'> · {entry.detail}</span>
           )}
         </span>
-        {!entry.ok && (
-          <span className='flex items-center gap-1 text-destructive [&_svg]:size-3.5'>
-            <XCircleIcon />
-            <span className='min-w-0 truncate'>
-              Didn't work{entry.error ? `: ${entry.error}` : ''}
-            </span>
-          </span>
-        )}
+        {!entry.ok && <Failure error={entry.error} />}
       </div>
     </li>
+  );
+}
+
+/**
+ * Why it didn't work, wrapped to two lines; one longer, as Docker's often
+ * are, opens to the whole of it when it's clicked.
+ */
+function Failure({ error }: { error?: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [open, setOpen] = useState(false);
+  const [cut, setCut] = useState(false);
+
+  // Measured while it's clamped; open, it fits by definition
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || open) return;
+    const measure = () => setCut(el.scrollHeight > el.clientHeight + 1);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [error, open]);
+
+  return (
+    <span className='flex items-start gap-1 text-destructive [&_svg]:mt-0.5 [&_svg]:size-3.5'>
+      <XCircleIcon />
+      <span className='flex min-w-0 flex-col items-start'>
+        <span
+          ref={ref}
+          className={cn(
+            'wrap-break-word whitespace-pre-wrap',
+            !open && 'line-clamp-2'
+          )}
+        >
+          Didn't work{error ? `: ${error}` : ''}
+        </span>
+        {(cut || open) && (
+          <button
+            type='button'
+            aria-expanded={open}
+            onClick={() => setOpen(!open)}
+            className='text-muted-foreground hover:text-foreground'
+          >
+            {open ? 'Show less' : 'Show all'}
+          </button>
+        )}
+      </span>
+    </span>
   );
 }
 
