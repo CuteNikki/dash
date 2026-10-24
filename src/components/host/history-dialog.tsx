@@ -54,6 +54,9 @@ export function HistoryDialog({
   );
   const words = HISTORY_RANGES[range].words;
 
+  // In pairs, side by side: the CPU and what's taken from it, how busy it
+  // is and the memory, the disk's space and its stalls, then what goes
+  // through the disk and the network
   const charts: {
     title: string;
     measure: Measure;
@@ -67,6 +70,19 @@ export function HistoryDialog({
       title: 'CPU',
       measure: MEASURES.serverCpu,
       lines: (h) => [{ label: 'CPU', values: h.cpu }],
+    },
+    {
+      // The provider's other machines' share of this one's CPU; a stall
+      // here, not in the disk's wait, is the host being busy elsewhere
+      title: 'CPU steal',
+      measure: MEASURES.steal,
+      lines: (h) => [{ label: 'Taken', values: h.steal }],
+      peak: true,
+    },
+    {
+      title: 'Load',
+      measure: MEASURES.load,
+      lines: (h) => [{ label: 'Load', values: h.load }],
     },
     {
       title: 'Memory',
@@ -105,19 +121,6 @@ export function HistoryDialog({
         { label: 'Download', values: h.received },
         { label: 'Upload', values: h.sent, dashed: true },
       ],
-    },
-    {
-      title: 'Load',
-      measure: MEASURES.load,
-      lines: (h) => [{ label: 'Load', values: h.load }],
-    },
-    {
-      // The provider's other machines' share of this one's CPU; a stall
-      // here, not in the disk's wait, is the host being busy elsewhere
-      title: 'CPU steal',
-      measure: MEASURES.steal,
-      lines: (h) => [{ label: 'Taken', values: h.steal }],
-      peak: true,
     },
   ];
 
