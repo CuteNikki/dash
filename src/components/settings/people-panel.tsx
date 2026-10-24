@@ -29,6 +29,7 @@ import { formatAgo, formatDuration } from '@/lib/format';
 
 import { TextSkeleton } from '@/components/common/skeletons';
 import { attempt } from '@/components/common/toasts';
+import { useKeptCount } from '@/components/common/use-kept';
 import { InviteDialog } from '@/components/settings/invite-dialog';
 import { EditAccessDialog } from '@/components/settings/people-access';
 import {
@@ -65,6 +66,9 @@ export function PeoplePanel() {
   const [editing, setEditing] = useState<Person>();
   const [inviting, setInviting] = useState(false);
   const reload = () => void mutate();
+  // While they're read, as many rows as last time
+  const peopleRows = useKeptCount('people', data?.people.length, 1);
+  const inviteRows = useKeptCount('invites', data?.invites.length, 0);
 
   if (error && !data) {
     return <p className='text-destructive'>Couldn&apos;t load the people</p>;
@@ -86,7 +90,7 @@ export function PeoplePanel() {
             ))}
           </ul>
         ) : (
-          <RowsSkeleton />
+          <RowsSkeleton rows={peopleRows} lines={3} />
         )}
       </section>
 
@@ -104,7 +108,7 @@ export function PeoplePanel() {
           </Button>
         </div>
         {!data ? (
-          <RowsSkeleton />
+          <RowsSkeleton rows={inviteRows} lines={2} />
         ) : data.invites.length === 0 ? (
           <p className='text-muted-foreground'>None waiting to be used.</p>
         ) : (
@@ -137,17 +141,33 @@ export function PeoplePanel() {
   );
 }
 
-/** Two rows' worth of lines, where people or invites will be. */
-function RowsSkeleton() {
+/**
+ * Rows where people or invites will be, as many as last time, each with as
+ * many lines as theirs: a person's name, address and access; an invite's
+ * address and access. None is the line saying so.
+ */
+function RowsSkeleton({ rows, lines }: { rows: number; lines: 2 | 3 }) {
+  if (!rows) {
+    return (
+      <p>
+        <TextSkeleton className='w-40' />
+      </p>
+    );
+  }
   return (
-    <div aria-busy aria-label='Loading' className='flex flex-col gap-3 py-2'>
-      {[0, 1].map((i) => (
-        <div key={i} className='flex flex-col gap-0.5'>
+    <ul
+      aria-busy
+      aria-label='Loading'
+      className='flex flex-col divide-y divide-border'
+    >
+      {Array.from({ length: rows }, (_, i) => (
+        <li key={i} className='flex flex-col gap-0.5 py-2'>
           <TextSkeleton className='w-32' />
-          <TextSkeleton className='w-48' />
-        </div>
+          {lines === 3 && <TextSkeleton className='w-48' />}
+          <TextSkeleton className='w-80 max-w-full' />
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
 
