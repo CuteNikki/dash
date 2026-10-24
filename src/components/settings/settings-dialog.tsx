@@ -34,12 +34,13 @@ export function SettingsDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChangeAction}>
-      {/* Full screen on a phone; on a computer, a large window in the middle
-          as tall as its tab, up to 5/6 of the screen, so a short one leaves
-          no empty space under it. Its least height keeps a short tab from
-          shrinking the window much when switched to */}
+      {/* Full screen on a phone; on a computer, a large window as tall as
+          its tab, up to 5/6 of the screen, so a short one leaves no empty
+          space under it. Its top stays where a full one's is, rather than it
+          being centred, so the tabs don't move when another's picked: only
+          its bottom does */}
       <DialogContent
-        className='flex h-full max-h-none max-w-full flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-fit sm:max-h-5/6 sm:min-h-[min(32rem,83vh)] sm:max-w-5xl sm:rounded-xl'
+        className='flex h-full max-h-none max-w-full flex-col gap-0 overflow-hidden rounded-none p-0 sm:mt-[8.333vh] sm:mb-auto sm:h-fit sm:max-h-5/6 sm:max-w-5xl sm:rounded-xl'
         // Focus the window itself, not its first field or button; Tab still
         // reaches each
         onOpenAutoFocus={(e) => {
