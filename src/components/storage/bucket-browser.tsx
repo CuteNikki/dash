@@ -47,7 +47,7 @@ import { cn } from '@/lib/utils';
 import { ScrollFade } from '@/components/common/scroll-fade';
 import { TextSkeleton } from '@/components/common/skeletons';
 import { attempt } from '@/components/common/toasts';
-import { useKept } from '@/components/common/use-kept';
+import { useKept, useKeptShape } from '@/components/common/use-kept';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -74,6 +74,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 
 /** How far ahead of the grid's end its next page is asked for. */
 const LOAD_AHEAD = '400px';
@@ -141,7 +142,20 @@ export function BucketBrowser({ containerId }: { containerId: string }) {
     `browse:${containerId}:at`,
     { prefix: '' }
   );
-  const bucket = at.bucket ?? buckets?.[0]?.name;
+  // While they're listed, as many rows as last time, and the first one's
+  // folder read meanwhile, as it's the one opened
+  const bucketRows = useKeptShape(
+    `browse:${containerId}:buckets`,
+    buckets?.length,
+    3
+  );
+  const firstBucket = useKeptShape<string | undefined>(
+    `browse:${containerId}:first`,
+    buckets && (buckets[0]?.name ?? ''),
+    undefined
+  );
+  const bucket =
+    at.bucket ?? (buckets ? buckets[0]?.name : firstBucket || undefined);
   const prefix = at.bucket ? at.prefix : '';
 
   return (
@@ -192,11 +206,20 @@ export function BucketBrowser({ containerId }: { containerId: string }) {
               Couldn&apos;t list the buckets: {bucketsError.message}
             </p>
           ) : !buckets ? (
-            <div className='flex flex-col gap-3 p-2'>
-              <TextSkeleton className='w-2/3' />
-              <TextSkeleton className='w-1/2' />
-              <TextSkeleton className='w-3/4' />
-            </div>
+            <ul className='flex flex-col gap-1'>
+              {Array.from({ length: bucketRows }, (_, i) => (
+                <li
+                  key={i}
+                  className={cn(
+                    ROW,
+                    i === 0 && !at.bucket && 'bg-foreground/10'
+                  )}
+                >
+                  <TextSkeleton className={i % 2 ? 'w-16' : 'w-24'} />
+                  <TextSkeleton className='w-28' />
+                </li>
+              ))}
+            </ul>
           ) : buckets.length === 0 ? (
             <p className='p-2 text-muted-foreground'>No buckets yet.</p>
           ) : (
@@ -289,11 +312,16 @@ function Folder({
     `browse:${containerId}:view:${bucket}`,
     undefined
   );
-  const view: View =
-    chosenView ??
-    (data && files.length && !files.some((f) => mediaKind(f.key))
-      ? 'list'
-      : 'grid');
+  // While it's read, as it was last time: its view, and as many entries
+  const last = useKeptShape(
+    `browse:${containerId}:shape:${bucket}/${prefix}`,
+    data && {
+      list: !!files.length && !files.some((f) => mediaKind(f.key)),
+      entries: data[0].folders.length + data[0].files.length,
+    },
+    { list: false, entries: 8 }
+  );
+  const view: View = chosenView ?? (last.list ? 'list' : 'grid');
 
   // The next page once the end of the grid comes near
   const end = useRef<HTMLDivElement>(null);
@@ -462,14 +490,14 @@ function Folder({
             </p>
           ) : !data ? (
             view === 'list' ? (
-              <div className='flex flex-col gap-3 p-2'>
-                {Array.from({ length: 6 }, (_, i) => (
-                  <TextSkeleton key={i} className='w-2/3' />
+              <ul className='flex flex-col'>
+                {Array.from({ length: last.entries }, (_, i) => (
+                  <ListRowSkeleton key={i} index={i} />
                 ))}
-              </div>
+              </ul>
             ) : (
               <TileGrid>
-                {Array.from({ length: 8 }, (_, i) => (
+                {Array.from({ length: last.entries }, (_, i) => (
                   <div key={i} className='aspect-square rounded-lg bg-muted' />
                 ))}
               </TileGrid>
@@ -877,6 +905,23 @@ function ListRow({
           {when}
         </span>
       </button>
+    </li>
+  );
+}
+
+/** A row of the list while it's read: where its box, icon, name and size go. */
+function ListRowSkeleton({ index }: { index: number }) {
+  return (
+    <li className={cn(LIST_ROW, 'flex items-center gap-3 rounded-md px-2')}>
+      <Checkbox disabled aria-hidden />
+      <span className='flex min-w-0 flex-1 items-center gap-3 py-2'>
+        <Skeleton className='size-4 shrink-0 bg-foreground/10' />
+        <span className='min-w-0 flex-1'>
+          <TextSkeleton className={index % 2 ? 'w-20' : 'w-28'} />
+        </span>
+        <TextSkeleton className='w-24' />
+        <span className='w-32 shrink-0 max-sm:hidden' />
+      </span>
     </li>
   );
 }
