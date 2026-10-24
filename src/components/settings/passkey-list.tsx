@@ -248,14 +248,18 @@ function PasskeyRow({
         </form>
       ) : (
         <>
-          <span className='min-w-0 flex-1 truncate font-medium'>
-            {nameOf(passkey)}
-          </span>
-          {added && (
-            <span className='shrink-0 whitespace-nowrap text-muted-foreground'>
-              Added {added}
+          {/* Its name, then when it was added, beside it, or under it on a
+              phone so the name has the width */}
+          <div className='flex min-w-0 flex-1 flex-col sm:flex-row sm:items-center sm:gap-3'>
+            <span className='min-w-0 truncate font-medium sm:flex-1'>
+              {nameOf(passkey)}
             </span>
-          )}
+            {added && (
+              <span className='shrink-0 whitespace-nowrap text-muted-foreground'>
+                Added {added}
+              </span>
+            )}
+          </div>
           {/* Together, as one passkey's, apart from the next row's */}
           <span className='flex shrink-0 items-center gap-1'>
             <Button
