@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState, type SetStateAction } from 'react';
+import { useCallback, useEffect, useState, type SetStateAction } from 'react';
 
 /**
  * What's been left where it was, by key, for as long as the page is open:
@@ -42,4 +42,54 @@ export function useKept<T>(key: string, initial: T | (() => T), override?: T) {
 /** Everything kept under keys that start so, as every stack's edits. */
 export function keptUnder<T>(prefix: string): T[] {
   return [...kept].filter(([k]) => k.startsWith(prefix)).map(([, v]) => v as T);
+}
+
+/** Where shapes are kept across page loads: they're no secret. */
+const SHAPE_PREFIX = 'dash-shape:';
+
+/** A shape last kept, on this page or an earlier one. */
+function keptShape<T>(key: string): T | undefined {
+  if (kept.has(SHAPE_PREFIX + key)) return kept.get(SHAPE_PREFIX + key) as T;
+  try {
+    const stored = localStorage.getItem(SHAPE_PREFIX + key);
+    if (stored === null) return undefined;
+    const shape = JSON.parse(stored) as T;
+    kept.set(SHAPE_PREFIX + key, shape);
+    return shape;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Keeps what something looks like now, as how many rows a list has or how
+ * tall each is, measured once it's drawn. As JSON, so small and plain.
+ */
+export function keepShape(key: string, shape: unknown) {
+  kept.set(SHAPE_PREFIX + key, shape);
+  try {
+    localStorage.setItem(SHAPE_PREFIX + key, JSON.stringify(shape));
+  } catch {}
+}
+
+/**
+ * What something looked like when last seen, for a placeholder to take the
+ * same shape while it's read again: `shape` once it's known (and kept, for
+ * next time), else the last one kept, else `guess`.
+ */
+export function useKeptShape<T>(key: string, shape: T | undefined, guess: T) {
+  const json = shape === undefined ? undefined : JSON.stringify(shape);
+  useEffect(() => {
+    if (json !== undefined) keepShape(key, JSON.parse(json));
+  }, [key, json]);
+  return shape ?? keptShape<T>(key) ?? guess;
+}
+
+/** How many of something there were when last seen: a shape that's a count. */
+export function useKeptCount(
+  key: string,
+  count: number | undefined,
+  guess: number
+) {
+  return useKeptShape(key, count, guess);
 }

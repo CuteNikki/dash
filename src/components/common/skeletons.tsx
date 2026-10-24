@@ -1,7 +1,5 @@
 import { cn } from '@/lib/utils';
 
-import { Skeleton } from '@/components/ui/skeleton';
-
 /** Line lengths that read like text, repeated as needed: never all alike. */
 const WIDTHS = [
   'w-3/4',
@@ -16,10 +14,19 @@ const WIDTHS = [
 
 /**
  * A placeholder bar, a faint tint of the text color, so it shows on the
- * muted panels it stands in for in either theme.
+ * muted panels it stands in for in either theme. A span, as Skeleton's
+ * look, so it can stand in for text where a div can't go, as in a <p>.
  */
 function Bar({ className }: { className?: string }) {
-  return <Skeleton className={cn('bg-foreground/10', className)} />;
+  return (
+    <span
+      data-slot='skeleton'
+      className={cn(
+        'block animate-pulse rounded-md bg-foreground/10',
+        className
+      )}
+    />
+  );
 }
 
 /**
