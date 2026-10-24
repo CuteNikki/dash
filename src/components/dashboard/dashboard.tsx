@@ -328,7 +328,7 @@ export function Dashboard({
               setOpenTab('logs');
               setOpenKey(service.key);
             }}
-            onChangedAction={() => void mutate()}
+            onChangedAction={() => mutate()}
           />
         )}
         <ServiceDialog

@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 import {
   ExternalLinkIcon,
   EyeOffIcon,
+  LoaderIcon,
   PlayIcon,
   RotateCwIcon,
   ScrollTextIcon,
@@ -28,16 +29,7 @@ import { attempt } from '@/components/common/toasts';
 import { addressWords } from '@/components/service/address-text';
 import { ServiceIcon } from '@/components/service/service-icon';
 import { StatePill, StatusDot } from '@/components/service/status-dot';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { StopDialog } from '@/components/service/stop-dialog';
 import { Button } from '@/components/ui/button';
 import { UpdateBadge } from '@/components/updates/update-badge';
 
@@ -68,8 +60,8 @@ export function ServiceList({
   editing: boolean;
   onOpenAction: (service: Service) => void;
   onLogsAction: (service: Service) => void;
-  /** After an action, so the dashboard refreshes right away */
-  onChangedAction: () => void;
+  /** After an action, so the dashboard refreshes right away; the row waits on it */
+  onChangedAction: () => Promise<unknown>;
 }) {
   // A group since renamed or emptied shows them all
   const filter: ListFilter =
@@ -77,7 +69,8 @@ export function ServiceList({
       ? { kind: 'all' }
       : picked;
   const [stopping, setStopping] = useState<Service>();
-  const [, startTransition] = useTransition();
+  // What's being done to each, by key, until it's done
+  const [busy, setBusy] = useState<Record<string, ContainerAction>>({});
 
   const all = groups.flatMap((g) => g.services);
   const stopped = all.filter((s) => !isRunning(s.state));
@@ -93,15 +86,20 @@ export function ServiceList({
     .filter((g) => g.services.length);
 
   function run(service: Service, action: ContainerAction) {
-    startTransition(() =>
-      attempt(`Couldn't ${action} ${service.name}`, async () => {
-        const result = await runContainerAction(service.containerId, action);
-        if (result.ok) toast.success(`${DONE[action]} ${service.name}`);
-        else
-          toast.error(`Couldn't ${action} ${service.name}`, {
-            description: result.error,
-          });
-        onChangedAction();
+    setBusy((b) => ({ ...b, [service.key]: action }));
+    void attempt(`Couldn't ${action} ${service.name}`, async () => {
+      const result = await runContainerAction(service.containerId, action);
+      if (result.ok) toast.success(`${DONE[action]} ${service.name}`);
+      else
+        toast.error(`Couldn't ${action} ${service.name}`, {
+          description: result.error,
+        });
+      await onChangedAction();
+    }).finally(() =>
+      setBusy((b) => {
+        const rest = { ...b };
+        delete rest[service.key];
+        return rest;
       })
     );
   }
@@ -185,6 +183,7 @@ export function ServiceList({
                   key={service.key}
                   service={service}
                   editing={editing}
+                  busy={busy[service.key]}
                   onOpen={onOpenAction}
                   onLogs={onLogsAction}
                   onRun={(action) =>
@@ -204,29 +203,12 @@ export function ServiceList({
         )}
       </div>
 
-      <AlertDialog
+      <StopDialog
+        name={stopping?.name}
         open={!!stopping}
-        onOpenChange={(open) => !open && setStopping(undefined)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Stop {stopping?.name}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              It stays stopped until you start it again, including after the
-              server restarts.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              variant='destructive'
-              onClick={() => stopping && run(stopping, 'stop')}
-            >
-              Stop
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        onOpenChangeAction={(open) => !open && setStopping(undefined)}
+        onStopAction={() => stopping && run(stopping, 'stop')}
+      />
     </div>
   );
 }
@@ -270,12 +252,15 @@ function shortPath(dir: string) {
 function Row({
   service,
   editing,
+  busy,
   onOpen,
   onLogs,
   onRun,
 }: {
   service: Service;
   editing: boolean;
+  /** What's being done to it, which its buttons wait on */
+  busy?: ContainerAction;
   onOpen: (service: Service) => void;
   onLogs: (service: Service) => void;
   onRun: (action: ContainerAction) => void;
@@ -428,29 +413,44 @@ function Row({
                 <ScrollTextIcon />
               </ActionButton>
               {controls && (
+                // Kept in its place while stopped, as the window's is, so
+                // the rows' buttons line up
                 <ActionButton
                   label='Restart'
                   variant='warning'
+                  disabled={!!busy || !running}
                   onClick={() => onRun('restart')}
                 >
-                  <RotateCwIcon />
+                  <RotateCwIcon
+                    className={cn(busy === 'restart' && 'animate-spin')}
+                  />
                 </ActionButton>
               )}
               {!controls ? null : running ? (
                 <ActionButton
                   label='Stop'
                   variant='destructive'
+                  disabled={!!busy}
                   onClick={() => onRun('stop')}
                 >
-                  <SquareIcon />
+                  {busy === 'stop' ? (
+                    <LoaderIcon className='animate-spin' />
+                  ) : (
+                    <SquareIcon />
+                  )}
                 </ActionButton>
               ) : (
                 <ActionButton
                   label='Start'
                   variant='success'
+                  disabled={!!busy}
                   onClick={() => onRun('start')}
                 >
-                  <PlayIcon />
+                  {busy === 'start' ? (
+                    <LoaderIcon className='animate-spin' />
+                  ) : (
+                    <PlayIcon />
+                  )}
                 </ActionButton>
               )}
             </>
@@ -465,11 +465,13 @@ function Row({
 function ActionButton({
   label,
   variant = 'outline',
+  disabled,
   onClick,
   children,
 }: {
   label: string;
   variant?: 'outline' | 'destructive' | 'warning' | 'success';
+  disabled?: boolean;
   onClick: () => void;
   children: React.ReactNode;
 }) {
@@ -479,6 +481,7 @@ function ActionButton({
       size='icon-sm'
       aria-label={label}
       title={label}
+      disabled={disabled}
       onClick={onClick}
       className={cn(
         variant === 'outline' && 'text-muted-foreground hover:text-foreground'

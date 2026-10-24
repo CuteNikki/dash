@@ -60,17 +60,8 @@ import { PortList } from '@/components/service/port-list';
 import { RemoveServiceDialog } from '@/components/service/remove-service-dialog';
 import { ServiceIcon } from '@/components/service/service-icon';
 import { StatePill } from '@/components/service/status-dot';
+import { StopDialog } from '@/components/service/stop-dialog';
 import { BucketBrowser } from '@/components/storage/bucket-browser';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -533,26 +524,12 @@ function ServiceBody({
           onRemovedAction={onRemoved}
         />
       )}
-      <AlertDialog open={confirmStop} onOpenChange={setConfirmStop}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Stop {service.name}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              It stays stopped until you start it again, including after the
-              server restarts.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              variant='destructive'
-              onClick={() => run('stop')}
-            >
-              Stop
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <StopDialog
+        name={service.name}
+        open={confirmStop}
+        onOpenChangeAction={setConfirmStop}
+        onStopAction={() => run('stop')}
+      />
     </>
   );
 }
