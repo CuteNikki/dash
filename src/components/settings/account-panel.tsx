@@ -24,7 +24,9 @@ import { Switch } from '@/components/ui/switch';
 /** Who they are, as the dashboard knows them, and the password they sign in with. */
 export function AccountPanel({ me }: { me: Me }) {
   return (
-    <div className='grid grid-cols-1 gap-3 lg:grid-cols-2 lg:items-start'>
+    // One under another, as the Security tab's are, each laying its fields
+    // out side by side, so none leaves a gap beside a taller one
+    <div className='flex flex-col gap-3'>
       <ProfileForm me={me} />
       <PasswordForm />
       {can(me.role, 'server') && <AlertsForm me={me} />}
@@ -99,27 +101,29 @@ function ProfileForm({ me }: { me: Me }) {
           save();
         }}
       >
-        <div className='flex flex-col gap-2'>
-          <Label htmlFor='account-name'>Name</Label>
-          <Input
-            id='account-name'
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            autoComplete='name'
-            required
-          />
-        </div>
-        <div className='flex flex-col gap-2'>
-          <Label htmlFor='account-email'>Email</Label>
-          <Input
-            id='account-email'
-            type='email'
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete='email'
-            required
-          />
-          <EmailStatus me={me} />
+        <div className='grid gap-4 sm:grid-cols-2 sm:items-start'>
+          <div className='flex flex-col gap-2'>
+            <Label htmlFor='account-name'>Name</Label>
+            <Input
+              id='account-name'
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoComplete='name'
+              required
+            />
+          </div>
+          <div className='flex flex-col gap-2'>
+            <Label htmlFor='account-email'>Email</Label>
+            <Input
+              id='account-email'
+              type='email'
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete='email'
+              required
+            />
+            <EmailStatus me={me} />
+          </div>
         </div>
         {error && <p className='text-destructive'>{error}</p>}
         <Button
@@ -182,53 +186,57 @@ function PasswordForm() {
           );
         }}
       >
-        <div className='flex flex-col gap-2'>
-          <Label htmlFor='current-password'>Current password</Label>
-          <Input
-            id='current-password'
-            name='current-password'
-            type='password'
-            autoComplete='current-password'
-            required
-          />
-        </div>
-        <div className='flex flex-col gap-2'>
-          <Label htmlFor='new-password'>New password</Label>
-          <Input
-            id='new-password'
-            name='new-password'
-            type='password'
-            autoComplete='new-password'
-            minLength={MIN_PASSWORD}
-            required
-          />
-          <p className='text-muted-foreground'>
-            {MIN_PASSWORD} characters or more.
-          </p>
-        </div>
-        <div className='flex flex-col gap-2'>
-          <Label htmlFor='repeat-password'>New password again</Label>
-          <Input
-            id='repeat-password'
-            name='repeat-password'
-            type='password'
-            autoComplete='new-password'
-            minLength={MIN_PASSWORD}
-            required
-          />
-        </div>
-        <div className='flex items-center gap-2'>
-          <Checkbox
-            id='sign-out-others'
-            checked={signOutOthers}
-            onCheckedChange={(checked) => setSignOutOthers(checked === true)}
-          />
-          <Label htmlFor='sign-out-others'>Sign out my other devices</Label>
+        <div className='grid gap-4 sm:grid-cols-3 sm:items-start'>
+          <div className='flex flex-col gap-2'>
+            <Label htmlFor='current-password'>Current password</Label>
+            <Input
+              id='current-password'
+              name='current-password'
+              type='password'
+              autoComplete='current-password'
+              required
+            />
+          </div>
+          <div className='flex flex-col gap-2'>
+            <Label htmlFor='new-password'>New password</Label>
+            <Input
+              id='new-password'
+              name='new-password'
+              type='password'
+              autoComplete='new-password'
+              minLength={MIN_PASSWORD}
+              required
+            />
+            <p className='text-muted-foreground'>
+              {MIN_PASSWORD} characters or more.
+            </p>
+          </div>
+          <div className='flex flex-col gap-2'>
+            <Label htmlFor='repeat-password'>New password again</Label>
+            <Input
+              id='repeat-password'
+              name='repeat-password'
+              type='password'
+              autoComplete='new-password'
+              minLength={MIN_PASSWORD}
+              required
+            />
+          </div>
         </div>
         {error && <p className='text-destructive'>{error}</p>}
-        <Button type='submit' disabled={pending} className='self-start'>
-          Change password
-        </Button>
+        <div className='flex flex-wrap items-center gap-x-4 gap-y-3'>
+          <Button type='submit' disabled={pending}>
+            Change password
+          </Button>
+          <div className='flex items-center gap-2'>
+            <Checkbox
+              id='sign-out-others'
+              checked={signOutOthers}
+              onCheckedChange={(checked) => setSignOutOthers(checked === true)}
+            />
+            <Label htmlFor='sign-out-others'>Sign out my other devices</Label>
+          </div>
+        </div>
       </form>
     </Panel>
   );
@@ -292,7 +300,15 @@ function AlertsForm({ me }: { me: Me }) {
   const [pending, startTransition] = useTransition();
   return (
     <Panel title='Alerts'>
-      <div className='flex items-center gap-2'>
+      <div className='flex items-start justify-between gap-4'>
+        <div className='flex flex-col gap-1'>
+          <Label htmlFor='alert-mail'>Mail me alerts</Label>
+          <p className='text-muted-foreground'>
+            {me.mail
+              ? `When a service goes down, the disk fills, a website stops answering, a certificate is running out or a backup fails, mailed to ${me.email}, and again once it's right.`
+              : "Mail isn't set up yet, so alerts only show under the bell at the top."}
+          </p>
+        </div>
         <Switch
           id='alert-mail'
           checked={on}
@@ -312,13 +328,7 @@ function AlertsForm({ me }: { me: Me }) {
             );
           }}
         />
-        <Label htmlFor='alert-mail'>Mail me alerts</Label>
       </div>
-      <p className='text-muted-foreground'>
-        {me.mail
-          ? `When a service goes down, the disk fills, a website stops answering, a certificate is running out or a backup fails, mailed to ${me.email}, and again once it's right.`
-          : "Mail isn't set up yet, so alerts only show under the bell at the top."}
-      </p>
     </Panel>
   );
 }
