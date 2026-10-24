@@ -11,6 +11,7 @@ import { fetcher } from '@/lib/fetcher';
 import { Failure } from '@/components/common/failure';
 import { TextSkeleton } from '@/components/common/skeletons';
 import { useDebounced } from '@/components/common/use-debounced';
+import { keepShape, useKeptShape } from '@/components/common/use-kept';
 import { Button } from '@/components/ui/button';
 import {
   InputGroup,
@@ -20,6 +21,15 @@ import {
 import { Toggle } from '@/components/ui/toggle';
 
 type Page = { entries: ActivityEntry[]; more: boolean };
+
+/** Placeholder lines' lengths, as entries' vary. */
+const WIDTHS = ['w-72', 'w-96', 'w-56', 'w-80', 'w-64'];
+
+/** The list as last drawn: each day's rows' heights, and whether there was more. */
+type Shape = { days: number[][]; more: boolean };
+const SHAPE = 'activity';
+/** A row of one line, before any's been measured */
+const ROW_PX = 33;
 
 /** The newest page refreshes, for what's done while it's open. */
 const REFRESH_MS = 30_000;
@@ -48,6 +58,22 @@ export function ActivityPanel() {
   const entries = data?.flatMap((p) => p.entries) ?? [];
   const more = data?.at(-1)?.more ?? false;
   const loadingMore = isValidating && data !== undefined && size > data.length;
+  // While it's read, as many days of rows as tall as last time, as a row
+  // that wraps is taller, and Older if there was more
+  const shape = useKeptShape<Shape>(SHAPE, undefined, {
+    days: [Array<number>(8).fill(ROW_PX)],
+    more: true,
+  });
+  /** What the list looks like as drawn, kept for its placeholder. */
+  const measure = (el: HTMLDivElement | null) => {
+    if (!el) return;
+    keepShape(SHAPE, {
+      days: [...el.querySelectorAll('ul')].map((ul) =>
+        [...ul.children].map((li) => li.getBoundingClientRect().height)
+      ),
+      more,
+    } satisfies Shape);
+  };
 
   return (
     <section className='flex flex-col gap-3'>
@@ -86,10 +112,24 @@ export function ActivityPanel() {
       {error && !data ? (
         <p className='text-destructive'>{error.message}</p>
       ) : !data ? (
-        <div className='flex flex-col gap-3'>
-          {[0, 1, 2, 3].map((i) => (
-            <TextSkeleton key={i} className='w-80' />
+        <div className='flex flex-col gap-4'>
+          {shape.days.map((rows, d) => (
+            <div key={d} className='flex flex-col gap-1'>
+              <h4>
+                <TextSkeleton className='w-20' />
+              </h4>
+              <ul className='flex flex-col divide-y divide-border'>
+                {rows.map((height, i) => (
+                  <ActivityRow key={i} index={d + i} height={height} />
+                ))}
+              </ul>
+            </div>
           ))}
+          {shape.more && (
+            <Button variant='outline' size='sm' disabled className='self-start'>
+              Older
+            </Button>
+          )}
         </div>
       ) : entries.length === 0 ? (
         <p className='text-muted-foreground'>
@@ -100,7 +140,7 @@ export function ActivityPanel() {
               : 'Nothing done yet.'}
         </p>
       ) : (
-        <div className='flex flex-col gap-4'>
+        <div ref={measure} className='flex flex-col gap-4'>
           {byDay(entries).map(([day, list]) => (
             <div key={day} className='flex flex-col gap-1'>
               <h4 className='text-muted-foreground'>{day}</h4>
@@ -128,8 +168,34 @@ export function ActivityPanel() {
   );
 }
 
-/** "Nikki stopped minecraft", when, and what more there is to say. */
-function ActivityRow({ entry }: { entry: ActivityEntry }) {
+/**
+ * "Nikki stopped minecraft", when, and what more there is to say. Without
+ * an entry, the same row with placeholders, while they're read.
+ */
+function ActivityRow({
+  entry,
+  index = 0,
+  height,
+}: {
+  entry?: ActivityEntry;
+  /** A placeholder's place, for its line's length */
+  index?: number;
+  /** A placeholder's height, as its entry's was */
+  height?: number;
+}) {
+  if (!entry) {
+    return (
+      <li className='flex items-baseline gap-3 py-1.5' style={{ height }}>
+        {/* As wide as a time, "12:35 AM" */}
+        <span className='w-[8ch] shrink-0 font-mono'>
+          <TextSkeleton className='w-full' />
+        </span>
+        <span className='min-w-0 flex-1'>
+          <TextSkeleton className={WIDTHS[index % WIDTHS.length]} />
+        </span>
+      </li>
+    );
+  }
   return (
     <li className='flex items-baseline gap-3 py-1.5'>
       <time
