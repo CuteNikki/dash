@@ -10,6 +10,7 @@ import { say, shown } from '@/lib/stacks/service-stacks';
 import { forgetUpdate, updateOf } from '@/lib/updates/check';
 import {
   followSelfUpdate,
+  selfUpdateRunning,
   startSelfUpdate,
   type SelfUpdateBy,
 } from '@/lib/updates/self-update';
@@ -156,12 +157,17 @@ export async function* updateService(
  * The dashboard's own rebuild, built, migrated and recreated by a job of its
  * own, as recreating it ends this request, followed from here for as long as
  * this dashboard's up to; a window follows the rest from the new one. A
- * build or migration that fails leaves this dashboard running.
+ * build or migration that fails leaves this dashboard running. One already
+ * going on is followed instead, as two at once fight over the container.
  */
 async function* restartDash(
   stack: Stack,
   by: SelfUpdateBy
 ): AsyncGenerator<RunLine, number> {
+  if (await selfUpdateRunning()) {
+    yield say('The dashboard is already being rebuilt; following that one');
+    return yield* followSelfUpdate();
+  }
   await startSelfUpdate(stack, by);
   return yield* followSelfUpdate();
 }

@@ -47,8 +47,13 @@ const compose = (stack: Stack, args: string[]) =>
 /** Starts the rebuild as a job of its own, after the dashboard's pulled the new commits. */
 export async function startSelfUpdate(stack: Stack, by: SelfUpdateBy) {
   const run = composeRun(stack, []);
+  // One at a time: a second begun at the same moment finds the first holding
+  // the lock, which goes with its shell, and leaves the rebuild to it
   const script = `D=${quote(DIR)}
-mkdir -p "$D" && : > "$D/log" && rm -f "$D/status" "$D/noted" && date +%s > "$D/started"
+mkdir -p "$D" || exit 1
+exec 9> "$D/lock"
+flock -n 9 || exit 0
+: > "$D/log" && rm -f "$D/status" "$D/noted" && date +%s > "$D/started"
 printf %s ${quote(JSON.stringify(by))} > "$D/by"
 step() {
   echo "$1" >> "$D/log"; shift
