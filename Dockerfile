@@ -4,6 +4,10 @@ WORKDIR /app
 # Dependencies first, so a change to the code alone reuses them
 COPY package.json bun.lock prisma.config.ts ./
 COPY prisma ./prisma
+# Prisma's migrations engine isn't needed to generate its client, nor by the
+# dashboard, only by the migrate stage below. Saying it's there keeps Prisma
+# from downloading it, which from Docker's network, with no IPv6, can time out
+ENV PRISMA_SCHEMA_ENGINE_BINARY=/bin/true
 RUN bun install --frozen-lockfile
 COPY . .
 # The server's name, shown in the browser too, so it's built in
@@ -11,14 +15,21 @@ ARG NEXT_PUBLIC_SERVER_NAME
 RUN bun run build
 
 # The database's migrations, which compose's migrate runs before the dashboard starts:
-# Prisma and the migrations alone, at the versions package.json names
+# Prisma and the migrations alone, at the versions package.json names. Its
+# engine is downloaded with it, a few tries if need be: from Docker's network,
+# with no IPv6, a connection to Prisma's host now and then times out
 FROM oven/bun:1.4.0-alpine AS migrate
 WORKDIR /app
 COPY package.json ./app.json
 RUN echo '{ "private": true }' > package.json \
-  && bun add \
-    prisma@$(bun -e 'console.log(require("./app.json").devDependencies.prisma)') \
-    dotenv@$(bun -e 'console.log(require("./app.json").devDependencies.dotenv)')
+  && for try in 1 2 3 4; do \
+    bun add \
+      prisma@$(bun -e 'console.log(require("./app.json").devDependencies.prisma)') \
+      dotenv@$(bun -e 'console.log(require("./app.json").devDependencies.dotenv)') \
+    && break; \
+    [ "$try" = 4 ] && exit 1; \
+    sleep 5; \
+  done
 COPY prisma.config.ts ./
 COPY prisma ./prisma
 CMD ["bunx", "prisma", "migrate", "deploy"]

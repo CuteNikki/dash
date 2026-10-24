@@ -9,9 +9,6 @@ services:
     build:
       context: .
       target: migrate
-      # Built on the server's own network: Docker's has no IPv6, and some hosts the
-      # build downloads from, as Prisma's, answer only over it from here
-      network: host
     env_file: .env
     restart: 'no'
     labels:
@@ -22,9 +19,6 @@ services:
   dash:
     build:
       context: .
-      # Built on the server's own network: Docker's has no IPv6, and some hosts the
-      # build downloads from, as Prisma's, answer only over it from here
-      network: host
       args:
         NEXT_PUBLIC_SERVER_NAME: vps.niso.moe
     container_name: dash
