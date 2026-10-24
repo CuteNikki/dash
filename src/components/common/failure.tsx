@@ -34,7 +34,9 @@ export function Failure({ children }: { children: string }) {
         <span
           ref={ref}
           className={cn(
-            'wrap-break-word whitespace-pre-wrap',
+            // Anywhere, not just break-word, so a long container id doesn't
+            // widen the line past the row and get cut off
+            'wrap-anywhere whitespace-pre-wrap',
             !open && 'line-clamp-2'
           )}
         >
