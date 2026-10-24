@@ -10,6 +10,7 @@ import type { HostHistory, HostStats } from '@/lib/types';
 
 import { HistoryChart } from '@/components/charts/history-chart';
 import { RangePicker } from '@/components/charts/range-picker';
+import { TextSkeleton } from '@/components/common/skeletons';
 import { Panel } from '@/components/service/app-details';
 import {
   Dialog,
@@ -18,7 +19,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Skeleton } from '@/components/ui/skeleton';
 
 const RANGES = ['1h', '6h', '24h', '7d'] as const;
 
@@ -195,7 +195,7 @@ function HistoryPanel({
   return (
     <Panel title={title}>
       <span className='-mt-1 text-muted-foreground'>
-        {summary ?? <Skeleton className='h-4 w-24' />}
+        {summary ?? <TextSkeleton className='w-24' />}
       </span>
       <div className='h-24'>
         {times && lines && (
