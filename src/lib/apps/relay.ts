@@ -24,6 +24,8 @@ type RelayStatus = {
   live: boolean;
   since?: number;
   input: { video?: string; audio?: string };
+  /** Since when OBS has been gone and the fallback clip has been playing in its place */
+  fallbackSince?: number;
   fps?: number;
   bitrate?: string;
   speed?: string;
@@ -83,6 +85,15 @@ export const relay: App = {
       // to count
       ...(seconds >= 60 ? [{ value: formatDuration(seconds) }] : []),
       { label: 'Out', value: bitrate(status.bitrate) },
+      // OBS dropped out, and for how long the clip has been on in its place
+      ...(status.fallbackSince
+        ? [
+            {
+              label: 'Fallback',
+              value: formatDuration((Date.now() - status.fallbackSince) / 1000),
+            },
+          ]
+        : []),
       // A platform not getting the stream, which matters more than the rest
       ...(down.length ? [{ label: 'Retrying', value: down.join(', ') }] : []),
     ];
@@ -100,6 +111,14 @@ export const relay: App = {
           ...(status.live
             ? [
                 { label: 'Live since', value: { at: status.since ?? 0 } },
+                ...(status.fallbackSince
+                  ? [
+                      {
+                        label: 'OBS dropped out',
+                        value: { at: status.fallbackSince },
+                      },
+                    ]
+                  : []),
                 { label: 'Video in', value: status.input.video ?? '–' },
                 { label: 'Audio in', value: status.input.audio ?? '–' },
                 // Under 1x, it's falling behind what comes in

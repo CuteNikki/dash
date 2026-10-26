@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test';
 
 import type { Container } from '@/lib/docker/docker';
+import { formatDuration } from '@/lib/format';
 
 /** The status file the relay is taken to have written, for each test to set */
 let file: object = {};
@@ -67,6 +68,18 @@ describe('relay', () => {
     };
     const stats = await relay.read(app);
     expect(stats.some((s) => s.label === 'Retrying')).toBe(false);
+  });
+
+  test('says on its tile, and in its window, that OBS has dropped out', async () => {
+    file = { ...live(), fallbackSince: Date.now() - 75_000 };
+    const stats = await relay.read(app);
+    expect(stats).toContainEqual({
+      label: 'Fallback',
+      value: formatDuration(75),
+    });
+    const [facts] = await relay.details!(app);
+    if (facts.kind !== 'facts') throw new Error('expected facts');
+    expect(facts.facts.map((f) => f.label)).toContain('OBS dropped out');
   });
 
   test('is offline once the status has gone stale', async () => {
