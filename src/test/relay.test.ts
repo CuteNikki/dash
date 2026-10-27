@@ -164,4 +164,66 @@ describe('relay', () => {
       'Waiting',
     ]);
   });
+
+  test('shows each of two streams, and which one each platform gets', async () => {
+    const now = Date.now();
+    file = {
+      ...live(),
+      inputs: [
+        {
+          name: 'landscape',
+          live: true,
+          since: now - 90_000,
+          media: { video: 'h264, 2560x1440, 60 fps' },
+        },
+        {
+          name: 'vertical',
+          live: true,
+          since: now - 60_000,
+          media: { video: 'h264, 1080x1920, 60 fps' },
+          fallbackSince: now - 20_000,
+        },
+      ],
+      outputs: [
+        { ...live().outputs[0], input: 'landscape' },
+        {
+          name: 'Shorts',
+          sends: 'as it comes in',
+          input: 'vertical',
+          state: 'live',
+          retries: 0,
+        },
+      ],
+    };
+    const stats = await relay.read(app);
+    expect(stats).toContainEqual({
+      label: 'Fallback',
+      value: formatDuration(20),
+    });
+    const [facts, table] = await relay.details!(app);
+    if (facts.kind !== 'facts' || table.kind !== 'table') {
+      throw new Error('expected facts and a table');
+    }
+    expect(facts.facts).toContainEqual({
+      label: 'Vertical in',
+      value: 'h264, 1080x1920, 60 fps',
+    });
+    expect(facts.facts.map((f) => f.label)).toContain('Vertical dropped out');
+    expect(table.columns.map((c) => c.label)).toContain('Input');
+    expect(table.rows[1].cells.slice(0, 3)).toEqual([
+      'Shorts',
+      'as it comes in',
+      'Vertical',
+    ]);
+  });
+
+  test('has no input column with only the one stream', async () => {
+    file = {
+      ...live(),
+      inputs: [{ name: 'landscape', live: true, media: {} }],
+    };
+    const [, table] = await relay.details!(app);
+    if (table.kind !== 'table') throw new Error('expected a table');
+    expect(table.columns.map((c) => c.label)).not.toContain('Input');
+  });
 });

@@ -9,6 +9,8 @@ type RelayOutput = {
   name: string;
   /** What it gets: "as it comes in", "1080p at 6000 kb/s" */
   sends: string;
+  /** Which of OBS's streams it gets */
+  input?: 'landscape' | 'vertical';
   state?: 'waiting' | 'connecting' | 'live' | 'retrying';
   fps?: number;
   bitrate?: string;
@@ -19,6 +21,16 @@ type RelayOutput = {
   lastError?: string;
 };
 
+/** One of the streams OBS sends: its usual landscape one, or a second, vertical one */
+type RelayInput = {
+  name: 'landscape' | 'vertical';
+  live: boolean;
+  since?: number;
+  media: { video?: string; audio?: string };
+  /** Since when OBS has been gone and the fallback clip has been playing in its place */
+  fallbackSince?: number;
+};
+
 /** What the relay writes about its stream, in its own repository's src/status.ts. */
 type RelayStatus = {
   live: boolean;
@@ -26,6 +38,8 @@ type RelayStatus = {
   input: { video?: string; audio?: string };
   /** Since when OBS has been gone and the fallback clip has been playing in its place */
   fallbackSince?: number;
+  /** Each of OBS's streams some platform gets, landscape first */
+  inputs?: RelayInput[];
   fps?: number;
   bitrate?: string;
   speed?: string;
@@ -56,6 +70,20 @@ function bitrate(value?: string) {
   return Number.isFinite(kbits) ? `${(kbits / 1000).toFixed(1)} Mb/s` : '–';
 }
 
+/** "landscape" > "Landscape" */
+const named = (input: string) => input[0].toUpperCase() + input.slice(1);
+
+/**
+ * When OBS dropped out of whichever stream it did first, while the fallback
+ * clip plays in its place
+ */
+function droppedSince(status: RelayStatus) {
+  const since = (status.inputs ?? [])
+    .map((i) => i.fallbackSince)
+    .filter((at): at is number => at !== undefined);
+  return since.length ? Math.min(...since) : status.fallbackSince;
+}
+
 /** What each platform is doing, as people say it */
 const STATES: Record<NonNullable<RelayOutput['state']>, string> = {
   waiting: 'Waiting',
@@ -79,6 +107,7 @@ export const relay: App = {
     if (!status.live) return [{ value: 'offline', tone: 'off' }];
     const seconds = status.since ? (Date.now() - status.since) / 1000 : 0;
     const down = failing(status);
+    const dropped = droppedSince(status);
     return [
       { value: 'live', tone: 'live' },
       // For how long, which says what it is alone, once there's a minute
@@ -86,11 +115,11 @@ export const relay: App = {
       ...(seconds >= 60 ? [{ value: formatDuration(seconds) }] : []),
       { label: 'Out', value: bitrate(status.bitrate) },
       // OBS dropped out, and for how long the clip has been on in its place
-      ...(status.fallbackSince
+      ...(dropped
         ? [
             {
               label: 'Fallback',
-              value: formatDuration((Date.now() - status.fallbackSince) / 1000),
+              value: formatDuration((Date.now() - dropped) / 1000),
             },
           ]
         : []),
@@ -103,6 +132,9 @@ export const relay: App = {
     const problems = status.problems ?? [];
     // Why a platform last failed, as a column only when one has
     const errors = status.outputs.some((o) => o.lastError);
+    // Each of OBS's streams on its own, once there's more than one
+    const inputs = status.live ? (status.inputs ?? []) : [];
+    const both = (status.inputs ?? []).length > 1;
     return [
       {
         kind: 'facts',
@@ -111,16 +143,35 @@ export const relay: App = {
           ...(status.live
             ? [
                 { label: 'Live since', value: { at: status.since ?? 0 } },
-                ...(status.fallbackSince
-                  ? [
+                ...(both
+                  ? inputs.flatMap((i) => [
                       {
-                        label: 'OBS dropped out',
-                        value: { at: status.fallbackSince },
+                        label: `${named(i.name)} in`,
+                        value: i.live
+                          ? (i.media.video ?? '–')
+                          : 'Not streaming',
                       },
-                    ]
-                  : []),
-                { label: 'Video in', value: status.input.video ?? '–' },
-                { label: 'Audio in', value: status.input.audio ?? '–' },
+                      ...(i.fallbackSince
+                        ? [
+                            {
+                              label: `${named(i.name)} dropped out`,
+                              value: { at: i.fallbackSince },
+                            },
+                          ]
+                        : []),
+                    ])
+                  : [
+                      ...(status.fallbackSince
+                        ? [
+                            {
+                              label: 'OBS dropped out',
+                              value: { at: status.fallbackSince },
+                            },
+                          ]
+                        : []),
+                      { label: 'Video in', value: status.input.video ?? '–' },
+                      { label: 'Audio in', value: status.input.audio ?? '–' },
+                    ]),
                 // Under 1x, it's falling behind what comes in
                 { label: 'Keeping up', value: status.speed ?? '–' },
                 { label: 'Sending', value: bitrate(status.bitrate) },
@@ -139,6 +190,7 @@ export const relay: App = {
         columns: [
           { label: 'Where' },
           { label: 'What' },
+          ...(both ? [{ label: 'Input' }] : []),
           { label: 'State' },
           { label: 'Frame rate', numeric: true },
           { label: 'Bitrate', numeric: true },
@@ -153,6 +205,7 @@ export const relay: App = {
             cells: [
               o.name,
               o.sends,
+              ...(both ? [named(o.input ?? 'landscape')] : []),
               status.live && o.state ? STATES[o.state] : 'Waiting',
               sending && o.fps !== undefined ? `${o.fps}` : '–',
               sending ? bitrate(o.bitrate) : '–',
