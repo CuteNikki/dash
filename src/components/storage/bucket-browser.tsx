@@ -14,6 +14,7 @@ import useSWRInfinite from 'swr/infinite';
 
 import {
   ArrowUpIcon,
+  DatabaseIcon,
   DownloadIcon,
   ExternalLinkIcon,
   FileArchiveIcon,
@@ -67,13 +68,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 
 /** How far ahead of the grid's end its next page is asked for. */
@@ -160,38 +154,78 @@ export function BucketBrowser({ containerId }: { containerId: string }) {
 
   return (
     <div className='flex min-h-0 flex-1 flex-col gap-3 sm:flex-row'>
-      {/* On a phone, the buckets to pick from in a menu, the grid having the room */}
-      <Select
-        value={bucket ?? ''}
-        onValueChange={(name) => setAt({ bucket: name, prefix: '' })}
-        disabled={!buckets?.length}
-      >
-        <SelectTrigger
-          aria-label='Bucket'
-          className='w-full font-mono sm:hidden'
+      {/* On a phone, until one's opened, the buckets as a list of their
+          own, as a bucket's folders are, the grid having the room */}
+      {!at.bucket && (
+        <section
+          aria-label='Buckets'
+          className='flex min-h-0 flex-1 flex-col gap-3 sm:hidden'
         >
-          <SelectValue
-            placeholder={
-              bucketsError && !buckets
-                ? `Couldn't list the buckets: ${bucketsError.message}`
-                : buckets
-                  ? 'No buckets yet'
-                  : 'Reading the buckets…'
-            }
-          />
-        </SelectTrigger>
-        <SelectContent>
-          {buckets?.map((b) => (
-            <SelectItem key={b.name} value={b.name} className='pr-7 font-mono'>
-              {b.name}
-              <span className='font-sans text-muted-foreground tabular-nums'>
-                {b.objects} {b.objects === 1 ? 'file' : 'files'} ·{' '}
-                {formatBytes(b.size)}
-              </span>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+          <div className='flex min-h-7 items-center gap-2'>
+            <span className='flex-1 px-1 font-mono'>Buckets</span>
+            <Button
+              variant='outline'
+              size='icon'
+              aria-label='Read again'
+              title='Read again'
+              onClick={() => void rereadBuckets()}
+            >
+              <RefreshCwIcon />
+            </Button>
+          </div>
+          <div className='min-h-0 flex-1'>
+            <ScrollFade
+              className='h-full overflow-x-hidden overflow-y-auto'
+              fadeFrom='from-popover'
+              fill
+            >
+              {bucketsError && !buckets ? (
+                <p className='text-muted-foreground'>
+                  Couldn&apos;t list the buckets: {bucketsError.message}
+                </p>
+              ) : !buckets ? (
+                <ul className='flex flex-col'>
+                  {Array.from({ length: bucketRows }, (_, i) => (
+                    <li
+                      key={i}
+                      className='flex items-center gap-3 rounded-md px-2 py-2'
+                    >
+                      <Skeleton className='size-4 shrink-0 bg-foreground/10' />
+                      <span className='min-w-0 flex-1'>
+                        <TextSkeleton className={i % 2 ? 'w-16' : 'w-24'} />
+                      </span>
+                      <TextSkeleton className='w-24' />
+                    </li>
+                  ))}
+                </ul>
+              ) : buckets.length === 0 ? (
+                <p className='text-muted-foreground'>No buckets yet.</p>
+              ) : (
+                <ul className='flex flex-col'>
+                  {buckets.map((b) => (
+                    <li key={b.name}>
+                      <button
+                        type='button'
+                        onClick={() => setAt({ bucket: b.name, prefix: '' })}
+                        className='flex w-full items-center gap-3 rounded-md px-2 py-2 text-left hover:bg-foreground/5'
+                      >
+                        <DatabaseIcon className='size-4 shrink-0 text-muted-foreground' />
+                        <span className='min-w-0 flex-1 truncate font-mono'>
+                          {b.name}
+                        </span>
+                        <span className='shrink-0 text-muted-foreground tabular-nums'>
+                          {b.objects} {b.objects === 1 ? 'file' : 'files'} ·{' '}
+                          {formatBytes(b.size)}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </ScrollFade>
+          </div>
+        </section>
+      )}
       <section
         aria-label='Buckets'
         className='hidden shrink-0 flex-col overflow-hidden rounded-lg bg-muted sm:flex sm:w-60'
@@ -259,7 +293,11 @@ export function BucketBrowser({ containerId }: { containerId: string }) {
           backups={!!buckets?.find((b) => b.name === bucket)?.backups}
           prefix={prefix}
           onOpenAction={(prefix) => setAt({ bucket, prefix })}
+          onBucketsAction={() => setAt({ prefix: '' })}
           onDeletedAction={() => void rereadBuckets()}
+          // On a phone, the buckets' list shows in its place until one's
+          // opened; elsewhere the first bucket's open beside them
+          className={cn(!at.bucket && 'max-sm:hidden')}
         />
       )}
     </div>
@@ -273,7 +311,9 @@ function Folder({
   backups,
   prefix,
   onOpenAction,
+  onBucketsAction,
   onDeletedAction,
+  className,
 }: {
   base: string;
   containerId: string;
@@ -282,8 +322,11 @@ function Folder({
   /** The folder open, "" for the bucket's top, else ending in "/" */
   prefix: string;
   onOpenAction: (prefix: string) => void;
+  /** Up from the bucket's top, on a phone, back to the buckets' list */
+  onBucketsAction: () => void;
   /** Called once files are gone, so the bucket's totals are read again */
   onDeletedAction: () => void;
+  className?: string;
 }) {
   const { data, error, setSize, isValidating, mutate } =
     useSWRInfinite<StoredPage>(
@@ -385,23 +428,27 @@ function Folder({
   return (
     <section
       aria-label={`${bucket}/${prefix}`}
-      className='flex min-h-0 min-w-0 flex-1 flex-col gap-3'
+      className={cn('flex min-h-0 min-w-0 flex-1 flex-col gap-3', className)}
     >
       {/* Where it is on a line of its own, the folders above shortening
           first, and what's picked beside it where there's room */}
       <div className='flex min-h-7 flex-wrap items-center gap-2'>
         <div className='flex min-w-0 flex-1 basis-48 items-center gap-1'>
-          {prefix && (
-            <Button
-              variant='ghost'
-              size='icon'
-              aria-label='Up a folder'
-              title='Up a folder'
-              onClick={() => onOpenAction(crumbs.at(-2)?.prefix ?? '')}
-            >
-              <ArrowUpIcon />
-            </Button>
-          )}
+          {/* At the bucket's top, on a phone, back up to the buckets */}
+          <Button
+            variant='ghost'
+            size='icon'
+            aria-label={prefix ? 'Up a folder' : 'Back to the buckets'}
+            title={prefix ? 'Up a folder' : 'Back to the buckets'}
+            className={cn(!prefix && 'sm:hidden')}
+            onClick={() =>
+              prefix
+                ? onOpenAction(crumbs.at(-2)?.prefix ?? '')
+                : onBucketsAction()
+            }
+          >
+            <ArrowUpIcon />
+          </Button>
           <nav
             aria-label='Folder'
             className='flex min-w-0 flex-1 items-center overflow-hidden font-mono whitespace-nowrap'
