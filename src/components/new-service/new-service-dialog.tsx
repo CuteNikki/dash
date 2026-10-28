@@ -352,7 +352,7 @@ function NewServiceForm({
               half its height, before the window scrolls: it scrolls itself */}
         <div className='flex min-h-39 flex-col gap-2'>
           <span className='text-xs/relaxed font-medium'>Compose file</span>
-          <div className='min-h-32 flex-1 basis-64'>
+          <div className='min-h-32 flex-1 basis-59'>
             <CodeEditor
               value={input.compose}
               onChangeAction={setCompose}
@@ -364,7 +364,7 @@ function NewServiceForm({
         </div>
         <div className='flex flex-col gap-2'>
           <span className='text-xs/relaxed font-medium'>.env</span>
-          <div className='h-24'>
+          <div className='h-29'>
             <CodeEditor
               value={env}
               onChangeAction={setEnv}
