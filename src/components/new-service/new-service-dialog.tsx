@@ -5,6 +5,13 @@ import { toast } from 'sonner';
 
 import { readRunStream } from '@/lib/docker/read-run-stream';
 import {
+  exposedPort,
+  repoName,
+  type ComposeName,
+  type GitSourceInput,
+  type RepoLook,
+} from '@/lib/stacks/git-import';
+import {
   DOMAIN_PATTERN,
   NewService,
   type NewServiceInput,
@@ -22,6 +29,7 @@ import { GroupField } from '@/components/dashboard/fields/group-field';
 import { CodeEditor } from '@/components/editor/code-editor';
 import { AddressField } from '@/components/new-service/address-field';
 import { DockerRunImport } from '@/components/new-service/docker-run-import';
+import { GitImport } from '@/components/new-service/git-import';
 import { NewWebsiteForm } from '@/components/new-service/new-website-form';
 import { TemplatePicker } from '@/components/new-service/template-picker';
 import { Button } from '@/components/ui/button';
@@ -38,7 +46,8 @@ import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 /**
- * Adds a service: picked from a template or an image, with a name, a group,
+ * Adds a service: picked from a template or an image, or cloned from a git
+ * repository, with a name, a group,
  * a compose file (the template's, following the name, group and address
  * until it's edited) and .env, and optionally a domain for Caddy to send to
  * one of its services. What the server does shows as it goes; if it fails,
@@ -78,7 +87,7 @@ export function NewServiceDialog({
   );
 }
 
-type Source = 'template' | 'run' | 'website';
+type Source = 'template' | 'run' | 'git' | 'website';
 
 /**
  * A service, or a website hosted elsewhere: both forms stay, one hidden, so
@@ -107,6 +116,7 @@ function NewServiceBody({
     >
       <ToggleGroupItem value='template'>Template</ToggleGroupItem>
       <ToggleGroupItem value='run'>docker run</ToggleGroupItem>
+      <ToggleGroupItem value='git'>Git</ToggleGroupItem>
       <ToggleGroupItem value='website'>Website</ToggleGroupItem>
     </ToggleGroup>
   );
@@ -120,12 +130,14 @@ function NewServiceBody({
         <DialogDescription>
           {website
             ? "A site hosted somewhere else, as a tile that shows whether it's up and how fast it answers. Nothing changes on the server."
-            : 'A folder of its own in ~/services, started with Docker Compose, and for a domain, a site in Caddy.'}
+            : source === 'git'
+              ? 'Cloned into a folder of its own in ~/services, built and started with Docker Compose, and for a domain, a site in Caddy.'
+              : 'A folder of its own in ~/services, started with Docker Compose, and for a domain, a site in Caddy.'}
         </DialogDescription>
       </DialogHeader>
       <NewServiceForm
         hidden={website}
-        fromRun={source === 'run'}
+        from={website ? 'template' : source}
         picker={picker}
         groups={groups}
         running={running}
@@ -152,7 +164,7 @@ function suggestedName(template: ServiceTemplate) {
 
 function NewServiceForm({
   hidden,
-  fromRun,
+  from,
   picker,
   groups,
   running,
@@ -160,8 +172,8 @@ function NewServiceForm({
   onCreated,
 }: {
   hidden: boolean;
-  /** Starting from a pasted docker run command, rather than a template */
-  fromRun: boolean;
+  /** A template, a pasted docker run command, or a git repository */
+  from: Exclude<Source, 'website'>;
   picker: ReactNode;
   groups: string[];
   running: boolean;
@@ -183,6 +195,12 @@ function NewServiceForm({
   const [filled, setFilled] = useState({ name: '', port: '' });
   const [error, setError] = useState<string>();
   const [output, setOutput] = useState<string[]>();
+  // The repository looked at, to clone, and the name of its compose file
+  const [repo, setRepo] = useState<{
+    source: GitSourceInput;
+    composeFile?: ComposeName;
+  }>();
+  const git = from === 'git' ? repo : undefined;
 
   // The address, once it's a whole one, for the settings that make links
   const host = domain.trim().toLowerCase();
@@ -196,6 +214,9 @@ function NewServiceForm({
         group.trim(),
         DOMAIN_PATTERN.test(host) ? host : ''
       ),
+    composeFile: git?.composeFile,
+    git: git?.source,
+    group,
     env,
     domain,
     service: service ?? name.trim(),
@@ -220,6 +241,20 @@ function NewServiceForm({
     setCompose(converted.compose);
   }
 
+  /**
+   * Fills in what a repository has: its compose file as it is, or one that
+   * builds its Dockerfile, following the name; its example .env, unless
+   * there's one typed in; its name, and its Dockerfile's port.
+   */
+  function cloneFrom(source: GitSourceInput, look: RepoLook) {
+    const nextPort = exposedPort(look.dockerfile ?? '');
+    fill(repoName(source.url), nextPort);
+    setTemplate({ ...blankTemplate(), build: '.', port: nextPort });
+    setCompose(look.compose?.text);
+    if (!env.trim() && look.env) setEnv(look.env);
+    setRepo({ source, composeFile: look.compose?.name });
+  }
+
   /** A name and port filled in for you, where you haven't typed your own. */
   function fill(nextName: string, nextPort: string) {
     if (!name.trim() || name.trim() === filled.name) setName(nextName);
@@ -228,6 +263,10 @@ function NewServiceForm({
   }
 
   async function create() {
+    if (from === 'git' && !repo) {
+      setError('Look at the repository first, to fill in the form from it');
+      return;
+    }
     const parsed = NewService.safeParse(input);
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message);
@@ -273,11 +312,18 @@ function NewServiceForm({
           are boxes of no size of their own */}
       <fieldset disabled={running} className='contents'>
         {picker}
-        {fromRun ? (
-          <DockerRunImport onConvertAction={convert} />
-        ) : (
+        {from === 'run' && <DockerRunImport onConvertAction={convert} />}
+        {from === 'template' && (
           <TemplatePicker picked={template} onPickAction={pick} />
         )}
+        {/* Kept while another's shown, so the repository looked at, which
+            is what's cloned, stays in its fields */}
+        <div hidden={from !== 'git'}>
+          <GitImport
+            onLookAction={cloneFrom}
+            onClearAction={() => setRepo(undefined)}
+          />
+        </div>
         <div className='grid gap-4 sm:grid-cols-2'>
           <div className='flex flex-col gap-2'>
             <Label htmlFor='service-name'>Name</Label>
@@ -310,16 +356,14 @@ function NewServiceForm({
             <CodeEditor
               value={input.compose}
               onChangeAction={setCompose}
-              fileName='docker-compose.yml'
+              fileName={input.composeFile ?? 'docker-compose.yml'}
               label='Compose file'
               readOnly={running}
             />
           </div>
         </div>
         <div className='flex flex-col gap-2'>
-          <span className='text-xs/relaxed font-medium'>
-            .env <span className='text-muted-foreground'>(optional)</span>
-          </span>
+          <span className='text-xs/relaxed font-medium'>.env</span>
           <div className='h-24'>
             <CodeEditor
               value={env}
@@ -332,9 +376,7 @@ function NewServiceForm({
         </div>
         <div className='grid items-start gap-4 sm:grid-cols-[1fr_10rem_6rem]'>
           <div className='flex flex-col gap-2'>
-            <Label htmlFor='service-domain'>
-              Address <span className='text-muted-foreground'>(optional)</span>
-            </Label>
+            <Label htmlFor='service-domain'>Address</Label>
             <AddressField
               id='service-domain'
               onChangeAction={setDomain}

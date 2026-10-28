@@ -2,7 +2,13 @@ import 'server-only';
 
 import { randomUUID } from 'node:crypto';
 
-import { runToEnd, STACKS_ROOT, type Run } from '@/lib/docker/runner';
+import {
+  runContainer,
+  runToEnd,
+  STACKS_ROOT,
+  type Run,
+  type RunLine,
+} from '@/lib/docker/runner';
 import {
   changesOf,
   fieldsOf,
@@ -11,6 +17,13 @@ import {
   partsOf,
 } from '@/lib/git-output';
 import { hostOwner } from '@/lib/host/host-files';
+import {
+  COMPOSE_NAMES,
+  ENV_EXAMPLES,
+  GIT_PROTOCOLS,
+  type RepoLook,
+} from '@/lib/stacks/git-import';
+import { SERVICES_DIR } from '@/lib/stacks/service-stacks';
 
 /**
  * Git, run in a short-lived container of the official image as whoever owns
@@ -19,14 +32,20 @@ import { hostOwner } from '@/lib/host/host-files';
  */
 const GIT_IMAGE = 'alpine/git:v2.49.1';
 
-/** Runs a shell script in the git image, with its arguments as $1, $2, … */
-async function gitScript(dir: string, script: string, ...args: string[]) {
-  const run: Run = {
+/** A shell script run in the git image, with its arguments as $1, $2, … */
+async function gitRun(
+  dir: string,
+  script: string,
+  args: string[],
+  /** Whose it runs as, when not the folder's owner */
+  owner = dir
+): Promise<Run> {
+  return {
     image: GIT_IMAGE,
     entrypoint: ['sh', '-c', script, 'sh'],
     cmd: args,
     workingDir: dir,
-    user: await hostOwner(dir),
+    user: await hostOwner(owner),
     env: {
       HOME: STACKS_ROOT,
       // Never wait for a password or a host key prompt nobody will answer
@@ -37,7 +56,26 @@ async function gitScript(dir: string, script: string, ...args: string[]) {
     // image doesn't know the folder's owner
     binds: ['/etc/passwd:/etc/passwd:ro', '/etc/group:/etc/group:ro'],
   };
-  const { ok, lines } = await runToEnd(run);
+}
+
+/**
+ * A run that clones from somewhere new: over HTTPS or SSH only, and taking
+ * a host's key the first time, as cloning from a new host is the point;
+ * one that's changed since is still refused.
+ */
+async function cloneRun(dir: string, script: string, args: string[]) {
+  const run = await gitRun(dir, script, args, SERVICES_DIR);
+  run.env = {
+    ...run.env,
+    GIT_ALLOW_PROTOCOL: GIT_PROTOCOLS,
+    GIT_SSH_COMMAND: 'ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new',
+  };
+  return run;
+}
+
+/** Runs a shell script in the git image, with its arguments as $1, $2, … */
+async function gitScript(dir: string, script: string, ...args: string[]) {
+  const { ok, lines } = await runToEnd(await gitRun(dir, script, args));
   return {
     ok,
     stdout: lines.filter((l) => l.stream === 'stdout').map((l) => l.line),
@@ -355,4 +393,74 @@ echo "$3"; side "$1:$2" blob`,
     mark
   );
   return fileDiffOf(stdout, mark);
+}
+
+/** The `--branch` git clone takes, unless it's the repository's own. */
+const BRANCH = '[ -z "$branch" ] || set -- --branch "$branch"';
+
+/**
+ * What a repository has that a new service is made from, read from a
+ * shallow clone in the run's own /tmp, gone with it: nothing's written on
+ * the server. As whoever owns ~/services, whose SSH key reaches a private one.
+ */
+export async function gitLook(
+  url: string,
+  branch: string
+): Promise<{ ok: true; look: RepoLook } | { ok: false; output: string }> {
+  const mark = uniqueMark();
+  const files = [...COMPOSE_NAMES, ...ENV_EXAMPLES, 'Dockerfile'];
+  const { ok, lines } = await runToEnd(
+    await cloneRun(
+      '/tmp',
+      `${SIDE}
+mark="$1"; url="$2"; branch="$3"; shift 3
+files="$*"; set --
+${BRANCH}
+git clone -q --depth 1 --no-checkout "$@" -- "$url" repo || exit 1
+cd repo || exit 1
+echo "$mark"; git rev-parse --abbrev-ref HEAD
+for f in $files; do echo "$mark"; side "HEAD:$f" blob; done`,
+      [mark, url, branch, ...files]
+    )
+  );
+  if (!ok) return { ok, output: lines.map((l) => l.line).join('\n') };
+  const stdout = lines.filter((l) => l.stream === 'stdout').map((l) => l.line);
+  const [, head, ...sides] = partsOf(stdout, mark);
+  // As SIDE printed it: there and small enough, or not
+  const found = new Map(
+    files.flatMap((name, i) => {
+      const part = sides[i];
+      return part?.[0] === 'present'
+        ? [[name, part.slice(1).join('\n').replace(/x$/, '')]]
+        : [];
+    })
+  );
+  const compose = COMPOSE_NAMES.find((n) => found.has(n));
+  const env = ENV_EXAMPLES.find((n) => found.has(n));
+  return {
+    ok,
+    look: {
+      branch: head?.[0] ?? branch,
+      compose: compose && { name: compose, text: found.get(compose)! },
+      env: env && found.get(env),
+      dockerfile: found.get('Dockerfile'),
+    },
+  };
+}
+
+/** Clones a repository into a new folder in ~/services, saying what git does. */
+export async function* gitClone(
+  dir: string,
+  url: string,
+  branch: string
+): AsyncGenerator<RunLine, number> {
+  return yield* runContainer(
+    await cloneRun(
+      SERVICES_DIR,
+      `url="$1"; dir="$2"; branch="$3"; set --
+${BRANCH}
+git clone "$@" -- "$url" "$dir"`,
+      [url, dir, branch]
+    )
+  );
 }

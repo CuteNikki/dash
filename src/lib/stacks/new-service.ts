@@ -1,10 +1,13 @@
 import { z } from 'zod';
 
+import { COMPOSE_NAMES, GitSource } from '@/lib/stacks/git-import';
+
 /**
  * A new service: its name, which names its folder (~/services/<name>), its
  * compose project and its Caddy site file; its compose file and .env; and,
  * for a site, the domain Caddy serves and which of its services, on which
- * port, it sends that to.
+ * port, it sends that to. Or cloned from a git repository, its compose
+ * file the repository's own, under the name it has there.
  */
 
 /** The network Caddy reaches services on, which a site's service must join. */
@@ -29,6 +32,10 @@ export const NewService = z
         'Lowercase letters, digits, - and _, starting with a letter or digit'
       ),
     compose: z.string().trim().min(1, 'It needs a compose file'),
+    composeFile: z.enum(COMPOSE_NAMES).default('docker-compose.yml'),
+    git: GitSource.optional(),
+    // For one cloned from git, whose compose file has no label to say it
+    group: z.string().trim().max(60).default(''),
     env: z.string(),
     domain: z
       .string()

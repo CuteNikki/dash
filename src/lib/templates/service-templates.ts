@@ -15,6 +15,8 @@ export type ServiceTemplate = {
   icon: string;
   group: string;
   image: string;
+  /** Built from a Dockerfile in this folder, rather than pulled as an image */
+  build?: string;
   /** The port it serves on, for Caddy */
   port: string;
   volumes?: string[];
@@ -348,7 +350,7 @@ export function composeFor(
 
   let yaml = `services:
   ${service}:
-    image: ${template.image}
+    ${template.build ? `build: ${template.build}` : `image: ${template.image}`}
     container_name: ${service}
     restart: unless-stopped
 `;

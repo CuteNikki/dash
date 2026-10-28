@@ -2,6 +2,7 @@ import 'server-only';
 
 import { posix } from 'node:path';
 
+import { db } from '@/lib/db';
 import {
   composeConfig,
   composeOutput,
@@ -10,9 +11,11 @@ import {
 } from '@/lib/docker/compose';
 import { listContainers } from '@/lib/docker/docker';
 import type { RunLine } from '@/lib/docker/runner';
+import { gitClone } from '@/lib/git';
 import {
   createHostEntry,
   readHostFile,
+  realHostPath,
   removeHostEntry,
   removeHostFile,
   writeHostFile,
@@ -32,6 +35,17 @@ import {
 async function writeNewFile(path: string, content: string) {
   await createHostEntry(path, 'file');
   await writeHostFile(path, content);
+}
+
+/**
+ * A file with this text, made if it isn't there; one already so, as a
+ * repository's own compose file, is left alone, unchanged in git.
+ */
+async function writeFileAs(path: string, content: string) {
+  const was = await readHostFile(path);
+  if (was === undefined) await writeNewFile(path, content);
+  else if (was.trimEnd() !== content.trimEnd())
+    await writeHostFile(path, content);
 }
 
 /**
@@ -76,8 +90,8 @@ async function* follow(
 }
 
 /**
- * Adds a service: its folder in ~/services with its compose file and .env,
- * checked by Compose, started, and for a domain a site file for Caddy, which
+ * Adds a service: its folder in ~/services, made or cloned from git, with
+ * its compose file and .env, checked by Compose, started, and for a domain a site file for Caddy, which
  * is then reloaded. Says what it's doing as it goes. If a step fails, the ones
  * before it are undone, so the same service can be tried again.
  */
@@ -88,7 +102,7 @@ export async function* createService(
   const stack: Stack = {
     project: input.name,
     dir,
-    files: [posix.join(dir, 'docker-compose.yml')],
+    files: [posix.join(dir, input.composeFile)],
   };
   // What's been done so far, for undoing
   const done = { dir: false, up: false, site: false };
@@ -127,12 +141,25 @@ export async function* createService(
       }
     }
 
-    yield say(`Creating ${shown(dir)}`);
-    await createHostEntry(dir, 'dir');
-    done.dir = true;
-    await writeNewFile(stack.files[0], input.compose.trimEnd() + '\n');
+    if (input.git) {
+      // Before it's cloned, as undoing a failed clone removes the folder
+      if (await realHostPath(dir)) {
+        throw new Error(`There's already a folder ${shown(dir)}`);
+      }
+      yield say(`Cloning ${input.git.url} into ${shown(dir)}`);
+      done.dir = true;
+      yield* follow(
+        gitClone(dir, input.git.url, input.git.branch),
+        "Git couldn't clone it"
+      );
+    } else {
+      yield say(`Creating ${shown(dir)}`);
+      await createHostEntry(dir, 'dir');
+      done.dir = true;
+    }
+    await writeFileAs(stack.files[0], input.compose.trimEnd() + '\n');
     if (input.env.trim()) {
-      await writeNewFile(posix.join(dir, '.env'), input.env.trimEnd() + '\n');
+      await writeFileAs(posix.join(dir, '.env'), input.env.trimEnd() + '\n');
     }
 
     yield say('Checking the compose file');
@@ -154,6 +181,20 @@ export async function* createService(
       );
       done.site = true;
       await reloadCaddy(caddy.id);
+    }
+
+    // A repository's own compose file has no label for its group, so its
+    // tiles are given it here
+    if (input.git && input.group) {
+      const { services } = await composeConfig(stack);
+      for (const service of Object.keys(services)) {
+        const key = `${input.name}/${service}`;
+        await db.tile.upsert({
+          where: { key },
+          create: { key, group: input.group },
+          update: { group: input.group },
+        });
+      }
     }
 
     yield say(`Added ${input.name}`);

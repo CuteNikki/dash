@@ -7,12 +7,18 @@ import { stackOf } from '@/lib/docker/stack-files';
 import {
   gitCommit,
   gitFetch,
+  gitLook,
   gitPull,
   gitPush,
   gitStatus,
   gitSwitch,
   type GitResult,
 } from '@/lib/git';
+import {
+  GitSource,
+  type GitSourceInput,
+  type RepoLook,
+} from '@/lib/stacks/git-import';
 
 const MAX_MESSAGE = 5_000;
 
@@ -112,4 +118,19 @@ export async function switchBranch(
     await gitSwitch(repo.root, branch, create),
     create ? `to a new branch, ${branch}` : `to ${branch}`
   );
+}
+
+/**
+ * What's in a repository that a new service would be cloned from, to fill
+ * in its form with; nothing's cloned onto the server yet.
+ */
+export async function lookAtRepository(
+  source: GitSourceInput
+): Promise<{ ok: true; look: RepoLook } | GitResult> {
+  await requireAccess('manage');
+  const parsed = GitSource.safeParse(source);
+  if (!parsed.success) {
+    return { ok: false, output: parsed.error.issues[0]?.message ?? '' };
+  }
+  return gitLook(parsed.data.url, parsed.data.branch);
 }
