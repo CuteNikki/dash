@@ -3,8 +3,9 @@
  * groups: the options in one track, as tall as a button beside it, the
  * picked one raised in a surface of its own, and in the light theme outlined
  * and shadowed too, as a white card's track is as white as that surface.
- * The track is filled, bordered
- * and rounded as an outline button is, so the two match side by side. A small
+ * The track is bordered and
+ * rounded as an outline button is, so the two match side by side, and filled
+ * a tint below it, so the picked segment stands out of it. A small
  * one (data-size=sm) fits a 24px row, such as a stat card's heading.
  */
 
@@ -13,7 +14,7 @@
  * a little apart, so a picked one doesn't sit against the next.
  */
 export const segmentTrack =
-  'inline-flex h-7 w-fit items-center gap-0.5 rounded-md border border-border bg-field p-0.5 data-[size=sm]:h-6';
+  'inline-flex h-7 w-fit items-center gap-0.5 rounded-md border border-border bg-track p-0.5 data-[size=sm]:h-6';
 
 /** A segment, quiet until picked: a tab when active, a toggle when on. */
 export const segment =

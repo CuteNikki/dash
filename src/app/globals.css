@@ -13,6 +13,7 @@
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-field: var(--field);
+  --color-track: var(--track);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   /* Its symbols first, as they're only for what JetBrains Mono's lacking */
@@ -111,6 +112,9 @@
   /* What a field or an outline button is filled with: as white as a card,
      so on the page, a shade below, it stands off it as a card does */
   --field: oklch(1 0 0);
+  /* A segmented picker's track: a tint below its picked segment, white as a
+     card is, so that one stands out of it */
+  --track: color-mix(in oklch, var(--input) 20%, transparent);
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
@@ -142,6 +146,7 @@
   --secondary: oklch(1 0 0);
   --surface: oklch(0.94 0 0);
   --field: oklch(1 0 0);
+  --track: oklch(1 0 0);
 }
 
 .dark {
@@ -174,6 +179,7 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --field: color-mix(in oklch, var(--input) 30%, transparent);
+  --track: var(--field);
   --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
