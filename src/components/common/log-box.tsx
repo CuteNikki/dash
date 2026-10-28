@@ -18,7 +18,12 @@ import {
 } from 'lucide-react';
 
 import type { Tone } from '@/lib/ansi';
-import { summaryFields, type JsonLog, type LogLine } from '@/lib/log-lines';
+import {
+  compactJson,
+  summaryFields,
+  type JsonLog,
+  type LogLine,
+} from '@/lib/log-lines';
 import { cn } from '@/lib/utils';
 import { splitWide } from '@/lib/wide-text';
 
@@ -347,11 +352,11 @@ function JsonText({ json }: { json: JsonLog }) {
 /** A key at the start of a line of indented JSON, and what follows it. */
 const JSON_KEY = /^(\s*)("(?:[^"\\]|\\.)*")(: ?)(.*)$/;
 
-/** An object as indented JSON, its keys muted so its values stand out. */
+/** An object as indented JSON, short parts on one line (see compactJson), its keys muted so its values stand out. */
 function JsonBlock({ value }: { value: Record<string, unknown> }) {
   return (
     <span className='mt-1 mb-2 block border-l-2 border-border pl-3'>
-      {JSON.stringify(value, null, 2)
+      {compactJson(value)
         .split('\n')
         .map((row, i) => {
           const key = JSON_KEY.exec(row);

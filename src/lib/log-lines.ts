@@ -164,6 +164,46 @@ export function summaryFields(json: JsonLog): [string, string][] {
   });
 }
 
+/** A list or object up to this long goes on one line of the indented JSON. */
+const INLINE_WIDTH = 72;
+
+/** A value on one line: spaced as it would be indented, for reading. */
+function oneLine(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(oneLine).join(', ')}]`;
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value);
+    if (!entries.length) return '{}';
+    return `{ ${entries.map(([k, v]) => `${JSON.stringify(k)}: ${oneLine(v)}`).join(', ')} }`;
+  }
+  return JSON.stringify(value) ?? 'null';
+}
+
+/**
+ * A value as indented JSON, with what's short on one line: a header's list
+ * of one, a small object. A list of one goes on one line however long its
+ * one value, as a User-Agent is, rather than three.
+ */
+export function compactJson(value: unknown, indent = ''): string {
+  const flat = oneLine(value);
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    flat.length <= INLINE_WIDTH ||
+    (Array.isArray(value) &&
+      value.length === 1 &&
+      (value[0] === null || typeof value[0] !== 'object'))
+  )
+    return flat;
+  const inner = indent + '  ';
+  const rows = Array.isArray(value)
+    ? value.map((v) => inner + compactJson(v, inner))
+    : Object.entries(value).map(
+        ([k, v]) => `${inner}${JSON.stringify(k)}: ${compactJson(v, inner)}`
+      );
+  const [open, close] = Array.isArray(value) ? ['[', ']'] : ['{', '}'];
+  return `${open}\n${rows.join(',\n')}\n${indent}${close}`;
+}
+
 /** A line as written, with Docker's timestamp in front of it if it has one. */
 export function parseLogLine(id: number, raw: string): LogLine {
   const match = raw.match(TIMESTAMP);

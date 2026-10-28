@@ -1,6 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 
-import { parseJsonLog, parseLogLine, summaryFields } from '@/lib/log-lines';
+import {
+  compactJson,
+  parseJsonLog,
+  parseLogLine,
+  summaryFields,
+} from '@/lib/log-lines';
 
 describe('parseJsonLog', () => {
   test("reads Caddy's: its level, logger and message apart from the rest", () => {
@@ -86,5 +91,34 @@ describe('summaryFields', () => {
     );
     expect(error.startsWith('"writing: write tcp')).toBe(true);
     expect(error.endsWith('…')).toBe(true);
+  });
+});
+
+describe('compactJson', () => {
+  test("puts a header's list of one on its key's line, however long", () => {
+    const agent = `Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) ${'x'.repeat(60)}`;
+    expect(
+      compactJson({ headers: { 'User-Agent': [agent], Via: ['1.1 Caddy'] } })
+    ).toBe(
+      [
+        '{',
+        '  "headers": {',
+        `    "User-Agent": [${JSON.stringify(agent)}],`,
+        '    "Via": ["1.1 Caddy"]',
+        '  }',
+        '}',
+      ].join('\n')
+    );
+  });
+
+  test('keeps a short object on one line, and spreads a long one out', () => {
+    expect(compactJson({ a: 1, b: [1, 2] })).toBe('{ "a": 1, "b": [1, 2] }');
+    const long = { first: 'x'.repeat(40), second: 'y'.repeat(40) };
+    expect(compactJson(long).split('\n')).toHaveLength(4);
+  });
+
+  test('reads back as the same value', () => {
+    const value = { a: [1, { b: null }], c: '"quoted"', d: { e: [] }, f: {} };
+    expect(JSON.parse(compactJson(value))).toEqual(value);
   });
 });
