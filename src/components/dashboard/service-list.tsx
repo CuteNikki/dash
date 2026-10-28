@@ -55,6 +55,7 @@ import { Sparkline } from '@/components/charts/sparkline';
 import { WidgetStats, widgetStats } from '@/components/charts/widget-stats';
 import { useCan } from '@/components/common/role';
 import { attempt } from '@/components/common/toasts';
+import { GroupName } from '@/components/dashboard/group-name';
 import { addressWords } from '@/components/service/address-text';
 import { ServiceIcon } from '@/components/service/service-icon';
 import { StatePill, StatusDot } from '@/components/service/status-dot';
@@ -118,6 +119,7 @@ export function ServiceList({
   onLogsAction,
   onChangedAction,
   onReorderAction,
+  onRenameAction,
 }: {
   groups: ServiceGroup[];
   filter: ListFilter;
@@ -129,6 +131,8 @@ export function ServiceList({
   onChangedAction: () => Promise<unknown>;
   /** The list's new order, once something's been dragged */
   onReorderAction: (order: OrderInput) => void;
+  /** A group renamed while editing, with every service in it */
+  onRenameAction: (from: string, keys: string[], name: string) => void;
 }) {
   // A group since renamed or emptied shows them all
   const filter: ListFilter =
@@ -227,6 +231,19 @@ export function ServiceList({
         }))
       ),
     });
+  }
+
+  /**
+   * Renames a group with all its services, not only those it shows, and
+   * keeps showing it if it's the one picked.
+   */
+  function rename(from: string, name: string) {
+    const keys = groups
+      .find((g) => g.name === from)!
+      .services.map((s) => s.key);
+    onRenameAction(from, keys, name);
+    if (filter.kind === 'group' && filter.name === from)
+      onFilterAction({ kind: 'group', name });
   }
 
   // Where on what's dragged the pointer took hold, and how tall it is: where
@@ -385,6 +402,9 @@ export function ServiceList({
                     key={group.name}
                     name={group.name}
                     reordering={reorderingGroups}
+                    onRename={
+                      editing ? (name) => rename(group.name, name) : undefined
+                    }
                   >
                     {group.services.map((service) => (
                       <Row
@@ -553,10 +573,12 @@ function ColumnHeads({ collapsed }: { collapsed?: boolean }) {
 function GroupBody({
   name,
   reordering,
+  onRename,
   children,
 }: {
   name: string;
   reordering: boolean;
+  onRename?: (name: string) => void;
   children: React.ReactNode;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useSortable({
@@ -575,6 +597,7 @@ function GroupBody({
       <GroupHeading
         name={name}
         handle={reordering ? { attributes, listeners } : undefined}
+        onRename={onRename}
       />
       {children}
     </tbody>
@@ -583,13 +606,14 @@ function GroupBody({
 
 /**
  * A group's name over its rows, the whole bar what the group is dragged by
- * while editing. Rows are dropped on it too: from below, to go last in the
+ * while editing, but for its name, which is then a field to rename it by. Rows are dropped on it too: from below, to go last in the
  * group above; from above, first in its own.
  */
 function GroupHeading({
   name,
   handle,
   copy,
+  onRename,
 }: {
   name: string;
   handle?: Partial<
@@ -597,6 +621,8 @@ function GroupHeading({
   >;
   /** Drawn under the pointer as it's dragged, not a place to drop on */
   copy?: boolean;
+  /** Its name a field to rename it by, while editing */
+  onRename?: (name: string) => void;
 }) {
   const { setNodeRef } = useSortable({
     id: (copy ? 'copy:' : HEADING) + name,
@@ -629,12 +655,29 @@ function GroupHeading({
       >
         <span className='flex items-center gap-3'>
           {/* Where the rows' handles are, so the bar reads as one */}
+          {/* Taller than the line, so held out of it, or the bar would
+              grow and the list below move down as editing starts */}
           {handle && (
-            <span className='shrink-0 p-0.5'>
+            <span className='-my-0.5 shrink-0 p-0.5'>
               <GripVerticalIcon className='size-4' />
             </span>
           )}
-          <span className='truncate'>{name}</span>
+          {onRename ? (
+            // Typing and pressing in it is renaming, not taking hold of the bar
+            <span
+              className='flex min-w-0'
+              onPointerDown={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+            >
+              <GroupName
+                name={name}
+                onRename={onRename}
+                className='max-w-full'
+              />
+            </span>
+          ) : (
+            <span className='truncate'>{name}</span>
+          )}
         </span>
       </th>
       <td className='hidden sm:table-cell' />

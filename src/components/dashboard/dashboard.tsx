@@ -178,9 +178,7 @@ export function Dashboard({
     );
   }
 
-  function rename(section: BoardSection, name: string) {
-    const from = section.label;
-    const keys = section.tiles.map((t) => t.key);
+  function rename(from: string, keys: string[], name: string) {
     const sectionKey = (group: string) => `section:group:${group}`;
     void change(
       (d) => ({
@@ -345,7 +343,13 @@ export function Dashboard({
           editing={editing}
           saved={data.layouts}
           onLayoutAction={saveCells}
-          onRenameAction={rename}
+          onRenameAction={(section, name) =>
+            rename(
+              section.label,
+              section.tiles.map((t) => t.key),
+              name
+            )
+          }
         />
         {view === 'list' && (
           <ServiceList
@@ -360,6 +364,7 @@ export function Dashboard({
             }}
             onChangedAction={() => mutate()}
             onReorderAction={saveOrder}
+            onRenameAction={rename}
           />
         )}
         <ServiceDialog
