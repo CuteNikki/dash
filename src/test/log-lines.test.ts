@@ -85,12 +85,17 @@ describe('summaryFields', () => {
     ]);
   });
 
-  test('keeps a long message with spaces, cut short and quoted', () => {
-    const [[, error]] = summary(
-      '{"msg":"x","error":"writing: write tcp 172.21.0.4:443->43.165.170.119:40204: write: broken pipe"}'
-    );
-    expect(error.startsWith('"writing: write tcp')).toBe(true);
-    expect(error.endsWith('…')).toBe(true);
+  test('keeps a long message with spaces whole, quoted', () => {
+    expect(
+      summary(
+        '{"msg":"x","error":"writing: write tcp 172.21.0.4:443->43.165.170.119:40204: write: broken pipe"}'
+      )
+    ).toEqual([
+      [
+        'error',
+        '"writing: write tcp 172.21.0.4:443->43.165.170.119:40204: write: broken pipe"',
+      ],
+    ]);
   });
 });
 
