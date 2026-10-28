@@ -13,7 +13,7 @@ import useSWR from 'swr';
 import useSWRInfinite from 'swr/infinite';
 
 import {
-  ArrowUpIcon,
+  ArrowLeftIcon,
   DatabaseIcon,
   DownloadIcon,
   ExternalLinkIcon,
@@ -421,6 +421,11 @@ function Folder({
       name,
       prefix: `${all.slice(0, i + 1).join('/')}/`,
     }));
+  // Where the arrow before them goes: the folder this one's in, or the
+  // buckets from a bucket's top
+  const back = prefix
+    ? `Back to ${crumbs.at(-2)?.name ?? bucket}`
+    : 'Back to the buckets';
   const everything = [...folders, ...files.map((f) => f.key)];
   const all = everything.length > 0 && everything.every((k) => selected.has(k));
   const picking = selected.size > 0;
@@ -434,12 +439,12 @@ function Folder({
           first, and what's picked beside it where there's room */}
       <div className='flex min-h-7 flex-wrap items-center gap-2'>
         <div className='flex min-w-0 flex-1 basis-48 items-center gap-1'>
-          {/* At the bucket's top, on a phone, back up to the buckets */}
+          {/* At the bucket's top, on a phone, back to the buckets */}
           <Button
             variant='ghost'
             size='icon'
-            aria-label={prefix ? 'Up a folder' : 'Back to the buckets'}
-            title={prefix ? 'Up a folder' : 'Back to the buckets'}
+            aria-label={back}
+            title={back}
             className={cn(!prefix && 'sm:hidden')}
             onClick={() =>
               prefix
@@ -447,7 +452,7 @@ function Folder({
                 : onBucketsAction()
             }
           >
-            <ArrowUpIcon />
+            <ArrowLeftIcon />
           </Button>
           <nav
             aria-label='Folder'
