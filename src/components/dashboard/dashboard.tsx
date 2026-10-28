@@ -1,15 +1,18 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 
 import {
   ArrowUpCircleIcon,
+  CheckIcon,
   LayoutGridIcon,
   ListIcon,
+  LoaderIcon,
   PencilIcon,
   PlusIcon,
+  XIcon,
 } from 'lucide-react';
 
 import {
@@ -59,6 +62,13 @@ import { UpdatesDialog } from '@/components/updates/updates-dialog';
 /** How often the dashboard asks for fresh status and usage. */
 const REFRESH_MS = 5_000;
 
+/** A change made while editing: how it shows, and how it's saved. */
+type Edit = {
+  update: (data: DashboardData) => DashboardData;
+  save: () => Promise<TileResult>;
+  failed: string;
+};
+
 export function Dashboard({
   initial,
   initialColumns,
@@ -91,12 +101,28 @@ export function Dashboard({
     setFilter(next);
     document.cookie = `${FILTER_COOKIE}=${filterToCookie(next)}; path=/; max-age=31536000; samesite=lax`;
   }
-  const { data = initial, mutate } = useSWR<DashboardData>(
+  const { data: live = initial, mutate } = useSWR<DashboardData>(
     '/api/services',
     fetcher,
     { fallbackData: initial, refreshInterval: REFRESH_MS }
   );
   const [editing, setEditing] = useState(false);
+  // What's been moved, resized and renamed while editing, saved on Done
+  const [edits, setEdits] = useState<Edit[]>([]);
+  const [saving, setSaving] = useState(false);
+  // Shown over what's live, so its numbers keep moving meanwhile
+  const data = useMemo(
+    () => edits.reduce((d, e) => e.update(d), live),
+    [edits, live]
+  );
+
+  // Leaving with edits unsaved asks first
+  useEffect(() => {
+    if (!edits.length) return;
+    const ask = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener('beforeunload', ask);
+    return () => window.removeEventListener('beforeunload', ask);
+  }, [edits.length]);
   const [adding, setAdding] = useState(false);
   const [showUpdates, setShowUpdates] = useState(false);
   const [showSystem, setShowSystem] = useState(false);
@@ -120,25 +146,36 @@ export function Dashboard({
   const find = (key?: string) => services.find((s) => s.key === key);
   const updateCount = services.filter((s) => s.update).length;
 
-  /** Shows a change at once, saves it, then shows what was saved. */
-  async function change(
-    update: (data: DashboardData) => DashboardData,
-    save: () => Promise<TileResult>,
-    failed: string
-  ) {
-    void mutate(update(data), { revalidate: false });
-    const result = await save().catch(() => ({
-      error: 'Something went wrong',
-    }));
-    if (result?.error) toast.error(failed, { description: result.error });
-    void mutate();
+  /** Shows a change at once, to be saved on Done or dropped on Cancel. */
+  function change(update: Edit['update'], save: Edit['save'], failed: string) {
+    setEdits((e) => [...e, { update, save, failed }]);
+  }
+
+  /** Saves the edits in the order they were made, then shows what was saved. */
+  async function finish() {
+    setSaving(true);
+    for (const { save, failed } of edits) {
+      const result = await save().catch(() => ({
+        error: 'Something went wrong',
+      }));
+      if (result?.error) toast.error(failed, { description: result.error });
+    }
+    await mutate();
+    setEdits([]);
+    setSaving(false);
+    setEditing(false);
+  }
+
+  function cancel() {
+    setEdits([]);
+    setEditing(false);
   }
 
   function saveCells({ cells, moved }: LayoutChange) {
     const at = (key: string, columns: number) => `${key} ${columns}`;
     const replaced = new Set(cells.map((c) => at(c.key, c.columns)));
     const groupOf = new Map(moved.map((m) => [m.key, m.group]));
-    void change(
+    change(
       (d) => ({
         ...d,
         layouts: [
@@ -159,7 +196,7 @@ export function Dashboard({
     const moved = new Map(
       order.services.flatMap((s) => (s.group ? [[s.key, s.group]] : []))
     );
-    void change(
+    change(
       (d) => ({
         ...d,
         groupOrder: order.groups,
@@ -180,7 +217,7 @@ export function Dashboard({
 
   function rename(from: string, keys: string[], name: string) {
     const sectionKey = (group: string) => `section:group:${group}`;
-    void change(
+    change(
       (d) => ({
         ...d,
         services: d.services.map((s) =>
@@ -317,15 +354,34 @@ export function Dashboard({
                 <ButtonLabel hideOn='screen'>New service</ButtonLabel>
               </Button>
             )}
+            {may('manage') && editing && (
+              <Button
+                variant='outline'
+                aria-label='Cancel'
+                title="Put back what's been moved, resized and renamed"
+                disabled={saving}
+                onClick={cancel}
+              >
+                <XIcon />
+                <ButtonLabel hideOn='screen'>Cancel</ButtonLabel>
+              </Button>
+            )}
             {may('manage') && (
               <Button
                 variant={editing ? 'default' : 'outline'}
                 aria-pressed={editing}
                 aria-label={editing ? 'Done' : 'Edit'}
-                onClick={() => setEditing(!editing)}
+                disabled={saving}
+                onClick={() => (editing ? void finish() : setEditing(true))}
               >
-                <PencilIcon />
-                {/* Its pencil alone on a phone, as New service's plus is */}
+                {saving ? (
+                  <LoaderIcon className='animate-spin' />
+                ) : editing ? (
+                  <CheckIcon />
+                ) : (
+                  <PencilIcon />
+                )}
+                {/* Its icon alone on a phone, as New service's plus is */}
                 <ButtonLabel hideOn='screen'>
                   {editing ? 'Done' : 'Edit'}
                 </ButtonLabel>
