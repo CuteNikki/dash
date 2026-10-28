@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 
@@ -26,7 +27,6 @@ import {
 import { RunOutput } from '@/components/common/run-output';
 import { attempt } from '@/components/common/toasts';
 import { GroupField } from '@/components/dashboard/fields/group-field';
-import { CodeEditor } from '@/components/editor/code-editor';
 import { AddressField } from '@/components/new-service/address-field';
 import { DockerRunImport } from '@/components/new-service/docker-run-import';
 import { GitImport } from '@/components/new-service/git-import';
@@ -44,6 +44,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+
+// Fetched once the window opens, rather than with the page: the editor and
+// its languages are much of the dashboard's script
+const CodeEditor = dynamic(() =>
+  import('@/components/editor/code-editor').then((m) => m.CodeEditor)
+);
 
 /**
  * Adds a service: picked from a template or an image, or cloned from a git

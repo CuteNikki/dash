@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
@@ -51,8 +52,6 @@ import { ScrollFade } from '@/components/common/scroll-fade';
 import { TextSkeleton } from '@/components/common/skeletons';
 import { attempt } from '@/components/common/toasts';
 import { useKept, useKeptShape } from '@/components/common/use-kept';
-import { FilesPanel } from '@/components/editor/files-panel';
-import { GitPanel } from '@/components/git/git-panel';
 import { AddressList } from '@/components/service/address-list';
 import { AppDetails, Facts, Panel } from '@/components/service/app-details';
 import { LogViewer } from '@/components/service/log-viewer';
@@ -72,6 +71,15 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UpdateDialog } from '@/components/updates/update-dialog';
+
+// Fetched once a service's window opens, rather than with the page: the
+// editor, its languages, diffs and Markdown are most of the dashboard's script
+const FilesPanel = dynamic(() =>
+  import('@/components/editor/files-panel').then((m) => m.FilesPanel)
+);
+const GitPanel = dynamic(() =>
+  import('@/components/git/git-panel').then((m) => m.GitPanel)
+);
 
 const DONE: Record<ContainerAction, string> = {
   start: 'Started',
