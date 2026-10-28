@@ -9,7 +9,7 @@ import {
   useState,
 } from 'react';
 
-import { ListEndIcon, SearchIcon, WrapTextIcon } from 'lucide-react';
+import { CopyIcon, ListEndIcon, SearchIcon, WrapTextIcon } from 'lucide-react';
 
 import type { Tone } from '@/lib/ansi';
 import type { LogLine } from '@/lib/log-lines';
@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { splitWide } from '@/lib/wide-text';
 
 import { ScrollFade } from '@/components/common/scroll-fade';
+import { copyText } from '@/components/common/toasts';
 import { Button } from '@/components/ui/button';
 import {
   InputGroup,
@@ -169,10 +170,32 @@ export function LogBox({
       {/* The box clips the fades to its rounded corners */}
       <div
         className={cn(
-          'min-h-0 flex-1 overflow-hidden rounded-lg bg-muted font-mono text-xs/relaxed',
+          'group/log relative min-h-0 flex-1 overflow-hidden rounded-lg bg-muted font-mono text-xs/relaxed',
           boxClassName
         )}
       >
+        {shown.length > 0 && (
+          // Over the box rather than in its scroll, so it stays in the
+          // corner; the lines the filter leaves, as they're shown
+          <Button
+            type='button'
+            variant='outline'
+            size='icon-sm'
+            aria-label={`Copy the ${label}`}
+            title='Copy'
+            className='absolute top-2 right-4 z-10 opacity-0 transition-opacity group-hover/log:opacity-100 focus-visible:opacity-100'
+            onClick={() =>
+              void copyText(
+                shown.map((l) => l.text).join('\n'),
+                shown.length === 1
+                  ? 'Copied the line'
+                  : `Copied ${shown.length} lines`
+              )
+            }
+          >
+            <CopyIcon />
+          </Button>
+        )}
         <ScrollFade
           ref={scroller}
           // Scrolling up stops following; scrolling back to the end resumes it

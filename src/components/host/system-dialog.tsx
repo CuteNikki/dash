@@ -157,9 +157,12 @@ export function SystemDialog({
     }
   }
 
-  // What an upgrade installs, apart from what Ubuntu is still rolling out
-  const packages = (system?.packages ?? []).filter((p) => !p.phased);
+  // What an upgrade installs, apart from what apt holds back
+  const packages = (system?.packages ?? []).filter(
+    (p) => !p.phased && !p.keptBack
+  );
   const phased = (system?.packages ?? []).filter((p) => p.phased);
+  const keptBack = (system?.packages ?? []).filter((p) => p.keptBack);
   const docker = packages.filter((p) => RESTARTS_DOCKER.test(p.name));
 
   return (
@@ -263,6 +266,15 @@ export function SystemDialog({
             <p>
               Ubuntu releases these bit by bit, and apt installs them once they
               reach it.
+            </p>
+          </div>
+        )}
+        {keptBack.length > 0 && (
+          <div className='flex flex-col gap-1 text-muted-foreground'>
+            <p>Held back by apt: {keptBack.map((p) => p.name).join(', ')}</p>
+            <p>
+              Something they need can't be installed with them yet, as a package
+              that's still rolling out; apt installs them along with it.
             </p>
           </div>
         )}

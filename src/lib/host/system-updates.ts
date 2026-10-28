@@ -71,7 +71,9 @@ systemctl is-active -q ${UNIT} && echo upgrading=1
 [ -e ${STATUS} ] && echo "lastexit=$(cat ${STATUS})"
 systemctl list-units --failed --plain --no-legend | awk '{d = ""; for (i = 5; i <= NF; i++) d = d (i > 5 ? " " : "") $i; print "failed=" $1 "|" d}'
 apt list --upgradable 2>/dev/null | grep upgradable | sed 's/^/pkg=/'
-apt-get -s upgrade 2>/dev/null | sed -n '/deferred due to phasing/,/^[^ ]/p' | grep '^ ' | tr ' ' '\\n' | sed '/^$/d; s/^/phased=/'
+up=$(apt-get -s --with-new-pkgs upgrade 2>/dev/null)
+echo "$up" | sed -n '/deferred due to phasing/,/^[^ ]/p' | grep '^ ' | tr ' ' '\\n' | sed '/^$/d; s/^/phased=/'
+echo "$up" | sed -n '/have been kept back/,/^[^ ]/p' | grep '^ ' | tr ' ' '\\n' | sed '/^$/d; s/^/keptback=/'
 true`;
 
 /** "systemd/resolute-updates,resolute-security 259.9-0ubuntu0.1 amd64 [upgradable from: 259.5-0ubuntu3.4]" */
@@ -90,6 +92,8 @@ function parse(lines: string[]): SystemUpdates {
   };
   // Upgrades Ubuntu is rolling out bit by bit, which apt holds back here for now
   const phased = new Set<string>();
+  // Ones apt holds back as something they need can't be installed with them yet
+  const keptBack = new Set<string>();
   for (const line of lines) {
     const eq = line.indexOf('=');
     const key = line.slice(0, eq);
@@ -108,6 +112,7 @@ function parse(lines: string[]): SystemUpdates {
         description: description || undefined,
       });
     } else if (key === 'phased') phased.add(value);
+    else if (key === 'keptback') keptBack.add(value);
     else if (key === 'pkg') {
       const match = value.match(PACKAGE);
       if (!match) continue;
@@ -118,15 +123,21 @@ function parse(lines: string[]): SystemUpdates {
         to,
         security: origins.split(',').some((o) => o.endsWith('-security')),
         phased: false,
+        keptBack: false,
       });
     }
   }
-  for (const p of found.packages) p.phased = phased.has(p.name);
-  // What an upgrade installs first, security fixes leading; what Ubuntu is
-  // still rolling out after
+  for (const p of found.packages) {
+    p.phased = phased.has(p.name);
+    p.keptBack = keptBack.has(p.name);
+  }
+  // What an upgrade installs first, security fixes leading; what apt holds
+  // back after
+  const held = (p: SystemUpdates['packages'][number]) =>
+    Number(p.phased || p.keptBack);
   found.packages.sort(
     (a, b) =>
-      Number(a.phased) - Number(b.phased) ||
+      held(a) - held(b) ||
       Number(b.security) - Number(a.security) ||
       a.name.localeCompare(b.name)
   );

@@ -172,7 +172,7 @@ export type AlertView = {
 export type SystemUpdates = {
   /** "Ubuntu 26.04.1 LTS" */
   os: string;
-  /** Security fixes first, then what Ubuntu is still rolling out, which apt holds back for now */
+  /** Security fixes first, then what apt holds back for now: what Ubuntu is still rolling out, or what waits on it */
   packages: {
     name: string;
     from: string;
@@ -180,6 +180,11 @@ export type SystemUpdates = {
     security: boolean;
     /** Being rolled out bit by bit, so apt installs it only once it reaches this server */
     phased: boolean;
+    /**
+     * Held back by apt, as something it needs can't be installed with it
+     * yet: as another package that's still rolling out
+     */
+    keptBack: boolean;
   }[];
   /** Ubuntu asks for a restart, to finish what's been installed */
   reboot: boolean;

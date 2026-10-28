@@ -256,8 +256,8 @@ function SystemButton({
   system: SystemUpdates;
   onClick: () => void;
 }) {
-  // What an upgrade installs, not what Ubuntu is still rolling out
-  const waiting = system.packages.filter((p) => !p.phased);
+  // What an upgrade installs, not what apt holds back
+  const waiting = system.packages.filter((p) => !p.phased && !p.keptBack);
   const count = waiting.length;
   const security = waiting.filter((p) => p.security).length;
   const words = [
