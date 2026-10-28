@@ -19,7 +19,7 @@ import {
 
 import type { Tone } from '@/lib/ansi';
 import {
-  compactJson,
+  inlineJson,
   summaryFields,
   type JsonLog,
   type LogLine,
@@ -349,35 +349,113 @@ function JsonText({ json }: { json: JsonLog }) {
   );
 }
 
-/** A key at the start of a line of indented JSON, and what follows it. */
-const JSON_KEY = /^(\s*)("(?:[^"\\]|\\.)*")(: ?)(.*)$/;
-
-/** An object as indented JSON, short parts on one line (see compactJson), its keys muted so its values stand out. */
+/** An object as indented JSON, the whole of a line, under its summary. */
 function JsonBlock({ value }: { value: Record<string, unknown> }) {
   return (
-    <span className='mt-1 mb-2 block border-l-2 border-border pl-3'>
-      {compactJson(value)
-        .split('\n')
-        .map((row, i) => {
-          const key = JSON_KEY.exec(row);
-          return (
-            <span key={i} className='block'>
-              {key ? (
-                <>
-                  {key[1]}
-                  <span className='text-muted-foreground'>
-                    {key[2]}
-                    {key[3]}
-                  </span>
-                  {key[4]}
-                </>
-              ) : (
-                row
-              )}
-            </span>
-          );
-        })}
+    // Room at its left for the arrows, which hang before their keys
+    <span className='mt-1 mb-2 block border-l-2 border-border pl-6'>
+      <JsonNode value={value} open />
     </span>
+  );
+}
+
+/**
+ * One value of an object, under its key, as JSON: on one line if it fits
+ * (see inlineJson), else folded away to open, as a request's headers are,
+ * with how much is in it. Its keys muted, so the values stand out.
+ */
+function JsonNode({
+  name,
+  value,
+  last = true,
+  open: openAtFirst = false,
+}: {
+  /** Its key, in an object; none in a list, or for the whole */
+  name?: string;
+  value: unknown;
+  /** The last in what it's in, without a comma after it */
+  last?: boolean;
+  /** Open at first, as the whole object is */
+  open?: boolean;
+}) {
+  const [open, setOpen] = useState(openAtFirst);
+  const key = name !== undefined && (
+    <span className='text-muted-foreground'>{JSON.stringify(name)}: </span>
+  );
+  const comma = last ? '' : ',';
+  const inline = inlineJson(value);
+  if (inline !== undefined) {
+    return (
+      <span className='block'>
+        {key}
+        <Cells text={inline} />
+        {comma}
+      </span>
+    );
+  }
+  const list = Array.isArray(value);
+  const entries: [string | undefined, unknown][] = list
+    ? value.map((v) => [undefined, v])
+    : Object.entries(value as Record<string, unknown>);
+  const [start, end] = list ? ['[', ']'] : ['{', '}'];
+  const toggle = (
+    <button
+      type='button'
+      aria-expanded={open}
+      aria-label={open ? `Fold ${name ?? 'it'}` : `Open ${name ?? 'it'}`}
+      onClick={() => setOpen(!open)}
+      className='-ml-4 inline-flex h-lh w-4 items-center align-top text-muted-foreground outline-none hover:text-foreground focus-visible:text-foreground'
+    >
+      <ChevronRightIcon
+        className={cn('size-3 transition-transform', open && 'rotate-90')}
+      />
+    </button>
+  );
+  if (!open) {
+    const count = entries.length;
+    return (
+      <span className='block'>
+        {toggle}
+        {key}
+        {start}…{end}
+        {comma}{' '}
+        <span className='text-muted-foreground'>
+          {count}{' '}
+          {list
+            ? count === 1
+              ? 'item'
+              : 'items'
+            : count === 1
+              ? 'key'
+              : 'keys'}
+        </span>
+      </span>
+    );
+  }
+  return (
+    <>
+      <span className='block'>
+        {/* The whole object, open for good, needs no arrow */}
+        {name !== undefined && toggle}
+        {key}
+        {start}
+      </span>
+      {/* Indented as JSON is, two characters */}
+      <span className='block pl-[2ch]'>
+        {entries.map(([k, v], i) => (
+          <JsonNode
+            key={k ?? i}
+            name={k}
+            value={v}
+            last={i === entries.length - 1}
+          />
+        ))}
+      </span>
+      <span className='block'>
+        {end}
+        {comma}
+      </span>
+    </>
   );
 }
 

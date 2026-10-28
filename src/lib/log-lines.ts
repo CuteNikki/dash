@@ -164,7 +164,7 @@ export function summaryFields(json: JsonLog): [string, string][] {
   });
 }
 
-/** A list or object up to this long goes on one line of the indented JSON. */
+/** A list or object up to this long is shown on one line of the whole object. */
 const INLINE_WIDTH = 72;
 
 /** A value on one line: spaced as it would be indented, for reading. */
@@ -179,29 +179,22 @@ function oneLine(value: unknown): string {
 }
 
 /**
- * A value as indented JSON, with what's short on one line: a header's list
- * of one, a small object. A list of one goes on one line however long its
- * one value, as a User-Agent is, rather than three.
+ * A value as one line of the whole object, or undefined for a list or
+ * object to fold away and open: text, a number, a short list or object, or
+ * a list of one, as a header's, however long its one value, as a
+ * User-Agent is.
  */
-export function compactJson(value: unknown, indent = ''): string {
+export function inlineJson(value: unknown): string | undefined {
   const flat = oneLine(value);
+  if (!value || typeof value !== 'object' || flat.length <= INLINE_WIDTH)
+    return flat;
   if (
-    !value ||
-    typeof value !== 'object' ||
-    flat.length <= INLINE_WIDTH ||
-    (Array.isArray(value) &&
-      value.length === 1 &&
-      (value[0] === null || typeof value[0] !== 'object'))
+    Array.isArray(value) &&
+    value.length === 1 &&
+    (value[0] === null || typeof value[0] !== 'object')
   )
     return flat;
-  const inner = indent + '  ';
-  const rows = Array.isArray(value)
-    ? value.map((v) => inner + compactJson(v, inner))
-    : Object.entries(value).map(
-        ([k, v]) => `${inner}${JSON.stringify(k)}: ${compactJson(v, inner)}`
-      );
-  const [open, close] = Array.isArray(value) ? ['[', ']'] : ['{', '}'];
-  return `${open}\n${rows.join(',\n')}\n${indent}${close}`;
+  return undefined;
 }
 
 /** A line as written, with Docker's timestamp in front of it if it has one. */

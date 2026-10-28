@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
-  compactJson,
+  inlineJson,
   parseJsonLog,
   parseLogLine,
   summaryFields,
@@ -94,31 +94,24 @@ describe('summaryFields', () => {
   });
 });
 
-describe('compactJson', () => {
-  test("puts a header's list of one on its key's line, however long", () => {
-    const agent = `Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) ${'x'.repeat(60)}`;
+describe('inlineJson', () => {
+  test("keeps a header's list of one on one line, however long", () => {
+    const agent = `Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3) ${'x'.repeat(80)}`;
+    expect(inlineJson([agent])).toBe(`[${JSON.stringify(agent)}]`);
+  });
+
+  test('keeps a short object on one line, and folds a long one', () => {
+    expect(inlineJson({ a: 1, b: [1, 2] })).toBe('{ "a": 1, "b": [1, 2] }');
     expect(
-      compactJson({ headers: { 'User-Agent': [agent], Via: ['1.1 Caddy'] } })
-    ).toBe(
-      [
-        '{',
-        '  "headers": {',
-        `    "User-Agent": [${JSON.stringify(agent)}],`,
-        '    "Via": ["1.1 Caddy"]',
-        '  }',
-        '}',
-      ].join('\n')
-    );
+      inlineJson({ first: 'x'.repeat(40), second: 'y'.repeat(40) })
+    ).toBeUndefined();
+    expect(inlineJson([{ a: 'x'.repeat(80) }])).toBeUndefined();
   });
 
-  test('keeps a short object on one line, and spreads a long one out', () => {
-    expect(compactJson({ a: 1, b: [1, 2] })).toBe('{ "a": 1, "b": [1, 2] }');
-    const long = { first: 'x'.repeat(40), second: 'y'.repeat(40) };
-    expect(compactJson(long).split('\n')).toHaveLength(4);
-  });
-
-  test('reads back as the same value', () => {
-    const value = { a: [1, { b: null }], c: '"quoted"', d: { e: [] }, f: {} };
-    expect(JSON.parse(compactJson(value))).toEqual(value);
+  test('shows text, numbers and nothing as JSON does', () => {
+    expect(inlineJson('a "b"')).toBe('"a \\"b\\""');
+    expect(inlineJson(1.5)).toBe('1.5');
+    expect(inlineJson(null)).toBe('null');
+    expect(inlineJson([])).toBe('[]');
   });
 });
