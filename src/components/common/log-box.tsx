@@ -279,15 +279,17 @@ export function LogBox({
             so lines fade out under the day as they do at the top; as wide as
             the lines, short of the scrollbar. Where the divider is at the top of the scroll,
             past its padding, so handing over from one to the other moves
-            nothing; each one's rule stops short of the copy button. The
-            divider in the lines says it already */}
+            nothing; each one's rule stops short of the copy button. A
+            little past the box's top, as its fade is, as a screen can round
+            the two to different pixels and leave a line of text showing
+            above it. The divider in the lines says it already */}
         {pinnedDay && (
           <div
             aria-hidden
             style={{ right: linesEnd }}
-            className='pointer-events-none absolute top-0 left-0 z-10'
+            className='pointer-events-none absolute -top-0.5 left-0 z-10'
           >
-            <div className='flex items-center gap-3 bg-muted pt-5 pb-2 pl-3 text-muted-foreground'>
+            <div className='flex items-center gap-3 bg-muted pt-5.5 pb-2 pl-3 text-muted-foreground'>
               {pinnedDay}
               <span className='mr-9 h-px flex-1 bg-border' />
             </div>
