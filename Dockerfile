@@ -15,19 +15,24 @@ ARG NEXT_PUBLIC_SERVER_NAME
 RUN bun run build
 
 # The database's migrations, which compose's migrate runs before the dashboard starts:
-# Prisma and the migrations alone, at the versions package.json names. Its
-# engine is downloaded with it, a few tries if need be: from Docker's network,
-# with no IPv6, a connection to Prisma's host now and then times out
+# Prisma and the migrations alone, at the versions package.json names, with
+# its engine downloaded here, as it's built. Otherwise each run downloads it
+# afresh, and when Prisma's host doesn't answer, as it now and then doesn't
+# from Docker's network, the migration fails and the dashboard doesn't start;
+# a build that fails leaves the one that's running. A few tries if need be,
+# each checking the engine came, as Prisma's own download fails quietly
 FROM oven/bun:1.4.0-alpine AS migrate
 WORKDIR /app
 COPY package.json ./app.json
-RUN echo '{ "private": true }' > package.json \
+RUN echo '{ "private": true, "trustedDependencies": ["prisma", "@prisma/engines"] }' > package.json \
   && for try in 1 2 3 4; do \
     bun add \
       prisma@$(bun -e 'console.log(require("./app.json").devDependencies.prisma)') \
       dotenv@$(bun -e 'console.log(require("./app.json").devDependencies.dotenv)') \
+    && ls node_modules/@prisma/engines/schema-engine-* >/dev/null 2>&1 \
     && break; \
-    [ "$try" = 4 ] && exit 1; \
+    [ "$try" = 4 ] && { echo "Couldn't download Prisma's engine" >&2; exit 1; }; \
+    rm -rf node_modules; \
     sleep 5; \
   done
 COPY prisma.config.ts ./
