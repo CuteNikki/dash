@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 
 import type { Tone } from '@/lib/ansi';
-import type { JsonLog, LogLine } from '@/lib/log-lines';
+import { summaryFields, type JsonLog, type LogLine } from '@/lib/log-lines';
 import { cn } from '@/lib/utils';
 import { splitWide } from '@/lib/wide-text';
 
@@ -303,26 +303,11 @@ function Line({ line, wrap }: { line: LogLine; wrap: boolean }) {
   );
 }
 
-/** The longest a field's value is shown in a line's summary. */
-const MAX_VALUE = 60;
-
-/**
- * A field's value in a summary: text as it is, quoted if it has spaces in
- * it, and cut short; an object or a list folded away, for the whole line.
- */
-function shortValue(value: unknown) {
-  if (Array.isArray(value)) return value.length ? '[…]' : '[]';
-  if (value && typeof value === 'object')
-    return Object.keys(value).length ? '{…}' : '{}';
-  if (typeof value !== 'string') return String(value);
-  const text = /^[^\s"]+$/.test(value) ? value : JSON.stringify(value);
-  return text.length > MAX_VALUE ? `${text.slice(0, MAX_VALUE)}…` : text;
-}
-
 /**
  * A JSON line, as a structured logger writes them: its logger, its message
- * in its level's color, and its other fields as key=value, with nested ones
- * folded away. Opened, the whole object, indented.
+ * in its level's color, and its other fields as key=value, as many as say
+ * something at a glance (see summaryFields). Opened, the whole object,
+ * indented.
  */
 function JsonText({ json }: { json: JsonLog }) {
   const [open, setOpen] = useState(false);
@@ -347,11 +332,11 @@ function JsonText({ json }: { json: JsonLog }) {
           <Cells text={json.message || ' '} />
         </span>
       )}
-      {json.fields.map(([key, value]) => (
+      {summaryFields(json).map(([key, value]) => (
         <Fragment key={key}>
           {' '}
           <span className='text-muted-foreground'>{key}=</span>
-          <Cells text={shortValue(value)} />
+          <Cells text={value} />
         </Fragment>
       ))}
       {open && <JsonBlock value={json.value} />}

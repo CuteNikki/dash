@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { parseJsonLog, parseLogLine } from '@/lib/log-lines';
+import { parseJsonLog, parseLogLine, summaryFields } from '@/lib/log-lines';
 
 describe('parseJsonLog', () => {
   test("reads Caddy's: its level, logger and message apart from the rest", () => {
@@ -43,5 +43,48 @@ describe('parseJsonLog', () => {
     );
     expect(line.text).toBe('{"level":"error","msg":"down"}');
     expect(line.json?.tone).toBe('error');
+  });
+});
+
+describe('summaryFields', () => {
+  const summary = (line: string) => summaryFields(parseJsonLog(line)!);
+
+  test('leaves out empty fields, and hashes and ids too long to read', () => {
+    expect(
+      summary(
+        '{"msg":"x","explanation_url":"","none":null,"list":[],"cert_hash":"d8663681c48771dc775498fa55915901b8aa3d9c324e0625d7e2a94cf3920ecd","upstream":"dash:3000"}'
+      )
+    ).toEqual([['upstream', 'dash:3000']]);
+  });
+
+  test('shows a short list or object as it is, a longer one folded', () => {
+    expect(
+      summary(
+        '{"msg":"x","identifiers":["dash.niso.moe"],"request":{"method":"GET","uri":"/api/containers/90198df5/logs"}}'
+      )
+    ).toEqual([
+      ['identifiers', '["dash.niso.moe"]'],
+      ['request', '{…}'],
+    ]);
+  });
+
+  test("rounds off a number's tail", () => {
+    expect(
+      summary(
+        '{"msg":"x","duration":0.016825343,"next":1793214310.2864864,"n":3}'
+      )
+    ).toEqual([
+      ['duration', '0.0168'],
+      ['next', '1793214310'],
+      ['n', '3'],
+    ]);
+  });
+
+  test('keeps a long message with spaces, cut short and quoted', () => {
+    const [[, error]] = summary(
+      '{"msg":"x","error":"writing: write tcp 172.21.0.4:443->43.165.170.119:40204: write: broken pipe"}'
+    );
+    expect(error.startsWith('"writing: write tcp')).toBe(true);
+    expect(error.endsWith('…')).toBe(true);
   });
 });

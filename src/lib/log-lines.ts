@@ -119,6 +119,51 @@ function segmentsOf(text: string): Segment[] {
   return [{ text, tone }];
 }
 
+/** The longest a value is shown in a summary, text cut short past it. */
+const MAX_VALUE = 60;
+/** Longer than this, a value with no spaces, a hash or an id, is left for the whole line. */
+const MAX_TOKEN = 40;
+/** A list or an object this short in JSON is shown as it is, not folded. */
+const MAX_INLINE = 40;
+
+/**
+ * A field's value as a JSON line's summary shows it, or undefined to leave
+ * it for the whole line: nothing for an empty one, or for a hash or an id
+ * too long to read at a glance; a short list or object as it is, a longer
+ * one folded; a number with its tail rounded off; text quoted if it has
+ * spaces, and cut short.
+ */
+function summaryValue(value: unknown): string | undefined {
+  if (value === null || value === '') return undefined;
+  if (typeof value === 'object') {
+    const json = JSON.stringify(value);
+    if (json === '[]' || json === '{}') return undefined;
+    if (json.length <= MAX_INLINE) return json;
+    return Array.isArray(value) ? '[…]' : '{…}';
+  }
+  if (typeof value === 'number') {
+    if (Number.isInteger(value)) return String(value);
+    // A big one, as seconds since 1970, to the whole; a small one, as a
+    // duration, to three figures
+    return String(
+      Math.abs(value) >= 1000 ? Math.round(value) : Number(value.toPrecision(3))
+    );
+  }
+  if (typeof value !== 'string') return String(value);
+  const bare = /^[^\s"]+$/.test(value);
+  if (bare && value.length > MAX_TOKEN) return undefined;
+  const text = bare ? value : JSON.stringify(value);
+  return text.length > MAX_VALUE ? `${text.slice(0, MAX_VALUE)}…` : text;
+}
+
+/** A JSON line's fields as its summary shows them, those that say something at a glance. */
+export function summaryFields(json: JsonLog): [string, string][] {
+  return json.fields.flatMap(([key, value]) => {
+    const shown = summaryValue(value);
+    return shown === undefined ? [] : [[key, shown]];
+  });
+}
+
 /** A line as written, with Docker's timestamp in front of it if it has one. */
 export function parseLogLine(id: number, raw: string): LogLine {
   const match = raw.match(TIMESTAMP);
