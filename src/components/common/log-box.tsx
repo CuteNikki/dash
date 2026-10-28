@@ -236,13 +236,15 @@ export function LogBox({
           // corner, over the day pinned at the top; the lines the filter
           // leaves, as they're shown. Filled in the dark, where an outline
           // button's fill is faint, so the day's rule doesn't show through
+          // Half a line down, so it's centred on the day's line, which starts
+          // a button's half-height, the scroll's padding, further down
           <Button
             type='button'
             variant='outline'
             size='icon-sm'
             aria-label={`Copy the ${label}`}
             title='Copy'
-            className='absolute top-2 right-4 z-20 opacity-0 transition-opacity group-hover/log:opacity-100 focus-visible:opacity-100 dark:bg-muted'
+            className='absolute top-[0.5lh] right-4 z-20 opacity-0 transition-opacity group-hover/log:opacity-100 focus-visible:opacity-100 dark:bg-muted'
             onClick={() =>
               void copyText(
                 shown.map((l) => l.text).join('\n'),
