@@ -11,6 +11,17 @@ import {
   TriangleAlertIcon,
 } from 'lucide-react';
 
+/**
+ * A kind of toast's colors, from the theme's own, so they follow it: a wash
+ * of it behind, and its border, with the text as any toast's, so a long
+ * output stays readable. Its icon takes the color whole.
+ */
+const tone = (kind: string, color: string) => ({
+  [`--${kind}-bg`]: `color-mix(in oklch, var(${color}) 12%, var(--popover))`,
+  [`--${kind}-border`]: `color-mix(in oklch, var(${color}) 45%, var(--popover))`,
+  [`--${kind}-text`]: 'var(--popover-foreground)',
+});
+
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = 'system' } = useTheme();
 
@@ -18,6 +29,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme={theme as ToasterProps['theme']}
       className='group'
+      // Told apart at a glance: a failure red, a success green
+      richColors
       icons={{
         success: <CircleCheckIcon className='size-4' />,
         info: <InfoIcon className='size-4' />,
@@ -31,11 +44,19 @@ const Toaster = ({ ...props }: ToasterProps) => {
           '--normal-text': 'var(--popover-foreground)',
           '--normal-border': 'var(--border)',
           '--border-radius': 'var(--radius)',
+          ...tone('success', '--success'),
+          ...tone('warning', '--warning'),
+          ...tone('error', '--destructive'),
+          // Info as any toast is, rather than in Sonner's own blue
+          '--info-bg': 'var(--popover)',
+          '--info-border': 'var(--border)',
+          '--info-text': 'var(--popover-foreground)',
         } as React.CSSProperties
       }
       toastOptions={{
         classNames: {
           toast: 'cn-toast',
+          icon: 'in-data-[type=error]:text-destructive in-data-[type=success]:text-success in-data-[type=warning]:text-warning',
         },
       }}
       {...props}
