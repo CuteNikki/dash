@@ -5,9 +5,9 @@ import { StringDecoder } from 'node:string_decoder';
 
 /**
  * The Docker Engine API, spoken directly over its socket. DOCKER_HOST is
- * unix:///var/run/docker.sock in the container (the default), or
- * tcp://127.0.0.1:2375 in development, through an SSH tunnel to the server's
- * socket.
+ * unix:///var/run/docker.sock in the container (the default), or in
+ * development unix://.docker.sock, a socket in this folder that `bun run
+ * tunnels` forwards to the server's over SSH.
  */
 const DOCKER_HOST = process.env.DOCKER_HOST ?? 'unix:///var/run/docker.sock';
 

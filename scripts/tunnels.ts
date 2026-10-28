@@ -4,6 +4,8 @@
 // networks the dashboard shares with them. Each app is looked up when it starts, since
 // a recreated container has a new address, and is then on this machine at the
 // port the dashboard looks for it at in development (src/lib/apps/tunnels.ts).
+import { resolve } from 'node:path';
+
 import { DEV_TUNNELS } from '../src/lib/apps/tunnels';
 
 // The server as SSH knows it, from .env.local, which Bun reads
@@ -15,8 +17,20 @@ if (!SERVER) {
   process.exit(1);
 }
 
-/** Where DOCKER_HOST in .env.local expects the server's Docker. */
-const DOCKER = '127.0.0.1:2375';
+/**
+ * Where DOCKER_HOST in .env.local expects the server's Docker: a socket file,
+ * only this account's (ssh makes it so), never a port on 127.0.0.1, which any
+ * web page open in a browser here could send requests to.
+ */
+const socket = process.env.DOCKER_HOST?.match(/^unix:\/\/(.+)$/)?.[1];
+if (!socket) {
+  console.error(
+    'Set DOCKER_HOST in .env.local to a socket, as unix://.docker.sock'
+  );
+  process.exit(1);
+}
+// Whole, as ssh only takes a path with a slash in it for a socket
+const DOCKER = resolve(socket);
 
 /** Each app's container, its port there, and its port here, as the dashboard expects them. */
 const APPS = DEV_TUNNELS;
@@ -45,11 +59,21 @@ const forwards = APPS.flatMap((a) => {
   console.log(`${a.container}: http://127.0.0.1:${a.local}`);
   return ['-L', `127.0.0.1:${a.local}:${ip}:${a.port}`];
 });
-console.log(`Docker: tcp://${DOCKER}`);
+console.log(`Docker: unix://${DOCKER}`);
 
 console.log('Open until stopped (Ctrl+C)');
 const tunnel = Bun.spawn(
-  ['ssh', '-N', '-L', `${DOCKER}:/var/run/docker.sock`, ...forwards, SERVER],
+  [
+    'ssh',
+    '-N',
+    // Over the socket a tunnel before left behind
+    '-o',
+    'StreamLocalBindUnlink=yes',
+    '-L',
+    `${DOCKER}:/var/run/docker.sock`,
+    ...forwards,
+    SERVER,
+  ],
   {
     stdout: 'inherit',
     stderr: 'inherit',

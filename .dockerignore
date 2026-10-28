@@ -5,3 +5,4 @@ src/lib/generated
 .env*
 .git
 .shot.ts
+.docker.sock
