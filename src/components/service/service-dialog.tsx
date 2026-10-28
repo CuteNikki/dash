@@ -498,11 +498,12 @@ function ServiceBody({
             </TabsContent>
           )}
           {git && (
-            // Likewise the commit that was being looked at
+            // Likewise the commit that was being looked at. On a phone,
+            // where its parts don't all fit, it scrolls as one page
             <TabsContent
               value='git'
               forceMount
-              className='flex min-h-0 flex-col data-[state=inactive]:hidden'
+              className='flex min-h-0 flex-col data-[state=inactive]:hidden max-sm:overflow-y-auto'
             >
               <GitPanel
                 key={git.root}

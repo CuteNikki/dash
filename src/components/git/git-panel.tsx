@@ -151,7 +151,7 @@ export function GitPanel({
     <Tabs
       value={view}
       onValueChange={setView}
-      className='flex min-h-0 flex-1 flex-col gap-3'
+      className='flex flex-1 flex-col gap-3 sm:min-h-0'
     >
       <div className='flex flex-wrap items-center gap-2'>
         <TabsList>
@@ -223,17 +223,17 @@ export function GitPanel({
         </span>
       </div>
 
-      <TabsContent value='changes' className='flex min-h-0 flex-col'>
+      <TabsContent value='changes' className='flex flex-col sm:min-h-0'>
         {status.changes.length === 0 ? (
           <p className='rounded-lg bg-muted p-3 text-muted-foreground'>
             Nothing changed since the last commit.
           </p>
         ) : (
-          <div className='flex min-h-0 flex-1 flex-col gap-3 sm:flex-row'>
+          <div className='flex flex-1 flex-col gap-3 sm:min-h-0 sm:flex-row'>
             <div className='flex shrink-0 flex-col gap-3 sm:w-72'>
               <section
                 aria-label='Changes'
-                className='flex min-h-0 flex-1 flex-col gap-1 overflow-auto rounded-lg bg-muted p-1'
+                className='flex min-h-0 flex-1 flex-col gap-1 overflow-auto rounded-lg bg-muted p-1 max-sm:max-h-48'
               >
                 {status.changes.map((change) => (
                   <div
@@ -299,7 +299,7 @@ export function GitPanel({
               </div>
             </div>
 
-            <div className='flex min-h-0 min-w-0 flex-1 flex-col'>
+            <div className='flex min-w-0 flex-1 flex-col max-sm:h-[70svh] max-sm:flex-none sm:min-h-0'>
               {diff && diffPath ? (
                 <DiffView
                   key={diffPath}
@@ -316,7 +316,7 @@ export function GitPanel({
         )}
       </TabsContent>
 
-      <TabsContent value='history' className='flex min-h-0 flex-col'>
+      <TabsContent value='history' className='flex flex-col sm:min-h-0'>
         <GitHistory
           containerId={containerId}
           root={status.root}
