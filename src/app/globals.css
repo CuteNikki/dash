@@ -108,8 +108,9 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  /* What a field or an outline button is filled with: a tint of --input */
-  --field: color-mix(in oklch, var(--input) 20%, transparent);
+  /* What a field or an outline button is filled with: as white as a card,
+     so on the page, a shade below, it stands off it as a card does */
+  --field: oklch(1 0 0);
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
