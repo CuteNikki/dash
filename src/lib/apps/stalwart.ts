@@ -1,5 +1,7 @@
 import 'server-only';
 
+import { networkInterfaces } from 'node:os';
+
 import { env, getJson, TIMEOUT_MS, type App } from '@/lib/apps/app';
 
 /** What a recipient's delivery is doing: a word, or an object naming it in "@type". */
@@ -36,13 +38,21 @@ function stateOf(status?: RecipientStatus) {
   return error ? `${state} (${error})` : state;
 }
 
-function headersOf() {
+/**
+ * The dashboard's own address, not loopback, which Stalwart 1.0 turns away
+ * as a forwarded client address with a 400.
+ */
+const OWN_ADDRESS = Object.values(networkInterfaces())
+  .flat()
+  .find((a) => a && !a.internal)?.address;
+
+function headersOf(): Record<string, string> {
   return {
     Authorization: `Bearer ${env('STALWART_API_KEY')}`,
     'Content-Type': 'application/json',
     // Its web listener expects Caddy in front and logs a warning for every
     // request that doesn't say who it's for; this comes straight from here
-    'X-Forwarded-For': '127.0.0.1',
+    ...(OWN_ADDRESS && { 'X-Forwarded-For': OWN_ADDRESS }),
   };
 }
 
