@@ -170,6 +170,9 @@ export function Dashboard({
     setEdits([]);
     setEditing(false);
   }
+  // Off a phone's line while editing, which has no room for them beside
+  // Cancel and Done, and nothing to do with editing
+  const offWhileEditing = editing ? 'max-sm:hidden' : undefined;
 
   function saveCells({ cells, moved }: LayoutChange) {
     const at = (key: string, columns: number) => `${key} ${columns}`;
@@ -321,6 +324,7 @@ export function Dashboard({
               <AlertsButton
                 open={data.alerts ?? []}
                 onClickAction={() => setShowAlerts(true)}
+                className={offWhileEditing}
               />
             )}
             {may('control') && (
@@ -332,7 +336,8 @@ export function Dashboard({
                 onClick={() => setShowUpdates(true)}
                 className={cn(
                   'relative',
-                  updateCount > 0 && 'text-update hover:text-update'
+                  updateCount > 0 && 'text-update hover:text-update',
+                  offWhileEditing
                 )}
               >
                 <ArrowUpCircleIcon />
@@ -348,6 +353,7 @@ export function Dashboard({
                 variant='outline'
                 aria-label='New service'
                 onClick={() => setAdding(true)}
+                className={offWhileEditing}
               >
                 <PlusIcon />
                 {/* Its plus alone on a phone, where the header's room is short */}

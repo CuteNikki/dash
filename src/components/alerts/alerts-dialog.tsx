@@ -43,10 +43,12 @@ const KIND_ICONS: Record<AlertView['kind'], React.ReactNode> = {
 export function AlertsButton({
   open,
   onClickAction,
+  className,
 }: {
   /** What's wrong now */
   open: AlertView[];
   onClickAction: () => void;
+  className?: string;
 }) {
   const count = open.length;
   return (
@@ -56,7 +58,8 @@ export function AlertsButton({
       onClick={onClickAction}
       className={cn(
         'relative',
-        count > 0 && 'text-destructive hover:text-destructive'
+        count > 0 && 'text-destructive hover:text-destructive',
+        className
       )}
     >
       <BellIcon />
