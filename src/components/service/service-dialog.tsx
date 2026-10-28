@@ -306,11 +306,12 @@ function ServiceBody({
           <AddressList addresses={service.addresses} />
         )}
         <div className='flex flex-wrap items-center gap-2'>
-          {/* As tall as the buttons beside it, its text level with theirs */}
+          {/* A step shorter than the buttons beside it, centred on their
+              row, so it reads as the service's state, not one of them */}
           <StatePill
             state={service.state}
             label={labelOf(service)}
-            className='mr-1 h-7 items-center px-3'
+            className='mr-1 h-6 items-center px-2.5'
           />
           {site || !controls ? null : running ? (
             <Button
