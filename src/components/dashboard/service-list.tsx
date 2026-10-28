@@ -822,7 +822,11 @@ function Row({
       <td className='px-2 py-2.5 font-mono tabular-nums'>
         {check ? (
           <span className='flex items-center gap-3'>
-            <span className='w-10 shrink-0'>{formatMs(check.ms)}</span>
+            {/* At least as wide as a CPU's, so the sparklines line up, and
+                wider rather than wrapping, as "196 ms" is */}
+            <span className='min-w-10 shrink-0 whitespace-nowrap'>
+              {formatMs(check.ms)}
+            </span>
             <Sparkline
               values={check.history.ms}
               measure={MEASURES.response}
@@ -831,7 +835,9 @@ function Row({
           </span>
         ) : usage ? (
           <span className='flex items-center gap-3'>
-            <span className='w-10 shrink-0'>{formatCpu(usage.cpu)}</span>
+            <span className='min-w-10 shrink-0 whitespace-nowrap'>
+              {formatCpu(usage.cpu)}
+            </span>
             <Sparkline
               values={usage.history.cpu}
               measure={MEASURES.cpu}
