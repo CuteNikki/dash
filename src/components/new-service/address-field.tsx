@@ -49,6 +49,7 @@ export function AddressField({
   // The server's own domain, its first, until another's picked
   const [picked, setPicked] = useState<string>();
   const zone = picked ?? domains?.[0] ?? OTHER;
+  const choices = [...(domains ?? []).map((d) => `.${d}`), 'Another domain'];
   const typed = name.trim().toLowerCase();
   const domain = !typed ? '' : zone === OTHER ? typed : `${typed}.${zone}`;
   // Told of the whole domain whenever it changes, typed or picked or when
@@ -79,7 +80,22 @@ export function AddressField({
               aria-label='Domain'
               className='border-0 bg-transparent font-mono text-muted-foreground shadow-none dark:bg-transparent'
             >
-              <SelectValue />
+              {/* As wide as its widest choice, whichever's picked, so
+                  picking another doesn't move the field beside it */}
+              <span className='grid'>
+                {choices.map((choice) => (
+                  <span
+                    key={choice}
+                    aria-hidden
+                    className='invisible col-start-1 row-start-1'
+                  >
+                    {choice}
+                  </span>
+                ))}
+                <span className='col-start-1 row-start-1 text-left'>
+                  <SelectValue />
+                </span>
+              </span>
             </SelectTrigger>
             <SelectContent align='end'>
               {domains?.map((d) => (
