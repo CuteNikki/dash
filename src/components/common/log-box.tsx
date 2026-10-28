@@ -39,6 +39,9 @@ import {
 /** How close to the end counts as the end, as zoom and rounding can leave a pixel or two. */
 const BOTTOM_SLACK_PX = 4;
 
+/** Room kept for a scrollbar drawn over the lines, as ScrollFade keeps it. */
+const OVERLAY_BAR_PX = 6;
+
 const TONE_CLASS: Record<Tone, string> = {
   error: 'text-destructive',
   warning: 'text-warning',
@@ -137,10 +140,11 @@ export function LogBox({
   // which day they're from still shows, and so neither moves as one hands
   // over to the other
   const [pinnedDay, setPinnedDay] = useState<string>();
-  // How far from the box's right its lines end: the scrollbar's width and
-  // the scroll's padding, so the day shown over them is as wide as the
-  // divider it stands for, and its rule ends where that one's does
-  const [linesEnd, setLinesEnd] = useState(0);
+  // Where the pinned day reaches at the box's right: to the scrollbar, as
+  // the top's fade does, so lines running long, unwrapped, under the scroll's
+  // padding go under it too; and how far short of that its rule stops, to
+  // end where the divider's does
+  const [pinnedEdge, setPinnedEdge] = useState({ right: 0, ruleEnd: 0 });
 
   function pinDay() {
     const el = scroller.current;
@@ -151,8 +155,16 @@ export function LogBox({
     const style = getComputedStyle(el);
     const rest =
       el.getBoundingClientRect().top + parseFloat(style.paddingTop) - 0.5;
-    setLinesEnd(
-      el.offsetWidth - el.clientWidth + parseFloat(style.paddingRight)
+    // The scrollbar's room, as ScrollFade keeps it: some for one drawn over
+    // the lines, unless they scroll sideways, as their text then runs there
+    const bar = el.offsetWidth - el.clientWidth;
+    const right =
+      el.scrollWidth - el.clientWidth > 1 ? bar : Math.max(bar, OVERLAY_BAR_PX);
+    const ruleEnd = bar + parseFloat(style.paddingRight) - right;
+    setPinnedEdge((edge) =>
+      edge.right === right && edge.ruleEnd === ruleEnd
+        ? edge
+        : { right, ruleEnd }
     );
     let day: string | undefined;
     for (const divider of inner.querySelectorAll<HTMLElement>('[data-day]')) {
@@ -261,9 +273,12 @@ export function LogBox({
                 <Fragment key={line.id}>
                   {line.time &&
                     dayOf(line.time) !== dayOf(shown[i - 1]?.time) && (
+                      // Apart from the line before it by a margin, so it rests
+                      // at the top of the scroll as the first one does, and
+                      // the day pinned there stands where both are
                       <div
                         data-day={dayLabel(line.time)}
-                        className='flex items-center gap-3 py-2 text-muted-foreground'
+                        className='mt-2 flex items-center gap-3 pb-2 text-muted-foreground first:mt-0'
                       >
                         {dayLabel(line.time)}
                         <span className='mr-9 h-px flex-1 bg-border' />
@@ -276,8 +291,8 @@ export function LogBox({
           </div>
         </ScrollFade>
         {/* Over the scroll and its fade, with a fade of its own under it,
-            so lines fade out under the day as they do at the top; as wide as
-            the lines, short of the scrollbar. Where the divider is at the top of the scroll,
+            so lines fade out under the day as they do at the top; to the
+            scrollbar, as that fade is. Where the divider is at the top of the scroll,
             past its padding, so handing over from one to the other moves
             nothing; each one's rule stops short of the copy button. A
             little past the box's top, as its fade is, as a screen can round
@@ -286,10 +301,13 @@ export function LogBox({
         {pinnedDay && (
           <div
             aria-hidden
-            style={{ right: linesEnd }}
+            style={{ right: pinnedEdge.right }}
             className='pointer-events-none absolute -top-0.5 left-0 z-10'
           >
-            <div className='flex items-center gap-3 bg-muted pt-5.5 pb-2 pl-3 text-muted-foreground'>
+            <div
+              style={{ paddingRight: pinnedEdge.ruleEnd }}
+              className='flex items-center gap-3 bg-muted pt-3.5 pb-2 pl-3 text-muted-foreground'
+            >
               {pinnedDay}
               <span className='mr-9 h-px flex-1 bg-border' />
             </div>
