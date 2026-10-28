@@ -132,7 +132,41 @@ export function LogBox({
   // log itself changing under it (new lines, old ones dropping off, a filter)
   const lastScroll = useRef({ top: 0, height: 0 });
 
+  // The day of the lines at the top, once its divider's scrolled up from
+  // where it rests at the top of the scroll, shown there over the lines so
+  // which day they're from still shows, and so neither moves as one hands
+  // over to the other
+  const [pinnedDay, setPinnedDay] = useState<string>();
+  // How far from the box's right its lines end: the scrollbar's width and
+  // the scroll's padding, so the day shown over them is as wide as the
+  // divider it stands for, and its rule ends where that one's does
+  const [linesEnd, setLinesEnd] = useState(0);
+
+  function pinDay() {
+    const el = scroller.current;
+    const inner = content.current;
+    if (!el || !inner) return;
+    // Past the scroll's padding, where the first divider rests; less half a
+    // pixel, as zoom can leave it a fraction off
+    const style = getComputedStyle(el);
+    const rest =
+      el.getBoundingClientRect().top + parseFloat(style.paddingTop) - 0.5;
+    setLinesEnd(
+      el.offsetWidth - el.clientWidth + parseFloat(style.paddingRight)
+    );
+    let day: string | undefined;
+    for (const divider of inner.querySelectorAll<HTMLElement>('[data-day]')) {
+      if (divider.getBoundingClientRect().top > rest) break;
+      day = divider.dataset.day;
+    }
+    setPinnedDay(day);
+  }
+
+  // Again when the lines change under it: new ones, a filter, wrapping
+  useLayoutEffect(pinDay, [shown, wrap]);
+
   function onScroll(e: React.UIEvent<HTMLDivElement>) {
+    pinDay();
     const el = e.currentTarget;
     const last = lastScroll.current;
     if (el.scrollHeight - el.scrollTop - el.clientHeight <= BOTTOM_SLACK_PX) {
@@ -187,15 +221,16 @@ export function LogBox({
       >
         {shown.length > 0 && (
           // Over the box rather than in its scroll, so it stays in the
-          // corner, over the day held at the top; the lines the filter
-          // leaves, as they're shown
+          // corner, over the day pinned at the top; the lines the filter
+          // leaves, as they're shown. Filled in the dark, where an outline
+          // button's fill is faint, so the day's rule doesn't show through
           <Button
             type='button'
             variant='outline'
             size='icon-sm'
             aria-label={`Copy the ${label}`}
             title='Copy'
-            className='absolute top-2 right-4 z-20 opacity-0 transition-opacity group-hover/log:opacity-100 focus-visible:opacity-100'
+            className='absolute top-2 right-4 z-20 opacity-0 transition-opacity group-hover/log:opacity-100 focus-visible:opacity-100 dark:bg-muted'
             onClick={() =>
               void copyText(
                 shown.map((l) => l.text).join('\n'),
@@ -224,15 +259,14 @@ export function LogBox({
             ) : (
               shown.map((line, i) => (
                 <Fragment key={line.id}>
-                  {/* Held at the top while its day's lines scroll under
-                      it, until the next day's takes its place, so which
-                      day a line's from shows wherever it's scrolled to; at
-                      the box's very top, past the padding of its scroll */}
                   {line.time &&
                     dayOf(line.time) !== dayOf(shown[i - 1]?.time) && (
-                      <div className='sticky -top-3 z-10 flex items-center gap-3 bg-muted py-2 text-muted-foreground'>
+                      <div
+                        data-day={dayLabel(line.time)}
+                        className='flex items-center gap-3 py-2 text-muted-foreground'
+                      >
                         {dayLabel(line.time)}
-                        <span className='h-px flex-1 bg-border' />
+                        <span className='mr-9 h-px flex-1 bg-border' />
                       </div>
                     )}
                   <Line line={line} wrap={wrap} />
@@ -241,6 +275,25 @@ export function LogBox({
             )}
           </div>
         </ScrollFade>
+        {/* Over the scroll and its fade, with a fade of its own under it,
+            so lines fade out under the day as they do at the top; as wide as
+            the lines, short of the scrollbar. Where the divider is at the top of the scroll,
+            past its padding, so handing over from one to the other moves
+            nothing; each one's rule stops short of the copy button. The
+            divider in the lines says it already */}
+        {pinnedDay && (
+          <div
+            aria-hidden
+            style={{ right: linesEnd }}
+            className='pointer-events-none absolute top-0 left-0 z-10'
+          >
+            <div className='flex items-center gap-3 bg-muted pt-5 pb-2 pl-3 text-muted-foreground'>
+              {pinnedDay}
+              <span className='mr-9 h-px flex-1 bg-border' />
+            </div>
+            <div className='h-[2lh] bg-linear-to-b from-muted to-transparent' />
+          </div>
+        )}
       </div>
     </div>
   );
