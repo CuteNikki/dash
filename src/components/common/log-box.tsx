@@ -9,10 +9,16 @@ import {
   useState,
 } from 'react';
 
-import { CopyIcon, ListEndIcon, SearchIcon, WrapTextIcon } from 'lucide-react';
+import {
+  ChevronRightIcon,
+  CopyIcon,
+  ListEndIcon,
+  SearchIcon,
+  WrapTextIcon,
+} from 'lucide-react';
 
 import type { Tone } from '@/lib/ansi';
-import type { LogLine } from '@/lib/log-lines';
+import type { JsonLog, LogLine } from '@/lib/log-lines';
 import { cn } from '@/lib/utils';
 import { splitWide } from '@/lib/wide-text';
 
@@ -276,20 +282,112 @@ function Line({ line, wrap }: { line: LogLine; wrap: boolean }) {
             : 'whitespace-pre'
         )}
       >
-        {line.segments.map((segment, i) => (
-          <span
-            key={i}
-            className={cn(
-              segment.tone && TONE_CLASS[segment.tone],
-              segment.bold && 'font-semibold'
-            )}
-          >
-            {/* An empty line keeps its height */}
-            <Cells text={segment.text || ' '} />
-          </span>
-        ))}
+        {line.json ? (
+          <JsonText json={line.json} />
+        ) : (
+          line.segments.map((segment, i) => (
+            <span
+              key={i}
+              className={cn(
+                segment.tone && TONE_CLASS[segment.tone],
+                segment.bold && 'font-semibold'
+              )}
+            >
+              {/* An empty line keeps its height */}
+              <Cells text={segment.text || ' '} />
+            </span>
+          ))
+        )}
       </span>
     </div>
+  );
+}
+
+/** The longest a field's value is shown in a line's summary. */
+const MAX_VALUE = 60;
+
+/**
+ * A field's value in a summary: text as it is, quoted if it has spaces in
+ * it, and cut short; an object or a list folded away, for the whole line.
+ */
+function shortValue(value: unknown) {
+  if (Array.isArray(value)) return value.length ? '[…]' : '[]';
+  if (value && typeof value === 'object')
+    return Object.keys(value).length ? '{…}' : '{}';
+  if (typeof value !== 'string') return String(value);
+  const text = /^[^\s"]+$/.test(value) ? value : JSON.stringify(value);
+  return text.length > MAX_VALUE ? `${text.slice(0, MAX_VALUE)}…` : text;
+}
+
+/**
+ * A JSON line, as a structured logger writes them: its logger, its message
+ * in its level's color, and its other fields as key=value, with nested ones
+ * folded away. Opened, the whole object, indented.
+ */
+function JsonText({ json }: { json: JsonLog }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        type='button'
+        aria-expanded={open}
+        aria-label={open ? 'Fold the line' : 'Show the whole line'}
+        onClick={() => setOpen(!open)}
+        className='mr-1 inline-flex h-lh items-center align-top text-muted-foreground outline-none hover:text-foreground focus-visible:text-foreground'
+      >
+        <ChevronRightIcon
+          className={cn('size-3 transition-transform', open && 'rotate-90')}
+        />
+      </button>
+      {json.logger && (
+        <span className='text-muted-foreground'>{json.logger} </span>
+      )}
+      {json.message !== undefined && (
+        <span className={cn(json.tone && TONE_CLASS[json.tone])}>
+          <Cells text={json.message || ' '} />
+        </span>
+      )}
+      {json.fields.map(([key, value]) => (
+        <Fragment key={key}>
+          {' '}
+          <span className='text-muted-foreground'>{key}=</span>
+          <Cells text={shortValue(value)} />
+        </Fragment>
+      ))}
+      {open && <JsonBlock value={json.value} />}
+    </>
+  );
+}
+
+/** A key at the start of a line of indented JSON, and what follows it. */
+const JSON_KEY = /^(\s*)("(?:[^"\\]|\\.)*")(: ?)(.*)$/;
+
+/** An object as indented JSON, its keys muted so its values stand out. */
+function JsonBlock({ value }: { value: Record<string, unknown> }) {
+  return (
+    <span className='mt-1 mb-2 block border-l-2 border-border pl-3'>
+      {JSON.stringify(value, null, 2)
+        .split('\n')
+        .map((row, i) => {
+          const key = JSON_KEY.exec(row);
+          return (
+            <span key={i} className='block'>
+              {key ? (
+                <>
+                  {key[1]}
+                  <span className='text-muted-foreground'>
+                    {key[2]}
+                    {key[3]}
+                  </span>
+                  {key[4]}
+                </>
+              ) : (
+                row
+              )}
+            </span>
+          );
+        })}
+    </span>
   );
 }
 
