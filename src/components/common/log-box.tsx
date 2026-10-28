@@ -187,14 +187,15 @@ export function LogBox({
       >
         {shown.length > 0 && (
           // Over the box rather than in its scroll, so it stays in the
-          // corner; the lines the filter leaves, as they're shown
+          // corner, over the day held at the top; the lines the filter
+          // leaves, as they're shown
           <Button
             type='button'
             variant='outline'
             size='icon-sm'
             aria-label={`Copy the ${label}`}
             title='Copy'
-            className='absolute top-2 right-4 z-10 opacity-0 transition-opacity group-hover/log:opacity-100 focus-visible:opacity-100'
+            className='absolute top-2 right-4 z-20 opacity-0 transition-opacity group-hover/log:opacity-100 focus-visible:opacity-100'
             onClick={() =>
               void copyText(
                 shown.map((l) => l.text).join('\n'),
@@ -223,9 +224,13 @@ export function LogBox({
             ) : (
               shown.map((line, i) => (
                 <Fragment key={line.id}>
+                  {/* Held at the top while its day's lines scroll under
+                      it, until the next day's takes its place, so which
+                      day a line's from shows wherever it's scrolled to; at
+                      the box's very top, past the padding of its scroll */}
                   {line.time &&
                     dayOf(line.time) !== dayOf(shown[i - 1]?.time) && (
-                      <div className='flex items-center gap-3 py-2 text-muted-foreground'>
+                      <div className='sticky -top-3 z-10 flex items-center gap-3 bg-muted py-2 text-muted-foreground'>
                         {dayLabel(line.time)}
                         <span className='h-px flex-1 bg-border' />
                       </div>
