@@ -296,7 +296,7 @@ export function Dashboard({
     <RoleProvider role={me.role}>
       {/* Wider screens get more columns of tiles, up to a width past which
           the page would only spread out: then it's centered */}
-      <div className='mx-auto flex w-full max-w-[2200px] flex-col gap-8 px-4 py-6 sm:px-6'>
+      <main className='mx-auto flex w-full max-w-[2200px] flex-col gap-8 px-4 py-6 sm:px-6'>
         {/* The heading and the buttons on one line where they fit; on a
           narrow screen, the buttons on a line of their own below */}
         <header className='flex flex-wrap items-center justify-between gap-3'>
@@ -472,7 +472,7 @@ export function Dashboard({
           onCloseAction={() => setAdding(false)}
           onCreatedAction={() => void mutate()}
         />
-      </div>
+      </main>
     </RoleProvider>
   );
 }

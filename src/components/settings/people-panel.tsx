@@ -157,6 +157,7 @@ function RowsSkeleton({ rows, lines }: { rows: number; lines: 2 | 3 }) {
   return (
     <ul
       aria-busy
+      role='status'
       aria-label='Loading'
       className='flex flex-col divide-y divide-border'
     >

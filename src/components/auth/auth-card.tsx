@@ -22,7 +22,9 @@ export function AuthCard({
       <Brand />
       <Card className='w-full max-w-sm'>
         <CardHeader>
-          <CardTitle className='text-base'>{title}</CardTitle>
+          <CardTitle className='text-base'>
+            <h1>{title}</h1>
+          </CardTitle>
           <CardDescription>{description}</CardDescription>
         </CardHeader>
         <CardContent>{children}</CardContent>

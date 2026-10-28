@@ -497,6 +497,7 @@ function EntriesSkeleton() {
   return (
     <div
       aria-busy
+      role='status'
       aria-label='Loading'
       className='min-h-0 flex-1 overflow-hidden rounded-lg bg-muted'
     >

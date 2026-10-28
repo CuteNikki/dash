@@ -108,6 +108,9 @@ export function ScrollFade({
           measure();
           onScrollAction?.(e);
         }}
+        // Reached by Tab while there's more to scroll to, so the keys scroll
+        // it, as a mouse's wheel does
+        tabIndex={more.above || more.below ? 0 : undefined}
         className={className}
       >
         {children}

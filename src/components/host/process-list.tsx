@@ -132,7 +132,7 @@ export function ProcessList({
                   <th className='font-normal'>Process</th>
                   <th className={cn('font-normal', COLUMN.pid)}>PID</th>
                   <th className={cn('font-normal', COLUMN.container)}>
-                    <span className='hidden @lg:inline'>Container</span>
+                    <span className='sr-only @lg:not-sr-only'>Container</span>
                   </th>
                   <SortHeading
                     by='cpu'

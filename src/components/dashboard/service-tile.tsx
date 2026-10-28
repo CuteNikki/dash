@@ -49,8 +49,10 @@ export function ServiceTile({
       <Card
         size='sm'
         data-dimmed={!running || service.hidden}
-        className='h-full px-3 transition-shadow group-hover/tile:ring-foreground/25 data-[dimmed=true]:opacity-60'
+        className='group/card h-full px-3 transition-shadow group-hover/tile:ring-foreground/25'
       >
+        {/* A stopped or hidden one fades its icon, name and graph, the rest
+            left readable: its state above all */}
         {/* The icon centred beside the text; the dot level with the name */}
         <div className='flex items-center gap-3'>
           <ServiceIcon
@@ -58,9 +60,12 @@ export function ServiceTile({
             variants={service.iconVariants}
             missing={service.iconMissing}
             name={service.name}
+            className='group-data-[dimmed=true]/card:opacity-60'
           />
           <div className='min-w-0 flex-1'>
-            <div className='truncate text-sm font-medium'>{service.name}</div>
+            <div className='truncate text-sm font-medium group-data-[dimmed=true]/card:opacity-60'>
+              {service.name}
+            </div>
             {service.description && (
               <div
                 className='truncate text-muted-foreground'
@@ -100,7 +105,7 @@ export function ServiceTile({
         {stats && <WidgetStats stats={stats} />}
         {graph && readings && (
           // Fills the room the tile has, without asking for any of its own
-          <div className='relative min-h-8 flex-1'>
+          <div className='relative min-h-8 flex-1 group-data-[dimmed=true]/card:opacity-60'>
             <Sparkline
               values={readings.values}
               measure={readings.measure}
@@ -120,7 +125,7 @@ export function ServiceTile({
                   measure={readings.measure}
                   // A wider tile draws it wider
                   className={cn(
-                    'ml-auto',
+                    'ml-auto group-data-[dimmed=true]/card:opacity-60',
                     service.width > 1 && 'w-auto max-w-64 flex-1'
                   )}
                 />

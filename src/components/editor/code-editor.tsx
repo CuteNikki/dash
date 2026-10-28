@@ -52,6 +52,17 @@ export function codeLooks(fileName: string): Extension[] {
   ];
 }
 
+/**
+ * Names the text for screen readers, and has it reached by Tab, one that's
+ * only shown too, so the keys scroll it.
+ */
+export function codeAttributes(label: string) {
+  return EditorView.contentAttributes.of({
+    'aria-label': label,
+    tabindex: '0',
+  });
+}
+
 export function CodeEditor({
   value,
   onChangeAction,
@@ -72,9 +83,10 @@ export function CodeEditor({
   const extensions = useMemo(
     () => [
       ...codeLooks(fileName),
+      codeAttributes(label),
       ...(readOnly ? [EditorState.readOnly.of(true)] : []),
     ],
-    [fileName, readOnly]
+    [fileName, label, readOnly]
   );
   return (
     <CodeMirror
@@ -83,7 +95,6 @@ export function CodeEditor({
       theme={fill}
       height='100%'
       className='h-full overflow-hidden rounded-lg font-mono text-xs/relaxed'
-      aria-label={label}
       editable={!readOnly}
       // Where the cursor is only matters to editing
       basicSetup={{

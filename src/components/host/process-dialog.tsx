@@ -299,7 +299,12 @@ const LABELS = [
 /** The details while they're looked up: the same box and grid, values to come. */
 function DetailsSkeleton() {
   return (
-    <div aria-busy aria-label='Loading' className='flex min-w-0 flex-col gap-4'>
+    <div
+      aria-busy
+      role='status'
+      aria-label='Loading'
+      className='flex min-w-0 flex-col gap-4'
+    >
       <pre className={COMMAND}>
         <TextSkeleton className='w-2/3' />
       </pre>

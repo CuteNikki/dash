@@ -899,7 +899,7 @@ function SectionBlock({
             <button
               type='button'
               aria-label={`Move ${section.label}: arrow keys move it, with Shift they resize it`}
-              className='cursor-grab touch-none rounded-sm p-0.5 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring'
+              className='cursor-grab touch-none rounded-sm p-1 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring'
               onPointerDown={(e) => onPress(e, 'move', node.current!)}
               onKeyDown={onNudge}
             >
@@ -978,7 +978,7 @@ function EditTile({
         type='button'
         aria-label={`Move ${name}: arrow keys move it, with Shift they resize it`}
         // A tab on its top edge, clear of whatever the tile shows
-        className='absolute -top-2 left-1/2 -translate-x-1/2 cursor-grab touch-none rounded-full bg-card px-1.5 text-muted-foreground ring-1 ring-foreground/10 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring'
+        className='absolute -top-3 left-1/2 -translate-x-1/2 cursor-grab touch-none rounded-full bg-card px-1.5 py-1 text-muted-foreground ring-1 ring-foreground/10 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring'
         onPointerDown={(e) => onPress(e, 'move', node.current!, 0)}
         onTouchStart={(e) => e.stopPropagation()}
         onKeyDown={onNudge}

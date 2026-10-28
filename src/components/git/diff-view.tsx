@@ -14,7 +14,11 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { FileDiff } from '@/lib/git';
 
-import { CodeEditor, codeLooks } from '@/components/editor/code-editor';
+import {
+  codeAttributes,
+  CodeEditor,
+  codeLooks,
+} from '@/components/editor/code-editor';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 export type DiffLayout = 'unified' | 'split';
@@ -228,15 +232,21 @@ function SplitDiff({
       EditorView.editable.of(false),
     ];
     const view = new MergeView({
-      a: { doc: before, extensions: side },
-      b: { doc: after, extensions: side },
+      a: {
+        doc: before,
+        extensions: [...side, codeAttributes(`${label}, before`)],
+      },
+      b: {
+        doc: after,
+        extensions: [...side, codeAttributes(`${label}, after`)],
+      },
       parent,
       gutter: true,
       highlightChanges: true,
       collapseUnchanged: { margin: CONTEXT_LINES, minSize: MIN_FOLDED },
     });
     return () => view.destroy();
-  }, [before, after, path]);
+  }, [before, after, path, label]);
   return (
     <div
       ref={box}

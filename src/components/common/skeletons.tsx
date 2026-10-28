@@ -52,6 +52,7 @@ export function CodeSkeleton({
   return (
     <div
       aria-busy
+      role='status'
       aria-label='Loading'
       className={cn('flex h-full flex-col rounded-lg bg-muted p-3', className)}
     >
@@ -73,7 +74,7 @@ export function TreeSkeleton({
   indent?: React.CSSProperties;
 }) {
   return (
-    <div aria-busy aria-label='Loading' className='flex flex-col'>
+    <div aria-busy role='status' aria-label='Loading' className='flex flex-col'>
       {Array.from({ length: rows }, (_, i) => (
         <div
           key={i}

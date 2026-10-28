@@ -163,7 +163,12 @@ function CommitRowSkeleton() {
 
 function CommitsSkeleton() {
   return (
-    <div aria-busy aria-label='Loading' className='flex flex-col gap-1'>
+    <div
+      aria-busy
+      role='status'
+      aria-label='Loading'
+      className='flex flex-col gap-1'
+    >
       {Array.from({ length: LOADING_ROWS }, (_, i) => (
         <CommitRowSkeleton key={i} />
       ))}
