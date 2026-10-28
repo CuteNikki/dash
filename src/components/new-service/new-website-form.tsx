@@ -98,10 +98,7 @@ export function NewWebsiteForm({
           />
         </div>
         <div className='flex flex-col gap-2'>
-          <Label htmlFor='website-description'>
-            Description{' '}
-            <span className='text-muted-foreground'>(optional)</span>
-          </Label>
+          <Label htmlFor='website-description'>Description</Label>
           <Input
             id='website-description'
             value={description}
