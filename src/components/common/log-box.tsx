@@ -143,8 +143,13 @@ export function LogBox({
   // Where the pinned day reaches at the box's right: to the scrollbar, as
   // the top's fade does, so lines running long, unwrapped, under the scroll's
   // padding go under it too; and how far short of that its rule stops, to
-  // end where the divider's does
-  const [pinnedEdge, setPinnedEdge] = useState({ right: 0, ruleEnd: 0 });
+  // end where the divider's does; and the scrollbar's own room, which the
+  // copy button keeps clear of
+  const [pinnedEdge, setPinnedEdge] = useState({
+    right: 0,
+    ruleEnd: 0,
+    bar: 0,
+  });
 
   function pinDay() {
     const el = scroller.current;
@@ -162,9 +167,9 @@ export function LogBox({
       el.scrollWidth - el.clientWidth > 1 ? bar : Math.max(bar, OVERLAY_BAR_PX);
     const ruleEnd = bar + parseFloat(style.paddingRight) - right;
     setPinnedEdge((edge) =>
-      edge.right === right && edge.ruleEnd === ruleEnd
+      edge.right === right && edge.ruleEnd === ruleEnd && edge.bar === bar
         ? edge
-        : { right, ruleEnd }
+        : { right, ruleEnd, bar }
     );
     let day: string | undefined;
     for (const divider of inner.querySelectorAll<HTMLElement>('[data-day]')) {
@@ -237,14 +242,17 @@ export function LogBox({
           // leaves, as they're shown. Filled in the dark, where an outline
           // button's fill is faint, so the day's rule doesn't show through
           // Half a line down, so it's centred on the day's line, which starts
-          // a button's half-height, the scroll's padding, further down
+          // a button's half-height, the scroll's padding, further down; as far
+          // from the scrollbar, or the box's edge where the scrollbar takes no
+          // room of its own
           <Button
             type='button'
             variant='outline'
             size='icon-sm'
             aria-label={`Copy the ${label}`}
             title='Copy'
-            className='absolute top-[0.5lh] right-4 z-20 opacity-0 transition-opacity group-hover/log:opacity-100 focus-visible:opacity-100 dark:bg-muted'
+            style={{ right: `calc(0.5lh + ${pinnedEdge.bar}px)` }}
+            className='absolute top-[0.5lh] z-20 opacity-0 transition-opacity group-hover/log:opacity-100 focus-visible:opacity-100 dark:bg-muted'
             onClick={() =>
               void copyText(
                 shown.map((l) => l.text).join('\n'),
