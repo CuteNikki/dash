@@ -9,6 +9,10 @@ const MAX_TEXT = 500;
 const cut = (text?: string) =>
   text && text.length > MAX_TEXT ? `${text.slice(0, MAX_TEXT - 1)}…` : text;
 
+// An error's end, where the reason usually is, as a run's ends with it
+const cutStart = (text?: string) =>
+  text && text.length > MAX_TEXT ? `…${text.slice(-(MAX_TEXT - 1))}` : text;
+
 /**
  * Notes something done from the dashboard, by whoever did it. Never fails
  * what it notes: a log that couldn't be written is said in the server's log.
@@ -32,7 +36,7 @@ export async function record(
         target: cut(entry.target),
         detail: cut(entry.detail),
         ok: entry.ok ?? true,
-        error: cut(entry.ok === false ? entry.error : undefined),
+        error: cutStart(entry.ok === false ? entry.error : undefined),
       },
       select: { id: true },
     });

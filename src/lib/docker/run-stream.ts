@@ -2,6 +2,9 @@ import 'server-only';
 
 import type { RunLine } from '@/lib/docker/runner';
 
+/** How many of the last lines it printed to stderr a run's error keeps. */
+const ERROR_LINES = 5;
+
 /**
  * A run's output as a response: what it prints as one JSON object per line,
  * then { exitCode }. A run that throws ends with its error as a line and
@@ -9,7 +12,7 @@ import type { RunLine } from '@/lib/docker/runner';
  * if whoever asked goes away, as one stopped partway can leave a stack half
  * changed, with nothing put back; unless it's `watching`, only following
  * something that carries on without it, which stops once nobody is. Once
- * it's done, `done` is told how it exited and the last error it printed,
+ * it's done, `done` is told how it exited and the last lines of error it printed,
  * for the activity log.
  */
 export function streamRun(
@@ -38,7 +41,10 @@ export function streamRun(
         }
       };
       let exitCode = 1;
-      let lastError: string | undefined;
+      // The last lines it printed to stderr with anything in them: Compose
+      // prints all it does there, ending with a blank line, so the error is
+      // a few lines up, often after the step it came from
+      const errors: string[] = [];
       try {
         lines = run();
         for (;;) {
@@ -48,15 +54,20 @@ export function streamRun(
             send({ exitCode });
             break;
           }
-          if (next.value.stream === 'stderr') lastError = next.value.line;
+          const { stream, line } = next.value;
+          if (stream === 'stderr' && line.trim()) {
+            errors.push(line.trim());
+            if (errors.length > ERROR_LINES) errors.shift();
+          }
           send(next.value);
         }
       } catch (error) {
-        lastError = (error as Error).message;
-        send({ stream: 'stderr', line: lastError });
+        const message = (error as Error).message;
+        errors.push(message);
+        send({ stream: 'stderr', line: message });
         send({ exitCode: 1 });
       }
-      await done?.(exitCode, lastError);
+      await done?.(exitCode, errors.length ? errors.join('\n') : undefined);
       try {
         controller.close();
       } catch {

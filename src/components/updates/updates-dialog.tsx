@@ -95,7 +95,8 @@ const isDashRow = (r: Row) => r.service.stack?.project === DASH_PROJECT;
 /**
  * Every update waiting, each to run on its own or all together, one after
  * another, apart from new major versions, which are only run on their own.
- * What each prints shows below; the window stays open until they're done.
+ * What each prints shows below; the window stays open until they're done,
+ * and all together stop at one that fails until told to go on or not.
  */
 export function UpdatesDialog({
   open,
@@ -124,6 +125,11 @@ export function UpdatesDialog({
   const [outcomes, setOutcomes] = useState<Record<string, Outcome>>({});
   const [output, setOutput] = useState<string[]>();
   const [running, setRunning] = useState(false);
+  // Update all, stopped at one that failed until it's told to go on or not
+  const [failed, setFailed] = useState<{
+    name: string;
+    resolve: (goOn: boolean) => void;
+  }>();
   const [checkPending, startCheck] = useTransition();
 
   // Taken afresh each time it opens, and after Check now
@@ -143,7 +149,7 @@ export function UpdatesDialog({
     // What the rows before printed, kept as one's followed again from its start
     let before: string[] = [];
     try {
-      for (const row of list) {
+      for (const [i, row] of list.entries()) {
         setOutcomes((o) => ({ ...o, [row.key]: 'running' }));
         // A rebuild followed has its row, though it may no longer be waiting
         setRows((r) => (r.includes(row) ? r : [...r, row]));
@@ -166,6 +172,16 @@ export function UpdatesDialog({
         }));
         if (exitCode !== 0) toast.error(`Couldn't update ${row.name}`);
         onChangedAction();
+        // One that failed waits for whoever's watching before the rest run,
+        // so its output's read before the next one's follows it, or the
+        // dashboard's own rebuild restarts this page
+        if (exitCode !== 0 && i < list.length - 1) {
+          const goOn = await new Promise<boolean>((resolve) =>
+            setFailed({ name: row.name, resolve })
+          );
+          setFailed(undefined);
+          if (!goOn) break;
+        }
       }
     } finally {
       setRunning(false);
@@ -287,22 +303,46 @@ export function UpdatesDialog({
 
         {output && <RunOutput lines={output} />}
 
+        {failed && (
+          <p className='text-destructive'>
+            {failed.name} didn't update; its output is above. Go on with the
+            rest?
+          </p>
+        )}
+
         <DialogFooter>
-          <Button
-            variant='outline'
-            disabled={running || checking || checkPending}
-            onClick={checkNow}
-            className='sm:mr-auto'
-          >
-            <RefreshCwIcon className={checkPending ? 'animate-spin' : ''} />
-            Check now
-          </Button>
-          {all.length > 0 && (
-            <Button disabled={running} onClick={() => void update(all)}>
-              {running
-                ? 'Updating…'
-                : `Update all${all.length > 1 ? ` ${all.length}` : ''}`}
-            </Button>
+          {failed ? (
+            <>
+              <Button
+                variant='outline'
+                onClick={() => failed.resolve(false)}
+                className='sm:mr-auto'
+              >
+                Stop here
+              </Button>
+              <Button onClick={() => failed.resolve(true)}>
+                Go on with the rest
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant='outline'
+                disabled={running || checking || checkPending}
+                onClick={checkNow}
+                className='sm:mr-auto'
+              >
+                <RefreshCwIcon className={checkPending ? 'animate-spin' : ''} />
+                Check now
+              </Button>
+              {all.length > 0 && (
+                <Button disabled={running} onClick={() => void update(all)}>
+                  {running
+                    ? 'Updating…'
+                    : `Update all${all.length > 1 ? ` ${all.length}` : ''}`}
+                </Button>
+              )}
+            </>
           )}
         </DialogFooter>
       </DialogContent>
