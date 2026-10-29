@@ -145,6 +145,8 @@ export type Dashboard = {
     checking: boolean;
     /** Whether the dashboard's own rebuild is going on, to be followed */
     selfUpdating?: boolean;
+    /** How many updates Update all runs at once, as UPDATES_AT_ONCE says */
+    atOnce: number;
   };
   /** The server's own updates, Ubuntu's packages, once they've been looked at */
   system?: SystemUpdates;

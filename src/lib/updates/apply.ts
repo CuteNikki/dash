@@ -20,6 +20,16 @@ import {
   type SelfUpdateBy,
 } from '@/lib/updates/self-update';
 
+/**
+ * How many updates Update all runs at once: one unless UPDATES_AT_ONCE says
+ * more, as each rebuild can take all of a small server's memory, and pulls
+ * share its connection.
+ */
+export const UPDATES_AT_ONCE = Math.max(
+  1,
+  Math.floor(Number(process.env.UPDATES_AT_ONCE)) || 1
+);
+
 /** Each line of what something printed, as the run's own. */
 function* printed(output: string): Generator<RunLine> {
   for (const line of output.split('\n')) if (line.trim()) yield say(line);

@@ -22,6 +22,7 @@ import { isImageUrl } from '@/lib/icons/icon-sets';
 import { DASH_PROJECT } from '@/lib/site';
 import { removable } from '@/lib/stacks/service-stacks';
 import type { Dashboard, Service, SiteCheck } from '@/lib/types';
+import { UPDATES_AT_ONCE } from '@/lib/updates/apply';
 import { currentUpdates } from '@/lib/updates/check';
 import { selfUpdateRunning } from '@/lib/updates/self-update';
 
@@ -300,6 +301,7 @@ export async function getDashboard(who: {
       selfUpdating:
         seen.some((s) => s.stack?.project === DASH_PROJECT) &&
         (await selfUpdateRunning()),
+      atOnce: UPDATES_AT_ONCE,
     },
     system: server ? currentSystemUpdates() : undefined,
     alerts: server ? await openAlerts() : undefined,

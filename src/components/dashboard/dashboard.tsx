@@ -463,6 +463,7 @@ export function Dashboard({
           checkedAt={data.updates?.checkedAt}
           checking={data.updates?.checking ?? false}
           selfUpdating={data.updates?.selfUpdating ?? false}
+          atOnce={data.updates?.atOnce ?? 1}
           onCloseAction={() => setShowUpdates(false)}
           onChangedAction={() => void mutate()}
         />

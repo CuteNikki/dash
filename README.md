@@ -141,7 +141,10 @@ newer image, or a newer version than the one it's pinned to, and each stack
 built from a repository whether its branch has new commits. **Updates** in
 the header lists them; each is applied on its own or all at once, following
 what Docker and Compose print, and a new major version says so before it's
-pulled.
+pulled. All at once runs one after another, or a few side by side with
+`UPDATES_AT_ONCE`, each with its own output; one that fails stops the rest
+until you've looked, and one whose rebuild failed after pulling stays listed
+until a rebuild works.
 
 ![Updates: newer images and versions for several services, a major Postgres version marked, and new commits for a bot](docs/screenshots/updates.png)
 
@@ -291,6 +294,7 @@ A few settings in its `.env` turn on more, each explained in `.env.example`:
 | `SMTP_URL`, `EMAIL_FROM`  | Mail: invites, forgotten passwords, confirming an address, and alerts. The login and server as one address, `smtps://user%40example.com:…@mail…` |
 | `BACKUP_PASSWORD`         | Backups: restic's password, which nothing can be read back without; keep a copy off the server                                                   |
 | `MONITOR`                 | The record a minute behind History, uptime and alerts: on by itself where Dashboard runs in production, off in development unless `on`           |
+| `UPDATES_AT_ONCE`         | How many updates Update all runs at once; one unless set, as rebuilds take a lot of memory while they build                                      |
 | `SONARR_API_KEY` and more | The apps' live numbers on their tiles                                                                                                            |
 
 ## People and roles

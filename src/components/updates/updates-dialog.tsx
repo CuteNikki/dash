@@ -16,6 +16,7 @@ import { formatAgo } from '@/lib/format';
 import { DASH_PROJECT } from '@/lib/site';
 import type { Service } from '@/lib/types';
 import { updateLabel } from '@/lib/updates/describe';
+import { cn } from '@/lib/utils';
 
 import { useCan } from '@/components/common/role';
 import { RunOutput } from '@/components/common/run-output';
@@ -95,10 +96,12 @@ function rowsOf(services: Service[]): Row[] {
 const isDashRow = (r: Row) => r.service.stack?.project === DASH_PROJECT;
 
 /**
- * Every update waiting, each to run on its own or all together, one after
- * another, apart from new major versions, which are only run on their own.
- * What each prints shows below; the window stays open until they're done,
- * and all together stop at one that fails until told to go on or not.
+ * Every update waiting, each to run on its own or all together, `atOnce` at
+ * a time, apart from new major versions, which are only run on their own,
+ * and the dashboard's own, which runs last and alone, as it restarts this
+ * page. What each prints shows below, one's at a time, picked by its row;
+ * the window stays open until they're done. All together, one that fails
+ * stops any more starting until told to go on or not.
  */
 export function UpdatesDialog({
   open,
@@ -106,6 +109,7 @@ export function UpdatesDialog({
   checkedAt,
   checking,
   selfUpdating,
+  atOnce,
   onCloseAction,
   onChangedAction,
 }: {
@@ -114,6 +118,8 @@ export function UpdatesDialog({
   checkedAt?: number;
   checking: boolean;
   selfUpdating: boolean;
+  /** How many Update all runs at once */
+  atOnce: number;
   onCloseAction: () => void;
   onChangedAction: () => void;
 }) {
@@ -125,11 +131,15 @@ export function UpdatesDialog({
   const updatable = (list: Service[]) =>
     rowsOf(list).filter((r) => r.service.update?.kind !== 'commits' || manages);
   const [outcomes, setOutcomes] = useState<Record<string, Outcome>>({});
-  const [output, setOutput] = useState<string[]>();
+  // What each row's update printed, by its key, and whose is shown
+  const [outputs, setOutputs] = useState<Record<string, string[]>>({});
+  const [shown, setShown] = useState<string>();
+  // Once a row's been picked, its output stays shown as others start
+  const picked = useRef(false);
   const [running, setRunning] = useState(false);
-  // Update all, stopped at one that failed until it's told to go on or not
+  // Update all, stopped at those that failed until it's told to go on or not
   const [failed, setFailed] = useState<{
-    name: string;
+    names: string[];
     resolve: (goOn: boolean) => void;
   }>();
   const [checkPending, startCheck] = useTransition();
@@ -141,50 +151,79 @@ export function UpdatesDialog({
     if (open) {
       setRows(updatable(services));
       setOutcomes({});
-      setOutput(undefined);
+      setOutputs({});
+      setShown(undefined);
     }
   }
 
   async function update(list: Row[], first?: Response) {
     setRunning(true);
-    setOutput([]);
-    // What the rows before printed, kept as one's followed again from its start
-    let before: string[] = [];
-    try {
-      for (const [i, row] of list.entries()) {
-        setOutcomes((o) => ({ ...o, [row.key]: 'running' }));
-        // A rebuild followed has its row, though it may no longer be waiting
-        setRows((r) => (r.includes(row) ? r : [...r, row]));
-        const header = [...(before.length ? [''] : []), `— ${row.name}`];
-        let lines = [...before, ...header];
-        const show = (next: string[]) => {
-          lines = next;
-          setOutput(next);
-        };
-        show(lines);
-        const exitCode = await runUpdate(
-          row.service,
-          (line) => show([...lines, line]),
-          { first, onRestart: () => show([...before, ...header]) }
-        ).catch(() => 1);
-        before = lines;
-        setOutcomes((o) => ({
-          ...o,
-          [row.key]: exitCode === 0 ? 'done' : 'failed',
-        }));
-        if (exitCode !== 0) toast.error(`Couldn't update ${row.name}`);
-        onChangedAction();
-        // One that failed waits for whoever's watching before the rest run,
-        // so its output's read before the next one's follows it, or the
-        // dashboard's own rebuild restarts this page
-        if (exitCode !== 0 && i < list.length - 1) {
-          const goOn = await new Promise<boolean>((resolve) =>
-            setFailed({ name: row.name, resolve })
-          );
-          setFailed(undefined);
-          if (!goOn) break;
-        }
+    picked.current = false;
+    // Asked once a run fails, whatever else fails while it waits; until
+    // it's answered, nothing more starts
+    let asking: Promise<void> | undefined;
+    let stopped = false;
+    const goOn = async () => {
+      while (asking) await asking;
+      return !stopped;
+    };
+
+    // Whether it worked
+    async function run(row: Row, followed?: Response) {
+      setOutcomes((o) => ({ ...o, [row.key]: 'running' }));
+      // A rebuild followed has its row, though it may no longer be waiting
+      setRows((r) => (r.includes(row) ? r : [...r, row]));
+      if (!picked.current) setShown(row.key);
+      let lines: string[] = [];
+      const show = (next: string[]) => {
+        lines = next;
+        setOutputs((o) => ({ ...o, [row.key]: next }));
+      };
+      show([]);
+      const exitCode = await runUpdate(
+        row.service,
+        (line) => show([...lines, line]),
+        { first: followed, onRestart: () => show([]) }
+      ).catch(() => 1);
+      const ok = exitCode === 0;
+      setOutcomes((o) => ({ ...o, [row.key]: ok ? 'done' : 'failed' }));
+      onChangedAction();
+      if (!ok) {
+        toast.error(`Couldn't update ${row.name}`);
+        setShown(row.key);
       }
+      return ok;
+    }
+
+    // The dashboard's own last and alone, as its rebuild restarts this page
+    const queue = list.filter((r) => !isDashRow(r));
+    const dash = list.find(isDashRow);
+    const ask = (row: Row) => {
+      // Only while there's more to start, which waits for the answer
+      if (!queue.length && !dash) return;
+      if (asking) {
+        setFailed((f) => f && { ...f, names: [...f.names, row.name] });
+        return;
+      }
+      asking = new Promise<boolean>((resolve) =>
+        setFailed({ names: [row.name], resolve })
+      ).then((yes) => {
+        stopped = !yes;
+        asking = undefined;
+        setFailed(undefined);
+      });
+    };
+    try {
+      await Promise.all(
+        Array.from({ length: Math.min(atOnce, queue.length) }, async () => {
+          while (await goOn()) {
+            const row = queue.shift();
+            if (!row) return;
+            if (!(await run(row))) ask(row);
+          }
+        })
+      );
+      if (dash && (await goOn())) await run(dash, first);
     } finally {
       setRunning(false);
     }
@@ -261,7 +300,16 @@ export function UpdatesDialog({
         {rows.length ? (
           <ul className='flex flex-col divide-y rounded-lg border'>
             {rows.map((row) => (
-              <li key={row.key} className='flex items-center gap-3 px-3 py-2'>
+              <li
+                key={row.key}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2',
+                  // The one whose output shows, while there's more than one's
+                  row.key === shown &&
+                    Object.keys(outputs).length > 1 &&
+                    'bg-muted/50'
+                )}
+              >
                 <ServiceIcon
                   icon={row.service.icon}
                   variants={row.service.iconVariants}
@@ -269,17 +317,26 @@ export function UpdatesDialog({
                   name={row.name}
                   className='size-6'
                 />
-                <div className='min-w-0 flex-1'>
-                  <div className='truncate font-medium'>{row.name}</div>
-                  <div className='truncate font-mono text-muted-foreground'>
+                <button
+                  type='button'
+                  // Shows what its update printed, once it's printed anything
+                  disabled={!outputs[row.key]}
+                  onClick={() => {
+                    picked.current = true;
+                    setShown(row.key);
+                  }}
+                  className='min-w-0 flex-1 text-left disabled:cursor-default'
+                >
+                  <span className='block truncate font-medium'>{row.name}</span>
+                  <span className='block truncate font-mono text-muted-foreground'>
                     {row.what}
                     {row.major && (
                       <span className='ml-2 font-sans text-warning'>
                         major version
                       </span>
                     )}
-                  </div>
-                </div>
+                  </span>
+                </button>
                 <RowAction
                   outcome={outcomes[row.key]}
                   disabled={running}
@@ -303,12 +360,12 @@ export function UpdatesDialog({
           </div>
         )}
 
-        {output && <RunOutput lines={output} />}
+        {shown && outputs[shown] && <RunOutput lines={outputs[shown]} />}
 
         {failed && (
           <p className='text-destructive'>
-            {failed.name} didn't update; its output is above. Go on with the
-            rest?
+            {failed.names.join(', ')} didn't update; pick its row to see its
+            output. Go on with the rest?
           </p>
         )}
 
