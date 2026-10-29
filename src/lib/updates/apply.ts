@@ -7,7 +7,12 @@ import { gitPull, gitStatus } from '@/lib/git';
 import { readHostFile, writeHostFile } from '@/lib/host/host-files';
 import { DASH_PROJECT } from '@/lib/site';
 import { say, shown } from '@/lib/stacks/service-stacks';
-import { forgetUpdate, updateOf } from '@/lib/updates/check';
+import {
+  clearFailedBuild,
+  forgetUpdate,
+  noteFailedBuild,
+  updateOf,
+} from '@/lib/updates/check';
 import {
   followSelfUpdate,
   selfUpdateRunning,
@@ -148,8 +153,23 @@ export async function* updateService(
   if (!pull.ok) return 1;
   if (stack.project === DASH_PROJECT) return yield* restartDash(stack, by);
   yield say(`Rebuilding ${stack.project}…`);
-  const up = yield* runCompose(stack, ['up', '-d', '--build']);
-  if (up === 0) forgetUpdate(c);
+  let up: number;
+  try {
+    up = yield* runCompose(stack, ['up', '-d', '--build']);
+  } catch (error) {
+    // Compose that couldn't run at all, as while Docker restarts
+    await noteFailedBuild(c, repo.root);
+    throw error;
+  }
+  if (up === 0) {
+    await clearFailedBuild(repo.root);
+    forgetUpdate(c);
+  } else {
+    await noteFailedBuild(c, repo.root);
+    yield say(
+      `It's pulled but still runs what came before; Update rebuilds it again`
+    );
+  }
   return up;
 }
 

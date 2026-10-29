@@ -4,6 +4,11 @@ import { inBackground } from '@/lib/background';
 import { imageDetails, type Container } from '@/lib/docker/docker';
 import { imageName } from '@/lib/format';
 import { gitFetch, gitStatus } from '@/lib/git';
+import {
+  readHostFile,
+  removeHostFile,
+  writeHostFile,
+} from '@/lib/host/host-files';
 import type { ServiceUpdate } from '@/lib/types';
 import {
   listTags,
@@ -37,7 +42,13 @@ type Checker = {
   /** By stack folder: how far its repository is behind its branch on the remote */
   repos: Map<
     string,
-    Found<{ behind: number; branch: string; upstream: string }>
+    Found<{
+      behind: number;
+      branch: string;
+      upstream: string;
+      /** When a rebuild after pulling failed, in seconds since 1970, as Docker gives a container's start */
+      failedAt?: number;
+    }>
   >;
   checkedAt?: number;
   running?: Promise<void>;
@@ -144,6 +155,7 @@ async function refresh(
                   behind: now.behind,
                   branch: now.branch,
                   upstream: now.upstream,
+                  failedAt: await failedBuildOf(now.root),
                 }
               : undefined;
           })
@@ -252,8 +264,12 @@ export function updateOf(c: Container): {
   if (isBuilt(c)) {
     const repo = checker.repos.get(c.stack!.dir);
     if (repo?.error) return { error: repo.error };
-    return repo?.value?.behind
-      ? { update: { kind: 'commits', ...repo.value } }
+    if (!repo?.value) return {};
+    const { failedAt, ...commits } = repo.value;
+    // Made since, as by a rebuild by hand, it runs what was pulled
+    const unbuilt = !!failedAt && c.created < failedAt;
+    return commits.behind || unbuilt
+      ? { update: { kind: 'commits', ...commits, unbuilt } }
       : {};
   }
   const image = checker.images.get(c.imageId);
@@ -338,6 +354,36 @@ export async function checkUpdateNow(containers: Container[], c: Container) {
 }
 
 /** Forgets what was found for a container's image or repository, after updating it. */
+/**
+ * Where a repository notes that its stack's rebuild failed after it was
+ * pulled: in its .git folder, which git leaves alone, so it outlasts the
+ * dashboard restarting, and nothing shows in git status.
+ */
+const failedBuildFile = (root: string) => `${root}/.git/dash-unbuilt`;
+
+/** When a rebuild after pulling the repository failed, if one did since the last that worked. */
+async function failedBuildOf(root: string) {
+  const at = Number(await readHostFile(failedBuildFile(root)));
+  return at > 0 ? at : undefined;
+}
+
+/**
+ * Notes that the stack's rebuild failed after its repository was pulled, so
+ * its update stays offered, though there's nothing left to pull, until a
+ * rebuild works.
+ */
+export async function noteFailedBuild(c: Container, root: string) {
+  const at = Math.floor(Date.now() / 1000);
+  await writeHostFile(failedBuildFile(root), String(at));
+  const repo = c.stack && checker.repos.get(c.stack.dir)?.value;
+  if (repo) Object.assign(repo, { behind: 0, failedAt: at });
+}
+
+/** Forgets a failed rebuild once one has worked. */
+export async function clearFailedBuild(root: string) {
+  await removeHostFile(failedBuildFile(root));
+}
+
 export function forgetUpdate(c: Container) {
   checker.remote.delete(c.image);
   if (c.stack) checker.repos.delete(c.stack.dir);

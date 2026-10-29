@@ -11,6 +11,7 @@ export function updateLabel(update: ServiceUpdate) {
     if (update.rebuilt) return `${update.to} rebuilt`;
     return update.to ?? `New ${update.tag}`;
   }
+  if (!update.behind) return 'Not rebuilt';
   return `${update.behind} commit${update.behind === 1 ? '' : 's'}`;
 }
 
@@ -26,6 +27,9 @@ export function updateDescription(update: ServiceUpdate, name: string) {
         ? `${update.tag} is now ${update.to}`
         : `There's a newer image for ${update.tag}`;
     return `${what}. It's pulled, and ${name} is recreated with it, which restarts it.`;
+  }
+  if (!update.behind) {
+    return `${update.upstream} is pulled, but the rebuild after failed, so ${name} still runs what came before. The stack is rebuilt and restarted.`;
   }
   return `${updateLabel(update)} on ${update.upstream} not pulled yet. They're pulled, and the stack is rebuilt and restarted.`;
 }

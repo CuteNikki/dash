@@ -207,7 +207,8 @@ export type SystemUpdates = {
 /**
  * What updating a service would bring: a newer image under the tag it
  * follows, as "latest"; a newer version than the one it's fixed to; or, for
- * one built here from a repository, commits on its branch not yet pulled.
+ * one built here from a repository, commits on its branch not yet pulled,
+ * or pulled but not running yet, as the rebuild after failed.
  */
 export type ServiceUpdate =
   | {
@@ -227,7 +228,14 @@ export type ServiceUpdate =
       /** Where its source is, whose releases say what's changed */
       source?: string;
     }
-  | { kind: 'commits'; behind: number; branch: string; upstream: string };
+  | {
+      kind: 'commits';
+      behind: number;
+      branch: string;
+      upstream: string;
+      /** Pulled already, but the rebuild after failed, so it runs what came before */
+      unbuilt?: boolean;
+    };
 
 /** The server: CPU over all its cores, memory, its disk and its internet traffic. */
 export type HostStats = {

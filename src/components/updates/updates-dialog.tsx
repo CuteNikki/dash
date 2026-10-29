@@ -62,7 +62,9 @@ function rowsOf(services: Service[]): Row[] {
         key,
         service,
         name: service.name,
-        what: `${updateLabel(update)} on ${update.upstream}`,
+        what: update.behind
+          ? `${updateLabel(update)} on ${update.upstream}`
+          : `${update.upstream} pulled, rebuild failed`,
         major: false,
       });
       continue;
