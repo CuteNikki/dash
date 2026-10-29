@@ -60,8 +60,18 @@ async function find<T>(work: () => Promise<T | undefined>): Promise<Found<T>> {
   try {
     return { at: Date.now(), value: await work() };
   } catch (error) {
-    return { at: Date.now(), error: (error as Error).message };
+    return { at: Date.now(), error: reasonOf(error as Error) };
   }
+}
+
+/**
+ * Why it failed. A request that couldn't reach its host only says "fetch
+ * failed"; the network's own error is in its cause, as ETIMEDOUT or ENOTFOUND.
+ */
+function reasonOf(error: Error) {
+  const cause = error.cause as { code?: string; message?: string } | undefined;
+  const why = cause?.code ?? cause?.message;
+  return why ? `${error.message} (${why})` : error.message;
 }
 
 /**
