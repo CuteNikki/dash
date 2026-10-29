@@ -364,8 +364,11 @@ export function UpdatesDialog({
 
         {failed && (
           <p className='text-destructive'>
-            {failed.names.join(', ')} didn't update; pick its row to see its
-            output. Go on with the rest?
+            {failed.names.join(', ')} didn't update;{' '}
+            {failed.names.length > 1
+              ? "pick one's row to see its output"
+              : 'its output is above'}
+            . Go on with the rest?
           </p>
         )}
 
