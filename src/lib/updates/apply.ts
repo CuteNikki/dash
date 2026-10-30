@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { runCompose, type Stack } from '@/lib/docker/compose';
-import type { Container } from '@/lib/docker/docker';
+import { listContainers, type Container } from '@/lib/docker/docker';
 import type { RunLine } from '@/lib/docker/runner';
 import { gitPull, gitStatus } from '@/lib/git';
 import { readHostFile, writeHostFile } from '@/lib/host/host-files';
@@ -72,12 +72,54 @@ async function bumpImage(stack: Stack, from: string, to: string) {
 }
 
 /**
+ * Recreates the containers that use the network of one just recreated, as
+ * qBittorrent uses the VPN's: each stays joined to the container that was
+ * replaced, so it runs on but can't be reached, and nothing can reach out
+ * from it, until it's made again. Each in its own stack, which may not be
+ * the updated one's. Returns 0, or the code of the first that failed.
+ */
+async function* recreateSharers(
+  old: Container
+): AsyncGenerator<RunLine, number> {
+  // Docker names the container by its full id, or by a short one if it was
+  // given one by hand
+  const sharers = (await listContainers()).filter(
+    (s) =>
+      s.networkOf &&
+      s.state !== 'exited' &&
+      (old.id.startsWith(s.networkOf) || s.networkOf.startsWith(old.id))
+  );
+  let failed = 0;
+  for (const s of sharers) {
+    if (!s.stack) {
+      yield say(
+        `${s.name} uses ${old.name}'s network but isn't in a compose stack; recreate it by hand`
+      );
+      failed ||= 1;
+      continue;
+    }
+    yield say(`Recreating ${s.name}, which uses ${old.name}'s network…`);
+    // --no-deps, as what it depends on is the container just recreated
+    const up = yield* runCompose(s.stack, [
+      'up',
+      '-d',
+      '--force-recreate',
+      '--no-deps',
+      s.stack.service,
+    ]);
+    failed ||= up;
+  }
+  return failed;
+}
+
+/**
  * Updates a container to what was last found for it, saying what it does as
  * it goes: pulls a newer image under its tag and recreates it; or moves its
  * compose file to a newer version, putting the file back if that fails; or,
  * built here, pulls its repository and rebuilds its stack, as more than one
  * of its services can come from it. Nothing else in its stack restarts,
- * other than for a rebuild. The dashboard's own rebuild notes itself in the
+ * other than for a rebuild and containers that use its network (see
+ * recreateSharers). The dashboard's own rebuild notes itself in the
  * activity log, as by `by`, as the dashboard's gone before it ends.
  */
 export async function* updateService(
@@ -101,8 +143,9 @@ export async function* updateService(
     if (pulled !== 0) return pulled;
     yield say(`Recreating ${c.name}…`);
     const up = yield* runCompose(stack, ['up', '-d', service]);
-    if (up === 0) forgetUpdate(c);
-    return up;
+    if (up !== 0) return up;
+    forgetUpdate(c);
+    return yield* recreateSharers(c);
   }
 
   if (update.kind === 'version') {
@@ -147,7 +190,7 @@ export async function* updateService(
       throw error;
     }
     forgetUpdate(c);
-    return 0;
+    return yield* recreateSharers(c);
   }
 
   const repo = await gitStatus(stack.dir);
@@ -174,6 +217,7 @@ export async function* updateService(
   if (up === 0) {
     await clearFailedBuild(repo.root);
     forgetUpdate(c);
+    return yield* recreateSharers(c);
   } else {
     await noteFailedBuild(c, repo.root);
     yield say(

@@ -91,6 +91,8 @@ type RawContainer = {
     Type: string;
   }[];
   Mounts?: { Type: string; Source: string; Destination: string }[];
+  /** "container:<id>" for one that uses another's network */
+  HostConfig?: { NetworkMode?: string };
 };
 
 export type ContainerState =
@@ -117,6 +119,11 @@ export type Container = {
   ports: { ip?: string; private: number; public?: number; type: string }[];
   /** The server's folders it mounts, by where they are on the server */
   binds: string[];
+  /**
+   * The container whose network it uses, by id, as one behind a VPN uses the
+   * VPN's (network_mode: service:… or container:…)
+   */
+  networkOf?: string;
   /** The compose stack it belongs to, if any */
   stack?: { project: string; service: string; dir: string; files: string[] };
 };
@@ -150,6 +157,7 @@ function toContainer(raw: RawContainer): Container {
     binds: (raw.Mounts ?? [])
       .filter((m) => m.Type === 'bind')
       .map((m) => m.Source),
+    networkOf: raw.HostConfig?.NetworkMode?.match(/^container:(.+)$/)?.[1],
     stack: project
       ? {
           project,
