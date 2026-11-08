@@ -1,6 +1,12 @@
 import 'server-only';
 
-import { runContainer, runToEnd, type Run } from '@/lib/docker/runner';
+import { listContainers, removeContainer } from '@/lib/docker/docker';
+import {
+  runContainer,
+  runToEnd,
+  type Run,
+  type RunLine,
+} from '@/lib/docker/runner';
 
 /**
  * Docker Compose, run in a short-lived container of the official CLI image,
@@ -33,11 +39,40 @@ export function composeRun(stack: Stack, args: string[]): Run {
 }
 
 /**
- * Runs `docker compose <args>` for a stack, yielding what it prints line by
- * line, and returns how it exited.
+ * Compose recreates a container by creating the new one as
+ * "<old id's first 12>_<name>", then removing the old one and renaming the
+ * new. Cut off in between, it leaves that new one behind, never started,
+ * and every later recreate fails on its name being taken. These are the
+ * stack's such leftovers: ones of its own, under that name, not running.
  */
-export function runCompose(stack: Stack, args: string[]) {
-  return runContainer(composeRun(stack, args));
+async function leftovers(stack: Stack) {
+  return (await listContainers()).filter(
+    (c) =>
+      c.stack?.project === stack.project &&
+      /^[0-9a-f]{12}_/.test(c.name) &&
+      (c.state === 'created' || c.state === 'exited' || c.state === 'dead')
+  );
+}
+
+/**
+ * Runs `docker compose <args>` for a stack, yielding what it prints line by
+ * line, and returns how it exited. Before an `up`, it clears away what an
+ * earlier recreate cut off left behind, which would stop it.
+ */
+export async function* runCompose(
+  stack: Stack,
+  args: string[]
+): AsyncGenerator<RunLine, number> {
+  if (args[0] === 'up') {
+    for (const c of await leftovers(stack)) {
+      await removeContainer(c.id);
+      yield {
+        stream: 'stdout',
+        line: `Removed ${c.name}, left behind by an earlier recreate that didn't finish`,
+      };
+    }
+  }
+  return yield* runContainer(composeRun(stack, args));
 }
 
 /** Runs Compose to the end: its whole output, and whether it succeeded. */

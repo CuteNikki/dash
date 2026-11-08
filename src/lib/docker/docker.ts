@@ -214,6 +214,11 @@ export async function containerAction(id: string, action: ContainerAction) {
   await dockerJson('POST', `/containers/${encodeURIComponent(id)}/${action}`);
 }
 
+/** Removes a container that isn't running. */
+export async function removeContainer(id: string) {
+  await dockerJson('DELETE', `/containers/${encodeURIComponent(id)}`);
+}
+
 type RawStats = {
   cpu_stats: {
     cpu_usage: { total_usage: number };
