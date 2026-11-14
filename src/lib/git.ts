@@ -32,6 +32,22 @@ import { SERVICES_DIR } from '@/lib/stacks/service-stacks';
  */
 const GIT_IMAGE = 'alpine/git:v2.49.1';
 
+/**
+ * How long a remote may go without answering before git gives up on it, in
+ * seconds, rather than hanging on a connection the network dropped. Only
+ * silence counts: a large fetch still moving along takes as long as it takes.
+ */
+const SILENT_FOR = 30;
+
+/** Below this many bytes a second, for SILENT_FOR, a transfer counts as stalled. */
+const STALLED_BELOW = 1000;
+
+/**
+ * SSH that never waits for a password or a host key prompt nobody will
+ * answer, nor for a remote that stopped answering.
+ */
+const SSH = `ssh -o BatchMode=yes -o ConnectTimeout=${SILENT_FOR} -o ServerAliveInterval=${SILENT_FOR / 2} -o ServerAliveCountMax=2`;
+
 /** A shell script run in the git image, with its arguments as $1, $2, … */
 async function gitRun(
   dir: string,
@@ -50,7 +66,10 @@ async function gitRun(
       HOME: STACKS_ROOT,
       // Never wait for a password or a host key prompt nobody will answer
       GIT_TERMINAL_PROMPT: '0',
-      GIT_SSH_COMMAND: 'ssh -o BatchMode=yes',
+      GIT_SSH_COMMAND: SSH,
+      // Nor on HTTPS that stalled
+      GIT_HTTP_LOW_SPEED_LIMIT: String(STALLED_BELOW),
+      GIT_HTTP_LOW_SPEED_TIME: String(SILENT_FOR),
     },
     // The server's users, as SSH won't run as one it can't look up, and the
     // image doesn't know the folder's owner
@@ -68,7 +87,7 @@ async function cloneRun(dir: string, script: string, args: string[]) {
   run.env = {
     ...run.env,
     GIT_ALLOW_PROTOCOL: GIT_PROTOCOLS,
-    GIT_SSH_COMMAND: 'ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new',
+    GIT_SSH_COMMAND: `${SSH} -o StrictHostKeyChecking=accept-new`,
   };
   return run;
 }
