@@ -5,6 +5,7 @@ import tls from 'node:tls';
 import { reconcile, type Finding } from '@/lib/alerts/alerts';
 import { serviceKey, siteUrl } from '@/lib/dashboard/services';
 import { db } from '@/lib/db';
+import { isRecreateCopy } from '@/lib/docker/compose';
 import type { Container } from '@/lib/docker/docker';
 import { RUN_LABEL } from '@/lib/docker/runner';
 import { isLink } from '@/lib/format';
@@ -59,7 +60,9 @@ export async function checkServices(containers: Container[]) {
   const findings: Finding[] = [];
   const seen = new Set<string>();
   for (const c of containers) {
-    if (c.labels[RUN_LABEL]) continue;
+    // A recreate's new container, not yet started, is the same service as
+    // the one it replaces, which says how that service is
+    if (c.labels[RUN_LABEL] || isRecreateCopy(c)) continue;
     const key = `service:${serviceKey(c)}`;
     seen.add(key);
     const before = memory.services.get(key);

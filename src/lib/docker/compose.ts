@@ -1,6 +1,10 @@
 import 'server-only';
 
-import { listContainers, removeContainer } from '@/lib/docker/docker';
+import {
+  listContainers,
+  removeContainer,
+  type Container,
+} from '@/lib/docker/docker';
 import {
   runContainer,
   runToEnd,
@@ -41,15 +45,23 @@ export function composeRun(stack: Stack, args: string[]): Run {
 /**
  * Compose recreates a container by creating the new one as
  * "<old id's first 12>_<name>", then removing the old one and renaming the
- * new. Cut off in between, it leaves that new one behind, never started,
- * and every later recreate fails on its name being taken. These are the
- * stack's such leftovers: ones of its own, under that name, not running.
+ * new. This is that new one, under that name: for a moment while a recreate
+ * is under way, not yet started, or for good if it was cut off.
+ */
+export function isRecreateCopy(c: Container) {
+  return !!c.stack && /^[0-9a-f]{12}_/.test(c.name);
+}
+
+/**
+ * A recreate cut off between making its new container and renaming it
+ * leaves that one behind, never started, and every later recreate fails on
+ * its name being taken. These are the stack's such leftovers.
  */
 async function leftovers(stack: Stack) {
   return (await listContainers()).filter(
     (c) =>
       c.stack?.project === stack.project &&
-      /^[0-9a-f]{12}_/.test(c.name) &&
+      isRecreateCopy(c) &&
       (c.state === 'created' || c.state === 'exited' || c.state === 'dead')
   );
 }
