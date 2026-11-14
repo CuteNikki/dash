@@ -55,15 +55,39 @@ async function leftovers(stack: Stack) {
 }
 
 /**
+ * The `up` each stack has running or waiting last, by project, for the next
+ * to wait for. A recreate's new container looks just like a leftover until
+ * it's renamed, so clearing leftovers while another `up` in the stack is
+ * partway through would remove the container it's about to start, and the
+ * service would be left with none at all.
+ */
+const ups = new Map<string, Promise<void>>();
+
+/**
  * Runs `docker compose <args>` for a stack, yielding what it prints line by
  * line, and returns how it exited. Before an `up`, it clears away what an
- * earlier recreate cut off left behind, which would stop it.
+ * earlier recreate cut off left behind, which would stop it; one `up` at a
+ * time in each stack, so that's never one still under way.
  */
 export async function* runCompose(
   stack: Stack,
   args: string[]
 ): AsyncGenerator<RunLine, number> {
-  if (args[0] === 'up') {
+  if (args[0] !== 'up') return yield* runContainer(composeRun(stack, args));
+
+  const before = ups.get(stack.project);
+  let release = () => {};
+  const done = new Promise<void>((resolve) => (release = resolve));
+  const mine = (before ?? Promise.resolve()).then(() => done);
+  ups.set(stack.project, mine);
+  try {
+    if (before) {
+      yield {
+        stream: 'stdout',
+        line: 'Waiting for another recreate in this stack to finish…',
+      };
+      await before;
+    }
     for (const c of await leftovers(stack)) {
       await removeContainer(c.id);
       yield {
@@ -71,8 +95,11 @@ export async function* runCompose(
         line: `Removed ${c.name}, left behind by an earlier recreate that didn't finish`,
       };
     }
+    return yield* runContainer(composeRun(stack, args));
+  } finally {
+    release();
+    if (ups.get(stack.project) === mine) ups.delete(stack.project);
   }
-  return yield* runContainer(composeRun(stack, args));
 }
 
 /** Runs Compose to the end: its whole output, and whether it succeeded. */
