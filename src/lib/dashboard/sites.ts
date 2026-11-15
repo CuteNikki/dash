@@ -127,9 +127,26 @@ export type SiteProbe = Pick<
   'ok' | 'status' | 'error' | 'icon' | 'ms'
 >;
 
+/** Statuses a server answers a HEAD with when it only takes GET. */
+const HEAD_REFUSED = new Set([405, 501]);
+
+/** Asks a site for its page, or only its headers with HEAD. */
+function request(url: string, method: 'GET' | 'HEAD') {
+  return fetch(url, {
+    method,
+    redirect: 'follow',
+    cache: 'no-store',
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+    headers: { 'user-agent': 'Dashboard (status check)' },
+  });
+}
+
 /**
- * Asks a site for its page, following redirects, and says how it went, and
- * when asked to, the icon its page names, if it answers with one.
+ * Asks a site how it is, following redirects, and says how it went, and
+ * when asked to, the icon its page names, if it answers with one. A plain
+ * check is a HEAD, so a site hosted elsewhere doesn't render and send its
+ * whole page every minute (on Vercel each one is billed as origin transfer);
+ * a server that refuses HEAD is asked with GET instead.
  */
 export async function probeSite(
   url: string,
@@ -137,12 +154,11 @@ export async function probeSite(
 ): Promise<SiteProbe> {
   const start = performance.now();
   try {
-    const res = await fetch(url, {
-      redirect: 'follow',
-      cache: 'no-store',
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-      headers: { 'user-agent': 'Dashboard (status check)' },
-    });
+    let res = await request(url, findIcon ? 'GET' : 'HEAD');
+    if (HEAD_REFUSED.has(res.status) && !findIcon) {
+      await res.body?.cancel();
+      res = await request(url, 'GET');
+    }
     // How fast it answers, not how long its page takes to arrive
     const ms = performance.now() - start;
     const ok = res.status < 400;
