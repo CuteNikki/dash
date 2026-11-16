@@ -171,12 +171,55 @@ function toContainer(raw: RawContainer): Container {
   };
 }
 
+/**
+ * Whether Docker lists a container's image by its id rather than its name,
+ * as it does once the tag it was made from points at another image: as a
+ * pull of a tag whose index changed, though not the image for this machine,
+ * which leaves the container as it is.
+ */
+export function listedById(image: string, imageId: string) {
+  const hex = image.replace(/^sha256:/, '');
+  return /^[0-9a-f]{12,64}$/.test(hex) && imageId.startsWith(`sha256:${hex}`);
+}
+
+/**
+ * The names containers were made with, by id, for those Docker lists by
+ * their image's id. A container's never changes, so each is asked once.
+ */
+const madeWith = new Map<string, string>();
+
+/** The image name a container was made with, as it names it in its own config. */
+async function imageMadeWith(raw: RawContainer) {
+  const known = madeWith.get(raw.Id);
+  if (known) return known;
+  const { Config } = await dockerJson<{ Config: { Image: string } }>(
+    'GET',
+    `/containers/${encodeURIComponent(raw.Id)}/json`
+  );
+  madeWith.set(raw.Id, Config.Image);
+  return Config.Image;
+}
+
 export async function listContainers() {
   const raw = await dockerJson<RawContainer[]>(
     'GET',
     '/containers/json?all=true'
   );
-  return raw.map(toContainer).sort((a, b) => a.name.localeCompare(b.name));
+  // Those gone are forgotten, so the names kept are only those still asked for
+  const ids = new Set(raw.map((r) => r.Id));
+  for (const id of madeWith.keys()) if (!ids.has(id)) madeWith.delete(id);
+  const named = await Promise.all(
+    raw.map(async (r) =>
+      listedById(r.Image, r.ImageID)
+        ? {
+            ...r,
+            // One gone between the list and the ask keeps the id it was listed by
+            Image: await imageMadeWith(r).catch(() => r.Image),
+          }
+        : r
+    )
+  );
+  return named.map(toContainer).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /**
