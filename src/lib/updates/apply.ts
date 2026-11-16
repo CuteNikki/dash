@@ -142,7 +142,15 @@ export async function* updateService(
     const pulled = yield* runCompose(stack, ['pull', service]);
     if (pulled !== 0) return pulled;
     yield say(`Recreating ${c.name}…`);
-    const up = yield* runCompose(stack, ['up', '-d', service]);
+    // With force, as a tag whose index changed but not its image for this
+    // machine is one compose sees nothing new in, which would leave the
+    // container on the old index, untagged, and offering this update again
+    const up = yield* runCompose(stack, [
+      'up',
+      '-d',
+      '--force-recreate',
+      service,
+    ]);
     if (up !== 0) return up;
     forgetUpdate(c);
     return yield* recreateSharers(c);
