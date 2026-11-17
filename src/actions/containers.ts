@@ -7,6 +7,7 @@ import {
   containerAction,
   execRun,
   listContainers,
+  removeContainer,
   sendInput,
   takesInput,
   type ContainerAction,
@@ -34,6 +35,30 @@ export async function runContainerAction(
   await record(found.access, {
     action,
     target: found.container.name,
+    ...outcome(result),
+  });
+  return result;
+}
+
+/**
+ * Removes one stopped container of a stack and nothing else: not the rest of
+ * its stack, its site or its folder. Compose makes it again on the stack's
+ * next up, as it does a one-off that ran before the rest, like migrations.
+ */
+export async function removeOneContainer(id: string): Promise<ActionResult> {
+  const found = await serviceForAction(id, 'manage');
+  if ('refused' in found) return { ok: false, error: found.refused };
+  const { container } = found;
+  if (!container.stack) {
+    return { ok: false, error: "It isn't part of a compose stack" };
+  }
+  if (isRunning(container.state)) {
+    return { ok: false, error: 'Stop it first' };
+  }
+  const result = await tried(() => removeContainer(id));
+  await record(found.access, {
+    action: 'container.remove',
+    target: container.name,
     ...outcome(result),
   });
   return result;

@@ -37,6 +37,8 @@ export type Service = {
   stack?: { project: string; service: string; dir: string; files: string[] };
   /** Its stack can be removed from here: one of ~/services' own, not the dashboard's or Caddy's */
   removable: boolean;
+  /** The containers in its stack, it among them, by name: what removing the stack takes down */
+  stackContainers?: string[];
   /** A newer image or version, or commits to build, once checked */
   update?: ServiceUpdate;
   /** Why it couldn't be checked for one */

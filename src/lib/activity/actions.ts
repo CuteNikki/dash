@@ -12,6 +12,7 @@ export const ACTIVITY_ACTIONS = {
   deploy: 'redeployed',
   'service.create': 'added the service',
   'service.remove': 'removed the service',
+  'container.remove': 'removed the container',
   'file.save': 'saved',
   'file.create': 'made',
   'file.rename': 'renamed',

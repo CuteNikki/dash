@@ -247,6 +247,11 @@ export async function getDashboard(who: {
       status: c.status,
       stack: c.stack,
       removable: !!c.stack && removable(c.stack, containers),
+      stackContainers: c.stack
+        ? containers
+            .filter((o) => o.stack?.project === c.stack!.project)
+            .map((o) => o.name)
+        : undefined,
       update: updates.byContainer.get(c.id)?.update,
       updateError: updates.byContainer.get(c.id)?.error,
       version: updates.byContainer.get(c.id)?.version,
