@@ -11,10 +11,10 @@ import {
 } from '@/lib/alerts/checks';
 import { inBackground } from '@/lib/background';
 import { maybeRunNightly } from '@/lib/backups/backups';
-import { serviceKey, siteUrl } from '@/lib/dashboard/services';
+import { siteUrl } from '@/lib/dashboard/services';
 import { probeSite } from '@/lib/dashboard/sites';
 import { isRunning } from '@/lib/dashboard/status';
-import { SITE_PREFIX } from '@/lib/dashboard/tiles';
+import { serviceKey, SITE_PREFIX } from '@/lib/dashboard/tiles';
 import { db } from '@/lib/db';
 import {
   containerCounters,

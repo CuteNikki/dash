@@ -5,7 +5,7 @@ import { can, seesGroup, type Role } from '@/lib/auth/roles';
 import { BUILD_ID } from '@/lib/build';
 import { DEFAULT_GROUP } from '@/lib/dashboard/groups';
 import { currentSites } from '@/lib/dashboard/sites';
-import { isSiteKey } from '@/lib/dashboard/tiles';
+import { isSiteKey, serviceKey } from '@/lib/dashboard/tiles';
 import { canBrowse, hasDetails, readWidgets } from '@/lib/dashboard/widgets';
 import { db } from '@/lib/db';
 import {
@@ -26,14 +26,6 @@ import type { Dashboard, Service, SiteCheck } from '@/lib/types';
 import { UPDATES_AT_ONCE } from '@/lib/updates/apply';
 import { currentUpdates } from '@/lib/updates/check';
 import { selfUpdateRunning } from '@/lib/updates/self-update';
-
-/**
- * A container's tile key: its compose project and service, which survive the
- * container being recreated, or its name for one started on its own.
- */
-export function serviceKey(c: Container) {
-  return c.stack ? `${c.stack.project}/${c.stack.service}` : c.name;
-}
 
 /**
  * The group a container's tile is in: the one it's been given here, else its
@@ -269,7 +261,10 @@ export async function getDashboard(who: {
   // Websites elsewhere, each a tile added here, with how it last answered
   const siteTiles = tiles.filter((t) => isSiteKey(t.key));
   const checks = await currentSites(
-    siteTiles.flatMap((t) => siteUrl(t.addresses)?.href ?? [])
+    siteTiles.flatMap((t) => {
+      const url = siteUrl(t.addresses)?.href;
+      return url ? [{ url, key: t.key }] : [];
+    })
   );
   services.push(
     ...siteTiles.map((t) =>

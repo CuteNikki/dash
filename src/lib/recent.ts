@@ -1,6 +1,19 @@
 /** How far back the live graphs go, while someone's watching. */
 export const LIVE_WINDOW_MS = 10 * 60_000;
 
+/** Live readings stopped for longer than this left a gap the monitor's minutes fill. */
+const STALE_MS = 60_000;
+
+/**
+ * Whether a live history has nothing for the last minute: none at all, as
+ * after a restart, or readings that stopped, as while nobody watched. The
+ * monitor's minutes stand in for it then, as they're kept regardless.
+ */
+export const isStale = (
+  history: { at: number[] } | undefined,
+  now = Date.now()
+) => !history?.at.length || now - history.at[history.at.length - 1] > STALE_MS;
+
 /**
  * Readings as they're kept for a live graph: only those of the last ten
  * minutes, by when each was taken, as `at` says. Measuring pauses while

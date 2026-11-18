@@ -3,7 +3,8 @@ import 'server-only';
 import tls from 'node:tls';
 
 import { reconcile, type Finding } from '@/lib/alerts/alerts';
-import { serviceKey, siteUrl } from '@/lib/dashboard/services';
+import { siteUrl } from '@/lib/dashboard/services';
+import { serviceKey } from '@/lib/dashboard/tiles';
 import { db } from '@/lib/db';
 import { isRecreateCopy } from '@/lib/docker/compose';
 import type { Container } from '@/lib/docker/docker';

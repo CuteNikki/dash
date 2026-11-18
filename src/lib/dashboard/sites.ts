@@ -1,7 +1,8 @@
 import 'server-only';
 
 import { inBackground } from '@/lib/background';
-import { lastMinutes } from '@/lib/recent';
+import { recordedSite } from '@/lib/monitor/recorded';
+import { isStale, lastMinutes } from '@/lib/recent';
 import type { SiteCheck } from '@/lib/types';
 
 /** How often each site is asked for its page while someone is watching. */
@@ -13,10 +14,13 @@ const TIMEOUT_MS = 10_000;
 /** The longest a page load waits for a site's first check. */
 const FIRST_WAIT_MS = 3_000;
 
+/** A website tile's address, and its key, which the monitor records its checks by. */
+type Site = { url: string; key: string };
+
 type Checker = {
   checks: Map<string, SiteCheck>;
-  /** The addresses last asked about, which each round checks */
-  urls: string[];
+  /** The sites last asked about, which each round checks */
+  sites: Site[];
   timer?: NodeJS.Timeout;
   /** The copy of this module whose timer runs, as in usage.ts */
   owner?: symbol;
@@ -28,7 +32,7 @@ type Checker = {
 const MODULE = Symbol('sites');
 const checker: Checker = ((
   globalThis as typeof globalThis & { siteChecker?: Checker }
-).siteChecker ??= { checks: new Map(), urls: [], lastAsked: 0 });
+).siteChecker ??= { checks: new Map(), sites: [], lastAsked: 0 });
 if (checker.owner !== MODULE) {
   clearInterval(checker.timer);
   checker.timer = undefined;
@@ -174,12 +178,17 @@ export async function probeSite(
   }
 }
 
-/** Checks a site and notes how it went, its icon kept from the first time it had one. */
-async function check(url: string) {
+/**
+ * Checks a site and notes how it went, its icon kept from the first time it
+ * had one. Nothing checked for the last while starts from what was recorded.
+ */
+async function check({ url, key }: Site) {
   const before = checker.checks.get(url);
   const result = await probeSite(url, !before?.icon);
   const at = Date.now();
-  const last = before?.history;
+  const last = isStale(before?.history)
+    ? await recordedSite(key).catch(() => undefined)
+    : before?.history;
   checker.checks.set(url, {
     ...result,
     icon: result.icon ?? before?.icon,
@@ -197,18 +206,19 @@ async function round() {
     checker.timer = undefined;
     return;
   }
-  await Promise.all(checker.urls.map(check));
+  await Promise.all(checker.sites.map(check));
 }
 
 /**
  * How each site was last found, starting the checks if needed. One not
  * checked yet is waited for a moment, so a first page load usually has it.
  */
-export async function currentSites(urls: string[]) {
+export async function currentSites(sites: Site[]) {
   checker.lastAsked = Date.now();
-  checker.urls = urls;
+  checker.sites = sites;
+  const urls = new Set(sites.map((s) => s.url));
   for (const url of checker.checks.keys()) {
-    if (!urls.includes(url)) checker.checks.delete(url);
+    if (!urls.has(url)) checker.checks.delete(url);
   }
   // Apart from the page that asked, which may be a prerender over before the
   // checks are: its fetch() would reject every one after, and each site be down
@@ -217,7 +227,7 @@ export async function currentSites(urls: string[]) {
       setInterval(() => void round().catch(console.error), INTERVAL_MS)
     );
   }
-  const unchecked = urls.filter((url) => !checker.checks.has(url));
+  const unchecked = sites.filter((s) => !checker.checks.has(s.url));
   if (unchecked.length) {
     await Promise.race([
       inBackground(() => Promise.all(unchecked.map(check))),

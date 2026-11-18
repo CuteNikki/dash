@@ -108,6 +108,7 @@ export function ServiceTile({
           <div className='relative min-h-8 flex-1 group-data-[dimmed=true]/card:opacity-60'>
             <Sparkline
               values={readings.values}
+              times={readings.times}
               measure={readings.measure}
               className='absolute inset-0 size-full'
             />
@@ -122,6 +123,7 @@ export function ServiceTile({
               {!graph && (
                 <Sparkline
                   values={readings.values}
+                  times={readings.times}
                   measure={readings.measure}
                   // A wider tile draws it wider
                   className={cn(
@@ -147,7 +149,9 @@ export function ServiceTile({
  */
 function readingsOf(
   service: Service
-): { numbers: string[]; values: number[]; measure: Measure } | undefined {
+):
+  | { numbers: string[]; values: number[]; times: number[]; measure: Measure }
+  | undefined {
   const check = service.site?.check;
   if (check) {
     return {
@@ -156,6 +160,7 @@ function readingsOf(
         check.status ? `${check.status}` : 'no answer',
       ],
       values: check.history.ms,
+      times: check.history.at,
       measure: MEASURES.response,
     };
   }
@@ -164,6 +169,7 @@ function readingsOf(
   return {
     numbers: [formatCpu(usage.cpu), formatBytes(usage.memory)],
     values: usage.history.cpu,
+    times: usage.history.at,
     measure: MEASURES.cpu,
   };
 }

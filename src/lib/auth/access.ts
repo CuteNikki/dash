@@ -13,7 +13,8 @@ import {
   type Ability,
   type Role,
 } from '@/lib/auth/roles';
-import { groupOf, serviceKey } from '@/lib/dashboard/services';
+import { groupOf } from '@/lib/dashboard/services';
+import { serviceKey } from '@/lib/dashboard/tiles';
 import { db } from '@/lib/db';
 import { listContainers, type Container } from '@/lib/docker/docker';
 

@@ -17,31 +17,39 @@ const HEADROOM = 1.25;
 /** Readings over longer than this say which day they're from, not just the time. */
 const DAYS_MS = 20 * 60 * 60_000;
 
-/** Readings further apart than this many of their usual steps have a gap between. */
+/** Readings further apart than this many of the steps before have a gap between. */
 const GAP_STEPS = 3;
 
-/** The usual time between readings: the middle of the steps between them. */
-function usualStep(times: number[]) {
-  const steps = times
-    .slice(1)
-    .map((t, i) => t - times[i])
-    .sort((a, b) => a - b);
-  return steps[Math.floor(steps.length / 2)] ?? 0;
+/**
+ * Where readings stopped for a while, as while nobody was watching: a step
+ * longer than a few of the ones before it, as they're taken at different
+ * paces, a live graph's minutes from the record before its seconds. The
+ * first steps go by the shorter of the first two, so a pause right after the
+ * first reading shows too.
+ */
+export function pauses(times: number[]) {
+  const steps = times.slice(1).map((t, i) => t - times[i]);
+  const found = new Set<number>();
+  let pace = Math.min(steps[0] ?? 0, steps[1] ?? Infinity);
+  steps.forEach((step, i) => {
+    if (step > pace * GAP_STEPS) found.add(i + 1);
+    else pace = step;
+  });
+  return found;
 }
 
 /**
  * A line's runs of readings, each drawn on its own, so a gap shows as one:
- * where there's no reading, or where readings stopped for a while, as
- * while nobody was watching.
+ * where there's no reading, or where readings stopped for a while.
  */
 function runs(values: (number | null)[], times: number[]) {
-  const gap = usualStep(times) * GAP_STEPS;
+  const paused = pauses(times);
   const found: { start: number; values: number[] }[] = [];
   values.forEach((v, i) => {
     if (v === null) return;
     const last = found.at(-1);
     const next = last && last.start + last.values.length === i;
-    if (next && times[i] - times[i - 1] <= gap) last.values.push(v);
+    if (next && !paused.has(i)) last.values.push(v);
     else found.push({ start: i, values: [v] });
   });
   return found;

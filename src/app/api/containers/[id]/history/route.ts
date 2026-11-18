@@ -1,5 +1,5 @@
 import { serviceForRoute } from '@/lib/auth/access';
-import { serviceKey } from '@/lib/dashboard/services';
+import { serviceKey } from '@/lib/dashboard/tiles';
 import { serviceHistory } from '@/lib/monitor/history';
 import { isHistoryRange } from '@/lib/monitor/ranges';
 

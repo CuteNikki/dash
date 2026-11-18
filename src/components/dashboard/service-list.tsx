@@ -829,6 +829,7 @@ function Row({
             </span>
             <Sparkline
               values={check.history.ms}
+              times={check.history.at}
               measure={MEASURES.response}
               className='hidden min-w-0 flex-1 lg:block'
             />
@@ -840,6 +841,7 @@ function Row({
             </span>
             <Sparkline
               values={usage.history.cpu}
+              times={usage.history.at}
               measure={MEASURES.cpu}
               className='hidden min-w-0 flex-1 lg:block'
             />

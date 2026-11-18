@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { serviceKey } from '@/lib/dashboard/tiles';
 import {
   containerUsage,
   dockerInfo,
@@ -7,7 +8,8 @@ import {
   type Usage,
 } from '@/lib/docker/docker';
 import { readHost, type CpuTime, type HostReading } from '@/lib/host/host';
-import { lastMinutes } from '@/lib/recent';
+import { recordedHost, recordedServices } from '@/lib/monitor/recorded';
+import { isStale, lastMinutes } from '@/lib/recent';
 import type { HostProcess, HostStats, UsageHistory } from '@/lib/types';
 
 /** How often the server and its containers are measured while someone is watching. */
@@ -59,11 +61,20 @@ async function sampleContainers() {
   for (const id of sampler.usage.keys()) {
     if (!ids.has(id)) sampler.usage.delete(id);
   }
+  // Those with nothing live for the last while start from what was recorded
+  const stale = running.filter((c) =>
+    isStale(sampler.usage.get(c.id)?.history)
+  );
+  const recorded = await recordedServices(stale.map(serviceKey)).catch(
+    () => new Map<string, UsageHistory>()
+  );
   await Promise.all(
     running.map(async (c) => {
       try {
         const reading = await containerUsage(c.id);
-        const last = sampler.usage.get(c.id)?.history;
+        const last = stale.includes(c)
+          ? recorded.get(serviceKey(c))
+          : sampler.usage.get(c.id)?.history;
         sampler.usage.set(c.id, {
           ...reading,
           history: lastMinutes({
@@ -100,7 +111,10 @@ async function sampleHost() {
     read: rate(last.diskIo.read, now.diskIo.read),
     written: rate(last.diskIo.written, now.diskIo.written),
   };
-  const history = sampler.host?.history;
+  // Nothing live for the last while starts from what was recorded
+  const history = isStale(sampler.host?.history)
+    ? await recordedHost().catch(() => undefined)
+    : sampler.host?.history;
   sampler.host = {
     cores: now.cores,
     cpu,
