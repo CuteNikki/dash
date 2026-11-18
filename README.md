@@ -200,7 +200,8 @@ says, 90 days back.
 
 Every night [restic](https://restic.net) backs up each Postgres database, as
 a dump, and each folder in `~/services`, without what's rebuilt anyway
-(`node_modules`, `.next`) nor Postgres's and Garage's own files. Folders
+(`node_modules`, `.next`) nor Postgres's own files, which the dumps stand in
+for. Folders
 elsewhere, as apps' settings in `/docker/config`, are added in the Backups
 window, and any part can be switched off there. Minecraft's world is copied
 with saving held off, so it's whole. The last seven backups of each part are
@@ -214,7 +215,10 @@ restore can be undone. A part that fails to back up is an alert.
 
 They go to a bucket in the server's own Garage, which protects against
 mistakes, not against losing the server: for that, keep a copy elsewhere, as
-a host's own backups, or point `BACKUP_REPOSITORY` at storage off the server.
+a host's own backups, or point `BACKUP_REPOSITORY` at storage off the server,
+as a restic rest-server or S3. Kept off the server, Garage's own files are
+backed up too, its metadata snapshotted first, so the pictures in it are kept
+as well.
 
 ### Browsing Garage
 

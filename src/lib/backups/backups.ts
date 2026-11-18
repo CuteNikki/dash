@@ -128,7 +128,11 @@ export type Source =
 
 /** Postgres containers, which are backed up by their dumps rather than their files. */
 const isPostgres = (c: Container) => imageName(c.image) === 'postgres';
-/** Garage, whose own storage holds the backups, so it isn't backed up into itself. */
+/**
+ * Garage, whose own storage holds the backups when they're kept on this
+ * server, so it isn't backed up into itself then; kept elsewhere, its files
+ * are backed up too, as nothing else keeps the pictures in it.
+ */
 const isGarage = (c: Container) => imageName(c.image) === 'garage';
 
 /**
@@ -242,24 +246,31 @@ async function ensureBucket(config: Config, containers: Container[]) {
 }
 
 /** The folders inside `path` its backups leave out: Postgres's and Garage's own. */
-const skippedFolders = (path: string, containers: Container[]) =>
+const skippedFolders = (
+  path: string,
+  containers: Container[],
+  config: Config
+) =>
   skippedIn(
     path,
     containers
-      .filter((c) => isPostgres(c) || isGarage(c))
+      .filter((c) => isPostgres(c) || (config.local && isGarage(c)))
       .flatMap((c) => c.binds)
   );
 
 /**
  * What backing up a part runs: a database's dump into restic as it's made,
  * or a folder, without what's rebuilt anyway (node_modules, .next) nor what
- * Postgres and Garage keep, which a dump stands in for or which holds the
+ * Postgres keeps, which a dump stands in for, nor Garage's when it holds the
  * backups themselves. Minecraft's world is copied with saving held off, so
- * it's whole. Tagged with the part, and `extra` tags.
+ * it's whole, and Garage's metadata snapshotted first, so a whole copy of
+ * it is in the backup even if its database changes while it's read. Tagged
+ * with the part, and `extra` tags.
  */
 function backupCommand(
   s: Source,
   containers: Container[],
+  config: Config,
   extra: string[] = []
 ) {
   const tags = [`source=${s.id}`, ...extra]
@@ -268,12 +279,18 @@ function backupCommand(
   if (s.kind === 'postgres') {
     return `r backup ${tags} --stdin-filename ${quote(`postgres/${s.database}.dump`)} --stdin-from-command -- docker exec ${quote(s.container)} pg_dump -U postgres -Fc ${quote(s.database)}`;
   }
-  const backup = `r backup ${tags} ${backupExcludes(skippedFolders(s.path, containers))} ${quote(s.path)}`;
+  const inside = (c: Container) =>
+    c.state === 'running' &&
+    c.binds.some((b) => b === s.path || b.startsWith(`${s.path}/`));
+  let backup = `r backup ${tags} ${backupExcludes(skippedFolders(s.path, containers, config))} ${quote(s.path)}`;
+  const garage =
+    !config.local && containers.find((c) => isGarage(c) && inside(c));
+  if (garage) {
+    backup = `docker exec ${quote(garage.name)} /garage meta snapshot >/dev/null
+${backup}`;
+  }
   const minecraft = containers.find(
-    (c) =>
-      c.state === 'running' &&
-      imageName(c.image) === 'minecraft-server' &&
-      c.binds.some((b) => b === s.path || b.startsWith(`${s.path}/`))
+    (c) => imageName(c.image) === 'minecraft-server' && inside(c)
   );
   if (!minecraft) return backup;
   const mc = (command: string) =>
@@ -333,7 +350,9 @@ export async function* runBackups(
       yield { stream: 'stdout', line: `— ${source.label}` };
       const lines: string[] = [];
       const it = runContainer(
-        hostRun(config, backupCommand(source, containers), { create: true })
+        hostRun(config, backupCommand(source, containers, config), {
+          create: true,
+        })
       );
       let code: number;
       for (;;) {
@@ -558,7 +577,9 @@ export async function* restoreBackup(
   }
   state.running = 'restore';
   try {
-    const safety = backupCommand(source, containers, ['before-restore']);
+    const safety = backupCommand(source, containers, config, [
+      'before-restore',
+    ]);
     let body: string;
     if (source.kind === 'postgres') {
       body = `echo "Backing up the database as it is now, first…"
@@ -592,7 +613,7 @@ trap 'echo "Starting them again…"; docker start ${names} >/dev/null' EXIT`
     : ''
 }
 echo "Restoring ${source.label}…"
-r restore ${quote(`${snapshotId}:${source.path}`)} --target ${quote(source.path)} --delete ${restoreExcludes(source.path, skippedFolders(source.path, containers))}
+r restore ${quote(`${snapshotId}:${source.path}`)} --target ${quote(source.path)} --delete ${restoreExcludes(source.path, skippedFolders(source.path, containers, config))}
 echo "Done"`;
     }
     const it = runContainer(hostRun(config, body));
