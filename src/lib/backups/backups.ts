@@ -5,6 +5,12 @@ import { posix } from 'node:path';
 import { reconcile, type Finding } from '@/lib/alerts/alerts';
 import { run as runInApp } from '@/lib/apps/app';
 import { buckets } from '@/lib/apps/garage';
+import {
+  backupExcludes,
+  quote,
+  restoreExcludes,
+  skippedIn,
+} from '@/lib/backups/excludes';
 import { db } from '@/lib/db';
 import { listContainers, type Container } from '@/lib/docker/docker';
 import {
@@ -119,8 +125,6 @@ export type Source =
       /** Added here, rather than found in ~/services */
       added: boolean;
     };
-
-const quote = (text: string) => `'${text.replaceAll("'", `'\\''`)}'`;
 
 /** Postgres containers, which are backed up by their dumps rather than their files. */
 const isPostgres = (c: Container) => imageName(c.image) === 'postgres';
@@ -237,6 +241,15 @@ async function ensureBucket(config: Config, containers: Container[]) {
   ]);
 }
 
+/** The folders inside `path` its backups leave out: Postgres's and Garage's own. */
+const skippedFolders = (path: string, containers: Container[]) =>
+  skippedIn(
+    path,
+    containers
+      .filter((c) => isPostgres(c) || isGarage(c))
+      .flatMap((c) => c.binds)
+  );
+
 /**
  * What backing up a part runs: a database's dump into restic as it's made,
  * or a folder, without what's rebuilt anyway (node_modules, .next) nor what
@@ -255,17 +268,7 @@ function backupCommand(
   if (s.kind === 'postgres') {
     return `r backup ${tags} --stdin-filename ${quote(`postgres/${s.database}.dump`)} --stdin-from-command -- docker exec ${quote(s.container)} pg_dump -U postgres -Fc ${quote(s.database)}`;
   }
-  const skipped = containers
-    .filter((c) => isPostgres(c) || isGarage(c))
-    .flatMap((c) => c.binds)
-    .filter((b) => b.startsWith(`${s.path}/`));
-  const excludes = [
-    '--exclude-caches',
-    '--exclude node_modules',
-    '--exclude .next',
-    ...skipped.map((b) => `--exclude ${quote(b)}`),
-  ].join(' ');
-  const backup = `r backup ${tags} ${excludes} ${quote(s.path)}`;
+  const backup = `r backup ${tags} ${backupExcludes(skippedFolders(s.path, containers))} ${quote(s.path)}`;
   const minecraft = containers.find(
     (c) =>
       c.state === 'running' &&
@@ -534,7 +537,8 @@ echo "STATS $(${read} stats --mode raw-data --json)"`
  * a restore can be undone by restoring that. A database is restored from its
  * dump over the one there, by pg_restore --clean; a folder's containers are
  * stopped while its files are put back, those the backup doesn't have
- * removed, and started again. The dashboard's own folder isn't restored
+ * removed (but not what backups leave out, as a database's own files), and
+ * started again. The dashboard's own folder isn't restored
  * from here, as that would stop the dashboard partway.
  */
 export async function* restoreBackup(
@@ -588,7 +592,7 @@ trap 'echo "Starting them again…"; docker start ${names} >/dev/null' EXIT`
     : ''
 }
 echo "Restoring ${source.label}…"
-r restore ${quote(`${snapshotId}:${source.path}`)} --target ${quote(source.path)} --delete
+r restore ${quote(`${snapshotId}:${source.path}`)} --target ${quote(source.path)} --delete ${restoreExcludes(source.path, skippedFolders(source.path, containers))}
 echo "Done"`;
     }
     const it = runContainer(hostRun(config, body));
