@@ -54,7 +54,9 @@ export function ScrollFade({
   const [bar, setBar] = useState(0);
   // Likewise the sideways scrollbar's height, which the bottom fade stops
   // short of while the area scrolls sideways; when it doesn't, the fade
-  // overlaps the bottom edge as the top one does
+  // overlaps the bottom edge as the top one does. One drawn over the area,
+  // as an iPhone's is, has lines running under it, so the fade goes to the
+  // bottom then, as the side ones go to the right edge
   const [sideBar, setSideBar] = useState<number>();
 
   function measure() {
@@ -69,7 +71,7 @@ export function ScrollFade({
     setBar(el.offsetWidth - el.clientWidth);
     setSideBar(
       el.scrollWidth - el.clientWidth > EDGE_SLACK_PX
-        ? Math.max(el.offsetHeight - el.clientHeight, OVERLAY_BAR_PX)
+        ? el.offsetHeight - el.clientHeight
         : undefined
     );
   }
