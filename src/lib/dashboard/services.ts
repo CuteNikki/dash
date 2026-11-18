@@ -2,6 +2,7 @@ import 'server-only';
 
 import { openAlerts } from '@/lib/alerts/read';
 import { can, seesGroup, type Role } from '@/lib/auth/roles';
+import { BUILD_ID } from '@/lib/build';
 import { DEFAULT_GROUP } from '@/lib/dashboard/groups';
 import { currentSites } from '@/lib/dashboard/sites';
 import { isSiteKey } from '@/lib/dashboard/tiles';
@@ -288,6 +289,7 @@ export async function getDashboard(who: {
   const keys = new Set(seen.map((s) => s.key));
   const server = can(who.role, 'server');
   return {
+    build: BUILD_ID,
     services: seen,
     groupOrder: groups.map((g) => g.name).filter((g) => seesGroup(who, g)),
     hostTiles: server ? arrangeHostTiles(hostTiles) : [],

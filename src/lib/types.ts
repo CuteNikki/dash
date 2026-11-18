@@ -130,6 +130,8 @@ export type Me = {
 };
 
 export type Dashboard = {
+  /** The build the server runs; a page from another reloads, see BUILD_ID */
+  build: string;
   services: Service[];
   /** Groups in the order they've been placed; others follow by name */
   groupOrder: string[];

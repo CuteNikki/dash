@@ -116,6 +116,15 @@ export function Dashboard({
     [edits, live]
   );
 
+  // Once the dashboard's been updated, the page reloads into the new build,
+  // whose actions this one can't call. Not while a window's open, as the
+  // update's own output, nor while editing: on the next look after
+  useEffect(() => {
+    if (!live.build || live.build === initial.build || editing) return;
+    if (document.querySelector('[role="dialog"], [role="alertdialog"]')) return;
+    window.location.reload();
+  }, [live, initial.build, editing]);
+
   // Leaving with edits unsaved asks first
   useEffect(() => {
     if (!edits.length) return;
