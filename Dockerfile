@@ -1,5 +1,5 @@
 # Built with Bun, run on Node: Next's own standalone server, with just what it needs.
-FROM oven/bun:1.4.0-alpine AS build
+FROM oven/bun:1.4.4-alpine AS build
 WORKDIR /app
 # Dependencies first, so a change to the code alone reuses them
 COPY package.json bun.lock prisma.config.ts ./
@@ -23,7 +23,7 @@ RUN bun run build
 # longer, ride out a while of it not answering, and each checks the engine
 # came, as Prisma's own download fails quietly. Built again only when
 # package.json changes, so most deploys download nothing
-FROM oven/bun:1.4.0-alpine AS migrate
+FROM oven/bun:1.4.4-alpine AS migrate
 WORKDIR /app
 COPY package.json ./app.json
 RUN echo '{ "private": true, "trustedDependencies": ["prisma", "@prisma/engines"] }' > package.json \
