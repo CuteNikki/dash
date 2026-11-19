@@ -389,7 +389,7 @@ leaves the Dashboard that's running as it is.
 | `bun run format:check` | Whether everything is as Prettier would write it         |
 | `bun test`             | The tests                                                |
 | `bun run db:diff`      | The SQL that would bring the database up to the schema   |
-| `bun run db:migrate`   | Applies migrations, as each deploy does on its own       |
+| `bun run db:deploy`    | Applies migrations, as each deploy does on its own       |
 
 ## Where things are
 
