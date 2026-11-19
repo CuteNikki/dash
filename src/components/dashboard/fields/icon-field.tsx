@@ -7,6 +7,7 @@ import useSWR from 'swr';
 import { LoaderIcon, UploadIcon } from 'lucide-react';
 
 import { uploadIcon } from '@/actions/icons';
+
 import { fetcher } from '@/lib/fetcher';
 import type { IconMatch } from '@/lib/icons/icon-search';
 import { isImageUrl } from '@/lib/icons/icon-sets';

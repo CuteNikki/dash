@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { BadgeCheckIcon } from 'lucide-react';
 
 import { setAlertMail } from '@/actions/account';
+
 import { authClient } from '@/lib/auth/auth-client';
 import { MIN_PASSWORD } from '@/lib/auth/password';
 import { can } from '@/lib/auth/roles';

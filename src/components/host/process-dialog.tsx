@@ -7,6 +7,7 @@ import useSWR from 'swr';
 import { LockIcon, SquareIcon, ZapIcon } from 'lucide-react';
 
 import { stopProcess } from '@/actions/processes';
+
 import { fetcher } from '@/lib/fetcher';
 import { formatBytes, formatCpu, formatDuration } from '@/lib/format';
 import type { HostProcess, ProcessDetails, Service } from '@/lib/types';

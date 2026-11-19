@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { PowerIcon, RefreshCwIcon } from 'lucide-react';
 
 import { checkSystemUpdates } from '@/actions/system';
+
 import { readRunStream } from '@/lib/docker/read-run-stream';
 import { formatAgo } from '@/lib/format';
 import type { SystemUpdates } from '@/lib/types';

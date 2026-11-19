@@ -24,6 +24,7 @@ import {
   type PeopleResult,
   type Person,
 } from '@/actions/users';
+
 import { ROLE_INFO, seesAllGroups, type Role } from '@/lib/auth/roles';
 import { formatAgo, formatDuration } from '@/lib/format';
 

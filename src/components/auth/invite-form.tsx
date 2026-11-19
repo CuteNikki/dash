@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { KeyRoundIcon } from 'lucide-react';
 
 import { acceptInvite } from '@/actions/invites';
+
 import { authClient } from '@/lib/auth/auth-client';
 import { MIN_PASSWORD } from '@/lib/auth/password';
 import { ROLE_INFO, type Role } from '@/lib/auth/roles';
