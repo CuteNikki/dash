@@ -12,10 +12,16 @@ import {
 import { cn } from '@/lib/utils';
 
 type IconSource =
-  | { kind: 'image'; url: string }
+  /** `photo`: a picture filling its square, as an avatar, whose corners are rounded like a letter's */
+  | { kind: 'image'; url: string; photo?: boolean }
   /** One-color icons, drawn in the text color so they suit either theme */
   | { kind: 'mask'; url: string }
   | { kind: 'letter' };
+
+/** A Discord avatar, as a bot's: a square picture, unlike icons drawn with their own shape. */
+function isAvatar(url: string) {
+  return url.startsWith('https://cdn.discordapp.com/avatars/');
+}
 
 /**
  * Where an icon comes from, named the way Homepage names them: "jellyfin"
@@ -24,7 +30,8 @@ type IconSource =
  */
 function iconSource(icon: string): IconSource {
   if (!icon) return { kind: 'letter' };
-  if (isImageUrl(icon)) return { kind: 'image', url: icon };
+  if (isImageUrl(icon))
+    return { kind: 'image', url: icon, photo: isAvatar(icon) };
   // A path is one of Homepage's own files, which only Homepage can serve
   if (icon.includes('/')) return { kind: 'letter' };
   const url = iconFileUrl(icon);
@@ -120,7 +127,11 @@ function SingleIcon({
         ref={(img) => {
           if (img?.complete && img.naturalWidth === 0) setFailed(icon);
         }}
-        className={cn(box, 'object-contain', display)}
+        className={cn(
+          box,
+          source.photo ? 'rounded-md object-cover' : 'object-contain',
+          display
+        )}
       />
     );
   }
