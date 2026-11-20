@@ -20,6 +20,11 @@ export type App = {
   ready?: () => boolean;
   read: (app: AppContext) => Promise<WidgetStat[]>;
   details?: (app: AppContext) => Promise<DetailSection[]>;
+  /**
+   * Its own icon, as a bot's avatar, from what it's said so far: for a tile
+   * not given one, so it follows a new one
+   */
+  icon?: (app: AppContext) => string | undefined;
 };
 
 /**

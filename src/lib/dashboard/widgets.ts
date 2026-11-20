@@ -131,6 +131,12 @@ export async function readSiteWidgets(
   return readAll(sites.map(({ key, app }) => ({ id: key, read: app.read })));
 }
 
+/** A container's app's own icon, as a bot's avatar, once it's been read. */
+export function appIcon(c: Container) {
+  const app = appOf(c);
+  return app ? APPS[app].icon?.(contextOf(app, c)) : undefined;
+}
+
 /** Whether a container's app has more to show in its window, with its keys set to read it. */
 export function hasDetails(c: Container) {
   const app = appOf(c);

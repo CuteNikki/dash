@@ -7,6 +7,7 @@ import { DEFAULT_GROUP } from '@/lib/dashboard/groups';
 import { currentSites } from '@/lib/dashboard/sites';
 import { isSiteKey, serviceKey } from '@/lib/dashboard/tiles';
 import {
+  appIcon,
   canBrowse,
   hasDetails,
   readSiteWidgets,
@@ -233,6 +234,7 @@ export async function getDashboard(who: {
       icon:
         tile?.icon ||
         iconName(l['homepage.icon']) ||
+        appIcon(c) ||
         c.stack?.service ||
         c.name,
       addresses,

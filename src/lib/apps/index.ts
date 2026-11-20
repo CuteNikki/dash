@@ -3,6 +3,7 @@ import 'server-only';
 import type { App, RemoteApp } from '@/lib/apps/app';
 import { radarr, sonarr } from '@/lib/apps/arr';
 import { caddy } from '@/lib/apps/caddy';
+import { discordBot } from '@/lib/apps/discord';
 import { flaresolverr } from '@/lib/apps/flaresolverr';
 import { garage } from '@/lib/apps/garage';
 import { gluetun } from '@/lib/apps/gluetun';
@@ -36,6 +37,8 @@ export const APPS: Record<string, App> = {
   stalwart,
   // Ludo's game server, built from its repository as ludo-server
   'ludo-server': ludo,
+  // Labelled dash.app: discord-bot, as any Discord bot can be
+  'discord-bot': discordBot,
 };
 
 /** The apps the dashboard can read on other machines, each on the website tile on its host. */
