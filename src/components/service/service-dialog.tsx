@@ -694,6 +694,12 @@ function SitePanel({ service }: { service: Service }) {
           />
         )}
       </Panel>
+      {/* An app on another machine on its host, as the stream relay */}
+      {service.details && isRunning(service.state) && (
+        <div className='flex min-w-0 flex-col gap-3 sm:col-span-2'>
+          <AppDetails containerId={service.containerId} />
+        </div>
+      )}
     </div>
   );
 }

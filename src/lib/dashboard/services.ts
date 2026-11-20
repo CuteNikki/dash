@@ -6,7 +6,13 @@ import { BUILD_ID } from '@/lib/build';
 import { DEFAULT_GROUP } from '@/lib/dashboard/groups';
 import { currentSites } from '@/lib/dashboard/sites';
 import { isSiteKey, serviceKey } from '@/lib/dashboard/tiles';
-import { canBrowse, hasDetails, readWidgets } from '@/lib/dashboard/widgets';
+import {
+  canBrowse,
+  hasDetails,
+  readSiteWidgets,
+  readWidgets,
+  remoteAppOf,
+} from '@/lib/dashboard/widgets';
 import { db } from '@/lib/db';
 import {
   listContainers,
@@ -22,7 +28,7 @@ import { iconInfo } from '@/lib/icons/icon-search';
 import { isImageUrl } from '@/lib/icons/icon-sets';
 import { DASH_PROJECT } from '@/lib/site';
 import { removable } from '@/lib/stacks/service-stacks';
-import type { Dashboard, Service, SiteCheck } from '@/lib/types';
+import type { Dashboard, Service, SiteCheck, Widget } from '@/lib/types';
 import { UPDATES_AT_ONCE } from '@/lib/updates/apply';
 import { currentUpdates } from '@/lib/updates/check';
 import { selfUpdateRunning } from '@/lib/updates/self-update';
@@ -59,7 +65,8 @@ export function siteUrl(addresses: string[]) {
  */
 function siteService(
   tile: NonNullable<Awaited<ReturnType<typeof db.tile.findUnique>>>,
-  check: SiteCheck | undefined
+  check: SiteCheck | undefined,
+  widget: Widget | undefined
 ): Service {
   const url = siteUrl(tile.addresses);
   const status = !url
@@ -100,6 +107,9 @@ function siteService(
     status,
     console: false,
     removable: false,
+    // An app on another machine on its host, as the stream relay
+    widget,
+    details: !!remoteAppOf(url),
     site: { check },
   };
 }
@@ -266,9 +276,19 @@ export async function getDashboard(who: {
       return url ? [{ url, key: t.key }] : [];
     })
   );
+  const siteWidgets = await readSiteWidgets(
+    siteTiles.flatMap((t) => {
+      const app = remoteAppOf(siteUrl(t.addresses));
+      return app ? [{ key: t.key, app }] : [];
+    })
+  );
   services.push(
     ...siteTiles.map((t) =>
-      siteService(t, checks.get(siteUrl(t.addresses)?.href ?? ''))
+      siteService(
+        t,
+        checks.get(siteUrl(t.addresses)?.href ?? ''),
+        siteWidgets.get(t.key)
+      )
     )
   );
 

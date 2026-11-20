@@ -1,13 +1,14 @@
 import 'server-only';
 
-import { APPS } from '@/lib/apps';
-import { env, type AppContext } from '@/lib/apps/app';
+import { APPS, REMOTE_APPS } from '@/lib/apps';
+import { env, type AppContext, type RemoteApp } from '@/lib/apps/app';
 import { devTunnelUrl } from '@/lib/apps/tunnels';
 import { isRunning } from '@/lib/dashboard/status';
+import { isSiteKey } from '@/lib/dashboard/tiles';
 import type { Container } from '@/lib/docker/docker';
 import { imageName } from '@/lib/format';
 import { hasStorageKey } from '@/lib/storage';
-import type { Widget } from '@/lib/types';
+import type { Widget, WidgetStat } from '@/lib/types';
 
 /** How long an app's numbers are kept before it's asked again. */
 const FRESH_MS = 10_000;
@@ -42,17 +43,17 @@ function contextOf(app: string, c: Container): AppContext {
 
 type Cached = { at: number; widget?: Widget; pending?: Promise<void> };
 
-// By container, so two of the same app have their own. Kept on globalThis
+// By container, so two of the same app have their own, and by tile key for
+// a website's app on another machine. Kept on globalThis
 // so development's hot reloads keep them
 const cache: Map<string, Cached> = ((
   globalThis as typeof globalThis & { widgetCache?: Map<string, Cached> }
 ).widgetCache ??= new Map());
 
-function refresh(app: string, c: Container) {
-  const entry = cache.get(c.id);
+function refresh(id: string, read: () => Promise<WidgetStat[]>) {
+  const entry = cache.get(id);
   if (entry?.pending) return entry.pending;
-  const pending = APPS[app]
-    .read(contextOf(app, c))
+  const pending = read()
     .then(
       (stats): Widget => ({ stats }),
       (e: unknown): Widget => ({
@@ -60,10 +61,34 @@ function refresh(app: string, c: Container) {
       })
     )
     .then((widget) => {
-      cache.set(c.id, { at: Date.now(), widget });
+      cache.set(id, { at: Date.now(), widget });
     });
-  cache.set(c.id, { at: entry?.at ?? 0, widget: entry?.widget, pending });
+  cache.set(id, { at: entry?.at ?? 0, widget: entry?.widget, pending });
   return pending;
+}
+
+/**
+ * Each app's numbers, by id: those already read at once, even a little old,
+ * while newer ones are fetched; only the first wait for the app.
+ */
+async function readAll(
+  found: { id: string; read: () => Promise<WidgetStat[]> }[]
+) {
+  await Promise.all(
+    found.map(({ id, read }) => {
+      const entry = cache.get(id);
+      if (entry && Date.now() - entry.at < FRESH_MS) return;
+      const pending = refresh(id, read);
+      // Only the first reading is waited for
+      return entry?.widget ? undefined : pending;
+    })
+  );
+  return new Map(
+    found.flatMap(({ id }) => {
+      const widget = cache.get(id)?.widget;
+      return widget ? [[id, widget]] : [];
+    })
+  );
 }
 
 /**
@@ -76,28 +101,34 @@ export async function readWidgets(
 ): Promise<Map<string, Widget>> {
   // A container removed, or recreated with a new id, takes its numbers with it
   const ids = new Set(containers.map((c) => c.id));
-  for (const id of cache.keys()) if (!ids.has(id)) cache.delete(id);
-  const found = containers.flatMap((c) => {
-    const app = appOf(c);
-    return app && isRunning(c.state) && (APPS[app].ready?.() ?? true)
-      ? [{ c, app }]
-      : [];
-  });
-  await Promise.all(
-    found.map(({ c, app }) => {
-      const entry = cache.get(c.id);
-      if (entry && Date.now() - entry.at < FRESH_MS) return;
-      const pending = refresh(app, c);
-      // Only the first reading is waited for
-      return entry?.widget ? undefined : pending;
+  for (const id of cache.keys()) {
+    if (!isSiteKey(id) && !ids.has(id)) cache.delete(id);
+  }
+  return readAll(
+    containers.flatMap((c) => {
+      const app = appOf(c);
+      return app && isRunning(c.state) && (APPS[app].ready?.() ?? true)
+        ? [{ id: c.id, read: () => APPS[app].read(contextOf(app, c)) }]
+        : [];
     })
   );
-  return new Map(
-    found.flatMap(({ c }) => {
-      const widget = cache.get(c.id)?.widget;
-      return widget ? [[c.id, widget]] : [];
-    })
-  );
+}
+
+/** The app on another machine whose host a website tile's address is on, if any. */
+export function remoteAppOf(url: URL | undefined) {
+  return url && REMOTE_APPS.find((app) => app.url()?.host === url.host);
+}
+
+/** Live numbers for each website tile showing an app on another machine, by tile key. */
+export async function readSiteWidgets(
+  sites: { key: string; app: RemoteApp }[]
+): Promise<Map<string, Widget>> {
+  // A website removed, or no longer on the app's host, takes its numbers with it
+  const keys = new Set(sites.map((s) => s.key));
+  for (const id of cache.keys()) {
+    if (isSiteKey(id) && !keys.has(id)) cache.delete(id);
+  }
+  return readAll(sites.map(({ key, app }) => ({ id: key, read: app.read })));
 }
 
 /** Whether a container's app has more to show in its window, with its keys set to read it. */

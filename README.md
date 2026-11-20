@@ -262,6 +262,10 @@ Caddy and the stream relay. An app is known by its image's name, or by a
 `dash.app` label on its container. Everything else gets the same tile, without
 the numbers.
 
+The stream relay can also run on another machine: with `RELAY_STATUS_URL` and
+`RELAY_STATUS_TOKEN` set, a website tile whose address is on the same host
+shows its numbers and its window's details, read over HTTP.
+
 A container's tile starts from its [Homepage](https://gethomepage.dev) labels
 (`homepage.name`, `homepage.icon`, `homepage.group`, `homepage.description`,
 `homepage.href`) until it's edited in Dashboard, so a server already set up for

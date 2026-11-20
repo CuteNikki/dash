@@ -22,6 +22,18 @@ export type App = {
   details?: (app: AppContext) => Promise<DetailSection[]>;
 };
 
+/**
+ * An app on another machine, read over HTTP rather than from a container
+ * here: its numbers and window go to the website tile whose address is on
+ * the same host as its own.
+ */
+export type RemoteApp = {
+  /** Where it's read, from the dashboard's .env; none while that's unset */
+  url: () => URL | undefined;
+  read: () => Promise<WidgetStat[]>;
+  details: () => Promise<DetailSection[]>;
+};
+
 export const env = (name: string) => process.env[name] || undefined;
 
 /** What something gives, or an error once it's taken longer than an app has. */

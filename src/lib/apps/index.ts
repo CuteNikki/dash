@@ -1,6 +1,6 @@
 import 'server-only';
 
-import type { App } from '@/lib/apps/app';
+import type { App, RemoteApp } from '@/lib/apps/app';
 import { radarr, sonarr } from '@/lib/apps/arr';
 import { caddy } from '@/lib/apps/caddy';
 import { flaresolverr } from '@/lib/apps/flaresolverr';
@@ -12,7 +12,7 @@ import { minecraft } from '@/lib/apps/minecraft';
 import { postgres } from '@/lib/apps/postgres';
 import { prowlarr } from '@/lib/apps/prowlarr';
 import { qbittorrent } from '@/lib/apps/qbittorrent';
-import { relay } from '@/lib/apps/relay';
+import { relay, remoteRelay } from '@/lib/apps/relay';
 import { seerr } from '@/lib/apps/seerr';
 import { stalwart } from '@/lib/apps/stalwart';
 
@@ -37,3 +37,6 @@ export const APPS: Record<string, App> = {
   // Ludo's game server, built from its repository as ludo-server
   'ludo-server': ludo,
 };
+
+/** The apps the dashboard can read on other machines, each on the website tile on its host. */
+export const REMOTE_APPS: RemoteApp[] = [remoteRelay];
