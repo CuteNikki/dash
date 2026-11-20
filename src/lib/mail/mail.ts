@@ -58,7 +58,7 @@ export type Mail = {
   sections?: MailSection[];
   /** The facts of it, row by row: whose account, when, from where */
   details?: MailDetail[];
-  /** A link to act on, as a button, with its address written out too */
+  /** A link to act on, as a button; the plain text writes its address out */
   action?: { label: string; url: string };
   /** After the button, quieter: what to do if it wasn't them */
   note?: string;
@@ -185,8 +185,7 @@ function button(action: NonNullable<Mail['action']>) {
     `<tr><td style="background:${colors.primary};border-radius:6px;">
 <a href="${escape(action.url)}" style="display:inline-block;padding:10px 18px;${font}font-size:14px;line-height:20px;font-weight:500;color:#ffffff;text-decoration:none;border-radius:6px;">${escape(action.label)}</a>
 </td></tr>`
-  )}</td></tr>
-<tr><td style="padding:12px 0 0;${font}font-size:12px;line-height:1.5;color:${colors.muted};word-break:break-all;">Or paste this into your browser: <a href="${escape(action.url)}" style="color:${colors.muted};">${escape(action.url)}</a></td></tr>`;
+  )}</td></tr>`;
 }
 
 /** The mail as plain text, a part for each part of the HTML */
