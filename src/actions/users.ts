@@ -249,7 +249,13 @@ export async function createInvite(input: {
   if (input.send) {
     try {
       await sendMail(
-        inviteMail({ email, role, invitedBy: access.user.name, url: link })
+        inviteMail({
+          email,
+          role,
+          invitedBy: access.user.name,
+          url: link,
+          expiresAt,
+        })
       );
     } catch (error) {
       sendError = (error as Error).message;

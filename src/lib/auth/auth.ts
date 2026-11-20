@@ -16,6 +16,7 @@ import { mailReady, sendMail } from '@/lib/mail/mail';
 import {
   changeAddressMail,
   confirmAddressMail,
+  originOf,
   resetPasswordMail,
 } from '@/lib/mail/templates';
 import { SERVER_NAME, SITE_URL } from '@/lib/site';
@@ -59,6 +60,9 @@ const ADMIN_PATHS = [
 /** How long a link sent by mail works: a password reset's or an address's. */
 const LINK_SECONDS = 60 * 60;
 
+/** When a link sent now stops working */
+const linkExpiry = () => new Date(Date.now() + LINK_SECONDS * 1000);
+
 export const auth = betterAuth({
   database: prismaAdapter(db, { provider: 'postgresql' }),
   emailAndPassword: {
@@ -67,7 +71,10 @@ export const auth = betterAuth({
     // A forgotten password is reset from a link by mail, once there's mail;
     // the new one signs out everywhere else, as whoever knew the old might be
     sendResetPassword: mailReady()
-      ? async ({ user, url }) => sendMail(resetPasswordMail(user, url))
+      ? async ({ user, url }, request) =>
+          sendMail(
+            resetPasswordMail(user, url, linkExpiry(), originOf(request))
+          )
       : undefined,
     resetPasswordTokenExpiresIn: LINK_SECONDS,
     revokeSessionsOnPasswordReset: true,
@@ -78,7 +85,7 @@ export const auth = betterAuth({
         expiresIn: LINK_SECONDS,
         autoSignInAfterVerification: true,
         sendVerificationEmail: async ({ user, url }) =>
-          sendMail(confirmAddressMail(user, url)),
+          sendMail(confirmAddressMail(user, url, linkExpiry())),
       }
     : undefined,
   user: {
@@ -90,8 +97,16 @@ export const auth = betterAuth({
       // One that's confirmed changes once the old address agrees, then the
       // new one is confirmed in turn
       sendChangeEmailConfirmation: mailReady()
-        ? async ({ user, newEmail, url }) =>
-            sendMail(changeAddressMail(user, newEmail, url))
+        ? async ({ user, newEmail, url }, request) =>
+            sendMail(
+              changeAddressMail(
+                user,
+                newEmail,
+                url,
+                linkExpiry(),
+                originOf(request)
+              )
+            )
         : undefined,
     },
   },
