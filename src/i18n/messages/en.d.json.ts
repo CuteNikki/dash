@@ -1001,10 +1001,10 @@ declare const messages: {
     "makeLink": "Make the link",
     "twoFactorTitle": "Two-factor",
     "twoFactorDescription": "Roles whose people sign in with a passkey, or with their password and an authenticator app's code. Signed in with the password alone, they're sent to set the app up.",
-    "stillNeed": "{count, plural, one {# person still has to set it up} other {# people still have to set it up}}",
     "twoFactorFailed": "Couldn't change that",
     "peopleDescription": "Everyone with an account, what they may do and see",
-    "invitesDescription": "Links to make an account with, not used yet"
+    "invitesDescription": "Links to make an account with, not used yet",
+    "roleStatus": "{count, plural, =0 {Nobody yet} one {# person} other {# people}}{status, select, notRequired { · not required} missing {{missing, plural, one { · # still has to set it up} other { · # still have to set it up}}} allSet {{count, plural, one { · has it set up} other { · all have it set up}}} other {}}"
   },
   "twoFactor": {
     "on": "On",

@@ -998,10 +998,10 @@
     "makeLink": "Link erstellen",
     "twoFactorTitle": "Zwei-Faktor",
     "twoFactorDescription": "Rollen, deren Personen sich mit einem Passkey anmelden, oder mit Passwort und dem Code einer Authentifizierungs-App. Mit dem Passwort allein angemeldet, werden sie zur Einrichtung der App geschickt.",
-    "stillNeed": "{count, plural, one {# Person muss es noch einrichten} other {# Personen müssen es noch einrichten}}",
     "twoFactorFailed": "Das konnte nicht geändert werden",
     "peopleDescription": "Alle mit einem Konto, und was sie tun und sehen dürfen",
-    "invitesDescription": "Links zum Erstellen eines Kontos, noch nicht benutzt"
+    "invitesDescription": "Links zum Erstellen eines Kontos, noch nicht benutzt",
+    "roleStatus": "{count, plural, =0 {Noch niemand} one {# Person} other {# Personen}}{status, select, notRequired { · nicht nötig} missing {{missing, plural, one { · # muss es noch einrichten} other { · # müssen es noch einrichten}}} allSet {{count, plural, one { · hat es eingerichtet} other { · alle haben es eingerichtet}}} other {}}"
   },
   "twoFactor": {
     "on": "An",

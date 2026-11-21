@@ -501,18 +501,30 @@ function TwoFactorRoles({
     >
       {ROLES.map((role) => {
         const on = !!required?.includes(role);
-        const missing =
-          people?.filter((p) => p.role === role && !p.twoFactor).length ?? 0;
+        const inRole = people?.filter((p) => p.role === role) ?? [];
+        const missing = inRole.filter((p) => !p.twoFactor).length;
         return (
           <SettingsRow
             key={role}
             label={tr(`${role}.name`)}
             htmlFor={`two-factor-${role}`}
-            // Its room kept, so the rows don't move as it comes and goes
+            // Always a line, so the rows keep their height as it changes
             hint={
-              <span className='block min-h-lh'>
-                {on && missing > 0 && t('stillNeed', { count: missing })}
-              </span>
+              !people ? (
+                <TextSkeleton className='w-40' />
+              ) : (
+                t('roleStatus', {
+                  count: inRole.length,
+                  status: !on
+                    ? 'notRequired'
+                    : missing
+                      ? 'missing'
+                      : inRole.length
+                        ? 'allSet'
+                        : 'none',
+                  missing,
+                })
+              )
             }
           >
             <Switch
