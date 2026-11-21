@@ -2,6 +2,21 @@
 // See: https://next-intl.dev/docs/workflows/typescript#messages-arguments
 
 declare const messages: {
+  "format": {
+    "days": "{days, plural, one {# day} other {# days}} {hours, number} h",
+    "hours": "{hours, number} h {minutes, number} min",
+    "minutes": "{minutes, number} min",
+    "years": "{count, plural, one {# year ago} other {# years ago}}",
+    "months": "{count, plural, one {# month ago} other {# months ago}}",
+    "daysAgo": "{count, plural, one {# day ago} other {# days ago}}",
+    "hoursAgo": "{count, number} h ago",
+    "minutesAgo": "{count, number} min ago",
+    "justNow": "just now",
+    "today": "today {time}",
+    "tomorrow": "tomorrow {time}",
+    "yesterday": "yesterday {time}",
+    "dayAt": "{day} {time}"
+  },
   "settings": {
     "language": {
       "title": "Language",

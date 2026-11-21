@@ -18,6 +18,8 @@ import {
   ServerIcon,
 } from 'lucide-react';
 
+import { useFormat } from '@/i18n/use-format';
+
 import {
   formatBytes,
   formatCpu,
@@ -456,6 +458,7 @@ function FlowStat({
   measure: Measure;
   flows: [Flow, Flow];
 }) {
+  const format = useFormat();
   const [shown, setShown] = useState<'0' | '1' | 'both'>('both');
   const [first, second] = flows.map((f) => ({
     label: f.label,
@@ -499,7 +502,7 @@ function FlowStat({
               aria-label={
                 f.value === undefined
                   ? undefined
-                  : `${f.label} ${measure.format(f.value)}`
+                  : `${f.label} ${measure.format(f.value, format)}`
               }
               // Icons a step smaller than the text's, which a filled one like
               // a book needs to look as big as a thin arrow beside a number
@@ -509,7 +512,7 @@ function FlowStat({
               {f.value === undefined ? (
                 <ValueSkeleton />
               ) : (
-                measure.format(f.value)
+                measure.format(f.value, format)
               )}
             </span>
           ))}

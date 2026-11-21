@@ -23,6 +23,8 @@ import {
 } from '@/actions/containers';
 import { resetTile, restoreTile } from '@/actions/tiles';
 
+import { useFormat } from '@/i18n/use-format';
+
 import { isRunning, labelOf } from '@/lib/dashboard/status';
 import type { ContainerAction } from '@/lib/docker/docker';
 import { fetcher } from '@/lib/fetcher';
@@ -600,12 +602,13 @@ function UsageChart({
   /** What the chart covers: "the last day" */
   words?: string;
 }) {
+  const format = useFormat();
   return (
     <Panel title={label}>
       <span className='flex items-baseline justify-between gap-2'>
         <span className='font-mono text-lg tabular-nums'>
           {value !== undefined ? (
-            measure.format(value)
+            measure.format(value, format)
           ) : measuring ? (
             <TextSkeleton className='w-16' />
           ) : (

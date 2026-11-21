@@ -1,4 +1,19 @@
 {
+  "format": {
+    "days": "{days, plural, one {# Tag} other {# Tage}} {hours, number} h",
+    "hours": "{hours, number} h {minutes, number} min",
+    "minutes": "{minutes, number} min",
+    "years": "{count, plural, one {vor # Jahr} other {vor # Jahren}}",
+    "months": "{count, plural, one {vor # Monat} other {vor # Monaten}}",
+    "daysAgo": "{count, plural, one {vor # Tag} other {vor # Tagen}}",
+    "hoursAgo": "vor {count, number} h",
+    "minutesAgo": "vor {count, number} min",
+    "justNow": "gerade eben",
+    "today": "heute {time}",
+    "tomorrow": "morgen {time}",
+    "yesterday": "gestern {time}",
+    "dayAt": "{day} {time}"
+  },
   "settings": {
     "language": {
       "title": "Sprache",

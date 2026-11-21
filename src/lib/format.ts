@@ -1,3 +1,5 @@
+import type { Format } from '@/i18n/format';
+
 const BYTE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB'];
 
 /** 1536 → "1.5 KB", in powers of 1024 as Docker and the kernel count. */
@@ -130,7 +132,8 @@ export function formatAddress(entry: string) {
 
 /** A kind of reading: how it's written, and how far a chart of it zooms in. */
 export type Measure = {
-  format: (value: number) => string;
+  /** In the page's language, by its useFormat() */
+  format: (value: number, f: Format) => string;
   /**
    * The least the top of a chart's scale goes to. Changes below it are too
    * small to matter, so a line of them stays low instead of filling the
@@ -142,31 +145,36 @@ export type Measure = {
 const KB = 1024;
 const MB = 1024 * KB;
 
+const cpu = (value: number, f: Format) => f.cpu(value);
+const bytes = (value: number, f: Format) => f.bytes(value);
+const ms = (value: number, f: Format) => f.ms(value);
+const rate = (value: number, f: Format) => f.rate(value);
+
 export const MEASURES = {
   /** A tenth of a core */
-  cpu: { format: formatCpu, floor: 10 },
+  cpu: { format: cpu, floor: 10 },
   /**
    * The server's CPU, a share of all of it: idling at a few percent, it fills
    * a third of the chart, so a few more is a ripple rather than a spike, and
    * still shows
    */
-  serverCpu: { format: formatCpu, floor: 25 },
+  serverCpu: { format: cpu, floor: 25 },
   /** A few percent is already worth seeing, where the CPU's own scale would flatten it */
-  steal: { format: formatCpu, floor: 5 },
-  memory: { format: formatBytes, floor: 64 * MB },
+  steal: { format: cpu, floor: 5 },
+  memory: { format: bytes, floor: 64 * MB },
   /** A page that takes a second is slow; one that takes a tenth isn't worth a line */
-  response: { format: formatMs, floor: 1000 },
+  response: { format: ms, floor: 1000 },
   /** About what an idle server sends and receives anyway */
-  network: { format: formatRate, floor: 128 * KB },
+  network: { format: rate, floor: 128 * KB },
   /** Above the logs and databases an idle server writes anyway */
-  disk: { format: formatRate, floor: MB },
+  disk: { format: rate, floor: MB },
   /**
    * How long the disk takes per read or write: a few milliseconds is usual,
    * and a stall of tens of them, as froze the Minecraft server, stands out
    */
-  diskWait: { format: formatMs, floor: 20 },
+  diskWait: { format: ms, floor: 20 },
   /** Processes waiting for the CPU: below one, nothing waits */
-  load: { format: (load: number) => load.toFixed(2), floor: 1 },
+  load: { format: (load, f) => f.fixed(load, 2), floor: 1 },
 } satisfies Record<string, Measure>;
 
 /** A moment either side of now: "5 min ago" once it's passed, "Fri 21:00" while it's to come. */

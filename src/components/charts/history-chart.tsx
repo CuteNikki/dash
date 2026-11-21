@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import { useFormat } from '@/i18n/use-format';
+
 import type { Measure } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -83,6 +85,7 @@ export function HistoryChart({
   label: string;
   className?: string;
 }) {
+  const format = useFormat();
   const [index, setIndex] = useState<number>();
   const ref = useRef<HTMLDivElement>(null);
   const showing = index !== undefined;
@@ -238,12 +241,12 @@ export function HistoryChart({
               <div className='flex flex-col gap-1'>
                 <span className='opacity-70'>
                   {days
-                    ? new Date(times[shown]).toLocaleString(undefined, {
+                    ? new Date(times[shown]).toLocaleString(format.locale, {
                         weekday: 'short',
                         hour: '2-digit',
                         minute: '2-digit',
                       })
-                    : new Date(times[shown]).toLocaleTimeString()}
+                    : new Date(times[shown]).toLocaleTimeString(format.locale)}
                 </span>
                 {series.map((s) => (
                   <span key={s.label} className='flex items-center gap-2'>
@@ -258,7 +261,7 @@ export function HistoryChart({
                     <span className='font-mono font-medium tabular-nums'>
                       {s.values[shown] == null
                         ? 'No reading'
-                        : s.measure.format(s.values[shown])}
+                        : s.measure.format(s.values[shown], format)}
                     </span>
                     {series.length > 1 && (
                       <span className='opacity-70'>{s.label}</span>

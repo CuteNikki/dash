@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import useSWR from 'swr';
 
+import type { Format } from '@/i18n/format';
+import { useFormat } from '@/i18n/use-format';
+
 import { fetcher } from '@/lib/fetcher';
 import { MEASURES, type Measure } from '@/lib/format';
 import { HISTORY_RANGES, type HistoryRange } from '@/lib/monitor/ranges';
@@ -182,16 +185,17 @@ function HistoryPanel({
   lines?: Line[];
   words: string;
 }) {
+  const format = useFormat();
   const first = lines?.[0].values.filter((v) => v !== null) ?? [];
   const summary = !lines
     ? undefined
     : !first.length
       ? 'No readings'
       : latest
-        ? `${measure.format(first.at(-1)!)} now, ${changeOf(first, measure)}`
+        ? `${measure.format(first.at(-1)!, format)} now, ${changeOf(first, measure, format)}`
         : peak
-          ? `${measure.format(Math.max(...first))} at worst`
-          : `${measure.format(first.reduce((a, b) => a + b, 0) / first.length)} on average`;
+          ? `${measure.format(Math.max(...first), format)} at worst`
+          : `${measure.format(first.reduce((a, b) => a + b, 0) / first.length, format)} on average`;
   return (
     <Panel title={title}>
       <span className='-mt-1 text-muted-foreground'>
@@ -212,8 +216,8 @@ function HistoryPanel({
 }
 
 /** How much something grew or shrank over the range: "up 2.1 GB", "no change". */
-function changeOf(values: number[], measure: Measure) {
+function changeOf(values: number[], measure: Measure, format: Format) {
   const change = values.at(-1)! - values[0];
   if (Math.abs(change) < 1024 * 1024) return 'no change';
-  return `${change > 0 ? 'up' : 'down'} ${measure.format(Math.abs(change))}`;
+  return `${change > 0 ? 'up' : 'down'} ${measure.format(Math.abs(change), format)}`;
 }
