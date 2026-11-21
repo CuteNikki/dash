@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { db } from '@/lib/db';
-import type { AlertView } from '@/lib/types';
+import type { AlertView, AlertWords } from '@/lib/types';
 
 type Row = Awaited<ReturnType<typeof db.alert.findMany>>[number];
 
@@ -11,6 +11,7 @@ function view(a: Row): AlertView {
     kind: a.kind as AlertView['kind'],
     subject: a.subject,
     message: a.message,
+    words: (a.words as AlertWords | null) ?? undefined,
     since: a.since.getTime(),
     resolvedAt: a.resolvedAt?.getTime(),
     mailed: a.notifiedAt !== null,

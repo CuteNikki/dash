@@ -204,6 +204,15 @@ export type Dashboard = {
 };
 
 /** Something wrong the monitor noticed, as the browser shows it. */
+/** Words of an alert's, a key under "alertWords" and the values it takes. */
+export type AlertText = {
+  key: keyof Messages['alertWords'];
+  values?: Record<string, string | number>;
+};
+
+/** An alert's message, and its subject where it has one of its own, in words for each reader's language. */
+export type AlertWords = { message: AlertText; subject?: AlertText };
+
 export type AlertView = {
   id: string;
   kind: 'service' | 'disk' | 'site' | 'cert' | 'backup';
@@ -211,6 +220,8 @@ export type AlertView = {
   subject: string;
   /** What's wrong: "Stopped, exit code 137" */
   message: string;
+  /** The two as words for the reader's language; none in alerts from before them */
+  words?: AlertWords;
   /** Milliseconds since 1970 */
   since: number;
   /** Over, and when; none while it's open */

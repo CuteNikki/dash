@@ -11,18 +11,23 @@ describe('certProblem', () => {
     expect(certProblem(now + 14 * DAY, now)).toBeUndefined();
   });
   test('counts the days left, rounding up', () => {
-    expect(certProblem(now + 13.2 * DAY, now)).toBe(
-      'Certificate runs out in 14 days'
-    );
-    expect(certProblem(now + 9 * DAY, now)).toBe(
+    expect(certProblem(now + 13.2 * DAY, now)).toEqual({
+      message: 'Certificate runs out in 14 days',
+      text: { key: 'certRunsOut', values: { days: 14 } },
+    });
+    expect(certProblem(now + 9 * DAY, now)?.message).toBe(
       'Certificate runs out in 9 days'
     );
-    expect(certProblem(now + 0.5 * DAY, now)).toBe(
-      'Certificate runs out in 1 day'
-    );
+    expect(certProblem(now + 0.5 * DAY, now)).toEqual({
+      message: 'Certificate runs out in 1 day',
+      text: { key: 'certRunsOut', values: { days: 1 } },
+    });
   });
   test('says when it has run out', () => {
-    expect(certProblem(now - DAY, now)).toBe('Certificate has run out');
+    expect(certProblem(now - DAY, now)).toEqual({
+      message: 'Certificate has run out',
+      text: { key: 'certExpired' },
+    });
   });
   test('is nothing when there is no date to go by', () => {
     expect(certProblem(undefined, now)).toBeUndefined();

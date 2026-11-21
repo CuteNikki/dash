@@ -10,7 +10,7 @@ import { isRecreateCopy } from '@/lib/docker/compose';
 import type { Container } from '@/lib/docker/docker';
 import { RUN_LABEL } from '@/lib/docker/runner';
 import { isLink } from '@/lib/format';
-import type { Capacity } from '@/lib/types';
+import type { AlertText, Capacity } from '@/lib/types';
 
 /** A service unhealthy or restarting this long is wrong, not just starting. */
 const BAD_MS = 3 * 60_000;
@@ -81,6 +81,11 @@ export async function checkServices(containers: Container[]) {
           subject: c.name,
           message:
             c.state === 'unhealthy' ? 'Unhealthy' : 'Restarting over and over',
+          words: {
+            message: {
+              key: c.state === 'unhealthy' ? 'unhealthy' : 'restarting',
+            },
+          },
         });
       }
       continue;
@@ -121,6 +126,14 @@ export async function checkServices(containers: Container[]) {
           : code
             ? `Stopped, exit code ${code}`
             : 'Stopped',
+      words: {
+        message:
+          c.state === 'dead'
+            ? { key: 'dead' }
+            : code
+              ? { key: 'stoppedCode', values: { code } }
+              : { key: 'stopped' },
+      },
     });
   }
   for (const key of memory.services.keys()) {
@@ -148,6 +161,13 @@ export async function checkDisk(disk: Capacity) {
             kind: 'disk',
             subject: 'The disk',
             message: `${Math.round(share * 100)}% full, ${left} GB left`,
+            words: {
+              subject: { key: 'disk' },
+              message: {
+                key: 'diskFull',
+                values: { share: Math.round(share * 100), left },
+              },
+            },
           },
         ]
       : []
@@ -177,6 +197,12 @@ export async function checkSites(checks: SiteResult[]) {
         message: check.status
           ? `Answering ${check.status}`
           : (check.error ?? 'No answer'),
+        // What the request failed with, as its error says, stays as it is
+        words: check.status
+          ? { message: { key: 'answering', values: { status: check.status } } }
+          : check.error
+            ? undefined
+            : { message: { key: 'noAnswer' } },
       });
     }
   }
@@ -215,15 +241,23 @@ function certOf(host: string) {
   });
 }
 
-/** What's wrong with a certificate that runs out at `validTo`, if anything. */
-export function certProblem(validTo: number | undefined, now = Date.now()) {
+/** What's wrong with a certificate that runs out at `validTo`, if anything, and in words. */
+export function certProblem(
+  validTo: number | undefined,
+  now = Date.now()
+): { message: string; text: AlertText } | undefined {
   if (validTo === undefined) return undefined;
   const left = (validTo - now) / DAY_MS;
-  if (left <= 0) return 'Certificate has run out';
+  if (left <= 0) {
+    return { message: 'Certificate has run out', text: { key: 'certExpired' } };
+  }
   if (left >= CERT_DAYS) return undefined;
   // In whole days, rounded up, so its last hours are "1 day"
   const days = Math.ceil(left);
-  return `Certificate runs out in ${days} day${days === 1 ? '' : 's'}`;
+  return {
+    message: `Certificate runs out in ${days} day${days === 1 ? '' : 's'}`,
+    text: { key: 'certRunsOut', values: { days } },
+  };
 }
 
 /**
@@ -249,15 +283,20 @@ export async function checkCerts(containers: Container[]) {
   await Promise.all(
     [...hosts].map(async (host) => {
       const { validTo, problem } = await certOf(host);
-      const message = problem
-        ? `Certificate: ${problem}`
+      // Why it isn't trusted, in the TLS library's words
+      const found = problem
+        ? {
+            message: `Certificate: ${problem}`,
+            text: { key: 'certProblem' as const, values: { problem } },
+          }
         : certProblem(validTo);
-      if (message) {
+      if (found) {
         findings.push({
           key: `cert:${host}`,
           kind: 'cert',
           subject: host,
-          message,
+          message: found.message,
+          words: { message: found.text },
         });
       }
     })

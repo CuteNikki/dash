@@ -1480,6 +1480,23 @@ declare const messages: {
     "backupNeedsPassword": "Set BACKUP_PASSWORD in the dashboard's .env to turn backups on",
     "backupNeedsStorage": "Set the storage's keys, or BACKUP_REPOSITORY, for where backups go",
     "noAnswer": "No answer"
+  },
+  "alertWords": {
+    "unhealthy": "Unhealthy",
+    "restarting": "Restarting over and over",
+    "dead": "Dead",
+    "stoppedCode": "Stopped, exit code {code, number}",
+    "stopped": "Stopped",
+    "disk": "The disk",
+    "diskFull": "{share, number}% full, {left, number} GB left",
+    "answering": "Answering {status, number}",
+    "noAnswer": "No answer",
+    "certExpired": "Certificate has run out",
+    "certRunsOut": "Certificate runs out in {days, plural, one {# day} other {# days}}",
+    "certProblem": "Certificate: {problem}",
+    "backupOf": "Backup of {name}",
+    "failed": "Failed",
+    "raw": "{text}"
   }
 };
 export default messages;

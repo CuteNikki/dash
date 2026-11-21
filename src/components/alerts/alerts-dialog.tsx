@@ -17,7 +17,7 @@ import {
 import { useFormat } from '@/i18n/use-format';
 
 import { fetcher } from '@/lib/fetcher';
-import type { AlertView } from '@/lib/types';
+import type { AlertText, AlertView } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 import { ButtonCount } from '@/components/common/button-count';
@@ -162,6 +162,13 @@ function AlertRow({
   /** A placeholder's place, for its lines' lengths */
   index?: number;
 }) {
+  const words = useTranslations('alertWords') as unknown as (
+    key: string,
+    values?: Record<string, string | number>
+  ) => string;
+  // In the reader's language where it has words, as alerts from before them don't
+  const say = (text: AlertText | undefined, english: string) =>
+    text ? words(text.key, text.values) : english;
   const format = useFormat();
   const t = useTranslations('alerts');
   if (!alert) {
@@ -201,7 +208,7 @@ function AlertRow({
         <span className='flex items-baseline justify-between gap-3'>
           {/* Whole, on two lines if it must: it's what the alert's about */}
           <span className='min-w-0 font-medium wrap-break-word'>
-            {alert.subject}
+            {say(alert.words?.subject, alert.subject)}
           </span>
           {/* On a phone, on a line of its own at the end, so the name has
               this one, and an envelope in its place if it was mailed */}
@@ -221,7 +228,7 @@ function AlertRow({
             alert.resolvedAt ? 'text-muted-foreground' : 'text-destructive'
           )}
         >
-          {alert.message}
+          {say(alert.words?.message, alert.message)}
         </span>
         <span className='text-muted-foreground'>
           {alert.resolvedAt

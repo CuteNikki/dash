@@ -427,6 +427,13 @@ async function raiseFailures(results: Result[]) {
       kind: 'backup',
       subject: `Backup of ${label(r.source)}`,
       message: r.error ?? 'Failed',
+      // What restic said stays as it said it
+      words: {
+        subject: { key: 'backupOf', values: { name: label(r.source) } },
+        message: r.error
+          ? { key: 'raw', values: { text: r.error } }
+          : { key: 'failed' },
+      },
     }));
   const covered = new Set(results.map((r) => `backup:${r.source}`));
   // Unless they couldn't be listed, which isn't to say they're all gone

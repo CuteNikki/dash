@@ -291,6 +291,10 @@ model Alert {
   kind       String
   /// What's wrong, in a few words, as it was last found: "Stopped, exit code 137"
   message    String
+  /// The message, and the subject where it has one of its own, as keys under
+  /// "alertWords" with their values, for each reader's language; none in
+  /// alerts from before, which say only the English above
+  words      Json?
   /// What it's about, for reading: "minecraft", "niso.moe"
   subject    String
   since      DateTime  @default(now())

@@ -1477,5 +1477,22 @@
     "backupNeedsPassword": "Setze BACKUP_PASSWORD in der .env des Dashboards, um Sicherungen einzuschalten",
     "backupNeedsStorage": "Setze die Schlüssel des Speichers oder BACKUP_REPOSITORY, wohin die Sicherungen gehen",
     "noAnswer": "Keine Antwort"
+  },
+  "alertWords": {
+    "unhealthy": "Fehlerhaft",
+    "restarting": "Startet immer wieder neu",
+    "dead": "Tot",
+    "stoppedCode": "Gestoppt, Exit-Code {code, number}",
+    "stopped": "Gestoppt",
+    "disk": "Der Datenträger",
+    "diskFull": "{share, number} % voll, {left, number} GB frei",
+    "answering": "Antwortet mit {status, number}",
+    "noAnswer": "Keine Antwort",
+    "certExpired": "Zertifikat ist abgelaufen",
+    "certRunsOut": "Zertifikat läuft in {days, plural, one {# Tag} other {# Tagen}} ab",
+    "certProblem": "Zertifikat: {problem}",
+    "backupOf": "Sicherung von {name}",
+    "failed": "Fehlgeschlagen",
+    "raw": "{text}"
   }
 }

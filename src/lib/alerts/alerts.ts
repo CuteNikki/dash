@@ -2,15 +2,19 @@ import 'server-only';
 
 import { can, ROLES } from '@/lib/auth/roles';
 import { db } from '@/lib/db';
+import { Prisma } from '@/lib/generated/prisma/client';
 import { mailReady, sendMail } from '@/lib/mail/mail';
 import { alertsMail } from '@/lib/mail/templates';
+import type { AlertWords } from '@/lib/types';
 
 /** What a check finds wrong now. Whatever it checks and doesn't find is fine. */
 export type Finding = {
   key: string;
   kind: AlertKind;
+  /** In English, as kept and mailed; `words` says it in the reader's language */
   subject: string;
   message: string;
+  words?: AlertWords;
 };
 
 export type AlertKind = 'service' | 'disk' | 'site' | 'cert' | 'backup';
@@ -48,13 +52,22 @@ export async function reconcile(
     } else if (finding.message !== alert.message) {
       await db.alert.update({
         where: { id: alert.id },
-        data: { message: finding.message, subject: finding.subject },
+        data: {
+          message: finding.message,
+          subject: finding.subject,
+          words: finding.words ?? Prisma.DbNull,
+        },
       });
     }
     found.delete(alert.key);
   }
   if (found.size) {
-    await db.alert.createMany({ data: [...found.values()] });
+    await db.alert.createMany({
+      data: [...found.values()].map((f) => ({
+        ...f,
+        words: f.words ?? Prisma.DbNull,
+      })),
+    });
   }
 }
 
