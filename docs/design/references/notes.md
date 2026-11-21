@@ -16,10 +16,14 @@ The images are third-party screenshots, kept locally only (ignored by git). To g
 | `betterstack-status.png`                       | [status.betterstack.com](https://status.betterstack.com/)                              | Big verdict first ("All services are online" + last updated), then one uptime bar, then rows with a small "Operational" badge.                                                                                                                                                                                         | Top of the board, History, site uptime  |
 | `github-status.png`, `github-status-phone.png` | [githubstatus.com](https://www.githubstatus.com/)                                      | Many services in a two-column grid, each with a check, 90 tick bars and "Normal". On a phone it becomes one column with nothing lost.                                                                                                                                                                                  | Board on phone, uptime bars             |
 
+| `t3code-hero.png` | [T3 Code](https://github.com/pingdotgg/t3code) (`pingdotgg/t3code`, open source) | The strongest overall reference: a lot of UI/UX work went into it. List items show a quiet timestamp and only swap it for a status when you are needed ("Approval" in amber, "Done" in green). Context actions sit in one compact panel as menu rows (Open in editor, Commit, push & PR) with a chevron for variants, not as colored buttons. On the phone, the approval card has one big primary (Allow once), a plain secondary (Allow session) and a muted red Decline set apart at the bottom. Monochrome everywhere; color only for status and +/- counts. | Tiles and rows, service actions, confirm dialogs, phone layout |
+| `t3code-app.png` | [t3.codes](https://t3.codes/) | The list splits into "Working" (live, on top) and "Settled 43" (collapsed). Things that need attention float up, everything fine folds away. A composer with `/ commands` is the way to do anything. | Board grouping (problems and busy on top), command palette |
+
 ## Common thread
 
 1. A verdict first, details second (Better Stack, GitHub).
-2. Healthy looks identical and quiet; only problems get color (Beszel, Coolify).
-3. Static facts shrink to one line (Beszel).
-4. Actions always in the same place, one primary (Coolify, Linear).
-5. Adding starts from search, not a form (Railway).
+2. Healthy looks identical and quiet; only problems get color (Beszel, Coolify, T3 Code).
+3. What needs you floats up; what's fine folds away (T3 Code).
+4. Static facts shrink to one line (Beszel).
+5. Actions always in the same place, one primary, destructive set apart (Coolify, Linear, T3 Code).
+6. Adding starts from search, not a form (Railway).
