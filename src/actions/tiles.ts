@@ -19,7 +19,14 @@ const MAX_ROW = 1000;
 /** Services in a group being renamed, far past any real one */
 const MAX_RENAMED = 1000;
 
+/** The longest key a chip's label has, and the most any app's tile has. */
+const MAX_STAT_KEY = 40;
+const MAX_HIDDEN_STATS = 20;
+
 const Group = z.string().trim().min(1, 'Pick or type a group').max(MAX_GROUP);
+
+/** Its app's numbers left off a tile, by their labels' keys: no more than any app has. */
+const HiddenStats = z.array(z.string().max(MAX_STAT_KEY)).max(MAX_HIDDEN_STATS);
 
 const TileInput = z.object({
   key: z.string().min(1),
@@ -37,6 +44,7 @@ const TileInput = z.object({
   group: Group,
   hidden: z.boolean(),
   ignoreUpdates: z.boolean(),
+  hiddenStats: HiddenStats,
 });
 
 export type TileInput = z.input<typeof TileInput>;
@@ -229,6 +237,7 @@ const TileSnapshot = z.object({
   height: z.number().int().min(1).max(MAX_ROWS),
   hidden: z.boolean(),
   ignoreUpdates: z.boolean(),
+  hiddenStats: HiddenStats,
 });
 
 /** Puts back a tile's edits as a reset found them. */

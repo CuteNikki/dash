@@ -29,6 +29,8 @@ model Tile {
   hidden        Boolean  @default(false)
   /// Its updates aren't offered: a helper that's never updated, say
   ignoreUpdates Boolean  @default(false)
+  /// Its app's numbers left off it, by their labels' keys: "websites"
+  hiddenStats   String[] @default([])
   updatedAt     DateTime @updatedAt
 }
 

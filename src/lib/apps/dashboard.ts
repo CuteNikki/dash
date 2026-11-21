@@ -60,14 +60,15 @@ function backupOk(results: unknown) {
 
 /**
  * Its own numbers, the window counting rather than naming its users. Its
- * websites, the tiles of sites hosted elsewhere, only there, as a group named
- * Websites holds containers that aren't among them.
+ * websites are the tiles of sites hosted elsewhere, which a tile can leave
+ * off, as a group named Websites may hold containers that aren't among them.
  */
 export const dashboard: App = {
   read: async () => {
     const o = await read();
     return [
       { label: 'services', value: { number: o.services } },
+      { label: 'websites', value: { number: o.sites } },
       { label: 'users', value: { number: o.users } },
       { label: 'alerts', value: { number: o.alerts } },
     ];

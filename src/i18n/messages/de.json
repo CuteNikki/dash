@@ -216,5 +216,31 @@
   "appDetails": {
     "title": "Details",
     "failed": "Konnte nicht gelesen werden: {error}"
+  },
+  "editTile": {
+    "title": "Kachel bearbeiten",
+    "name": "Name",
+    "description": "Beschreibung",
+    "descriptionPlaceholder": "Eine kurze Zeile unter dem Namen",
+    "icon": "Symbol",
+    "addresses": "Adressen",
+    "group": "Gruppe",
+    "numbers": "Zahlen auf der Kachel",
+    "hide": "Auf dem Dashboard ausblenden",
+    "ignoreUpdates": "Updates ignorieren",
+    "save": "Speichern",
+    "saved": "{name} gespeichert",
+    "saveFailed": "{name} konnte nicht gespeichert werden",
+    "remove": "Entfernen",
+    "resetButton": "Zurücksetzen",
+    "removed": "{name} entfernt",
+    "reset": "{name} zurückgesetzt",
+    "removeFailed": "{name} konnte nicht entfernt werden",
+    "resetFailed": "{name} konnte nicht zurückgesetzt werden",
+    "removedDescription": "Die Kachel ist nicht mehr auf dem Dashboard.",
+    "resetDescription": "Name, Beschreibung, Symbol, Adressen, Gruppe und Zahlen sind wieder wie vorher.",
+    "undo": "Rückgängig",
+    "restored": "{name} wiederhergestellt",
+    "restoreFailed": "{name} konnte nicht wiederhergestellt werden"
   }
 }

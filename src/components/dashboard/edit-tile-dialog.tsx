@@ -1,13 +1,17 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
 import { resetTile, restoreTile, saveTile } from '@/actions/tiles';
 
-import { isSiteKey, MAX_DESCRIPTION } from '@/lib/dashboard/tiles';
-import type { Service } from '@/lib/types';
+import { useWords } from '@/i18n/use-words';
 
+import { isSiteKey, MAX_DESCRIPTION } from '@/lib/dashboard/tiles';
+import type { Service, StatKey } from '@/lib/types';
+
+import { allWidgetStats } from '@/components/charts/widget-stats';
 import { attempt } from '@/components/common/toasts';
 import {
   AddressesField,
@@ -16,6 +20,7 @@ import {
 import { GroupField } from '@/components/dashboard/fields/group-field';
 import { IconField } from '@/components/dashboard/fields/icon-field';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -28,7 +33,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 
-/** How a service's tile looks: its name, description, icon, addresses and group. */
+/** How a service's tile looks: its name, description, icon, addresses, group and the numbers on it. */
 export function EditTileDialog({
   service,
   groups,
@@ -68,6 +73,8 @@ function EditTileForm({
   groups: string[];
   onDone: () => void;
 }) {
+  const t = useTranslations('editTile');
+  const words = useWords();
   const [name, setName] = useState(service.name);
   const [description, setDescription] = useState(service.description ?? '');
   const [icon, setIcon] = useState(service.icon);
@@ -75,12 +82,20 @@ function EditTileForm({
   const [group, setGroup] = useState(service.group);
   const [hidden, setHidden] = useState(service.hidden);
   const [ignoreUpdates, setIgnoreUpdates] = useState(service.ignoreUpdates);
+  const [hiddenStats, setHiddenStats] = useState(service.hiddenStats);
+  // Its app's numbers as last read, and any left off it that it hasn't
+  // said this time, as a stream's fallback only while it's on
+  const read = allWidgetStats(service)?.map((s) => s.label) ?? [];
+  const statKeys = [
+    ...read,
+    ...service.hiddenStats.filter((k) => !read.includes(k as StatKey)),
+  ] as StatKey[];
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
 
   function save() {
     startTransition(() =>
-      attempt(`Couldn't save ${name}`, async () => {
+      attempt(t('saveFailed', { name }), async () => {
         const result = await saveTile({
           key: service.key,
           name,
@@ -90,12 +105,13 @@ function EditTileForm({
           group,
           hidden,
           ignoreUpdates,
+          hiddenStats,
         });
         if (result?.error) {
           setError(result.error);
           return;
         }
-        toast.success(`Saved ${name}`);
+        toast.success(t('saved', { name }));
         onDone();
       })
     );
@@ -107,21 +123,24 @@ function EditTileForm({
   function reset() {
     startTransition(() =>
       attempt(
-        `Couldn't ${site ? 'remove' : 'reset'} ${service.name}`,
+        t(site ? 'removeFailed' : 'resetFailed', { name: service.name }),
         async () => {
           const before = await resetTile(service.key);
-          toast.success(`${site ? 'Removed' : 'Reset'} ${service.name}`, {
-            description: site
-              ? 'Its tile is gone from the dashboard.'
-              : 'Its name, description, icon, addresses and group are back to defaults.',
+          toast.success(t(site ? 'removed' : 'reset', { name: service.name }), {
+            description: t(site ? 'removedDescription' : 'resetDescription'),
             action: before && {
-              label: 'Undo',
+              label: t('undo'),
               onClick: () =>
-                attempt(`Couldn't restore ${service.name}`, async () => {
-                  await restoreTile(before);
-                  toast.success(`Restored ${before.name ?? service.name}`);
-                  onDone();
-                }),
+                attempt(
+                  t('restoreFailed', { name: service.name }),
+                  async () => {
+                    await restoreTile(before);
+                    toast.success(
+                      t('restored', { name: before.name ?? service.name })
+                    );
+                    onDone();
+                  }
+                ),
             },
           });
           onDone();
@@ -139,7 +158,7 @@ function EditTileForm({
       }}
     >
       <DialogHeader>
-        <DialogTitle>Edit tile</DialogTitle>
+        <DialogTitle>{t('title')}</DialogTitle>
         <DialogDescription className='font-mono'>
           {service.containerName}
         </DialogDescription>
@@ -147,7 +166,7 @@ function EditTileForm({
 
       <div className='flex flex-col gap-4'>
         <div className='flex flex-col gap-2'>
-          <Label htmlFor='tile-name'>Name</Label>
+          <Label htmlFor='tile-name'>{t('name')}</Label>
           <Input
             id='tile-name'
             value={name}
@@ -156,17 +175,17 @@ function EditTileForm({
           />
         </div>
         <div className='flex flex-col gap-2'>
-          <Label htmlFor='tile-description'>Description</Label>
+          <Label htmlFor='tile-description'>{t('description')}</Label>
           <Input
             id='tile-description'
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             maxLength={MAX_DESCRIPTION}
-            placeholder='A short line under its name'
+            placeholder={t('descriptionPlaceholder')}
           />
         </div>
         <div className='flex flex-col gap-2'>
-          <Label htmlFor='tile-icon'>Icon</Label>
+          <Label htmlFor='tile-icon'>{t('icon')}</Label>
           <IconField
             id='tile-icon'
             value={icon}
@@ -175,7 +194,7 @@ function EditTileForm({
           />
         </div>
         <div className='flex flex-col gap-2'>
-          <Label htmlFor='tile-addresses'>Addresses</Label>
+          <Label htmlFor='tile-addresses'>{t('addresses')}</Label>
           <AddressesField
             id='tile-addresses'
             items={addresses}
@@ -183,7 +202,7 @@ function EditTileForm({
           />
         </div>
         <div className='flex flex-col gap-2'>
-          <Label htmlFor='tile-group'>Group</Label>
+          <Label htmlFor='tile-group'>{t('group')}</Label>
           <GroupField
             id='tile-group'
             value={group}
@@ -191,13 +210,37 @@ function EditTileForm({
             onChangeAction={setGroup}
           />
         </div>
+        {statKeys.length > 0 && (
+          <fieldset className='flex flex-col gap-2'>
+            <legend className='mb-2'>{t('numbers')}</legend>
+            {/* Each as the chip it is on the tile, ticked while it's there */}
+            <div className='flex flex-wrap gap-1.5'>
+              {statKeys.map((key) => (
+                <Label
+                  key={key}
+                  className='flex items-center gap-1.5 rounded-md bg-muted px-1.5 py-1 font-normal'
+                >
+                  <Checkbox
+                    checked={!hiddenStats.includes(key)}
+                    onCheckedChange={(on) =>
+                      setHiddenStats((list) =>
+                        on ? list.filter((k) => k !== key) : [...list, key]
+                      )
+                    }
+                  />
+                  {words.label(key)}
+                </Label>
+              ))}
+            </div>
+          </fieldset>
+        )}
         <div className='flex items-center gap-2'>
           <Switch
             id='tile-hidden'
             checked={hidden}
             onCheckedChange={setHidden}
           />
-          <Label htmlFor='tile-hidden'>Hide from the dashboard</Label>
+          <Label htmlFor='tile-hidden'>{t('hide')}</Label>
         </div>
         {/* A website elsewhere has no image to update */}
         {!site && (
@@ -207,7 +250,7 @@ function EditTileForm({
               checked={ignoreUpdates}
               onCheckedChange={setIgnoreUpdates}
             />
-            <Label htmlFor='tile-ignore-updates'>Ignore its updates</Label>
+            <Label htmlFor='tile-ignore-updates'>{t('ignoreUpdates')}</Label>
           </div>
         )}
         {error && <p className='text-destructive'>{error}</p>}
@@ -222,11 +265,11 @@ function EditTileForm({
             onClick={reset}
             className='mr-auto'
           >
-            {site ? 'Remove' : 'Reset'}
+            {t(site ? 'remove' : 'resetButton')}
           </Button>
         )}
         <Button type='submit' disabled={pending}>
-          Save
+          {t('save')}
         </Button>
       </DialogFooter>
     </form>

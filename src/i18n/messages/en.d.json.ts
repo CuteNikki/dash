@@ -219,6 +219,32 @@ declare const messages: {
   "appDetails": {
     "title": "Details",
     "failed": "Couldn't read what it has to say: {error}"
+  },
+  "editTile": {
+    "title": "Edit tile",
+    "name": "Name",
+    "description": "Description",
+    "descriptionPlaceholder": "A short line under its name",
+    "icon": "Icon",
+    "addresses": "Addresses",
+    "group": "Group",
+    "numbers": "Numbers on its tile",
+    "hide": "Hide from the dashboard",
+    "ignoreUpdates": "Ignore its updates",
+    "save": "Save",
+    "saved": "Saved {name}",
+    "saveFailed": "Couldn't save {name}",
+    "remove": "Remove",
+    "resetButton": "Reset",
+    "removed": "Removed {name}",
+    "reset": "Reset {name}",
+    "removeFailed": "Couldn't remove {name}",
+    "resetFailed": "Couldn't reset {name}",
+    "removedDescription": "Its tile is gone from the dashboard.",
+    "resetDescription": "Its name, description, icon, addresses, group and numbers are back to defaults.",
+    "undo": "Undo",
+    "restored": "Restored {name}",
+    "restoreFailed": "Couldn't restore {name}"
   }
 };
 export default messages;

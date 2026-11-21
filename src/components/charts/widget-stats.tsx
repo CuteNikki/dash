@@ -6,10 +6,18 @@ import { isRunning } from '@/lib/dashboard/status';
 import type { Service, WidgetStat } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-/** Its app's numbers while it runs; ones that couldn't be read leave nothing, why being in /api/services. */
-export function widgetStats(service: Service) {
+/** All its app's numbers while it runs, those left off its tile among them; ones that couldn't be read leave nothing, why being in /api/services. */
+export function allWidgetStats(service: Service) {
   const widget = isRunning(service.state) ? service.widget : undefined;
   return widget && 'stats' in widget ? widget.stats : undefined;
+}
+
+/** Its app's numbers its tile shows: all but those left off it. */
+export function widgetStats(service: Service) {
+  const stats = allWidgetStats(service)?.filter(
+    (s) => !service.hiddenStats.includes(s.label)
+  );
+  return stats?.length ? stats : undefined;
 }
 
 /** An app's numbers as chips, each its value then its label, wrapping as needed. */

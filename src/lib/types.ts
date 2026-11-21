@@ -35,6 +35,8 @@ export type Service = {
   hidden: boolean;
   /** Its updates aren't looked for here: no badge, nor a row under Updates */
   ignoreUpdates: boolean;
+  /** Its app's numbers left off its tile, by their labels' keys */
+  hiddenStats: string[];
   /** Whether its tile has been edited here, rather than from labels */
   edited: boolean;
   image: string;

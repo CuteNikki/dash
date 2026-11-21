@@ -97,6 +97,7 @@ function siteService(
     height: tile.height,
     hidden: tile.hidden,
     ignoreUpdates: false,
+    hiddenStats: tile.hiddenStats,
     edited: true,
     image: '',
     state: !url
@@ -248,6 +249,7 @@ export async function getDashboard(who: {
       height: tile?.height ?? 1,
       hidden: tile?.hidden ?? false,
       ignoreUpdates: tile?.ignoreUpdates ?? false,
+      hiddenStats: tile?.hiddenStats ?? [],
       edited: !!tile,
       image: c.image,
       state: c.state,
