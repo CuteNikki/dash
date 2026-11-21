@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useId, useRef, useState } from 'react';
 
 import { useFormat } from '@/i18n/use-format';
 
@@ -58,6 +58,9 @@ function runs(values: (number | null)[], times: number[]) {
   return found;
 }
 
+/** How strong a lone line's fill is just under it, before it fades away below */
+const FILL_TOP = 0.25;
+
 type ChartSeries = {
   label: string;
   /** Null where there's no reading, as while the dashboard was down: a gap in the line */
@@ -89,6 +92,8 @@ export function HistoryChart({
   const t = useTranslations('common');
   const format = useFormat();
   const [index, setIndex] = useState<number>();
+  // Its own name for the fill's fade, as a page has several charts
+  const fade = useId();
   const ref = useRef<HTMLDivElement>(null);
   const showing = index !== undefined;
   // Gone once anything else is touched, the tooltip or another chart
@@ -133,6 +138,7 @@ export function HistoryChart({
   const y = (v: number) => 100 - (v / top) * 100;
   const shown = index === undefined ? undefined : Math.min(index, count - 1);
   const days = times[count - 1] - times[0] > DAYS_MS;
+  const fillable = series.length === 1;
 
   function pointAt(clientX: number, element: HTMLElement) {
     const { left, width } = element.getBoundingClientRect();
@@ -188,6 +194,13 @@ export function HistoryChart({
         aria-hidden
         className='size-full overflow-visible'
       >
+        {/* The fill below a line, faint under it and gone at the bottom */}
+        <defs>
+          <linearGradient id={fade} x1='0' y1='0' x2='0' y2='1'>
+            <stop offset='0' stopColor='currentColor' stopOpacity={FILL_TOP} />
+            <stop offset='1' stopColor='currentColor' stopOpacity={0} />
+          </linearGradient>
+        </defs>
         {series.flatMap((s) =>
           runs(s.values, times).map((run) => {
             // A reading alone between gaps is a dot: a line of no length,
@@ -196,22 +209,32 @@ export function HistoryChart({
             const points = (alone ? [run.values[0], run.values[0]] : run.values)
               .map((v, i) => `${x(run.start + (alone ? 0 : i))},${y(v)}`)
               .join(' ');
+            const end = run.start + run.values.length - 1;
             return (
-              <polyline
-                key={`${s.label} ${run.start}`}
-                points={points}
-                fill='none'
-                stroke='currentColor'
-                strokeWidth={alone ? 3 : s.faint ? 1 : 1.5}
-                strokeLinecap={alone ? 'round' : undefined}
-                strokeLinejoin='round'
-                vectorEffect='non-scaling-stroke'
-                strokeDasharray={s.dashed && !alone ? '3 3' : undefined}
-                className={cn(
-                  s.dashed && 'opacity-50',
-                  s.faint && 'opacity-30'
+              <Fragment key={`${s.label} ${run.start}`}>
+                {/* A line alone in its chart is filled below, to read at a
+                    glance; with others beside it, fills would only blur together */}
+                {fillable && !alone && (
+                  <polygon
+                    points={`${points} ${x(end)},100 ${x(run.start)},100`}
+                    fill={`url(#${fade})`}
+                  />
                 )}
-              />
+                <polyline
+                  points={points}
+                  fill='none'
+                  stroke='currentColor'
+                  strokeWidth={alone ? 3 : s.faint ? 1 : 1.5}
+                  strokeLinecap={alone ? 'round' : undefined}
+                  strokeLinejoin='round'
+                  vectorEffect='non-scaling-stroke'
+                  strokeDasharray={s.dashed && !alone ? '3 3' : undefined}
+                  className={cn(
+                    s.dashed && 'opacity-50',
+                    s.faint && 'opacity-30'
+                  )}
+                />
+              </Fragment>
             );
           })
         )}
