@@ -36,7 +36,7 @@ Design for this order. The first job should take zero clicks and zero reading; t
 | [Better Stack status pages](https://www.saasframe.io/saas/better-stack)                                                                                           | A single headline verdict, then uptime ticks per service.                                                                                                                             | Board top, History, site uptime       |
 | [GitHub status](https://www.githubstatus.com/)                                                                                                                    | The minimal benchmark for showing many services' health.                                                                                                                              | Board, list view                      |
 
-Screenshots of these (and anything else that feels right) go in `docs/design/references/`, with one line each in `docs/design/references/notes.md` saying what is liked about it. Pages behind a login (Linear, Vercel dashboards) need manual screenshots.
+Screenshots and what to take from each are in [references/notes.md](references/notes.md). The images are kept locally only (third-party, ignored by git). More can be added there any time: a screenshot plus one line on what is liked about it.
 
 ## What looks off today
 
@@ -72,6 +72,67 @@ These hold for every round (see also the README and the repo's lint scripts):
 - One commit per change. Run typecheck, lint, lint:classes, format:check and test before committing.
 
 ## Prompts
+
+Copy a prompt as is and paste it into Claude Code from the dash folder. Pick by what you want:
+
+| You want                                           | Run                                                   |
+| -------------------------------------------------- | ----------------------------------------------------- |
+| A new look and layout, decided by you from options | **Redesign A**, pick a direction, then **Redesign B** |
+| The current design, just better and easier         | **1. Audit and plan**, then **2. Polish**             |
+| Small things that bug you                          | **3. Friction log**                                   |
+
+The redesign shows options first and changes no code until you pick one. Each prompt stops for your OK before it changes anything big.
+
+### Redesign A: Directions (no code changes)
+
+Best with a model strong at visual design (e.g. `/model` Fable).
+
+```
+Read docs/design/ui-ux-playbook.md and docs/design/references/notes.md, and
+look at the screenshots in docs/design/references/.
+
+I want a real redesign of dash, not a polish pass: rethink layout, hierarchy
+and flows for the five jobs in the playbook. Every feature stays; how it is
+presented may change completely.
+
+Make 3 distinct directions as static HTML mockups in the scratchpad, using
+dash's real data shapes (read the components and lib/ to see what a tile, a
+service and the server card actually show) and shadcn-style components:
+- each shows: the board with everything fine, the board with one service down
+  and one update waiting, the service view, and the phone layout at 320px;
+  light and dark
+- each starts with a short note: the idea in one sentence, which references it
+  leans on, which of the five jobs it makes faster, what it gives up
+- make them really different, e.g. (1) status-first: a verdict on top, quiet
+  healthy tiles, problems pulled up; (2) control-room table: one dense list
+  like Coolify/Beszel with actions on each row; (3) act-in-place: the board
+  stays, a service opens in a side panel instead of a dialog
+
+Screenshot every mockup and show them side by side, with your recommendation.
+Don't touch the app's code. I'll pick one or mix parts.
+```
+
+### Redesign B: Build the chosen direction
+
+Run after picking. Fill in the two blanks.
+
+```
+Build direction <number> (plus <parts from another direction, or "nothing">)
+into dash.
+
+First add a "Target design" section to docs/design/ui-ux-playbook.md: the
+chosen mockup screenshots (saved to docs/design/target/) and the decisions
+behind them. Commit that on its own.
+
+Then plan small steps in this order: theme tokens and base components > header
+> board and list view > service view > dialogs (New service, Updates, Backups,
+History, Settings) > phone layout. Show me the plan and wait.
+
+Per step: implement, screenshot at 320/768/1440 in every theme, compare with
+the mockup, fix gaps, run the checks, commit on its own. Stop after the header
+and board steps so I can try it in the dev server before you go on. Follow the
+playbook's guardrails. Don't deploy.
+```
 
 ### 1. Audit and plan (multi-agent)
 

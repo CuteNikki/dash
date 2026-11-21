@@ -50,3 +50,6 @@ next-env.d.ts
 
 # Settings for one server only (networks, names), kept on that server
 compose.override.yaml
+
+# third-party reference screenshots, kept local (see docs/design/references/notes.md)
+/docs/design/references/*.png
