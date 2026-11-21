@@ -4,6 +4,8 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { cache } from 'react';
 
+import { issueText } from '@/i18n/errors';
+
 import { auth } from '@/lib/auth/auth';
 import {
   can,
@@ -50,11 +52,8 @@ export const getAccess = cache(async (): Promise<Access | undefined> => {
 export class AccessError extends Error {
   constructor(readonly status: 401 | 403 | 404) {
     super(
-      status === 401
-        ? 'Sign in first'
-        : status === 404
-          ? 'That no longer exists'
-          : "Your account can't do that"
+      // Keys under "errors", which refusal() says in the asker's language
+      status === 401 ? 'signInFirst' : status === 404 ? 'gone' : 'notAllowed'
     );
   }
 }
@@ -81,8 +80,11 @@ export async function denied(ability: Ability) {
   return undefined;
 }
 
-export function refusal(error: AccessError) {
-  return Response.json({ error: error.message }, { status: error.status });
+export async function refusal(error: AccessError) {
+  return Response.json(
+    { error: await issueText(error.message) },
+    { status: error.status }
+  );
 }
 
 /**

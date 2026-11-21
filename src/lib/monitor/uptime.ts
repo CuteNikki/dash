@@ -67,7 +67,8 @@ export async function siteUptime(
     outages: runs.map((r) => ({
       from: r.start.getTime(),
       to: r.latest ? undefined : r.end.getTime() + CHECK_MS,
-      reason: r.reason ?? 'No answer',
+      // A key under "errors" when it gave none
+      reason: r.reason ?? 'noAnswer',
     })),
     history: await bucketed(
       'SiteCheckLog',

@@ -1,3 +1,5 @@
+import { issueText } from '@/i18n/errors';
+
 import { denied } from '@/lib/auth/access';
 import { readStackImage, stackOf } from '@/lib/docker/stack-files';
 
@@ -18,7 +20,10 @@ export async function GET(
   try {
     const image = await readStackImage(stack, path);
     if ('reason' in image) {
-      return Response.json({ error: image.reason }, { status: 404 });
+      return Response.json(
+        { error: await issueText(image.reason) },
+        { status: 404 }
+      );
     }
     return new Response(new Uint8Array(image.bytes), {
       headers: {

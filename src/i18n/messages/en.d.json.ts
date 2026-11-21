@@ -656,7 +656,16 @@ declare const messages: {
     "total": "{count, number} total",
     "process": "Process",
     "open": "Open {name}",
-    "noMatch": "No processes match."
+    "noMatch": "No processes match.",
+    "states": {
+      "R": "Running",
+      "S": "Sleeping",
+      "D": "Waiting on the disk",
+      "Z": "Ended, not yet cleared",
+      "T": "Paused",
+      "t": "Paused by a debugger",
+      "I": "Idle"
+    }
   },
   "system": {
     "upToDateToast": "The server's packages are up to date",
@@ -1451,7 +1460,26 @@ declare const messages: {
     "tooManyAddresses": "Up to 10 addresses",
     "repositoryUrl": "A repository to clone over HTTPS or SSH, such as https://github.com/owner/repo",
     "branchName": "That's not a name a branch can have",
-    "formWrong": "That form isn't right"
+    "formWrong": "That form isn't right",
+    "signInFirst": "Sign in first",
+    "gone": "That no longer exists",
+    "notAllowed": "Your account can't do that",
+    "noSuchFile": "There's no such file",
+    "isFolder": "That's a folder",
+    "tooBigToEdit": "Too big to edit here; it's data rather than a setting",
+    "notText": "Not a text file",
+    "notPicture": "Not a picture",
+    "tooBigToShow": "Too big to show here",
+    "lockedInit": "It's the server's own first process, which runs all the others.",
+    "lockedKernel": "It's part of the kernel.",
+    "lockedEssential": "The server depends on it: stopping it could take every service down, or lock you out.",
+    "lockedSelf": "It's this dashboard.",
+    "processReplaced": "That process has ended, and its id now belongs to another.",
+    "processStillThere": "It's still there: it may be waiting on the disk, which even a forced stop has to wait for.",
+    "processStillRunning": "It's still running: it may be finishing up, or ignoring the request.",
+    "backupNeedsPassword": "Set BACKUP_PASSWORD in the dashboard's .env to turn backups on",
+    "backupNeedsStorage": "Set the storage's keys, or BACKUP_REPOSITORY, for where backups go",
+    "noAnswer": "No answer"
   }
 };
 export default messages;

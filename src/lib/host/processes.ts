@@ -62,27 +62,17 @@ const WAIT_STEP_SECONDS = 0.25;
 const ESSENTIAL =
   /^(systemd.*|init|kthreadd|dockerd|containerd|containerd-shim.*|sshd|sshd-session|caddy)$/;
 
-const STATES: Record<string, string> = {
-  R: 'Running',
-  S: 'Sleeping',
-  D: 'Waiting on the disk',
-  Z: 'Ended, not yet cleared',
-  T: 'Paused',
-  t: 'Paused by a debugger',
-  I: 'Idle',
-};
-
+/** Why a process can't be stopped from here, as a key under "errors", or none. */
 function lockedReason(
   d: Pick<ProcessDetails, 'pid' | 'parentPid' | 'name' | 'containerId'>
 ) {
-  if (d.pid === 1)
-    return "It's the server's own first process, which runs all the others.";
-  if (d.pid === 2 || d.parentPid === 2) return "It's part of the kernel.";
+  if (d.pid === 1) return 'lockedInit';
+  if (d.pid === 2 || d.parentPid === 2) return 'lockedKernel';
   if (ESSENTIAL.test(d.name)) {
-    return 'The server depends on it: stopping it could take every service down, or lock you out.';
+    return 'lockedEssential';
   }
   // A container's id begins with its hostname, so this is the dashboard's own
-  if (d.containerId?.startsWith(hostname())) return "It's this dashboard.";
+  if (d.containerId?.startsWith(hostname())) return 'lockedSelf';
   return undefined;
 }
 
@@ -143,7 +133,8 @@ cat /etc/passwd`,
     name,
     command: command.trim(),
     user,
-    state: STATES[fields[0]] ?? fields[0],
+    // Its letter, which the page says in words under "process.states"
+    state: fields[0],
     threads: Number(field('Threads')),
     parentPid: Number(fields[1]),
     startedAt: Date.now() - (secondsUp - start / TICKS_PER_SECOND) * 1000,
@@ -175,7 +166,7 @@ export async function stopProcess(
     return {
       ok: false,
       outcome: 'replaced',
-      error: 'That process has ended, and its id now belongs to another.',
+      error: 'processReplaced',
     };
   }
   if (details.locked) {
@@ -216,15 +207,13 @@ exit ${STILL_RUNNING}`,
       return {
         ok: false,
         outcome: 'replaced',
-        error: 'That process has ended, and its id now belongs to another.',
+        error: 'processReplaced',
       };
     case STILL_RUNNING:
       return {
         ok: false,
         outcome: 'running',
-        error: force
-          ? "It's still there: it may be waiting on the disk, which even a forced stop has to wait for."
-          : "It's still running: it may be finishing up, or ignoring the request.",
+        error: force ? 'processStillThere' : 'processStillRunning',
       };
     default:
       return {

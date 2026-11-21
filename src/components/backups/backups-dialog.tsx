@@ -21,6 +21,7 @@ import {
 } from '@/actions/backups';
 
 import { useFormat } from '@/i18n/use-format';
+import { useIssueText } from '@/i18n/use-issue-text';
 
 import { readRunStream } from '@/lib/docker/read-run-stream';
 import { fetcher } from '@/lib/fetcher';
@@ -80,6 +81,7 @@ export function BackupsDialog({
   open: boolean;
   onCloseAction: () => void;
 }) {
+  const issueText = useIssueText();
   const format = useFormat();
   const t = useTranslations('backups');
   const { data, error, mutate } = useSWR<BackupState>(
@@ -221,7 +223,7 @@ export function BackupsDialog({
             {!data
               ? t('looking')
               : data.off
-                ? data.off
+                ? issueText(data.off)
                 : [
                     t('nightly', { time: data.nightlyAt }),
                     data.where === 'local' ? t('local') : t('offServer'),

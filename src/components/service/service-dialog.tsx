@@ -25,6 +25,7 @@ import {
 import { resetTile, restoreTile } from '@/actions/tiles';
 
 import { useFormat } from '@/i18n/use-format';
+import { useIssueText } from '@/i18n/use-issue-text';
 
 import { isRunning, labelOf } from '@/lib/dashboard/status';
 import type { ContainerAction } from '@/lib/docker/docker';
@@ -703,6 +704,7 @@ function SiteUptimeView({
   uptime?: SiteUptime;
   range: UptimeRange;
 }) {
+  const issueText = useIssueText();
   const tr = useTranslations('ranges');
   const format = useFormat();
   const t = useTranslations('service');
@@ -793,7 +795,7 @@ function SiteUptimeView({
                     : t('stillDown')}
                 </span>
                 <span className='min-w-0 truncate text-muted-foreground'>
-                  {o.reason}
+                  {issueText(o.reason)}
                 </span>
               </li>
             ))}

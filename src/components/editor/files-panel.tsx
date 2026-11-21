@@ -16,6 +16,8 @@ import {
 
 import { saveFile } from '@/actions/files';
 
+import { useIssueText } from '@/i18n/use-issue-text';
+
 import { readRunStream } from '@/lib/docker/read-run-stream';
 import type { OpenedFile, StackInfo } from '@/lib/docker/stack-files';
 import { fetcher } from '@/lib/fetcher';
@@ -69,6 +71,7 @@ export function FilesPanel({
   /** After a file's saved, made, renamed or deleted, as its repository's status changes with it */
   onFilesChangedAction: () => void;
 }) {
+  const issueText = useIssueText();
   const t = useTranslations('files');
   const base = `/api/containers/${containerId}/files`;
   const { data: info, error } = useSWR<StackInfo>(base, fetcher, {
@@ -204,7 +207,7 @@ export function FilesPanel({
               <CodeSkeleton />
             ) : opened.content === undefined ? (
               <p className='rounded-lg bg-muted p-3 text-muted-foreground'>
-                {name}: {opened.reason}
+                {name}: {issueText(opened.reason)}
               </p>
             ) : previewing ? (
               <MarkdownPreview

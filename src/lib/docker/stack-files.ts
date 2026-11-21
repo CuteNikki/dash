@@ -92,6 +92,7 @@ export async function listStackDir(
 }
 
 export type OpenedFile =
+  /** Why it can't be opened: a key under "errors" */
   { content: string } | { content?: undefined; reason: string };
 
 export async function openStackFile(
@@ -101,13 +102,13 @@ export async function openStackFile(
   const path = await resolve(stack, relative);
   const siblings = await listHostDir(posix.dirname(path)).catch(() => []);
   const entry = siblings.find((e) => e.name === posix.basename(path));
-  if (!entry) return { reason: "There's no such file" };
-  if (entry.kind === 'dir') return { reason: "That's a folder" };
+  if (!entry) return { reason: 'noSuchFile' };
+  if (entry.kind === 'dir') return { reason: 'isFolder' };
   if (entry.size > MAX_EDIT_BYTES) {
-    return { reason: "Too big to edit here; it's data rather than a setting" };
+    return { reason: 'tooBigToEdit' };
   }
   if ((await readHostFileStart(path, SNIFF_BYTES)).includes(0)) {
-    return { reason: 'Not a text file' };
+    return { reason: 'notText' };
   }
   return { content: (await readHostFile(path)) ?? '' };
 }
@@ -137,12 +138,12 @@ export async function readStackImage(
   relative: string
 ): Promise<{ bytes: Buffer; type: string } | { reason: string }> {
   const type = IMAGE_TYPES[posix.extname(relative).slice(1).toLowerCase()];
-  if (!type) return { reason: 'Not a picture' };
+  if (!type) return { reason: 'notPicture' };
   const path = await resolve(stack, relative);
   const siblings = await listHostDir(posix.dirname(path)).catch(() => []);
   const entry = siblings.find((e) => e.name === posix.basename(path));
-  if (!entry || entry.kind === 'dir') return { reason: "There's no such file" };
-  if (entry.size > MAX_IMAGE_BYTES) return { reason: 'Too big to show here' };
+  if (!entry || entry.kind === 'dir') return { reason: 'noSuchFile' };
+  if (entry.size > MAX_IMAGE_BYTES) return { reason: 'tooBigToShow' };
   return { bytes: await readHostFileStart(path, entry.size), type };
 }
 

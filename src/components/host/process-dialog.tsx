@@ -10,6 +10,7 @@ import { LockIcon, SquareIcon, ZapIcon } from 'lucide-react';
 import { stopProcess } from '@/actions/processes';
 
 import { useFormat } from '@/i18n/use-format';
+import { useIssueText } from '@/i18n/use-issue-text';
 
 import { fetcher } from '@/lib/fetcher';
 import type { HostProcess, ProcessDetails, Service } from '@/lib/types';
@@ -87,6 +88,7 @@ function Details({
   onOpenService: (service: Service) => void;
   onClose: () => void;
 }) {
+  const issueText = useIssueText();
   const format = useFormat();
   const t = useTranslations('process');
   const { data, error, mutate } = useSWR<ProcessDetails>(
@@ -113,10 +115,10 @@ function Details({
           );
           onClose();
         } else if (result.outcome === 'running') {
-          setStubborn(result.error);
+          setStubborn(issueText(result.error));
         } else {
           toast.error(t('stopFailed', { name: data.name }), {
-            description: result.error,
+            description: issueText(result.error),
           });
           if (result.outcome === 'replaced') onClose();
           else await mutate();
@@ -156,7 +158,11 @@ function Details({
                 {format.duration(data.runningFor)}
               </span>
             </Detail>
-            <Detail label={t('labels.state')}>{data.state}</Detail>
+            <Detail label={t('labels.state')}>
+              {t.has(`states.${data.state}` as 'states.R')
+                ? t(`states.${data.state}` as 'states.R')
+                : data.state}
+            </Detail>
             <Detail label={t('labels.cpu')}>{format.cpu(process.cpu)}</Detail>
             <Detail label={t('labels.memory')}>
               {format.bytes(data.memory)}
@@ -208,7 +214,7 @@ function Details({
           // dialog's the same height whichever it shows
           <p className='mr-auto flex min-h-7 items-center gap-2 text-muted-foreground'>
             <LockIcon className='size-3.5 shrink-0' />
-            {data.locked}
+            {issueText(data.locked)}
           </p>
         ) : stubborn ? (
           <Button

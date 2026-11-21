@@ -59,12 +59,12 @@ type Config = {
   local: boolean;
 };
 
-/** How restic reaches the repository, or why backups are off. */
+/** How restic reaches the repository, or why backups are off, as a key under "errors". */
 export function backupConfig(): Config | { off: string } {
   const password = process.env.BACKUP_PASSWORD;
   if (!password) {
     return {
-      off: "Set BACKUP_PASSWORD in the dashboard's .env to turn backups on",
+      off: 'backupNeedsPassword',
     };
   }
   const own = process.env.BACKUP_REPOSITORY;
@@ -87,7 +87,7 @@ export function backupConfig(): Config | { off: string } {
   const secret = process.env.STORAGE_SECRET_ACCESS_KEY;
   if (!url || !key || !secret) {
     return {
-      off: "Set the storage's keys, or BACKUP_REPOSITORY, for where backups go",
+      off: 'backupNeedsStorage',
     };
   }
   const repository = `s3:${url.replace(/\/$/, '')}/${BUCKET}`;

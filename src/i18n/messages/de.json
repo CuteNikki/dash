@@ -653,7 +653,16 @@
     "total": "{count, number} insgesamt",
     "process": "Prozess",
     "open": "{name} öffnen",
-    "noMatch": "Keine Prozesse passen."
+    "noMatch": "Keine Prozesse passen.",
+    "states": {
+      "R": "Läuft",
+      "S": "Schläft",
+      "D": "Wartet auf den Datenträger",
+      "Z": "Beendet, noch nicht aufgeräumt",
+      "T": "Pausiert",
+      "t": "Von einem Debugger pausiert",
+      "I": "Untätig"
+    }
   },
   "system": {
     "upToDateToast": "Die Pakete des Servers sind aktuell",
@@ -1448,6 +1457,25 @@
     "tooManyAddresses": "Höchstens 10 Adressen",
     "repositoryUrl": "Ein Repository zum Klonen über HTTPS oder SSH, etwa https://github.com/owner/repo",
     "branchName": "Das ist kein gültiger Name für einen Branch",
-    "formWrong": "Dieses Formular stimmt nicht"
+    "formWrong": "Dieses Formular stimmt nicht",
+    "signInFirst": "Melde dich zuerst an",
+    "gone": "Das gibt es nicht mehr",
+    "notAllowed": "Dein Konto darf das nicht",
+    "noSuchFile": "Diese Datei gibt es nicht",
+    "isFolder": "Das ist ein Ordner",
+    "tooBigToEdit": "Zu groß, um sie hier zu bearbeiten; das sind Daten, keine Einstellung",
+    "notText": "Keine Textdatei",
+    "notPicture": "Kein Bild",
+    "tooBigToShow": "Zu groß, um sie hier zu zeigen",
+    "lockedInit": "Es ist der erste Prozess des Servers, der alle anderen startet.",
+    "lockedKernel": "Er gehört zum Kernel.",
+    "lockedEssential": "Der Server hängt davon ab: Ihn zu stoppen könnte alle Dienste lahmlegen oder dich aussperren.",
+    "lockedSelf": "Es ist dieses Dashboard.",
+    "processReplaced": "Dieser Prozess ist beendet, und seine ID gehört jetzt einem anderen.",
+    "processStillThere": "Er ist noch da: Vielleicht wartet er auf den Datenträger, worauf auch ein erzwungenes Stoppen warten muss.",
+    "processStillRunning": "Er läuft noch: Vielleicht wird er gerade fertig, oder er ignoriert die Anfrage.",
+    "backupNeedsPassword": "Setze BACKUP_PASSWORD in der .env des Dashboards, um Sicherungen einzuschalten",
+    "backupNeedsStorage": "Setze die Schlüssel des Speichers oder BACKUP_REPOSITORY, wohin die Sicherungen gehen",
+    "noAnswer": "Keine Antwort"
   }
 }
