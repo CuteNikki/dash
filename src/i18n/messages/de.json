@@ -879,19 +879,23 @@
   "roles": {
     "owner": {
       "name": "Inhaber",
-      "description": "Alles, auch die Konten anderer"
+      "description": "Alles, auch die Konten anderer",
+      "abilities": "alles, auch die Konten anderer"
     },
     "admin": {
       "name": "Admin",
-      "description": "Alles außer den Konten anderer"
+      "description": "Alles außer den Konten anderer",
+      "abilities": "alles außer den Konten anderer"
     },
     "operator": {
       "name": "Operator",
-      "description": "Logs, Starten, Stoppen, Neustarten und Updates, in ihren Gruppen"
+      "description": "Logs, Starten, Stoppen, Neustarten und Updates, in ihren Gruppen",
+      "abilities": "Logs, Starten, Stoppen, Neustarten und Updates, in ihren Gruppen"
     },
     "viewer": {
       "name": "Betrachter",
-      "description": "Status, Auslastung und Logs, in ihren Gruppen"
+      "description": "Status, Auslastung und Logs, in ihren Gruppen",
+      "abilities": "Status, Auslastung und Logs, in ihren Gruppen"
     }
   },
   "people": {
@@ -1000,5 +1004,84 @@
       "codes": "Backup-Codes",
       "confirm": "Bestätigen"
     }
+  },
+  "authErrors": {
+    "BANNED_USER": "Dieses Konto ist deaktiviert.",
+    "EMAIL_NOT_VERIFIED": "Diese Adresse ist noch nicht bestätigt.",
+    "INVALID_BACKUP_CODE": "Dieser Backup-Code stimmt nicht.",
+    "INVALID_CODE": "Dieser Code stimmt nicht.",
+    "INVALID_EMAIL_OR_PASSWORD": "E-Mail-Adresse oder Passwort stimmen nicht.",
+    "INVALID_PASSWORD": "Dieses Passwort stimmt nicht.",
+    "INVALID_TOKEN": "Der Link stimmt nicht oder ist abgelaufen.",
+    "OTP_HAS_EXPIRED": "Dieser Code ist abgelaufen.",
+    "PASSWORD_TOO_LONG": "Dieses Passwort ist zu lang.",
+    "PASSWORD_TOO_SHORT": "Dieses Passwort ist zu kurz.",
+    "SESSION_EXPIRED": "Melde dich dafür erneut an.",
+    "TOO_MANY_ATTEMPTS": "Zu viele Versuche; warte einen Moment.",
+    "TOO_MANY_ATTEMPTS_REQUEST_NEW_CODE": "Zu viele Versuche; fordere einen neuen Code an.",
+    "USER_ALREADY_EXISTS": "Es gibt schon ein Konto mit dieser Adresse.",
+    "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL": "Es gibt schon ein Konto mit dieser Adresse."
+  },
+  "auth": {
+    "signInTitle": "Anmelden",
+    "forgotTitle": "Passwort vergessen",
+    "resetTitle": "Neues Passwort",
+    "setupTitle": "Einrichten",
+    "joinTitle": "Beitreten",
+    "signIn": "Anmelden",
+    "signInDescription": "um die Dienste auf diesem Server zu verwalten",
+    "forgot": "Passwort vergessen?",
+    "forgotDescription": "Hol dir per Mail einen Link, um ein neues zu wählen",
+    "reset": "Neues Passwort wählen",
+    "resetDescription": "für dein Konto",
+    "setup": "Dashboard einrichten",
+    "setupDescription": "Erstelle das Konto, das diesen Server verwaltet. Der Einrichtungscode steht im Log des Dashboards (docker logs dash).",
+    "errorTitle": "Etwas ist schiefgelaufen",
+    "errorDigest": "Das Dashboard konnte diese Seite nicht anzeigen ({digest}).",
+    "tryAgain": "Erneut versuchen",
+    "noAnswer": "Das Dashboard hat nicht geantwortet; versuche es gleich noch einmal",
+    "signInFailed": "Anmelden fehlgeschlagen",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "signInPasskey": "Mit Passkey anmelden",
+    "tooLong": "Das hat zu lange gedauert; melde dich erneut an",
+    "wrongCode": "Dieser Code stimmt nicht",
+    "enterBackupCode": "Gib einen deiner Backup-Codes ein. Jeder funktioniert einmal.",
+    "enterCode": "Gib den 6-stelligen Code aus deiner Authentifizierungs-App ein.",
+    "backupCode": "Backup-Code",
+    "code": "Code",
+    "trustDevice": "Diesem Gerät 30 Tage vertrauen",
+    "useBackupCode": "Backup-Code verwenden",
+    "back": "Zurück",
+    "forgotSent": "Falls es ein Konto mit dieser Adresse gibt, ist ein Link für ein neues Passwort unterwegs. Er funktioniert eine Stunde lang.",
+    "backToSignIn": "Zurück zur Anmeldung",
+    "linkFailed": "Der Link konnte nicht gesendet werden",
+    "sendLink": "Schick mir einen Link",
+    "linkUsed": "Dieser Link wurde schon benutzt oder ist abgelaufen. Fordere einen neuen an.",
+    "askNewLink": "Neuen Link anfordern",
+    "passwordChanged": "Dein Passwort ist geändert, und du bist überall abgemeldet.",
+    "passwordsDiffer": "Die Passwörter stimmen nicht überein",
+    "changeFailed": "Das Passwort konnte nicht geändert werden",
+    "newPassword": "Neues Passwort",
+    "passwordHint": "Mindestens {count, number} Zeichen",
+    "repeatPassword": "Passwort wiederholen",
+    "changePassword": "Passwort ändern",
+    "setupCode": "Einrichtungscode",
+    "name": "Name",
+    "createAccount": "Konto erstellen",
+    "passkeyTitle": "Auch einen Passkey hinzufügen?",
+    "passkeyDescription": "Dann kannst du dich mit Fingerabdruck, Gesicht oder Sicherheitsschlüssel anmelden, statt dein Passwort einzugeben.",
+    "passkeyFailed": "Der Passkey konnte nicht hinzugefügt werden",
+    "passkeyAdded": "Passkey hinzugefügt. Du kannst dich nächstes Mal damit anmelden.",
+    "addPasskey": "Passkey hinzufügen",
+    "skip": "Überspringen",
+    "inviteUsed": "Diese Einladung wurde schon benutzt",
+    "inviteUsedDescription": "Oder sie ist abgelaufen: Jede funktioniert einmal, für 24 Stunden. Bitte um eine neue, oder melde dich an, falls du schon ein Konto hast.",
+    "join": "{server} beitreten",
+    "joinDashboard": "Dem Dashboard beitreten",
+    "joinDescription": "Erstelle das Konto für {email}, als {role, select, owner {Inhaber} admin {Admin} operator {Operator} other {Betrachter}}: {abilities}."
+  },
+  "meta": {
+    "description": "Dienste, Container und Dateien auf dem VPS"
   }
 }

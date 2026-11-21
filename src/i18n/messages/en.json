@@ -879,19 +879,23 @@
   "roles": {
     "owner": {
       "name": "Owner",
-      "description": "Everything, and other people's accounts"
+      "description": "Everything, and other people's accounts",
+      "abilities": "everything, and other people's accounts"
     },
     "admin": {
       "name": "Admin",
-      "description": "Everything but other people's accounts"
+      "description": "Everything but other people's accounts",
+      "abilities": "everything but other people's accounts"
     },
     "operator": {
       "name": "Operator",
-      "description": "Logs, start, stop, restart and updates, in their groups"
+      "description": "Logs, start, stop, restart and updates, in their groups",
+      "abilities": "logs, start, stop, restart and updates, in their groups"
     },
     "viewer": {
       "name": "Viewer",
-      "description": "Status, usage and logs, in their groups"
+      "description": "Status, usage and logs, in their groups",
+      "abilities": "status, usage and logs, in their groups"
     }
   },
   "people": {
@@ -1000,5 +1004,84 @@
       "codes": "Backup codes",
       "confirm": "Confirm"
     }
+  },
+  "authErrors": {
+    "BANNED_USER": "This account is disabled.",
+    "EMAIL_NOT_VERIFIED": "This address isn't confirmed yet.",
+    "INVALID_BACKUP_CODE": "That backup code isn't right.",
+    "INVALID_CODE": "That code isn't right.",
+    "INVALID_EMAIL_OR_PASSWORD": "The email or password isn't right.",
+    "INVALID_PASSWORD": "That password isn't right.",
+    "INVALID_TOKEN": "The link isn't right, or has run out.",
+    "OTP_HAS_EXPIRED": "That code has run out.",
+    "PASSWORD_TOO_LONG": "That password is too long.",
+    "PASSWORD_TOO_SHORT": "That password is too short.",
+    "SESSION_EXPIRED": "For this, sign in again.",
+    "TOO_MANY_ATTEMPTS": "Too many tries; wait a moment.",
+    "TOO_MANY_ATTEMPTS_REQUEST_NEW_CODE": "Too many tries; ask for a new code.",
+    "USER_ALREADY_EXISTS": "There's already an account with that address.",
+    "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL": "There's already an account with that address."
+  },
+  "auth": {
+    "signInTitle": "Sign in",
+    "forgotTitle": "Forgot password",
+    "resetTitle": "New password",
+    "setupTitle": "Set up",
+    "joinTitle": "Join",
+    "signIn": "Sign in",
+    "signInDescription": "to manage the services on this server",
+    "forgot": "Forgot your password?",
+    "forgotDescription": "Get a link by mail to pick a new one",
+    "reset": "Pick a new password",
+    "resetDescription": "for your account",
+    "setup": "Set up dash",
+    "setupDescription": "Make the account that manages this server. The setup code is in the dashboard's log (docker logs dash).",
+    "errorTitle": "Something went wrong",
+    "errorDigest": "The dashboard couldn't show this page ({digest}).",
+    "tryAgain": "Try again",
+    "noAnswer": "dash didn't answer; try again in a moment",
+    "signInFailed": "Couldn't sign in",
+    "email": "Email",
+    "password": "Password",
+    "signInPasskey": "Sign in with a passkey",
+    "tooLong": "That took too long; sign in again",
+    "wrongCode": "That code isn't right",
+    "enterBackupCode": "Enter one of your backup codes. Each works once.",
+    "enterCode": "Enter the 6-digit code from your authenticator app.",
+    "backupCode": "Backup code",
+    "code": "Code",
+    "trustDevice": "Trust this device for 30 days",
+    "useBackupCode": "Use a backup code",
+    "back": "Back",
+    "forgotSent": "If there's an account with that address, a link to pick a new password is on its way. It works for an hour.",
+    "backToSignIn": "Back to sign in",
+    "linkFailed": "Couldn't send the link",
+    "sendLink": "Send me a link",
+    "linkUsed": "This link has been used, or has run out. Ask for another.",
+    "askNewLink": "Ask for a new link",
+    "passwordChanged": "Your password is changed, and you're signed out everywhere.",
+    "passwordsDiffer": "The passwords don't match",
+    "changeFailed": "Couldn't change the password",
+    "newPassword": "New password",
+    "passwordHint": "{count, number} characters or more",
+    "repeatPassword": "Password again",
+    "changePassword": "Change password",
+    "setupCode": "Setup code",
+    "name": "Name",
+    "createAccount": "Create account",
+    "passkeyTitle": "Add a passkey too?",
+    "passkeyDescription": "Then you can sign in with your fingerprint, face or security key, rather than typing your password.",
+    "passkeyFailed": "Couldn't add the passkey",
+    "passkeyAdded": "Passkey added. You can sign in with it next time.",
+    "addPasskey": "Add a passkey",
+    "skip": "Skip",
+    "inviteUsed": "This invite has been used",
+    "inviteUsedDescription": "Or it has run out: each works once, for 24 hours. Ask for a new one, or sign in if you already have an account.",
+    "join": "Join {server}",
+    "joinDashboard": "Join the dashboard",
+    "joinDescription": "Make the account for {email}, as {role, select, owner {an owner} admin {an admin} operator {an operator} other {a viewer}}: {abilities}."
+  },
+  "meta": {
+    "description": "Services, containers and files on the VPS"
   }
 }

@@ -11,6 +11,8 @@ import {
   ShieldOffIcon,
 } from 'lucide-react';
 
+import { useAuthError } from '@/i18n/use-auth-error';
+
 import { authClient } from '@/lib/auth/auth-client';
 import { cn } from '@/lib/utils';
 
@@ -154,6 +156,7 @@ function PasswordStep({
   /** Called with what follows: the setup, new codes, or nothing more */
   onDoneAction: (next: Step) => void;
 }) {
+  const authError = useAuthError();
   const t = useTranslations('twoFactor');
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
@@ -168,7 +171,7 @@ function PasswordStep({
           });
           // Asked for an app's code, which is what gives these
           if (error || data?.method !== 'totp') {
-            setError(error?.message ?? t('failed.enable'));
+            setError(authError(error, t('failed.enable')));
             return;
           }
           onDoneAction({
@@ -179,7 +182,7 @@ function PasswordStep({
         } else if (purpose === 'disable') {
           const { error } = await authClient.twoFactor.disable({ password });
           if (error) {
-            setError(error.message ?? t('failed.disable'));
+            setError(authError(error, t('failed.disable')));
             return;
           }
           toast.success(t('isOff'));
@@ -188,7 +191,7 @@ function PasswordStep({
           const { data, error } =
             await authClient.twoFactor.generateBackupCodes({ password });
           if (error || !data) {
-            setError(error?.message ?? t('failed.codes'));
+            setError(authError(error, t('failed.codes')));
             return;
           }
           onDoneAction({ kind: 'codes', backupCodes: data.backupCodes });
@@ -255,6 +258,7 @@ function SetupStep({
   onCancelAction: () => void;
   onDoneAction: () => void;
 }) {
+  const authError = useAuthError();
   const t = useTranslations('twoFactor');
   const [at, setAt] = useState(0);
   const [error, setError] = useState<string>();
@@ -267,7 +271,7 @@ function SetupStep({
       attempt(t('failed.enable'), async () => {
         const { error } = await authClient.twoFactor.verifyTotp({ code });
         if (error) {
-          setError(error.message ?? t('wrongCode'));
+          setError(authError(error, t('wrongCode')));
           return;
         }
         toast.success(t('isOn'), {

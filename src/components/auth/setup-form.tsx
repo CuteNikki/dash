@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
@@ -9,6 +10,7 @@ import { FormField } from '@/components/auth/form-field';
 import { Button } from '@/components/ui/button';
 
 export function SetupForm() {
+  const t = useTranslations('auth');
   const router = useRouter();
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
@@ -29,7 +31,7 @@ export function SetupForm() {
             email: field('email'),
             password: field('password'),
           }).catch(() => ({
-            error: "dash didn't answer; try again in a moment",
+            error: t('noAnswer'),
           }));
           if (result?.error) {
             setError(result.error);
@@ -42,24 +44,29 @@ export function SetupForm() {
     >
       <FormField
         id='code'
-        label='Setup code'
+        label={t('setupCode')}
         // Letters and digits, as the log prints it, not a phone's keypad
         autoComplete='one-time-code'
         autoCapitalize='characters'
         spellCheck={false}
         className='font-mono'
       />
-      <FormField id='name' label='Name' autoComplete='name' />
-      <FormField id='email' label='Email' type='email' autoComplete='email' />
+      <FormField id='name' label={t('name')} autoComplete='name' />
+      <FormField
+        id='email'
+        label={t('email')}
+        type='email'
+        autoComplete='email'
+      />
       <FormField
         id='password'
-        label='Password'
+        label={t('password')}
         type='password'
         autoComplete='new-password'
       />
       {error && <p className='text-destructive'>{error}</p>}
       <Button type='submit' disabled={pending}>
-        Create account
+        {t('createAccount')}
       </Button>
     </form>
   );

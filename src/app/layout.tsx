@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
-import { getLocale } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { Geist, JetBrains_Mono } from 'next/font/google';
 import localFont from 'next/font/local';
 
@@ -30,15 +30,18 @@ const monoSymbols = localFont({
   preload: false,
 });
 
-export const metadata: Metadata = {
-  title: { default: 'Dashboard', template: '%s · Dashboard' },
-  description: 'Services, containers and files on the VPS',
-  applicationName: 'Dashboard',
-  // Behind a sign-in, and nothing for a search engine to show
-  robots: { index: false, follow: false },
-  // Added to a phone's home screen, it opens on its own, named Dashboard
-  appleWebApp: { title: 'Dashboard', capable: true },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('meta');
+  return {
+    title: { default: 'Dashboard', template: '%s · Dashboard' },
+    description: t('description'),
+    applicationName: 'Dashboard',
+    // Behind a sign-in, and nothing for a search engine to show
+    robots: { index: false, follow: false },
+    // Added to a phone's home screen, it opens on its own, named Dashboard
+    appleWebApp: { title: 'Dashboard', capable: true },
+  };
+}
 
 export const viewport: Viewport = {
   // A phone's browser bar in the page's background, light or dark

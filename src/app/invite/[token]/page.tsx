@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 
 import { openInvite } from '@/lib/auth/invites';
@@ -6,7 +7,10 @@ import { getUser } from '@/lib/auth/session';
 
 import { InviteForm } from '@/components/auth/invite-form';
 
-export const metadata: Metadata = { title: 'Join' };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('auth');
+  return { title: t('joinTitle') };
+}
 
 // Checks the invite and session before anything shows, and may redirect,
 // so the page waits for them rather than streaming a placeholder first

@@ -10,6 +10,7 @@ import { BadgeCheckIcon } from 'lucide-react';
 import { setAlertMail, setLocale } from '@/actions/account';
 
 import { LOCALE_NAMES, LOCALES, type Locale } from '@/i18n/locales';
+import { useAuthError } from '@/i18n/use-auth-error';
 
 import { authClient } from '@/lib/auth/auth-client';
 import { MIN_PASSWORD } from '@/lib/auth/password';
@@ -47,6 +48,7 @@ export function AccountPanel({ me }: { me: Me }) {
 }
 
 function ProfileForm({ me }: { me: Me }) {
+  const authError = useAuthError();
   const t = useTranslations('account');
   const router = useRouter();
   const [name, setName] = useState(me.name);
@@ -65,7 +67,7 @@ function ProfileForm({ me }: { me: Me }) {
         if (newName !== me.name) {
           const { error } = await authClient.updateUser({ name: newName });
           if (error) {
-            setError(error.message ?? t('nameFailed'));
+            setError(authError(error, t('nameFailed')));
             return;
           }
         }
@@ -75,7 +77,7 @@ function ProfileForm({ me }: { me: Me }) {
             callbackURL: changingUrl(newEmail),
           });
           if (error) {
-            setError(error.message ?? t('emailFailed'));
+            setError(authError(error, t('emailFailed')));
             router.refresh();
             return;
           }
@@ -155,6 +157,7 @@ function ProfileForm({ me }: { me: Me }) {
 }
 
 function PasswordForm() {
+  const authError = useAuthError();
   const t = useTranslations('account');
   const [signOutOthers, setSignOutOthers] = useState(true);
   const [error, setError] = useState<string>();
@@ -190,7 +193,7 @@ function PasswordForm() {
                 revokeOtherSessions: signOutOthers,
               });
               if (error) {
-                setError(error.message ?? t('passwordFailed'));
+                setError(authError(error, t('passwordFailed')));
                 return;
               }
               form.reset();

@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
@@ -9,18 +10,16 @@ import { KeyRoundIcon } from 'lucide-react';
 
 import { acceptInvite } from '@/actions/invites';
 
+import { useAuthError } from '@/i18n/use-auth-error';
+
 import { authClient } from '@/lib/auth/auth-client';
 import { MIN_PASSWORD } from '@/lib/auth/password';
-import { ROLE_INFO, type Role } from '@/lib/auth/roles';
+import { type Role } from '@/lib/auth/roles';
 import { SERVER_NAME } from '@/lib/site';
 
 import { AuthCard } from '@/components/auth/auth-card';
 import { FormField } from '@/components/auth/form-field';
 import { Button } from '@/components/ui/button';
-
-/** "an Operator", "a Viewer" */
-const withArticle = (word: string) =>
-  `${/^[aeiou]/i.test(word) ? 'an' : 'a'} ${word}`;
 
 /**
  * Making an account from an invite, then offering a passkey for it. Its
@@ -37,6 +36,9 @@ export function InviteForm({
   /** Who it's for and as what; undefined once it's used or has run out */
   invite?: { email: string; role: Role };
 }) {
+  const authError = useAuthError();
+  const tr = useTranslations('roles');
+  const t = useTranslations('auth');
   const router = useRouter();
   const [joined, setJoined] = useState(false);
   const [error, setError] = useState<string>();
@@ -49,10 +51,7 @@ export function InviteForm({
 
   if (joined) {
     return (
-      <AuthCard
-        title='Add a passkey too?'
-        description='Then you can sign in with your fingerprint, face or security key, rather than typing your password.'
-      >
+      <AuthCard title={t('passkeyTitle')} description={t('passkeyDescription')}>
         <div className='flex flex-col gap-4'>
           {error && <p className='text-destructive'>{error}</p>}
           <Button
@@ -63,25 +62,23 @@ export function InviteForm({
                   .addPasskey()
                   .catch(() => ({
                     error: {
-                      message: "dash didn't answer; try again in a moment",
+                      message: t('noAnswer'),
                     },
                   }));
                 if (result?.error) {
-                  setError(result.error.message ?? "Couldn't add the passkey");
+                  setError(authError(result.error, t('passkeyFailed')));
                   return;
                 }
-                toast.success(
-                  'Passkey added. You can sign in with it next time.'
-                );
+                toast.success(t('passkeyAdded'));
                 goIn();
               })
             }
           >
             <KeyRoundIcon />
-            Add a passkey
+            {t('addPasskey')}
           </Button>
           <Button variant='outline' disabled={pending} onClick={goIn}>
-            Skip
+            {t('skip')}
           </Button>
         </div>
       </AuthCard>
@@ -91,21 +88,26 @@ export function InviteForm({
   if (!invite) {
     return (
       <AuthCard
-        title='This invite has been used'
-        description='Or it has run out: each works once, for 24 hours. Ask for a new one, or sign in if you already have an account.'
+        title={t('inviteUsed')}
+        description={t('inviteUsedDescription')}
       >
         <Button asChild className='w-full'>
-          <Link href='/login'>Sign in</Link>
+          <Link href='/login'>{t('signIn')}</Link>
         </Button>
       </AuthCard>
     );
   }
 
-  const info = ROLE_INFO[invite.role];
   return (
     <AuthCard
-      title={`Join ${SERVER_NAME ?? 'the dashboard'}`}
-      description={`Make the account for ${invite.email}, as ${withArticle(info.name.toLowerCase())}: ${info.description.toLowerCase()}.`}
+      title={
+        SERVER_NAME ? t('join', { server: SERVER_NAME }) : t('joinDashboard')
+      }
+      description={t('joinDescription', {
+        email: invite.email,
+        role: invite.role,
+        abilities: tr(`${invite.role}.abilities`),
+      })}
     >
       <form
         className='flex flex-col gap-4'
@@ -116,7 +118,7 @@ export function InviteForm({
           const form = new FormData(e.currentTarget);
           const field = (name: string) => String(form.get(name) ?? '');
           if (field('password') !== field('repeat')) {
-            setError("The passwords don't match");
+            setError(t('passwordsDiffer'));
             return;
           }
           startTransition(async () => {
@@ -125,7 +127,7 @@ export function InviteForm({
               name: field('name'),
               password: field('password'),
             }).catch(() => ({
-              error: "dash didn't answer; try again in a moment",
+              error: t('noAnswer'),
             }));
             if (result?.error) {
               setError(result.error);
@@ -138,7 +140,7 @@ export function InviteForm({
       >
         <FormField
           id='email'
-          label='Email'
+          label={t('email')}
           type='email'
           // The invite's, which the account is made with
           value={invite.email}
@@ -146,24 +148,24 @@ export function InviteForm({
           autoComplete='username'
           className='text-muted-foreground'
         />
-        <FormField id='name' label='Name' autoComplete='name' />
+        <FormField id='name' label={t('name')} autoComplete='name' />
         <FormField
           id='password'
-          label='Password'
+          label={t('password')}
           type='password'
           autoComplete='new-password'
           minLength={MIN_PASSWORD}
-          placeholder={`${MIN_PASSWORD} characters or more`}
+          placeholder={t('passwordHint', { count: MIN_PASSWORD })}
         />
         <FormField
           id='repeat'
-          label='Password again'
+          label={t('repeatPassword')}
           type='password'
           autoComplete='new-password'
         />
         {error && <p className='text-destructive'>{error}</p>}
         <Button type='submit' disabled={pending}>
-          Create account
+          {t('createAccount')}
         </Button>
       </form>
     </AuthCard>

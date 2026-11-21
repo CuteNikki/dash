@@ -1,10 +1,13 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { KeyRoundIcon } from 'lucide-react';
+
+import { useAuthError } from '@/i18n/use-auth-error';
 
 import { authClient } from '@/lib/auth/auth-client';
 
@@ -31,6 +34,8 @@ export function LoginForm({
   /** There's mail, to send a forgotten password's reset link */
   canReset: boolean;
 }) {
+  const authError = useAuthError();
+  const t = useTranslations('auth');
   const router = useRouter();
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
@@ -44,10 +49,10 @@ export function LoginForm({
     startTransition(async () => {
       const result = await how().catch(() => ({
         data: undefined,
-        error: { message: "dash didn't answer; try again in a moment" },
+        error: { message: t('noAnswer') },
       }));
       if (result?.error) {
-        setError(result.error.message ?? "Couldn't sign in");
+        setError(authError(result.error, t('signInFailed')));
         return;
       }
       // The password was right, and there's a code to give too; until then
@@ -99,14 +104,14 @@ export function LoginForm({
       >
         <FormField
           id='email'
-          label='Email'
+          label={t('email')}
           type='email'
           autoComplete='username webauthn'
           defaultValue={email}
         />
         <FormField
           id='password'
-          label='Password'
+          label={t('password')}
           type='password'
           autoComplete='current-password'
         />
@@ -115,12 +120,12 @@ export function LoginForm({
             href='/forgot-password'
             className='-mt-2 self-end text-muted-foreground underline-offset-4 hover:text-foreground hover:underline'
           >
-            Forgot your password?
+            {t('forgot')}
           </Link>
         )}
         {error && <p className='text-destructive'>{error}</p>}
         <Button type='submit' disabled={pending}>
-          Sign in
+          {t('signIn')}
         </Button>
       </form>
       <Separator />
@@ -132,7 +137,7 @@ export function LoginForm({
         onClick={() => signIn(() => authClient.signIn.passkey())}
       >
         <KeyRoundIcon />
-        Sign in with a passkey
+        {t('signInPasskey')}
       </Button>
     </div>
   );
@@ -150,6 +155,8 @@ function CodeStep({
   /** Back to the password, saying why when it's not by choice */
   onBackAction: (reason?: string) => void;
 }) {
+  const authError = useAuthError();
+  const t = useTranslations('auth');
   const [backup, setBackup] = useState(false);
   const [trustDevice, setTrustDevice] = useState(false);
   const [error, setError] = useState<string>();
@@ -165,14 +172,14 @@ function CodeStep({
       ).catch(() => ({
         error: {
           code: undefined,
-          message: "dash didn't answer; try again in a moment",
+          message: t('noAnswer'),
         },
       }));
       // The password's sign-in lasts ten minutes; past that, it starts over
       if (error?.code === 'INVALID_TWO_FACTOR_COOKIE') {
-        onBackAction('That took too long; sign in again');
+        onBackAction(t('tooLong'));
       } else if (error) {
-        setError(error.message ?? "That code isn't right");
+        setError(authError(error, t('wrongCode')));
       } else {
         onSignedInAction();
       }
@@ -187,16 +194,12 @@ function CodeStep({
         verify(String(new FormData(e.currentTarget).get('code')).trim());
       }}
     >
-      <p>
-        {backup
-          ? 'Enter one of your backup codes. Each works once.'
-          : 'Enter the 6-digit code from your authenticator app.'}
-      </p>
+      <p>{backup ? t('enterBackupCode') : t('enterCode')}</p>
       <FormField
         // A new field for each kind of code, so neither keeps the other's
         key={backup ? 'backup' : 'totp'}
         id='code'
-        label={backup ? 'Backup code' : 'Code'}
+        label={backup ? t('backupCode') : t('code')}
         autoComplete='one-time-code'
         autoFocus
         spellCheck={false}
@@ -211,7 +214,7 @@ function CodeStep({
           checked={trustDevice}
           onCheckedChange={(checked) => setTrustDevice(checked === true)}
         />
-        <Label htmlFor='trust-device'>Trust this device for 30 days</Label>
+        <Label htmlFor='trust-device'>{t('trustDevice')}</Label>
       </div>
       <div className='flex items-center gap-2'>
         <Switch
@@ -222,11 +225,11 @@ function CodeStep({
             setError(undefined);
           }}
         />
-        <Label htmlFor='backup-code'>Use a backup code</Label>
+        <Label htmlFor='backup-code'>{t('useBackupCode')}</Label>
       </div>
       {error && <p className='text-destructive'>{error}</p>}
       <Button type='submit' disabled={pending}>
-        Sign in
+        {t('signIn')}
       </Button>
       <Button
         type='button'
@@ -234,7 +237,7 @@ function CodeStep({
         disabled={pending}
         onClick={() => onBackAction()}
       >
-        Back
+        {t('back')}
       </Button>
     </form>
   );

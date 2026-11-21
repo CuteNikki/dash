@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { RotateCwIcon } from 'lucide-react';
 
 import { Brand } from '@/components/chrome/brand';
@@ -24,24 +26,25 @@ export default function PageError({
   error: Error & { digest?: string };
   retry: () => void;
 }) {
+  const t = useTranslations('auth');
   return (
     <main className='flex flex-1 flex-col items-center justify-center gap-6 p-4'>
       <Brand />
       <Card className='w-full max-w-sm'>
         <CardHeader>
-          <CardTitle className='text-base'>Something went wrong</CardTitle>
+          <CardTitle className='text-base'>{t('errorTitle')}</CardTitle>
           <CardDescription>
             {/* A server error's own message is kept from the browser; its
                 digest is what finds it in the dashboard's logs */}
             {error.digest
-              ? `The dashboard couldn't show this page (${error.digest}).`
+              ? t('errorDigest', { digest: error.digest })
               : error.message}
           </CardDescription>
         </CardHeader>
         <CardFooter>
           <Button onClick={retry}>
             <RotateCwIcon />
-            Try again
+            {t('tryAgain')}
           </Button>
         </CardFooter>
       </Card>

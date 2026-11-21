@@ -1,9 +1,13 @@
 import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 
 import { AuthCard } from '@/components/auth/auth-card';
 import { ResetForm } from '@/components/auth/password-reset';
 
-export const metadata: Metadata = { title: 'New password' };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('auth');
+  return { title: t('resetTitle') };
+}
 
 // Reads the link's token from the address, so it waits for it rather than
 // streaming a placeholder first
@@ -16,9 +20,10 @@ export const instant = false;
 export default async function ResetPasswordPage({
   searchParams,
 }: PageProps<'/reset-password'>) {
+  const t = await getTranslations('auth');
   const { token, error } = await searchParams;
   return (
-    <AuthCard title='Pick a new password' description='for your account'>
+    <AuthCard title={t('reset')} description={t('resetDescription')}>
       <ResetForm
         token={!error && typeof token === 'string' ? token : undefined}
       />
