@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
@@ -19,9 +20,10 @@ import {
   setBackupSource,
 } from '@/actions/backups';
 
+import { useFormat } from '@/i18n/use-format';
+
 import { readRunStream } from '@/lib/docker/read-run-stream';
 import { fetcher } from '@/lib/fetcher';
-import { formatAgo, formatBytes, formatPast } from '@/lib/format';
 import type { BackupSnapshots, BackupState } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -78,6 +80,8 @@ export function BackupsDialog({
   open: boolean;
   onCloseAction: () => void;
 }) {
+  const format = useFormat();
+  const t = useTranslations('backups');
   const { data, error, mutate } = useSWR<BackupState>(
     open ? '/api/backups' : null,
     fetcher,
@@ -112,9 +116,9 @@ export function BackupsDialog({
       { revalidate: false }
     );
     const { error } = await setBackupSource(source.id, enabled).catch(() => ({
-      error: "The dashboard didn't answer",
+      error: t('noAnswer'),
     }));
-    if (error) toast.error("Couldn't change that", { description: error });
+    if (error) toast.error(t('changeFailed'), { description: error });
     void mutate();
   }
   const [output, setOutput] = useState<string[]>();
@@ -138,10 +142,10 @@ export function BackupsDialog({
       if (exit === 0) toast.success(done);
       else
         toast.error(failed, {
-          description: 'See what restic said in the window',
+          description: t('seeRestic'),
         });
     } catch {
-      toast.error(failed, { description: "The dashboard didn't answer" });
+      toast.error(failed, { description: t('noAnswer') });
     } finally {
       setBusy(false);
       setBackingUp(undefined);
@@ -159,8 +163,8 @@ export function BackupsDialog({
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ source: source.id }),
       }),
-      `${source.label} is backed up`,
-      `${source.label} couldn't be backed up`
+      t('backedUp', { name: source.label }),
+      t('backUpFailed', { name: source.label })
     );
   }
 
@@ -212,19 +216,17 @@ export function BackupsDialog({
         }}
       >
         <DialogHeader>
-          <DialogTitle>Backups</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription>
             {!data
-              ? 'Looking at the backups…'
+              ? t('looking')
               : data.off
                 ? data.off
                 : [
-                    `Every night at ${data.nightlyAt}, the last 7 of each kept`,
-                    data.where === 'local'
-                      ? 'in Garage on this server'
-                      : 'off the server',
+                    t('nightly', { time: data.nightlyAt }),
+                    data.where === 'local' ? t('local') : t('offServer'),
                     backups?.size !== undefined &&
-                      `${formatBytes(backups.size)} in all`,
+                      t('inAll', { size: format.bytes(backups.size) }),
                   ]
                     .filter(Boolean)
                     .join(', ')}
@@ -237,7 +239,7 @@ export function BackupsDialog({
           )}
           {readError && (
             <p className='text-destructive'>
-              Couldn&apos;t read the backups: {readError}
+              {t('readFailed', { error: readError })}
             </p>
           )}
           {data?.lastRun ? (
@@ -255,15 +257,15 @@ export function BackupsDialog({
           )}
 
           {output && (
-            <RunOutput lines={output} placeholder='Starting restic…' />
+            <RunOutput lines={output} placeholder={t('startingRestic')} />
           )}
 
           {!(error && !data) && (
             <>
-              <Section title='Databases' icon={<DatabaseIcon />}>
+              <Section title={t('databases')} icon={<DatabaseIcon />}>
                 {databases?.map(row) ?? placeholders(databaseRows)}
               </Section>
-              <Section title='Folders' icon={<FolderIcon />}>
+              <Section title={t('folders')} icon={<FolderIcon />}>
                 {folders?.map(row) ?? placeholders(folderRows, addedRows)}
               </Section>
               <AddFolder onAddedAction={() => void mutate()} />
@@ -277,15 +279,15 @@ export function BackupsDialog({
             onClick={() =>
               void follow(
                 fetch('/api/backups', { method: 'POST' }),
-                'Everything is backed up',
-                "Some of it couldn't be backed up"
+                t('allBackedUp'),
+                t('someFailed')
               )
             }
           >
             <RefreshCwIcon
               className={cn(running && !backingUp && 'animate-spin')}
             />
-            {running && !backingUp ? 'Running…' : 'Back up now'}
+            {running && !backingUp ? t('running') : t('backUpNow')}
           </Button>
         </div>
       </DialogContent>
@@ -307,8 +309,8 @@ export function BackupsDialog({
                 label: when,
               }),
             }),
-            `${source.label} is restored`,
-            `${source.label} couldn't be restored`
+            t('restored', { name: source.label }),
+            t('restoreFailed', { name: source.label })
           );
         }}
       />
@@ -344,6 +346,8 @@ function LastRun({
   run: NonNullable<BackupState['lastRun']>;
   sources: Source[];
 }) {
+  const format = useFormat();
+  const t = useTranslations('backups');
   const failed = run.results.filter((r) => !r.ok);
   const label = (id: string) => sources.find((s) => s.id === id)?.label ?? id;
   return (
@@ -355,10 +359,17 @@ function LastRun({
     >
       <p>
         {!run.finishedAt
-          ? `Running since ${formatPast(run.startedAt)}…`
+          ? t('runningSince', { when: format.past(run.startedAt) })
           : failed.length
-            ? `The last run, ${formatPast(run.startedAt)}, couldn't back up ${failed.length} of ${run.results.length}:`
-            : `The last run, ${formatPast(run.startedAt)}, backed up all ${run.results.length}.`}
+            ? t('lastRunFailed', {
+                when: format.past(run.startedAt),
+                failed: failed.length,
+                count: run.results.length,
+              })
+            : t('lastRunOk', {
+                when: format.past(run.startedAt),
+                count: run.results.length,
+              })}
       </p>
       {failed.length > 0 && (
         <ul className='mt-1 flex flex-col gap-1'>
@@ -405,10 +416,12 @@ function SourceRow({
   onToggleAction?: (on: boolean) => void;
   onChangedAction?: () => void;
 }) {
+  const format = useFormat();
+  const t = useTranslations('backups');
   const [pending, startTransition] = useTransition();
   const kept = snapshots?.filter((s) => !s.beforeRestore) ?? [];
   const last = kept[0];
-  const label = source?.label ?? 'a part';
+  const label = source?.label ?? t('aPart');
   return (
     <li className='flex flex-wrap items-center gap-x-3 gap-y-1 py-2'>
       <div className='flex min-w-0 flex-1 flex-col'>
@@ -426,13 +439,13 @@ function SourceRow({
           {!source ? (
             <TextSkeleton className='w-48' />
           ) : !source.enabled ? (
-            'Switched off'
+            t('switchedOff')
           ) : !snapshots ? (
             <TextSkeleton className='w-40' />
           ) : last ? (
-            `Backed up ${formatAgo(last.at)}, ${kept.length} kept`
+            t('lastBackup', { ago: format.ago(last.at), count: kept.length })
           ) : (
-            'Not backed up yet'
+            t('notYet')
           )}
         </span>
       </div>
@@ -441,14 +454,14 @@ function SourceRow({
           <Button
             variant='outline'
             size='icon-sm'
-            aria-label={`Back up ${label} now`}
+            aria-label={t('backUpThisNow', { name: label })}
             disabled={disabled || !source?.enabled}
             onClick={onBackUpAction}
           >
             <RefreshCwIcon className={cn(backingUp && 'animate-spin')} />
           </Button>
         </TooltipTrigger>
-        <TooltipContent>Back up now</TooltipContent>
+        <TooltipContent>{t('backUpNow')}</TooltipContent>
       </Tooltip>
       <Button
         variant='outline'
@@ -457,13 +470,13 @@ function SourceRow({
         onClick={onRestoreAction}
       >
         <ArchiveRestoreIcon />
-        Restore
+        {t('restore')}
       </Button>
       {added ? (
         <Button
           variant='outline'
           size='icon-sm'
-          aria-label={`Stop backing up ${label}`}
+          aria-label={t('stopBackingUp', { name: label })}
           disabled={pending || !source}
           onClick={() =>
             startTransition(async () => {
@@ -478,7 +491,7 @@ function SourceRow({
         </Button>
       ) : (
         <Switch
-          aria-label={`Back up ${label}`}
+          aria-label={t('backUpThis', { name: label })}
           checked={source?.enabled ?? true}
           disabled={!source}
           onCheckedChange={onToggleAction}
@@ -490,6 +503,7 @@ function SourceRow({
 
 /** A folder outside ~/services to back up too, by its path. */
 function AddFolder({ onAddedAction }: { onAddedAction: () => void }) {
+  const t = useTranslations('backups');
   const [path, setPath] = useState('');
   const [pending, startTransition] = useTransition();
   return (
@@ -500,7 +514,7 @@ function AddFolder({ onAddedAction }: { onAddedAction: () => void }) {
         startTransition(async () => {
           const { error } = await addBackupFolder(path);
           if (error) {
-            toast.error("Couldn't add it", { description: error });
+            toast.error(t('addFailed'), { description: error });
             return;
           }
           setPath('');
@@ -509,8 +523,7 @@ function AddFolder({ onAddedAction }: { onAddedAction: () => void }) {
       }}
     >
       <label htmlFor='backup-folder' className='text-muted-foreground'>
-        A folder outside ~/services to back up too, as apps&apos; settings kept
-        elsewhere
+        {t('addFolderHint')}
       </label>
       <div className='flex gap-2'>
         <Input
@@ -526,7 +539,7 @@ function AddFolder({ onAddedAction }: { onAddedAction: () => void }) {
           disabled={pending || !path.trim()}
         >
           <PlusIcon />
-          Add
+          {t('add')}
         </Button>
       </div>
     </form>
@@ -545,10 +558,14 @@ function RestoreDialog({
   onCloseAction: () => void;
   onRestoreAction: (snapshot: string, when: string) => void;
 }) {
+  const format = useFormat();
+  const t = useTranslations('backups');
   const [picked, setPicked] = useState<string>();
   const chosen = snapshots.find((s) => s.id === picked) ?? snapshots[0];
   const when = (s: { at: number; beforeRestore: boolean }) =>
-    `${formatPast(s.at)}${s.beforeRestore ? ', before a restore' : ''}`;
+    s.beforeRestore
+      ? t('beforeRestore', { when: format.past(s.at) })
+      : format.past(s.at);
   return (
     <AlertDialog
       open={!!source}
@@ -561,18 +578,19 @@ function RestoreDialog({
     >
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Restore {source?.label}?</AlertDialogTitle>
+          <AlertDialogTitle>
+            {t('restoreTitle', { name: source?.label ?? '' })}
+          </AlertDialogTitle>
           <AlertDialogDescription>
             {source?.kind === 'postgres'
-              ? 'The database is put back as it was then, replacing what it holds now.'
-              : "The folder's files are put back as they were then, and files it didn't have then are removed. Its services are stopped while it's restored, and started again after."}{' '}
-            What&apos;s there now is backed up first, so this can be undone by
-            restoring that.
+              ? t('restoreDatabase')
+              : t('restoreFolder')}{' '}
+            {t('restoreUndo')}
           </AlertDialogDescription>
         </AlertDialogHeader>
         {chosen && (
           <Select value={chosen.id} onValueChange={setPicked}>
-            <SelectTrigger aria-label='Which backup'>
+            <SelectTrigger aria-label={t('whichBackup')}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -585,13 +603,13 @@ function RestoreDialog({
           </Select>
         )}
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
           <AlertDialogAction
             variant='destructive'
             disabled={!chosen}
             onClick={() => chosen && onRestoreAction(chosen.id, when(chosen))}
           >
-            Restore
+            {t('restore')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import useSWR from 'swr';
 
 import {
@@ -13,8 +14,9 @@ import {
   ServerCrashIcon,
 } from 'lucide-react';
 
+import { useFormat } from '@/i18n/use-format';
+
 import { fetcher } from '@/lib/fetcher';
-import { formatDuration, formatPast } from '@/lib/format';
 import type { AlertView } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -50,11 +52,12 @@ export function AlertsButton({
   onClickAction: () => void;
   className?: string;
 }) {
+  const t = useTranslations('alerts');
   const count = open.length;
   return (
     <Button
       variant='outline'
-      aria-label={count ? `Alerts, ${count} open` : 'Alerts'}
+      aria-label={count ? t('openCount', { count }) : t('title')}
       onClick={onClickAction}
       className={cn(
         'relative',
@@ -83,6 +86,7 @@ export function AlertsDialog({
   mail: boolean;
   onCloseAction: () => void;
 }) {
+  const t = useTranslations('alerts');
   const { data, error } = useSWR<{
     open: AlertView[];
     over: AlertView[];
@@ -97,11 +101,9 @@ export function AlertsDialog({
     <Dialog open={open} onOpenChange={(o) => !o && onCloseAction()}>
       <DialogContent className='flex max-h-[85dvh] flex-col sm:max-w-2xl'>
         <DialogHeader>
-          <DialogTitle>Alerts</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription>
-            {mail
-              ? 'Checked every minute, and mailed to owners and admins once something has been wrong for two minutes, and again once it is right.'
-              : "Checked every minute. Mail isn't set up, so they only show here."}
+            {mail ? t('descriptionMail') : t('descriptionNoMail')}
           </DialogDescription>
         </DialogHeader>
         <div className='-mx-1 flex flex-col gap-6 overflow-y-auto px-1'>
@@ -110,7 +112,7 @@ export function AlertsDialog({
           ) : (
             <>
               <section className='flex flex-col gap-2'>
-                <h3 className='font-medium'>Now</h3>
+                <h3 className='font-medium'>{t('now')}</h3>
                 {nowRows ? (
                   <ul className='flex flex-col divide-y'>
                     {data
@@ -122,13 +124,13 @@ export function AlertsDialog({
                 ) : (
                   <p className='flex items-center gap-2 text-muted-foreground [&_svg]:size-4'>
                     <CheckCircle2Icon className='text-success' />
-                    Nothing&apos;s wrong.
+                    {t('nothingWrong')}
                   </p>
                 )}
               </section>
               {overRows > 0 && (
                 <section className='flex flex-col gap-2'>
-                  <h3 className='font-medium'>Lately</h3>
+                  <h3 className='font-medium'>{t('lately')}</h3>
                   <ul className='flex flex-col divide-y'>
                     {data
                       ? data.over.map((a) => (
@@ -160,6 +162,8 @@ function AlertRow({
   /** A placeholder's place, for its lines' lengths */
   index?: number;
 }) {
+  const format = useFormat();
+  const t = useTranslations('alerts');
   if (!alert) {
     return (
       <li className='flex items-center gap-3 py-2.5 max-sm:items-start max-sm:gap-2.5'>
@@ -176,7 +180,7 @@ function AlertRow({
     );
   }
   const end = alert.resolvedAt ?? now;
-  const lasted = formatDuration((end - alert.since) / 1000);
+  const lasted = format.duration((end - alert.since) / 1000);
   return (
     <li className='flex items-center gap-3 py-2.5 max-sm:items-start max-sm:gap-2.5'>
       {/* Its kind, in a square of its own beside all three lines, red while
@@ -202,11 +206,11 @@ function AlertRow({
           {/* On a phone, on a line of its own at the end, so the name has
               this one, and an envelope in its place if it was mailed */}
           <span className='shrink-0 font-mono text-muted-foreground tabular-nums max-sm:hidden'>
-            {alert.resolvedAt ? lasted : `${lasted} so far`}
+            {alert.resolvedAt ? lasted : t('soFar', { duration: lasted })}
           </span>
           {alert.mailed && (
             <MailCheckIcon
-              aria-label='mailed'
+              aria-label={t('mailed')}
               className='size-3.5 shrink-0 self-center text-muted-foreground sm:hidden'
             />
           )}
@@ -221,12 +225,19 @@ function AlertRow({
         </span>
         <span className='text-muted-foreground'>
           {alert.resolvedAt
-            ? `${capitalized(formatPast(alert.since))} to ${sameDay(alert.since, alert.resolvedAt) ? formatTime(alert.resolvedAt) : formatPast(alert.resolvedAt)}`
-            : `Since ${formatPast(alert.since)}`}
-          {alert.mailed && <span className='max-sm:hidden'> · mailed</span>}
+            ? t('fromTo', {
+                from: capitalized(format.past(alert.since)),
+                to: sameDay(alert.since, alert.resolvedAt)
+                  ? format.time(alert.resolvedAt)
+                  : format.past(alert.resolvedAt),
+              })
+            : t('since', { when: format.past(alert.since) })}
+          {alert.mailed && (
+            <span className='max-sm:hidden'> · {t('mailed')}</span>
+          )}
         </span>
         <span className='font-mono text-muted-foreground tabular-nums sm:hidden'>
-          {alert.resolvedAt ? lasted : `${lasted} so far`}
+          {alert.resolvedAt ? lasted : t('soFar', { duration: lasted })}
         </span>
       </div>
     </li>
@@ -236,13 +247,6 @@ function AlertRow({
 /** Whether two moments fall on the same day, in the viewer's own time. */
 const sameDay = (a: number, b: number) =>
   new Date(a).toDateString() === new Date(b).toDateString();
-
-/** A moment's time alone, as its day's already been said: "01:28 PM". */
-const formatTime = (at: number) =>
-  new Date(at).toLocaleTimeString(undefined, {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 
 /** Text as a line starts: "today 01:21 PM" → "Today 01:21 PM". */
 const capitalized = (text: string) =>
