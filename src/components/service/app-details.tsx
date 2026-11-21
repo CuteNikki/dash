@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { Fragment } from 'react';
 import useSWR from 'swr';
 
 import { useWords, type Words } from '@/i18n/use-words';
@@ -99,6 +100,24 @@ export function Panel({
  * there are share the width, so one alone has it all; a value wraps between
  * words, splitting one only when it's too long to fit, as a path can be.
  */
+/**
+ * Text that may wrap after each slash, so a path breaks between its folders
+ * rather than in the middle of one's name.
+ */
+function Breakable({ text }: { text: string }) {
+  const parts = text.split('/');
+  return parts.map((part, i) => (
+    <Fragment key={i}>
+      {part}
+      {i < parts.length - 1 && (
+        <>
+          /<wbr />
+        </>
+      )}
+    </Fragment>
+  ));
+}
+
 export function Facts({
   facts,
 }: {
@@ -110,7 +129,11 @@ export function Facts({
         <div key={label} className='flex min-w-0 flex-col'>
           <dt className='text-muted-foreground'>{label}</dt>
           <dd className='font-mono wrap-break-word'>
-            <Cell cell={value} />
+            {typeof value === 'string' ? (
+              <Breakable text={value} />
+            ) : (
+              <Cell cell={value} />
+            )}
           </dd>
         </div>
       ))}
