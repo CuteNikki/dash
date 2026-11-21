@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 import { ArrowRightIcon } from 'lucide-react';
@@ -19,6 +20,7 @@ export function DockerRunImport({
 }: {
   onConvertAction: (converted: ConvertedRun) => void;
 }) {
+  const t = useTranslations('newService');
   const [command, setCommand] = useState('');
   const [error, setError] = useState<string>();
   const [skipped, setSkipped] = useState<string[]>([]);
@@ -43,7 +45,7 @@ export function DockerRunImport({
         placeholder={
           'docker run -d --name app -p 8080:80 -v ./data:/data image'
         }
-        aria-label='docker run command'
+        aria-label={t('runCommand')}
         className='min-h-24 font-mono'
         spellCheck={false}
       />
@@ -55,13 +57,13 @@ export function DockerRunImport({
           onClick={convert}
         >
           <ArrowRightIcon />
-          Make it a compose file
+          {t('makeCompose')}
         </Button>
         {error && <p className='text-destructive'>{error}</p>}
       </div>
       {skipped.length > 0 && (
         <p className='text-warning'>
-          Not carried over, to add by hand if it needs them:{' '}
+          {t('notCarried')}{' '}
           <span className='font-mono'>{skipped.join(', ')}</span>
         </p>
       )}

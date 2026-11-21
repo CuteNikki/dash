@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 import { ArrowRightIcon, LoaderIcon } from 'lucide-react';
@@ -26,6 +27,7 @@ export function GitImport({
   /** The repository or branch changed since it was looked at */
   onClearAction: () => void;
 }) {
+  const t = useTranslations('newService');
   const [url, setUrl] = useState('');
   const [branch, setBranch] = useState('');
   const [looking, setLooking] = useState(false);
@@ -46,11 +48,11 @@ export function GitImport({
       } else {
         setError(
           ('output' in result && result.output.trim().split('\n').at(-1)) ||
-            "Couldn't look at it"
+            t('lookFailed')
         );
       }
     } catch {
-      setError("Couldn't look at it");
+      setError(t('lookFailed'));
     } finally {
       setLooking(false);
     }
@@ -75,7 +77,7 @@ export function GitImport({
     <div className='flex flex-col gap-2'>
       <div className='grid items-end gap-4 sm:grid-cols-[1fr_10rem]'>
         <div className='flex flex-col gap-2'>
-          <Label htmlFor='git-url'>Repository</Label>
+          <Label htmlFor='git-url'>{t('repository')}</Label>
           <Input
             id='git-url'
             value={url}
@@ -88,13 +90,13 @@ export function GitImport({
           />
         </div>
         <div className='flex flex-col gap-2'>
-          <Label htmlFor='git-branch'>Branch</Label>
+          <Label htmlFor='git-branch'>{t('branch')}</Label>
           <Input
             id='git-branch'
             value={branch}
             onChange={(e) => edit(setBranch, e.target.value)}
             onKeyDown={onEnter}
-            placeholder='its default'
+            placeholder={t('defaultBranch')}
             className='font-mono'
             autoComplete='off'
             spellCheck={false}
@@ -113,16 +115,19 @@ export function GitImport({
           ) : (
             <ArrowRightIcon />
           )}
-          Look at it
+          {t('lookAtIt')}
         </Button>
         {error && <p className='text-destructive'>{error}</p>}
         {found && (
           <p className='text-muted-foreground'>
             {found.compose
-              ? `Its ${found.compose.name} on ${found.branch}, below; left as it is unless it's edited.`
+              ? t('foundCompose', {
+                  file: found.compose.name,
+                  branch: found.branch,
+                })
               : found.dockerfile
-                ? `No compose file on ${found.branch}, so one that builds its Dockerfile, below.`
-                : `No compose file or Dockerfile on ${found.branch}: write a compose file for it below.`}
+                ? t('foundDockerfile', { branch: found.branch })
+                : t('foundNothing', { branch: found.branch })}
           </p>
         )}
       </div>

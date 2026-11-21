@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
 import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
@@ -110,6 +111,7 @@ function NewServiceBody({
   setRunning: (running: boolean) => void;
   onCreated: () => void;
 }) {
+  const t = useTranslations('newService');
   const [source, setSource] = useState<Source>('template');
   const picker = (
     <ToggleGroup
@@ -118,12 +120,12 @@ function NewServiceBody({
       value={source}
       // Picking the shown one again would unpick it; keep one picked
       onValueChange={(v) => v && setSource(v as Source)}
-      aria-label='Start from'
+      aria-label={t('startFrom')}
     >
-      <ToggleGroupItem value='template'>Template</ToggleGroupItem>
+      <ToggleGroupItem value='template'>{t('template')}</ToggleGroupItem>
       <ToggleGroupItem value='run'>docker run</ToggleGroupItem>
       <ToggleGroupItem value='git'>Git</ToggleGroupItem>
-      <ToggleGroupItem value='website'>Website</ToggleGroupItem>
+      <ToggleGroupItem value='website'>{t('website')}</ToggleGroupItem>
     </ToggleGroup>
   );
   const website = source === 'website';
@@ -132,13 +134,13 @@ function NewServiceBody({
       {/* One heading for both forms, the shown one's, so the window has a
           single title and description to be announced by */}
       <DialogHeader>
-        <DialogTitle>{website ? 'New website' : 'New service'}</DialogTitle>
+        <DialogTitle>{website ? t('newWebsite') : t('newService')}</DialogTitle>
         <DialogDescription>
           {website
-            ? "A site hosted somewhere else, as a tile that shows whether it's up and how fast it answers. Nothing changes on the server."
+            ? t('websiteDescription')
             : source === 'git'
-              ? 'Cloned into a folder of its own in ~/services, built and started with Docker Compose, and for a domain, a site in Caddy.'
-              : 'A folder of its own in ~/services, started with Docker Compose, and for a domain, a site in Caddy.'}
+              ? t('gitDescription')
+              : t('serviceDescription')}
         </DialogDescription>
       </DialogHeader>
       <NewServiceForm
@@ -186,6 +188,7 @@ function NewServiceForm({
   setRunning: (running: boolean) => void;
   onCreated: () => void;
 }) {
+  const t = useTranslations('newService');
   const [template, setTemplate] = useState(blankTemplate);
   const [name, setName] = useState('');
   const [group, setGroup] = useState('');
@@ -270,7 +273,7 @@ function NewServiceForm({
 
   async function create() {
     if (from === 'git' && !repo) {
-      setError('Look at the repository first, to fill in the form from it');
+      setError(t('lookFirst'));
       return;
     }
     const parsed = NewService.safeParse(input);
@@ -291,11 +294,11 @@ function NewServiceForm({
         setOutput((lines) => [...(lines ?? []), line])
       );
       if (exitCode === 0) {
-        toast.success(`Added ${parsed.data.name}`);
+        toast.success(t('added', { name: parsed.data.name }));
         onCreated();
       } else {
-        toast.error(`Couldn't add ${parsed.data.name}`, {
-          description: 'See what happened below the form',
+        toast.error(t('addFailed', { name: parsed.data.name }), {
+          description: t('seeBelow'),
         });
       }
     } finally {
@@ -309,7 +312,7 @@ function NewServiceForm({
       className='contents'
       onSubmit={(e) => {
         e.preventDefault();
-        void attempt("Couldn't add the service", create);
+        void attempt(t('addServiceFailed'), create);
       }}
     >
       {/* The window is the one column everything's in, its heading too, so
@@ -332,7 +335,7 @@ function NewServiceForm({
         </div>
         <div className='grid gap-4 sm:grid-cols-2'>
           <div className='flex flex-col gap-2'>
-            <Label htmlFor='service-name'>Name</Label>
+            <Label htmlFor='service-name'>{t('name')}</Label>
             <Input
               id='service-name'
               value={name}
@@ -344,7 +347,7 @@ function NewServiceForm({
             />
           </div>
           <div className='flex flex-col gap-2'>
-            <Label htmlFor='service-group'>Group</Label>
+            <Label htmlFor='service-group'>{t('group')}</Label>
             <GroupField
               id='service-group'
               value={group}
@@ -357,13 +360,15 @@ function NewServiceForm({
         {/* The one part that gives way when the window is short, down to
               half its height, before the window scrolls: it scrolls itself */}
         <div className='flex min-h-39 flex-col gap-2'>
-          <span className='text-xs/relaxed font-medium'>Compose file</span>
+          <span className='text-xs/relaxed font-medium'>
+            {t('composeFile')}
+          </span>
           <div className='min-h-32 flex-1 basis-59'>
             <CodeEditor
               value={input.compose}
               onChangeAction={setCompose}
               fileName={input.composeFile ?? 'docker-compose.yml'}
-              label='Compose file'
+              label={t('composeFile')}
               readOnly={running}
             />
           </div>
@@ -382,7 +387,7 @@ function NewServiceForm({
         </div>
         <div className='grid items-start gap-4 sm:grid-cols-[1fr_10rem_6rem]'>
           <div className='flex flex-col gap-2'>
-            <Label htmlFor='service-domain'>Address</Label>
+            <Label htmlFor='service-domain'>{t('address')}</Label>
             <AddressField
               id='service-domain'
               onChangeAction={setDomain}
@@ -390,7 +395,7 @@ function NewServiceForm({
             />
           </div>
           <div className='flex flex-col gap-2'>
-            <Label htmlFor='service-upstream'>Service</Label>
+            <Label htmlFor='service-upstream'>{t('service')}</Label>
             <Input
               id='service-upstream'
               value={input.service}
@@ -401,7 +406,7 @@ function NewServiceForm({
             />
           </div>
           <div className='flex flex-col gap-2'>
-            <Label htmlFor='service-port'>Port</Label>
+            <Label htmlFor='service-port'>{t('port')}</Label>
             <Input
               id='service-port'
               value={port}
@@ -420,7 +425,7 @@ function NewServiceForm({
 
       <DialogFooter>
         <Button type='submit' disabled={running}>
-          {running ? 'Adding…' : 'Add service'}
+          {running ? t('adding') : t('addService')}
         </Button>
       </DialogFooter>
     </form>

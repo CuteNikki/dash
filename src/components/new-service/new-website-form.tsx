@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useState, useTransition, type ReactNode } from 'react';
 import { toast } from 'sonner';
 
@@ -30,6 +31,7 @@ export function NewWebsiteForm({
   groups: string[];
   onCreatedAction: () => void;
 }) {
+  const t = useTranslations('newService');
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [group, setGroup] = useState('');
@@ -39,13 +41,13 @@ export function NewWebsiteForm({
 
   function create() {
     startTransition(() =>
-      attempt(`Couldn't add ${name.trim()}`, async () => {
+      attempt(t('addFailed', { name: name.trim() }), async () => {
         const result = await addSite({ name, address, group, description });
         if (result?.error) {
           setError(result.error);
           return;
         }
-        toast.success(`Added ${name.trim()}`);
+        toast.success(t('added', { name: name.trim() }));
         onCreatedAction();
       })
     );
@@ -64,7 +66,7 @@ export function NewWebsiteForm({
         {picker}
         <div className='grid gap-4 sm:grid-cols-2'>
           <div className='flex flex-col gap-2'>
-            <Label htmlFor='website-name'>Name</Label>
+            <Label htmlFor='website-name'>{t('name')}</Label>
             <Input
               id='website-name'
               value={name}
@@ -75,7 +77,7 @@ export function NewWebsiteForm({
             />
           </div>
           <div className='flex flex-col gap-2'>
-            <Label htmlFor='website-group'>Group</Label>
+            <Label htmlFor='website-group'>{t('group')}</Label>
             <GroupField
               id='website-group'
               value={group}
@@ -86,7 +88,7 @@ export function NewWebsiteForm({
           </div>
         </div>
         <div className='flex flex-col gap-2'>
-          <Label htmlFor='website-address'>Address</Label>
+          <Label htmlFor='website-address'>{t('address')}</Label>
           <Input
             id='website-address'
             value={address}
@@ -99,13 +101,13 @@ export function NewWebsiteForm({
           />
         </div>
         <div className='flex flex-col gap-2'>
-          <Label htmlFor='website-description'>Description</Label>
+          <Label htmlFor='website-description'>{t('description')}</Label>
           <Input
             id='website-description'
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             maxLength={MAX_DESCRIPTION}
-            placeholder='A short line under its name'
+            placeholder={t('descriptionPlaceholder')}
           />
         </div>
         {error && <p className='text-destructive'>{error}</p>}
@@ -113,7 +115,7 @@ export function NewWebsiteForm({
 
       <DialogFooter>
         <Button type='submit' disabled={pending}>
-          {pending ? 'Adding…' : 'Add website'}
+          {pending ? t('adding') : t('addWebsite')}
         </Button>
       </DialogFooter>
     </form>

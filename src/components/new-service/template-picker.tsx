@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import useSWR from 'swr';
 
@@ -41,6 +42,13 @@ export function TemplatePicker({
   picked: ServiceTemplate;
   onPickAction: (template: ServiceTemplate) => void;
 }) {
+  // A template's description in the page's language, where there are words
+  // for it, else as the template has it
+  const describe = (template: ServiceTemplate) => {
+    const key = `templates.${template.id}` as 'templates.gitea';
+    return tn.has(key) ? tn(key) : template.description;
+  };
+  const tn = useTranslations('newService');
   const [search, setSearch] = useState('');
   const typed = search.trim().toLowerCase();
   // Docker Hub's searched once typing pauses, not for every key, the last
@@ -72,8 +80,8 @@ export function TemplatePicker({
         <InputGroupInput
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder='Search apps, or any image on Docker Hub'
-          aria-label='Search apps and images'
+          placeholder={tn('searchApps')}
+          aria-label={tn('searchAppsLabel')}
         />
       </InputGroup>
       <ScrollFade
@@ -92,9 +100,9 @@ export function TemplatePicker({
               <FileIcon className='size-4' />
             </span>
             <span className='flex min-w-0 flex-col'>
-              <span className='truncate font-medium'>Blank</span>
+              <span className='truncate font-medium'>{tn('blank')}</span>
               <span className='truncate text-muted-foreground'>
-                Your own compose file
+                {tn('blankDescription')}
               </span>
             </span>
           </button>
@@ -111,7 +119,7 @@ export function TemplatePicker({
             <span className='flex min-w-0 flex-col'>
               <span className='truncate font-medium'>{t.name}</span>
               <span className='line-clamp-2 text-muted-foreground'>
-                {t.description}
+                {describe(t)}
               </span>
             </span>
           </button>
@@ -119,10 +127,10 @@ export function TemplatePicker({
         {typed.length >= 2 && (
           <p className='col-span-full mt-1 text-muted-foreground'>
             {error
-              ? "Docker Hub couldn't be searched"
+              ? tn('hubFailed')
               : images?.length === 0
-                ? 'Nothing on Docker Hub by that name'
-                : 'On Docker Hub'}
+                ? tn('hubNothing')
+                : tn('onHub')}
           </p>
         )}
         {typed.length >= 2 &&
@@ -140,7 +148,7 @@ export function TemplatePicker({
                   {image.official && (
                     <BadgeCheckIcon
                       className='size-3.5 shrink-0 text-muted-foreground'
-                      aria-label='Official image'
+                      aria-label={tn('official')}
                     />
                   )}
                 </span>

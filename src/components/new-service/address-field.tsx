@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 
@@ -42,6 +43,7 @@ export function AddressField({
   onChangeAction: (domain: string) => void;
   disabled?: boolean;
 }) {
+  const t = useTranslations('newService');
   const { data: domains } = useSWR<string[]>('/api/domains', fetcher, {
     revalidateOnFocus: false,
   });
@@ -49,7 +51,7 @@ export function AddressField({
   // The server's own domain, its first, until another's picked
   const [picked, setPicked] = useState<string>();
   const zone = picked ?? domains?.[0] ?? OTHER;
-  const choices = [...(domains ?? []).map((d) => `.${d}`), 'Another domain'];
+  const choices = [...(domains ?? []).map((d) => `.${d}`), t('anotherDomain')];
   const typed = name.trim().toLowerCase();
   const domain = !typed ? '' : zone === OTHER ? typed : `${typed}.${zone}`;
   // Told of the whole domain whenever it changes, typed or picked or when
@@ -77,7 +79,7 @@ export function AddressField({
           <Select value={zone} onValueChange={setPicked} disabled={disabled}>
             <SelectTrigger
               size='sm'
-              aria-label='Domain'
+              aria-label={t('domain')}
               className='border-0 bg-transparent font-mono text-muted-foreground shadow-none dark:bg-transparent'
             >
               {/* As wide as its widest choice, whichever's picked, so
@@ -103,7 +105,7 @@ export function AddressField({
                   .{d}
                 </SelectItem>
               ))}
-              <SelectItem value={OTHER}>Another domain</SelectItem>
+              <SelectItem value={OTHER}>{t('anotherDomain')}</SelectItem>
             </SelectContent>
           </Select>
         </InputGroupAddon>
@@ -115,6 +117,7 @@ export function AddressField({
 
 /** Whether a domain points at this server yet. */
 function DnsStatus({ domain }: { domain: string }) {
+  const t = useTranslations('newService');
   const valid = DOMAIN_PATTERN.test(domain);
   const { data, isLoading } = useSWR<DomainCheck>(
     valid ? `/api/domains?check=${encodeURIComponent(domain)}` : null,
@@ -125,23 +128,23 @@ function DnsStatus({ domain }: { domain: string }) {
 
   const [tone, Icon, text] =
     !data || isLoading
-      ? (['quiet', LoaderIcon, `Checking ${domain}…`] as const)
+      ? (['quiet', LoaderIcon, t('checking', { domain })] as const)
       : data.points === 'here'
-        ? ([
-            'good',
-            CircleCheckIcon,
-            `${domain} points at this server`,
-          ] as const)
+        ? (['good', CircleCheckIcon, t('pointsHere', { domain })] as const)
         : data.points === 'nowhere'
           ? ([
               'bad',
               CircleAlertIcon,
-              `${domain} has no DNS record yet: point an A record at ${data.server.join(' or ')}`,
+              t('noRecord', { domain, server: data.server.join(' / ') }),
             ] as const)
           : ([
               'bad',
               CircleAlertIcon,
-              `${domain} points at ${data.addresses.join(', ')}, not this server (${data.server.join(' or ')})`,
+              t('pointsElsewhere', {
+                domain,
+                addresses: data.addresses.join(', '),
+                server: data.server.join(' / '),
+              }),
             ] as const);
   return (
     <p
