@@ -23,6 +23,18 @@ Design for this order. The first job should take zero clicks and zero reading; t
 - **Static facts step back.** Kernel, processor and image names matter rarely; give space to things that change.
 - **Same thing, same place, same name.** A count shown in two places means the same thing in both.
 
+## Basics first
+
+Before any layout work, fix the basics that change every screen at once. Learned from T3 Code's design overhaul; details, PRs and before/after images in [references/t3code-overhaul.md](references/t3code-overhaul.md).
+
+- **Radius:** one scale with round steps, 4/6/8/12/16. dash's multipliers of 8px give 4.8, 6.4, 11.2 and 14.4px.
+- **Icons:** Lucide stroke 1.75 instead of the default 2, set once in globals.css with zero specificity so `strokeWidth` props still win.
+- **Text levels:** three, used the same everywhere: section title 16/600, row 14/500, description 12 muted.
+- **Contrast:** muted text and borders readable in every theme, small mono numbers included; light mode status colors at 4.5:1.
+- **Color rule:** structure neutral, identity (service icons) in color, the one accent for action and focus, semantic color only for meaning. Focus never looks like selection.
+- **Neutral controls:** buttons and chips neutral, with color only on the part that means something (an icon, a dot).
+- **Hide what's empty:** no "0 B/s" chips, "+0" counts or flat charts.
+
 ## References and what to borrow
 
 | Reference                                                                                                                                                         | Borrow                                                                                                                                                                                                                                 | Applies to                                    |
@@ -91,6 +103,10 @@ Best with a model strong at visual design (e.g. `/model` Fable).
 ```
 Read docs/design/ui-ux-playbook.md and docs/design/references/notes.md, and
 look at the screenshots in docs/design/references/.
+Also read docs/design/references/t3code-overhaul.md and work its way:
+fix the basics first, and score every round's screenshots against the
+references on fixed axes (visual design, layout, flow clarity, polish,
+accessibility, responsive, copy) until every axis is 9 or higher.
 
 I want a real redesign of dash, not a polish pass: rethink layout, hierarchy
 and flows for the five jobs in the playbook. Every feature stays; how it is
@@ -142,6 +158,10 @@ Run with a strong model; include "use a workflow" so it may orchestrate agents.
 ```
 Use a workflow (keep it under 10 agents). Read docs/design/ui-ux-playbook.md
 first: it defines dash's jobs, principles, references and guardrails.
+Also read docs/design/references/t3code-overhaul.md and work its way:
+fix the basics first, and score every round's screenshots against the
+references on fixed axes (visual design, layout, flow clarity, polish,
+accessibility, responsive, copy) until every axis is 9 or higher.
 
 Phase 1 - Audit, no code changes:
 - Drive the running app with Playwright at 320px, 768px and 1440px in every

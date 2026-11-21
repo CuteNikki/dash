@@ -27,3 +27,7 @@ The images are third-party screenshots, kept locally only (ignored by git). To g
 4. Static facts shrink to one line (Beszel).
 5. Actions always in the same place, one primary, destructive set apart (Coolify, Linear, T3 Code).
 6. Adding starts from search, not a form (Railway).
+
+## T3 Code's design overhaul
+
+The PRs behind T3 Code's redesign, what they teach about the basics (font, radius, icons, text levels, color) and how they scored design: [t3code-overhaul.md](t3code-overhaul.md). Annotated before/after images: `t3code-pr24776-polish-annotated.png`, `t3code-pr24865-overhaul-annotated.png`, `t3code-pr25251-color-sidebar.png`, `t3code-pr25251-color-details.png`.
