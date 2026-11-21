@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import {
   useEffect,
   useRef,
@@ -865,6 +866,7 @@ function SectionBlock({
   onRename?: (name: string) => void;
   children: ReactNode;
 }) {
+  const t = useTranslations('board');
   const node = useRef<HTMLElement>(null);
   const arranging = editing && onPress && onNudge;
   return (
@@ -898,7 +900,7 @@ function SectionBlock({
             )}
             <button
               type='button'
-              aria-label={`Move ${section.label}: arrow keys move it, with Shift they resize it`}
+              aria-label={t('move', { name: section.label })}
               className='cursor-grab touch-none rounded-sm p-1 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring'
               onPointerDown={(e) => onPress(e, 'move', node.current!)}
               onKeyDown={onNudge}
@@ -909,7 +911,7 @@ function SectionBlock({
               type='button'
               tabIndex={-1}
               aria-hidden
-              title='Drag to resize: wider or narrower, or down beside the sections next to it'
+              title={t('resizeSection')}
               className='cursor-nwse-resize touch-none rounded-sm p-0.5 hover:text-foreground'
               onPointerDown={(e) => onPress(e, 'resize', node.current!)}
             >
@@ -958,6 +960,7 @@ function EditTile({
   onNudge: (e: ReactKeyboardEvent) => void;
   children: ReactNode;
 }) {
+  const t = useTranslations('board');
   const node = useRef<HTMLDivElement>(null);
   return (
     <div
@@ -976,7 +979,7 @@ function EditTile({
       </div>
       <button
         type='button'
-        aria-label={`Move ${name}: arrow keys move it, with Shift they resize it`}
+        aria-label={t('move', { name })}
         // A tab on its top edge, clear of whatever the tile shows
         className='absolute -top-3 left-1/2 -translate-x-1/2 cursor-grab touch-none rounded-full bg-card px-1.5 py-1 text-muted-foreground ring-1 ring-foreground/10 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring'
         onPointerDown={(e) => onPress(e, 'move', node.current!, 0)}
@@ -989,7 +992,7 @@ function EditTile({
         type='button'
         tabIndex={-1}
         aria-hidden
-        title='Drag to resize'
+        title={t('resize')}
         // A knob on its corner, clear of whatever the tile shows
         className='absolute -right-2 -bottom-2 flex size-5 cursor-nwse-resize touch-none items-center justify-center rounded-full bg-card text-muted-foreground ring-1 ring-foreground/10 hover:text-foreground'
         onPointerDown={(e) => onPress(e, 'resize', node.current!, 0)}

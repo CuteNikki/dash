@@ -242,5 +242,88 @@
     "undo": "Rückgängig",
     "restored": "{name} wiederhergestellt",
     "restoreFailed": "{name} konnte nicht wiederhergestellt werden"
+  },
+  "chrome": {
+    "account": "Konto: {name}",
+    "settings": "Einstellungen",
+    "theme": "Design",
+    "signOut": "Abmelden",
+    "light": "Hell",
+    "dark": "Dunkel",
+    "system": "System"
+  },
+  "dashboard": {
+    "rename": "{name} umbenennen",
+    "noAnswer": "keine Antwort",
+    "edit": "{name} bearbeiten",
+    "hidden": "Ausgeblendet",
+    "somethingWrong": "Etwas ist schiefgelaufen",
+    "saveLayoutFailed": "Die Anordnung der Kacheln konnte nicht gespeichert werden",
+    "saveOrderFailed": "Die Reihenfolge der Liste konnte nicht gespeichert werden",
+    "renameFailed": "{name} konnte nicht umbenannt werden",
+    "server": "Server",
+    "showAs": "Dienste anzeigen als",
+    "tiles": "Kacheln",
+    "list": "Liste",
+    "updates": "Updates",
+    "updatesWaiting": "Updates, {count, number} ausstehend",
+    "newService": "Neuer Dienst",
+    "cancel": "Abbrechen",
+    "cancelTitle": "Verschobenes, Vergrößertes und Umbenanntes zurücksetzen",
+    "done": "Fertig",
+    "editDashboard": "Bearbeiten"
+  },
+  "board": {
+    "move": "{name} verschieben: Pfeiltasten verschieben, mit Umschalt ändern sie die Größe",
+    "resizeSection": "Ziehen zum Ändern der Größe: breiter oder schmaler, oder nach unten neben die Bereiche daneben",
+    "resize": "Ziehen zum Ändern der Größe"
+  },
+  "list": {
+    "show": "Anzeigen",
+    "all": "Alle",
+    "stopped": "Gestoppt",
+    "dragToMove": "Ziehen zum Verschieben",
+    "service": "Dienst",
+    "status": "Status",
+    "memory": "Speicher",
+    "stack": "Stack",
+    "actions": "Aktionen",
+    "moveRow": "{name} verschieben: Leertaste zum Aufnehmen, dann die Pfeiltasten",
+    "edit": "{name} bearbeiten",
+    "hidden": "Ausgeblendet",
+    "open": "Öffnen",
+    "logs": "Logs",
+    "restart": "Neu starten",
+    "stop": "Stoppen",
+    "start": "Starten"
+  },
+  "actions": {
+    "failed": "{action, select, start {{name} konnte nicht gestartet werden} stop {{name} konnte nicht gestoppt werden} restart {{name} konnte nicht neu gestartet werden} other {{name} konnte nicht geändert werden}}",
+    "done": "{action, select, start {{name} gestartet} stop {{name} gestoppt} restart {{name} neu gestartet} other {{name} geändert}}"
+  },
+  "fields": {
+    "addAddress": "Adresse hinzufügen",
+    "dragToReorder": "Ziehen zum Umsortieren",
+    "addressPlaceholder": "https://…, host:port, oder Name: eins davon",
+    "remove": "Entfernen",
+    "none": "Keine",
+    "findGroup": "Gruppe suchen oder hinzufügen",
+    "uploadFailed": "Das Symbol konnte nicht hochgeladen werden",
+    "iconPlaceholder": "Symbole suchen oder einen Link einfügen",
+    "uploadIcon": "Symbol hochladen"
+  },
+  "status": {
+    "running": "Läuft",
+    "unhealthy": "Fehlerhaft",
+    "starting": "Startet",
+    "paused": "Pausiert",
+    "restarting": "Startet neu",
+    "exited": "Gestoppt",
+    "created": "Erstellt",
+    "dead": "Tot",
+    "noAddress": "Keine Adresse",
+    "checking": "Wird geprüft",
+    "online": "Online",
+    "offline": "Offline"
   }
 }

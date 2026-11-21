@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 import { cn } from '@/lib/utils';
@@ -18,6 +19,7 @@ export function GroupName({
   onRename: (name: string) => void;
   className?: string;
 }) {
+  const t = useTranslations('dashboard');
   const [value, setValue] = useState(name);
   // A rename saved, or made elsewhere, shows here
   const [shown, setShown] = useState(name);
@@ -34,7 +36,7 @@ export function GroupName({
 
   return (
     <input
-      aria-label={`Rename ${name}`}
+      aria-label={t('rename', { name })}
       value={value}
       maxLength={60}
       spellCheck={false}

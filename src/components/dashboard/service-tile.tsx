@@ -1,15 +1,13 @@
+import { useTranslations } from 'next-intl';
 import { Fragment } from 'react';
 
 import { EyeOffIcon } from 'lucide-react';
 
+import type { Format } from '@/i18n/format';
+import { useFormat } from '@/i18n/use-format';
+
 import { isRunning, labelOf } from '@/lib/dashboard/status';
-import {
-  formatBytes,
-  formatCpu,
-  formatMs,
-  MEASURES,
-  type Measure,
-} from '@/lib/format';
+import { MEASURES, type Measure } from '@/lib/format';
 import type { Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -31,8 +29,11 @@ export function ServiceTile({
   editing: boolean;
   onOpen: (service: Service) => void;
 }) {
+  const ts = useTranslations('status');
+  const format = useFormat();
+  const t = useTranslations('dashboard');
   const running = isRunning(service.state);
-  const readings = readingsOf(service);
+  const readings = readingsOf(service, format, t('noAnswer'));
   // A taller tile has room for its graph as one of its own
   const graph = service.height > 1;
   const stats = widgetStats(service);
@@ -43,7 +44,7 @@ export function ServiceTile({
     <button
       type='button'
       onClick={() => onOpen(service)}
-      aria-label={editing ? `Edit ${service.name}` : undefined}
+      aria-label={editing ? t('edit', { name: service.name }) : undefined}
       className='group/tile size-full rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-ring'
     >
       <Card
@@ -90,7 +91,7 @@ export function ServiceTile({
           {editing ? (
             <span className='mt-0.5 flex items-center gap-2 self-start text-muted-foreground'>
               {service.hidden && (
-                <EyeOffIcon aria-label='Hidden' className='size-4' />
+                <EyeOffIcon aria-label={t('hidden')} className='size-4' />
               )}
             </span>
           ) : (
@@ -134,7 +135,7 @@ export function ServiceTile({
               )}
             </>
           ) : (
-            <span>{labelOf(service)}</span>
+            <span>{ts(labelOf(service))}</span>
           )}
         </div>
       </Card>
@@ -148,7 +149,10 @@ export function ServiceTile({
  * response time over time. None for a stopped container or an unchecked site.
  */
 function readingsOf(
-  service: Service
+  service: Service,
+  format: Format,
+  /** What a site that didn't answer says in place of its status */
+  noAnswer: string
 ):
   | { numbers: string[]; values: number[]; times: number[]; measure: Measure }
   | undefined {
@@ -156,8 +160,8 @@ function readingsOf(
   if (check) {
     return {
       numbers: [
-        formatMs(check.ms),
-        check.status ? `${check.status}` : 'no answer',
+        format.ms(check.ms),
+        check.status ? `${check.status}` : noAnswer,
       ],
       values: check.history.ms,
       times: check.history.at,
@@ -167,7 +171,7 @@ function readingsOf(
   const usage = isRunning(service.state) ? service.usage : undefined;
   if (!usage) return undefined;
   return {
-    numbers: [formatCpu(usage.cpu), formatBytes(usage.memory)],
+    numbers: [format.cpu(usage.cpu), format.bytes(usage.memory)],
     values: usage.history.cpu,
     times: usage.history.at,
     measure: MEASURES.cpu,

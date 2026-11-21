@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
@@ -88,6 +89,7 @@ export function Dashboard({
   /** Whoever's signed in, whose role says what shows */
   me: Me;
 }) {
+  const t = useTranslations('dashboard');
   const columns = useColumns(initialColumns);
   // What their role may use shows; the server refuses the rest regardless
   const may = (ability: Ability) => can(me.role, ability);
@@ -167,7 +169,7 @@ export function Dashboard({
     setSaving(true);
     for (const { save, failed } of edits) {
       const result = await save().catch(() => ({
-        error: 'Something went wrong',
+        error: t('somethingWrong'),
       }));
       if (result?.error) toast.error(failed, { description: result.error });
     }
@@ -201,7 +203,7 @@ export function Dashboard({
         ),
       }),
       () => saveLayout({ cells, moved }),
-      "Couldn't save where tiles go"
+      t('saveLayoutFailed')
     );
   }
 
@@ -225,7 +227,7 @@ export function Dashboard({
         ),
       }),
       () => saveListOrder(order),
-      "Couldn't save the list's order"
+      t('saveOrderFailed')
     );
   }
 
@@ -243,7 +245,7 @@ export function Dashboard({
         ),
       }),
       () => renameGroup(from, name, keys),
-      `Couldn't rename ${from}`
+      t('renameFailed', { name: from })
     );
   }
 
@@ -253,7 +255,7 @@ export function Dashboard({
           {
             id: 'host',
             kind: 'host' as const,
-            label: 'Server',
+            label: t('server'),
             tiles: data.hostTiles.map((t) => ({
               key: `host:${t.key}`,
               name: t.name,
@@ -323,12 +325,12 @@ export function Dashboard({
               value={view}
               // Picking the shown one again would unpick it; keep one picked
               onValueChange={(v) => v && pickView(v as View)}
-              aria-label='Show services as'
+              aria-label={t('showAs')}
             >
-              <ToggleGroupItem value='tiles' aria-label='Tiles'>
+              <ToggleGroupItem value='tiles' aria-label={t('tiles')}>
                 <LayoutGridIcon />
               </ToggleGroupItem>
-              <ToggleGroupItem value='list' aria-label='List'>
+              <ToggleGroupItem value='list' aria-label={t('list')}>
                 <ListIcon />
               </ToggleGroupItem>
             </ToggleGroup>
@@ -343,7 +345,9 @@ export function Dashboard({
               <Button
                 variant='outline'
                 aria-label={
-                  updateCount ? `Updates, ${updateCount} waiting` : 'Updates'
+                  updateCount
+                    ? t('updatesWaiting', { count: updateCount })
+                    : t('updates')
                 }
                 onClick={() => setShowUpdates(true)}
                 className={cn(
@@ -354,7 +358,7 @@ export function Dashboard({
               >
                 <ArrowUpCircleIcon />
                 {/* Its icon alone on a phone, with how many are waiting */}
-                <ButtonLabel hideOn='screen'>Updates</ButtonLabel>
+                <ButtonLabel hideOn='screen'>{t('updates')}</ButtonLabel>
                 {updateCount > 0 && (
                   <ButtonCount count={updateCount} tone='update' />
                 )}
@@ -363,32 +367,32 @@ export function Dashboard({
             {may('manage') && (
               <Button
                 variant='outline'
-                aria-label='New service'
+                aria-label={t('newService')}
                 onClick={() => setAdding(true)}
                 className={offWhileEditing}
               >
                 <PlusIcon />
                 {/* Its plus alone on a phone, where the header's room is short */}
-                <ButtonLabel hideOn='screen'>New service</ButtonLabel>
+                <ButtonLabel hideOn='screen'>{t('newService')}</ButtonLabel>
               </Button>
             )}
             {may('manage') && editing && (
               <Button
                 variant='outline'
-                aria-label='Cancel'
-                title="Put back what's been moved, resized and renamed"
+                aria-label={t('cancel')}
+                title={t('cancelTitle')}
                 disabled={saving}
                 onClick={cancel}
               >
                 <XIcon />
-                <ButtonLabel hideOn='screen'>Cancel</ButtonLabel>
+                <ButtonLabel hideOn='screen'>{t('cancel')}</ButtonLabel>
               </Button>
             )}
             {may('manage') && (
               <Button
                 variant={editing ? 'default' : 'outline'}
                 aria-pressed={editing}
-                aria-label={editing ? 'Done' : 'Edit'}
+                aria-label={editing ? t('done') : t('editDashboard')}
                 disabled={saving}
                 onClick={() => (editing ? void finish() : setEditing(true))}
               >
@@ -401,7 +405,7 @@ export function Dashboard({
                 )}
                 {/* Its icon alone on a phone, as New service's plus is */}
                 <ButtonLabel hideOn='screen'>
-                  {editing ? 'Done' : 'Edit'}
+                  {editing ? t('done') : t('editDashboard')}
                 </ButtonLabel>
               </Button>
             )}

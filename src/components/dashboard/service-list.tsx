@@ -21,6 +21,7 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
+import { useTranslations } from 'next-intl';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -38,6 +39,8 @@ import {
 import { runContainerAction } from '@/actions/containers';
 import type { OrderInput } from '@/actions/tiles';
 
+import { useFormat } from '@/i18n/use-format';
+
 import {
   groupsOf,
   HEADING,
@@ -48,7 +51,7 @@ import {
 import { isRunning, labelOf } from '@/lib/dashboard/status';
 import type { ListFilter } from '@/lib/dashboard/view';
 import type { ContainerAction } from '@/lib/docker/docker';
-import { formatBytes, formatCpu, formatMs, MEASURES } from '@/lib/format';
+import { MEASURES } from '@/lib/format';
 import type { Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -93,12 +96,6 @@ type Drag = {
   groups: string[];
 };
 
-const DONE: Record<ContainerAction, string> = {
-  start: 'Started',
-  stop: 'Stopped',
-  restart: 'Restarted',
-};
-
 /**
  * Every service as a row of one table, under its group's name: what it is,
  * how it is, what it uses, where its stack is, and buttons for its logs and
@@ -135,6 +132,8 @@ export function ServiceList({
   /** A group renamed while editing, with every service in it */
   onRenameAction: (from: string, keys: string[], name: string) => void;
 }) {
+  const ta = useTranslations('actions');
+  const t = useTranslations('list');
   // A group since renamed or emptied shows them all
   const filter: ListFilter =
     picked.kind === 'group' && !groups.some((g) => g.name === picked.name)
@@ -159,13 +158,11 @@ export function ServiceList({
 
   function run(service: Service, action: ContainerAction) {
     setBusy((b) => ({ ...b, [service.key]: action }));
-    void attempt(`Couldn't ${action} ${service.name}`, async () => {
+    const failed = ta('failed', { action, name: service.name });
+    void attempt(failed, async () => {
       const result = await runContainerAction(service.containerId, action);
-      if (result.ok) toast.success(`${DONE[action]} ${service.name}`);
-      else
-        toast.error(`Couldn't ${action} ${service.name}`, {
-          description: result.error,
-        });
+      if (result.ok) toast.success(ta('done', { action, name: service.name }));
+      else toast.error(failed, { description: result.error });
       await onChangedAction();
     }).finally(() =>
       setBusy((b) => {
@@ -344,13 +341,13 @@ export function ServiceList({
   return (
     <div className='flex flex-col gap-4 lg:flex-row lg:items-start'>
       <nav
-        aria-label='Show'
+        aria-label={t('show')}
         // A row of chips, swiped edge to edge without a scrollbar, until
         // there's room for a column beside the table
         className='-mx-4 flex scrollbar-none gap-1 overflow-x-auto px-4 sm:-mx-6 sm:px-6 lg:sticky lg:top-6 lg:mx-0 lg:w-44 lg:shrink-0 lg:flex-col lg:overflow-visible lg:px-0'
       >
         <FilterItem
-          label='All'
+          label={t('all')}
           count={all.length}
           active={same({ kind: 'all' })}
           onPick={() => onFilterAction({ kind: 'all' })}
@@ -366,7 +363,7 @@ export function ServiceList({
         ))}
         <div className='mx-1 my-0 w-px shrink-0 bg-border lg:mx-0 lg:my-2 lg:h-px lg:w-auto' />
         <FilterItem
-          label='Stopped'
+          label={t('stopped')}
           count={stopped.length}
           active={same({ kind: 'stopped' })}
           onPick={() => onFilterAction({ kind: 'stopped' })}
@@ -520,11 +517,12 @@ function DragHandle({
 }: Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'> & {
   label: string;
 }) {
+  const t = useTranslations('list');
   return (
     <button
       type='button'
       aria-label={label}
-      title='Drag to move'
+      title={t('dragToMove')}
       className='shrink-0 cursor-grab touch-none rounded-sm p-0.5 text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing'
       {...attributes}
       {...listeners}
@@ -541,6 +539,7 @@ function DragHandle({
  * some rows, so its columns are as wide as theirs with no heading above.
  */
 function ColumnHeads({ collapsed }: { collapsed?: boolean }) {
+  const t = useTranslations('list');
   return (
     <thead
       aria-hidden={collapsed}
@@ -550,17 +549,17 @@ function ColumnHeads({ collapsed }: { collapsed?: boolean }) {
       )}
     >
       <tr className={cn(!collapsed && 'border-b')}>
-        <th className='px-3 py-2.5 font-medium'>Service</th>
+        <th className='px-3 py-2.5 font-medium'>{t('service')}</th>
         <th className='hidden w-28 px-2 py-2.5 font-medium sm:table-cell'>
-          Status
+          {t('status')}
         </th>
         <th className='w-14 px-2 py-2.5 font-medium sm:w-16 lg:w-36'>CPU</th>
-        <th className='w-18 px-2 py-2.5 font-medium sm:w-20'>Memory</th>
+        <th className='w-18 px-2 py-2.5 font-medium sm:w-20'>{t('memory')}</th>
         <th className='hidden w-[22%] px-2 py-2.5 font-medium xl:table-cell'>
-          Stack
+          {t('stack')}
         </th>
         <th className='hidden w-28 px-3 py-2.5 text-right font-medium sm:table-cell'>
-          Actions
+          {t('actions')}
         </th>
       </tr>
     </thead>
@@ -625,6 +624,7 @@ function GroupHeading({
   /** Its name a field to rename it by, while editing */
   onRename?: (name: string) => void;
 }) {
+  const t = useTranslations('list');
   const { setNodeRef } = useSortable({
     id: (copy ? 'copy:' : HEADING) + name,
     data: { kind: 'row' },
@@ -637,11 +637,7 @@ function GroupHeading({
       data-sort-kind={copy ? undefined : 'row'}
       {...handle?.attributes}
       {...handle?.listeners}
-      aria-label={
-        handle
-          ? `Move ${name}: Space to pick it up, then the arrow keys`
-          : undefined
-      }
+      aria-label={handle ? t('moveRow', { name }) : undefined}
       className={cn(
         'border-b bg-muted/30 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
         handle &&
@@ -717,6 +713,8 @@ function Row({
   onLogs: (service: Service) => void;
   onRun: (action: ContainerAction) => void;
 }) {
+  const format = useFormat();
+  const t = useTranslations('list');
   const running = isRunning(service.state);
   // Starting and stopping is for those whose role may
   const controls = useCan()('control');
@@ -743,7 +741,7 @@ function Row({
       // Where it'll go, faded, while its copy follows the pointer
       data-dragging={isDragging}
       tabIndex={0}
-      aria-label={editing ? `Edit ${service.name}` : service.name}
+      aria-label={editing ? t('edit', { name: service.name }) : service.name}
       data-hidden={service.hidden}
       onClick={() => onOpen(service)}
       onKeyDown={(e) => {
@@ -759,7 +757,7 @@ function Row({
         <div className='flex items-center gap-3'>
           {reordering && (
             <DragHandle
-              label={`Move ${service.name}: Space to pick it up, then the arrow keys`}
+              label={t('moveRow', { name: service.name })}
               attributes={attributes}
               listeners={listeners}
             />
@@ -805,7 +803,7 @@ function Row({
               </span>
               {service.hidden && (
                 <EyeOffIcon
-                  aria-label='Hidden'
+                  aria-label={t('hidden')}
                   className='size-3.5 shrink-0 text-muted-foreground'
                 />
               )}
@@ -826,7 +824,7 @@ function Row({
             {/* At least as wide as a CPU's, so the sparklines line up, and
                 wider rather than wrapping, as "196 ms" is */}
             <span className='min-w-10 shrink-0 whitespace-nowrap'>
-              {formatMs(check.ms)}
+              {format.ms(check.ms)}
             </span>
             <Sparkline
               values={check.history.ms}
@@ -838,7 +836,7 @@ function Row({
         ) : usage ? (
           <span className='flex items-center gap-3'>
             <span className='min-w-10 shrink-0 whitespace-nowrap'>
-              {formatCpu(usage.cpu)}
+              {format.cpu(usage.cpu)}
             </span>
             <Sparkline
               values={usage.history.cpu}
@@ -857,7 +855,7 @@ function Row({
           !usage && 'text-muted-foreground'
         )}
       >
-        {usage ? formatBytes(usage.memory) : '–'}
+        {usage ? format.bytes(usage.memory) : '–'}
       </td>
       <td className='hidden truncate px-2 py-2.5 font-mono text-muted-foreground xl:table-cell'>
         {service.stack && shortPath(service.stack.dir)}
@@ -874,8 +872,8 @@ function Row({
               <Button
                 variant='outline'
                 size='icon-sm'
-                aria-label='Open'
-                title='Open'
+                aria-label={t('open')}
+                title={t('open')}
                 className='text-muted-foreground hover:text-foreground'
                 asChild
               >
@@ -886,14 +884,14 @@ function Row({
             )
           ) : (
             <>
-              <ActionButton label='Logs' onClick={() => onLogs(service)}>
+              <ActionButton label={t('logs')} onClick={() => onLogs(service)}>
                 <ScrollTextIcon />
               </ActionButton>
               {controls && (
                 // Kept in its place while stopped, as the window's is, so
                 // the rows' buttons line up
                 <ActionButton
-                  label='Restart'
+                  label={t('restart')}
                   variant='warning'
                   disabled={!!busy || !running}
                   onClick={() => onRun('restart')}
@@ -905,7 +903,7 @@ function Row({
               )}
               {!controls ? null : running ? (
                 <ActionButton
-                  label='Stop'
+                  label={t('stop')}
                   variant='destructive'
                   disabled={!!busy}
                   onClick={() => onRun('stop')}
@@ -918,7 +916,7 @@ function Row({
                 </ActionButton>
               ) : (
                 <ActionButton
-                  label='Start'
+                  label={t('start')}
                   variant='success'
                   disabled={!!busy}
                   onClick={() => onRun('start')}

@@ -242,5 +242,88 @@
     "undo": "Undo",
     "restored": "Restored {name}",
     "restoreFailed": "Couldn't restore {name}"
+  },
+  "chrome": {
+    "account": "Account: {name}",
+    "settings": "Settings",
+    "theme": "Theme",
+    "signOut": "Sign out",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "dashboard": {
+    "rename": "Rename {name}",
+    "noAnswer": "no answer",
+    "edit": "Edit {name}",
+    "hidden": "Hidden",
+    "somethingWrong": "Something went wrong",
+    "saveLayoutFailed": "Couldn't save where tiles go",
+    "saveOrderFailed": "Couldn't save the list's order",
+    "renameFailed": "Couldn't rename {name}",
+    "server": "Server",
+    "showAs": "Show services as",
+    "tiles": "Tiles",
+    "list": "List",
+    "updates": "Updates",
+    "updatesWaiting": "Updates, {count, number} waiting",
+    "newService": "New service",
+    "cancel": "Cancel",
+    "cancelTitle": "Put back what's been moved, resized and renamed",
+    "done": "Done",
+    "editDashboard": "Edit"
+  },
+  "board": {
+    "move": "Move {name}: arrow keys move it, with Shift they resize it",
+    "resizeSection": "Drag to resize: wider or narrower, or down beside the sections next to it",
+    "resize": "Drag to resize"
+  },
+  "list": {
+    "show": "Show",
+    "all": "All",
+    "stopped": "Stopped",
+    "dragToMove": "Drag to move",
+    "service": "Service",
+    "status": "Status",
+    "memory": "Memory",
+    "stack": "Stack",
+    "actions": "Actions",
+    "moveRow": "Move {name}: Space to pick it up, then the arrow keys",
+    "edit": "Edit {name}",
+    "hidden": "Hidden",
+    "open": "Open",
+    "logs": "Logs",
+    "restart": "Restart",
+    "stop": "Stop",
+    "start": "Start"
+  },
+  "actions": {
+    "failed": "{action, select, start {Couldn't start {name}} stop {Couldn't stop {name}} restart {Couldn't restart {name}} other {Couldn't change {name}}}",
+    "done": "{action, select, start {Started {name}} stop {Stopped {name}} restart {Restarted {name}} other {Changed {name}}}"
+  },
+  "fields": {
+    "addAddress": "Add address",
+    "dragToReorder": "Drag to reorder",
+    "addressPlaceholder": "https://…, host:port, or Label: either",
+    "remove": "Remove",
+    "none": "None",
+    "findGroup": "Find or add a group",
+    "uploadFailed": "Couldn't upload the icon",
+    "iconPlaceholder": "Search icons, or paste a link to one",
+    "uploadIcon": "Upload an icon"
+  },
+  "status": {
+    "running": "Running",
+    "unhealthy": "Unhealthy",
+    "starting": "Starting",
+    "paused": "Paused",
+    "restarting": "Restarting",
+    "exited": "Stopped",
+    "created": "Created",
+    "dead": "Dead",
+    "noAddress": "No address",
+    "checking": "Checking",
+    "online": "Online",
+    "offline": "Offline"
   }
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 import { LogOutIcon, SettingsIcon } from 'lucide-react';
@@ -22,6 +23,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 export function AccountMenu({ me }: { me: Me }) {
+  const t = useTranslations('chrome');
   const signOut = useSignOut();
   // Beside the menu rather than in it, so it stays open once the menu closes
   const [settings, setSettings] = useState(false);
@@ -33,7 +35,7 @@ export function AccountMenu({ me }: { me: Me }) {
           <Button
             variant='outline'
             size='icon'
-            aria-label={`Account: ${me.name}`}
+            aria-label={t('account', { name: me.name })}
             className='rounded-full'
           >
             <Initial name={me.name} className='size-6' />
@@ -52,18 +54,18 @@ export function AccountMenu({ me }: { me: Me }) {
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => setSettings(true)}>
             <SettingsIcon />
-            Settings
+            {t('settings')}
           </DropdownMenuItem>
           {/* On a phone the theme's here, as the header has no room for its button */}
           <div className='sm:hidden'>
             <DropdownMenuSeparator />
-            <DropdownMenuLabel>Theme</DropdownMenuLabel>
+            <DropdownMenuLabel>{t('theme')}</DropdownMenuLabel>
             <ThemeItems />
             <DropdownMenuSeparator />
           </div>
           <DropdownMenuItem variant='destructive' onSelect={signOut}>
             <LogOutIcon />
-            Sign out
+            {t('signOut')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

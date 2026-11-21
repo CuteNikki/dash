@@ -17,6 +17,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useTranslations } from 'next-intl';
 import { useRef } from 'react';
 
 import { GripVerticalIcon, PlusIcon, XIcon } from 'lucide-react';
@@ -57,6 +58,7 @@ export function AddressesField({
   items: AddressItem[];
   onChangeAction: (items: AddressItem[]) => void;
 }) {
+  const t = useTranslations('fields');
   const list = useRef<HTMLDivElement>(null);
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -131,7 +133,7 @@ export function AddressesField({
         onClick={() => insertAfter(items.length - 1, [''])}
       >
         <PlusIcon />
-        Add address
+        {t('addAddress')}
       </Button>
     </div>
   );
@@ -153,6 +155,7 @@ function AddressRow({
   onEnter: () => void;
   onPasteLines: (lines: string[]) => void;
 }) {
+  const t = useTranslations('fields');
   const {
     attributes,
     listeners,
@@ -174,7 +177,7 @@ function AddressRow({
       <InputGroupAddon>
         <InputGroupButton
           size='icon-xs'
-          aria-label='Drag to reorder'
+          aria-label={t('dragToReorder')}
           className='cursor-grab touch-none active:cursor-grabbing'
           {...attributes}
           {...listeners}
@@ -205,11 +208,15 @@ function AddressRow({
           }
         }}
         aria-invalid={badLink(item.value) || undefined}
-        placeholder='https://…, host:port, or Label: either'
+        placeholder={t('addressPlaceholder')}
         spellCheck={false}
       />
       <InputGroupAddon align='inline-end'>
-        <InputGroupButton size='icon-xs' aria-label='Remove' onClick={onRemove}>
+        <InputGroupButton
+          size='icon-xs'
+          aria-label={t('remove')}
+          onClick={onRemove}
+        >
           <XIcon />
         </InputGroupButton>
       </InputGroupAddon>

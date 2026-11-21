@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 import { CheckIcon, ChevronsUpDownIcon, PlusIcon } from 'lucide-react';
@@ -35,6 +36,7 @@ export function GroupField({
   /** Can be left without a group, by None at the top of the list */
   optional?: boolean;
 }) {
+  const t = useTranslations('fields');
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const typed = query.trim();
@@ -61,7 +63,7 @@ export function GroupField({
           {/* Always something, so the arrow keeps to the end: with none
               picked, None, faintly */}
           <span className={cn('truncate', !value && 'text-muted-foreground')}>
-            {value || 'None'}
+            {value || t('none')}
           </span>
           <ChevronsUpDownIcon className='text-muted-foreground' />
         </Button>
@@ -72,7 +74,7 @@ export function GroupField({
       >
         <Command>
           <CommandInput
-            placeholder='Find or add a group'
+            placeholder={t('findGroup')}
             value={query}
             onValueChange={setQuery}
           />
@@ -82,7 +84,7 @@ export function GroupField({
               {optional && (
                 <CommandItem value='None' onSelect={() => pick('')}>
                   <CheckIcon className={cn(value && 'invisible')} />
-                  None
+                  {t('none')}
                 </CommandItem>
               )}
               {groups.map((group) => (

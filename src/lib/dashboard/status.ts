@@ -1,3 +1,5 @@
+import type { Messages } from 'next-intl';
+
 import type { ContainerState } from '@/lib/docker/docker';
 import type { Service } from '@/lib/types';
 
@@ -16,25 +18,13 @@ export function isRunning(state: ContainerState) {
   return healthOf(state) !== 'off';
 }
 
-const LABELS: Record<ContainerState, string> = {
-  running: 'Running',
-  unhealthy: 'Unhealthy',
-  starting: 'Starting',
-  paused: 'Paused',
-  restarting: 'Restarting',
-  exited: 'Stopped',
-  created: 'Created',
-  dead: 'Dead',
-};
-
-export function stateLabel(state: ContainerState) {
-  return LABELS[state];
-}
+/** What a state is called: its key under "status" in the messages, a container's state being one. */
+export type StatusKey = keyof Messages['status'];
 
 /** What a tile's state is called: a container's, or for a website, whether it's online. */
-export function labelOf(service: Service) {
-  if (!service.site) return stateLabel(service.state);
-  if (service.state === 'dead') return 'No address';
+export function labelOf(service: Service): StatusKey {
+  if (!service.site) return service.state;
+  if (service.state === 'dead') return 'noAddress';
   const check = service.site.check;
-  return !check ? 'Checking' : check.ok ? 'Online' : 'Offline';
+  return !check ? 'checking' : check.ok ? 'online' : 'offline';
 }

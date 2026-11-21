@@ -1,6 +1,9 @@
-import { cva } from 'class-variance-authority';
+'use client';
 
-import { healthOf, stateLabel } from '@/lib/dashboard/status';
+import { cva } from 'class-variance-authority';
+import { useTranslations } from 'next-intl';
+
+import { healthOf, type StatusKey } from '@/lib/dashboard/status';
 import type { ContainerState } from '@/lib/docker/docker';
 import { cn } from '@/lib/utils';
 
@@ -16,14 +19,16 @@ const dot = cva('inline-block size-2 shrink-0 rounded-full', {
 
 export function StatusDot({
   state,
-  label = stateLabel(state),
+  label: key = state,
   className,
 }: {
   state: ContainerState;
   /** What its state is called, when not as a container's is */
-  label?: string;
+  label?: StatusKey;
   className?: string;
 }) {
+  const t = useTranslations('status');
+  const label = t(key);
   return (
     <span
       role='img'
@@ -37,14 +42,16 @@ export function StatusDot({
 /** Its state as a word in a pill, colored as its dot would be. */
 export function StatePill({
   state,
-  label = stateLabel(state),
+  label: key = state,
   className,
 }: {
   state: ContainerState;
   /** What its state is called, when not as a container's is */
-  label?: string;
+  label?: StatusKey;
   className?: string;
 }) {
+  const t = useTranslations('status');
+  const label = t(key);
   const health = healthOf(state);
   return (
     <span

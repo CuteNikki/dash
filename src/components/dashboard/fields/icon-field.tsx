@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useRef, useTransition } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
@@ -45,6 +46,7 @@ export function IconField({
   name: string;
   onChangeAction: (icon: string) => void;
 }) {
+  const t = useTranslations('fields');
   // Searches once typing pauses, not for every key, keeping the last
   // matches up meanwhile
   const query = useDebounced(value.trim());
@@ -59,12 +61,12 @@ export function IconField({
 
   function upload(file: File) {
     startUpload(() =>
-      attempt("Couldn't upload the icon", async () => {
+      attempt(t('uploadFailed'), async () => {
         const form = new FormData();
         form.set('file', file);
         const result = await uploadIcon(form);
         if ('error' in result) {
-          toast.error("Couldn't upload the icon", {
+          toast.error(t('uploadFailed'), {
             description: result.error,
           });
         } else {
@@ -89,7 +91,7 @@ export function IconField({
           id={id}
           value={value}
           onChange={(e) => onChangeAction(e.target.value)}
-          placeholder='Search icons, or paste a link to one'
+          placeholder={t('iconPlaceholder')}
           autoComplete='off'
           spellCheck={false}
         />
@@ -98,7 +100,7 @@ export function IconField({
             <TooltipTrigger asChild>
               <InputGroupButton
                 size='icon-xs'
-                aria-label='Upload an icon'
+                aria-label={t('uploadIcon')}
                 disabled={uploading}
                 onClick={() => fileInput.current?.click()}
               >
@@ -109,7 +111,7 @@ export function IconField({
                 )}
               </InputGroupButton>
             </TooltipTrigger>
-            <TooltipContent>Upload an icon</TooltipContent>
+            <TooltipContent>{t('uploadIcon')}</TooltipContent>
           </Tooltip>
         </InputGroupAddon>
       </InputGroup>
