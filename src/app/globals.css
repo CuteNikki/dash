@@ -162,10 +162,11 @@
   --syntax-type: oklch(0.8 0.11 195);
   --diff-removed: color-mix(in oklch, var(--destructive) 12%, transparent);
   --diff-added: color-mix(in oklch, var(--success) 12%, transparent);
-  --background: oklch(0.145 0 0);
-  --surface: oklch(0.145 0 0);
+  /* A black page and cards a step above it, for contrast */
+  --background: oklch(0 0 0);
+  --surface: oklch(0 0 0);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
+  --card: oklch(0.178 0 0);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
