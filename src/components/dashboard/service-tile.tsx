@@ -50,7 +50,7 @@ export function ServiceTile({
       <Card
         size='sm'
         data-dimmed={!running || service.hidden}
-        className='group/card h-full px-3 transition-shadow group-hover/tile:ring-foreground/25'
+        className='group/card h-full px-3 transition-shadow group-hover/tile:ring-foreground/25 dark:group-hover/tile:ring-foreground/25'
       >
         {/* A stopped or hidden one fades its icon, name and graph, the rest
             left readable: its state above all */}
