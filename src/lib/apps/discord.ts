@@ -1,8 +1,7 @@
 import 'server-only';
 
 import { getJson, type App, type AppContext } from '@/lib/apps/app';
-import { formatDuration } from '@/lib/format';
-import type { DetailSection, WidgetStat } from '@/lib/types';
+import type { DetailCell, DetailSection, WidgetStat } from '@/lib/types';
 
 /**
  * What a Discord bot says of itself at GET /status, from what it already
@@ -39,13 +38,17 @@ async function statusOf({ container: c, url }: AppContext) {
   return status;
 }
 
-const ms = (value: number | null) => (value === null ? '–' : `${value} ms`);
+const ms = (value: number | null): DetailCell =>
+  value === null ? '–' : { ms: value };
 
 function statsOf(status: BotStatus): WidgetStat[] {
   return [
-    { label: 'Servers', value: `${status.servers}` },
-    { label: 'Members', value: `${status.members}` },
-    { label: 'Ping', value: ms(status.ping) },
+    { label: 'servers', value: { number: status.servers } },
+    { label: 'members', value: { number: status.members } },
+    {
+      label: 'ping',
+      value: status.ping === null ? '–' : { ms: status.ping },
+    },
   ];
 }
 
@@ -54,50 +57,60 @@ function detailsOf(status: BotStatus): DetailSection[] {
   return [
     {
       kind: 'facts',
-      title: 'Bot',
+      title: 'bot',
       facts: [
-        { label: 'Name', value: status.name ?? '–' },
-        { label: 'ID', value: status.id ?? '–' },
+        { label: 'name', value: status.name ?? '–' },
+        { label: 'id', value: status.id ?? '–' },
         {
-          label: 'Connected for',
+          label: 'connectedFor',
           value:
-            status.uptime === null ? '–' : formatDuration(status.uptime / 1000),
+            status.uptime === null ? '–' : { seconds: status.uptime / 1000 },
         },
-        { label: 'Ping', value: ms(status.ping) },
-        { label: 'Channels', value: `${status.channels}` },
+        { label: 'ping', value: ms(status.ping) },
+        { label: 'channels', value: { number: status.channels } },
       ],
     },
     // Each shard on its own, once there's more than one
     ...(status.shards.length > 1
       ? [
           {
-            kind: 'table' as const,
-            title: 'Shards',
+            kind: 'table',
+            title: 'shards',
             columns: [
-              { label: 'Shard', numeric: true },
-              { label: 'Ping', numeric: true },
-              { label: 'Servers', numeric: true },
+              { label: 'shard', numeric: true },
+              { label: 'ping', numeric: true },
+              { label: 'servers', numeric: true },
             ],
             rows: status.shards.map((s) => ({
-              cells: [`${s.id}`, ms(s.ping), `${s.servers}`],
+              cells: [`${s.id}`, ms(s.ping), { number: s.servers }],
               dim: s.ping === null,
             })),
-            empty: 'No shards',
-          },
+            empty: 'noShards',
+          } satisfies DetailSection,
         ]
       : []),
     {
       kind: 'table',
-      title: 'Servers',
-      columns: [{ label: 'Name' }, { label: 'Members', numeric: true }],
+      title: 'servers',
+      columns: [{ label: 'name' }, { label: 'members', numeric: true }],
       rows: [
-        ...status.biggest.map((s) => ({ cells: [s.name, `${s.members}`] })),
+        ...status.biggest.map((s) => ({
+          cells: [s.name, { number: s.members }],
+        })),
         // The rest, too many to list, counted
         ...(more > 0
-          ? [{ cells: [`${more} more, smaller`, ''], dim: true }]
+          ? [
+              {
+                cells: [
+                  { text: 'moreSmaller' as const, values: { count: more } },
+                  '',
+                ],
+                dim: true,
+              },
+            ]
           : []),
       ],
-      empty: 'In no servers',
+      empty: 'inNoServers',
     },
   ];
 }

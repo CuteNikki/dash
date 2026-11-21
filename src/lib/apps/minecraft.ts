@@ -35,15 +35,19 @@ export const minecraft: App = {
     );
     return stats([
       [
-        'Players',
+        'players',
         async () => {
           const { players } = (await status()).server_info;
+          // "1 / 20 players": a share, its label in the plural
           return `${players.online} / ${players.max}`;
         },
       ],
-      ['TPS', async () => (await tps(c))[0]],
+      ['tps', async () => ({ fixed: +(await tps(c))[0], digits: 1 })],
       // "Paper 26.2" says what it is without a label
-      [undefined, async () => (await status()).server_info.version.name],
+      [
+        { bare: 'version' },
+        async () => (await status()).server_info.version.name,
+      ],
     ]);
   },
   details: async ({ container: c }) => {
@@ -60,18 +64,18 @@ export const minecraft: App = {
     return [
       {
         kind: 'table',
-        title: 'Online',
-        columns: [{ label: 'Player' }],
+        title: 'online',
+        columns: [{ label: 'player' }],
         rows: names.sort().map((name) => ({ cells: [name] })),
-        empty: "No one's online",
+        empty: 'noOneOnline',
       },
       {
         kind: 'facts',
-        title: 'Ticks per second, out of 20',
+        title: 'ticksPerSecond',
         facts: [
-          { label: 'Last minute', value: one },
-          { label: 'Last 5 minutes', value: five },
-          { label: 'Last 15 minutes', value: fifteen },
+          { label: 'lastMinute', value: { fixed: +one, digits: 1 } },
+          { label: 'last5Minutes', value: { fixed: +five, digits: 1 } },
+          { label: 'last15Minutes', value: { fixed: +fifteen, digits: 1 } },
         ],
       },
     ];

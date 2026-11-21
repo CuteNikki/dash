@@ -1,8 +1,7 @@
 import 'server-only';
 
 import { env, getJson, stats, type App } from '@/lib/apps/app';
-import { formatDuration } from '@/lib/format';
-import type { DetailCell, DetailSection } from '@/lib/types';
+import type { DetailCell, DetailKey, DetailSection } from '@/lib/types';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -39,14 +38,14 @@ type QueueItem = {
 };
 
 /** A queue as a table: each one, how far along, and how long it has left or what it's waiting on. */
-function queueTable(title: string, items: QueueItem[]): DetailSection {
+function queueTable(title: DetailKey, items: QueueItem[]): DetailSection {
   return {
     kind: 'table',
     title,
     columns: [
-      { label: 'Name' },
-      { label: 'Progress', numeric: true },
-      { label: 'Left', numeric: true },
+      { label: 'name' },
+      { label: 'progress', numeric: true },
+      { label: 'left', numeric: true },
     ],
     rows: items.map((item) => {
       const name = item.series
@@ -61,20 +60,21 @@ function queueTable(title: string, items: QueueItem[]): DetailSection {
       const progress: DetailCell = {
         progress: item.size ? 1 - item.sizeleft / item.size : 0,
       };
-      // Downloading, how long; otherwise what it's doing, as "import pending"
+      // Downloading, how long; otherwise what it's doing, as "import pending",
+      // in the app's own words, its own being English
       const state = (item.trackedDownloadState ?? item.status)
         .replace(/([A-Z])/g, ' $1')
         .toLowerCase();
-      const left =
+      const left: DetailCell =
         item.status === 'downloading' && item.timeleft
-          ? formatDuration(seconds(item.timeleft))
+          ? { seconds: seconds(item.timeleft) }
           : state;
       return {
         cells: [name, progress, left],
         dim: item.status !== 'downloading',
       };
     }),
-    empty: "Nothing's downloading",
+    empty: 'nothingDownloading',
   };
 }
 
@@ -92,7 +92,7 @@ function arr(
       const headers = { 'X-Api-Key': env(keyName)! };
       return stats([
         [
-          'Queued',
+          'queued',
           async () =>
             (
               await getJson<{ totalCount: number }>(
@@ -102,7 +102,7 @@ function arr(
             ).totalCount,
         ],
         [
-          'Missing',
+          'missing',
           async () =>
             (
               await getJson<{ totalRecords: number }>(
@@ -122,7 +122,7 @@ function arr(
         ),
         upcoming(url, headers),
       ]);
-      return [queueTable('Downloading', queue.records), coming];
+      return [queueTable('downloading', queue.records), coming];
     },
   };
 }
@@ -149,8 +149,8 @@ export const sonarr = arr(
     >(`${url}/api/v3/calendar?${range(7)}&includeSeries=true`, headers);
     return {
       kind: 'table',
-      title: 'Airing this week',
-      columns: [{ label: 'Episode' }, { label: 'Airs', numeric: true }],
+      title: 'airingThisWeek',
+      columns: [{ label: 'episode' }, { label: 'airs', numeric: true }],
       rows: episodes
         .filter((e) => e.airDateUtc)
         .map((e) => ({
@@ -161,7 +161,7 @@ export const sonarr = arr(
           // Already here
           dim: e.hasFile,
         })),
-      empty: 'Nothing airs this week',
+      empty: 'nothingAirs',
     };
   },
   'includeSeries=true&includeEpisode=true'
@@ -184,20 +184,20 @@ export const radarr = arr(
     const now = Date.now();
     return {
       kind: 'table',
-      title: 'Coming out this month',
+      title: 'comingThisMonth',
       columns: [
-        { label: 'Film' },
-        { label: 'Release' },
-        { label: 'When', numeric: true },
+        { label: 'film' },
+        { label: 'release' },
+        { label: 'when', numeric: true },
       ],
       rows: movies
         .flatMap((m) => {
           // Its next release still to come, of the three it can have
           const next = (
             [
-              ['in cinemas', m.inCinemas],
+              ['inCinemas', m.inCinemas],
               ['digital', m.digitalRelease],
-              ['on disc', m.physicalRelease],
+              ['onDisc', m.physicalRelease],
             ] as const
           )
             .filter(([, at]) => at && Date.parse(at) >= now - DAY_MS)
@@ -206,10 +206,14 @@ export const radarr = arr(
         })
         .sort((a, b) => a.at - b.at)
         .map(({ m, kind, at }) => ({
-          cells: [m.year ? `${m.title} (${m.year})` : m.title, kind, { at }],
+          cells: [
+            m.year ? `${m.title} (${m.year})` : m.title,
+            { text: kind },
+            { at },
+          ],
           dim: m.hasFile,
         })),
-      empty: 'Nothing comes out this month',
+      empty: 'nothingComesOut',
     };
   },
   'includeMovie=true'

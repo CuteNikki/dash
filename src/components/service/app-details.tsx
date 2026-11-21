@@ -1,10 +1,12 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import useSWR from 'swr';
 
+import { useWords, type Words } from '@/i18n/use-words';
+
 import { fetcher } from '@/lib/fetcher';
-import { formatMoment } from '@/lib/format';
-import type { DetailCell, DetailSection } from '@/lib/types';
+import type { DetailCell, DetailKey, DetailSection } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 import { TextSkeleton } from '@/components/common/skeletons';
@@ -26,30 +28,31 @@ type ShownSection =
       rows: { cells: ShownCell[]; dim?: boolean }[];
     })
   | (Omit<Extract<DetailSection, { kind: 'facts' }>, 'facts'> & {
-      facts: { label: string; value: ShownCell }[];
+      facts: { label: DetailKey; value: ShownCell }[];
     });
 
-function placeholderOf(cell: DetailCell): Placeholder {
-  if (typeof cell === 'string') return { chars: cell.length };
-  if ('at' in cell) return { chars: formatMoment(cell.at).length };
-  return { chars: `${Math.round(cell.progress * 100)}%`.length, bar: true };
+function placeholderOf(cell: DetailCell, words: Words): Placeholder {
+  const text = words.cell(cell);
+  if (text !== undefined) return { chars: text.length };
+  const { progress } = cell as { progress: number };
+  return { chars: `${Math.round(progress * 100)}%`.length, bar: true };
 }
 
 /** A section with its cells as placeholders as wide as theirs, to keep. */
-function shapeOf(section: DetailSection): ShownSection {
+function shapeOf(section: DetailSection, words: Words): ShownSection {
   return section.kind === 'facts'
     ? {
         ...section,
         facts: section.facts.map((f) => ({
           ...f,
-          value: placeholderOf(f.value),
+          value: placeholderOf(f.value, words),
         })),
       }
     : {
         ...section,
         rows: section.rows.map((r) => ({
           ...r,
-          cells: r.cells.map(placeholderOf),
+          cells: r.cells.map((c) => placeholderOf(c, words)),
         })),
       };
 }
@@ -117,6 +120,8 @@ export function Facts({
 
 /** What an app has to say beyond its tile, each part a card: who's watching, what's downloading. */
 export function AppDetails({ containerId }: { containerId: string }) {
+  const t = useTranslations('appDetails');
+  const words = useWords();
   const { data, error } = useSWR<DetailSection[]>(
     `/api/containers/${containerId}/details`,
     fetcher,
@@ -125,14 +130,14 @@ export function AppDetails({ containerId }: { containerId: string }) {
   // While they're read, the sections as they were last time
   const kept = useKeptShape<ShownSection[] | undefined>(
     `details:${containerId}`,
-    data?.map(shapeOf),
+    data?.map((section) => shapeOf(section, words)),
     undefined
   );
   if (error && !data) {
     return (
-      <Panel title='Details'>
+      <Panel title={t('title')}>
         <span className='text-muted-foreground'>
-          Couldn&apos;t read what it has to say: {error.message}
+          {t('failed', { error: error.message })}
         </span>
       </Panel>
     );
@@ -142,7 +147,7 @@ export function AppDetails({ containerId }: { containerId: string }) {
     // Its sections' shapes aren't known until they're first read, so a
     // card of a few lines stands in for the first
     return (
-      <Panel title='Details'>
+      <Panel title={t('title')}>
         <div className='flex flex-col gap-2'>
           <TextSkeleton className='w-full' />
           <TextSkeleton className='w-full' />
@@ -156,21 +161,29 @@ export function AppDetails({ containerId }: { containerId: string }) {
 
 /** Each section as a card: its facts, or its table and how many rows it has. */
 function Sections({ sections }: { sections: ShownSection[] }) {
+  const words = useWords();
   return sections.map((section) =>
     section.kind === 'facts' ? (
-      <Panel key={section.title} title={section.title}>
-        <Facts facts={section.facts} />
+      <Panel key={section.title} title={words.detail(section.title)}>
+        <Facts
+          facts={section.facts.map((f) => ({
+            label: words.detail(f.label),
+            value: f.value,
+          }))}
+        />
       </Panel>
     ) : (
       <Panel
         key={section.title}
-        title={section.title}
+        title={words.detail(section.title)}
         count={section.rows.length || undefined}
       >
         {section.rows.length ? (
           <DetailTable section={section} />
         ) : (
-          <span className='text-muted-foreground'>{section.empty}</span>
+          <span className='text-muted-foreground'>
+            {words.detail(section.empty)}
+          </span>
         )}
       </Panel>
     )
@@ -182,6 +195,7 @@ function DetailTable({
 }: {
   section: Extract<ShownSection, { kind: 'table' }>;
 }) {
+  const words = useWords();
   // With numbers in it, the first column takes what's left and cuts its text
   // short; the rest keep to their content, together at the right, so a row's
   // numbers are read beside each other rather than across the window.
@@ -206,7 +220,7 @@ function DetailTable({
                   i === 0 && cuts && 'min-w-28'
                 )}
               >
-                {column.label}
+                {words.detail(column.label)}
               </th>
             ))}
           </tr>
@@ -229,8 +243,8 @@ function DetailTable({
                     i === 0 && cuts ? 'max-w-0 truncate' : 'whitespace-nowrap'
                   )}
                   title={
-                    i === 0 && cuts && typeof cell === 'string'
-                      ? cell
+                    i === 0 && cuts && !('chars' in Object(cell))
+                      ? words.cell(cell as DetailCell)
                       : undefined
                   }
                 >
@@ -246,6 +260,7 @@ function DetailTable({
 }
 
 function Cell({ cell }: { cell: ShownCell }) {
+  const words = useWords();
   if (typeof cell === 'string') return cell;
   if ('chars' in cell) {
     const placeholder = (
@@ -265,8 +280,9 @@ function Cell({ cell }: { cell: ShownCell }) {
       placeholder
     );
   }
-  if ('at' in cell) return formatMoment(cell.at);
-  const percent = Math.round(cell.progress * 100);
+  const text = words.cell(cell);
+  if (text !== undefined) return text;
+  const percent = Math.round((cell as { progress: number }).progress * 100);
   return (
     <span className='flex items-center justify-end gap-2'>
       <span

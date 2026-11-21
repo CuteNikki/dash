@@ -2,6 +2,7 @@ import 'server-only';
 
 import { env, getJson, once, stats, type App } from '@/lib/apps/app';
 import { episodeName } from '@/lib/apps/arr';
+import type { DetailCell, DetailKey } from '@/lib/types';
 
 type Item = {
   Name: string;
@@ -35,11 +36,11 @@ function itemName(item: Item) {
 }
 
 /** How it's being played: as it is, or turned into something the device can. */
-const PLAY_METHODS: Record<string, string> = {
-  DirectPlay: 'direct play',
-  DirectStream: 'direct stream',
+const PLAY_METHODS = {
+  DirectPlay: 'directPlay',
+  DirectStream: 'directStream',
   Transcode: 'transcoding',
-};
+} as const satisfies Record<string, DetailKey>;
 
 function headersOf() {
   return { Authorization: `MediaBrowser Token="${env('JELLYFIN_API_KEY')}"` };
@@ -58,7 +59,7 @@ export const jellyfin: App = {
     );
     return stats([
       [
-        'Streaming',
+        'streaming',
         async () =>
           (
             await getJson<Session[]>(
@@ -67,8 +68,8 @@ export const jellyfin: App = {
             )
           ).filter((s) => s.NowPlayingItem).length,
       ],
-      ['Movies', async () => (await counts()).MovieCount],
-      ['Shows', async () => (await counts()).SeriesCount],
+      ['movies', async () => (await counts()).MovieCount],
+      ['shows', async () => (await counts()).SeriesCount],
     ]);
   },
   details: async ({ url }) => {
@@ -83,50 +84,61 @@ export const jellyfin: App = {
     return [
       {
         kind: 'table',
-        title: 'Now playing',
+        title: 'nowPlaying',
         columns: [
-          { label: 'What' },
-          { label: 'Who' },
-          { label: 'Progress', numeric: true },
-          { label: 'How' },
+          { label: 'what' },
+          { label: 'who' },
+          { label: 'progress', numeric: true },
+          { label: 'how' },
         ],
         rows: sessions.flatMap((s) => {
           const item = s.NowPlayingItem;
           if (!item) return [];
           const position = s.PlayState?.PositionTicks ?? 0;
-          const method =
-            PLAY_METHODS[s.PlayState?.PlayMethod ?? ''] ??
-            s.PlayState?.PlayMethod ??
-            '–';
+          const name = s.PlayState?.PlayMethod;
+          // One it doesn't know, in Jellyfin's own word
+          const key =
+            name && Object.hasOwn(PLAY_METHODS, name)
+              ? PLAY_METHODS[name as keyof typeof PLAY_METHODS]
+              : undefined;
+          const paused = !!s.PlayState?.IsPaused;
+          const method: DetailCell = key
+            ? { text: paused ? `${key}Paused` : key }
+            : (name ?? '–');
           return [
             {
               cells: [
                 itemName(item),
-                [s.UserName, s.DeviceName].filter(Boolean).join(' on '),
+                s.UserName && s.DeviceName
+                  ? {
+                      text: 'userOnDevice',
+                      values: { user: s.UserName, device: s.DeviceName },
+                    }
+                  : (s.UserName ?? s.DeviceName ?? '–'),
                 {
                   progress: item.RunTimeTicks
                     ? position / item.RunTimeTicks
                     : 0,
                 },
-                s.PlayState?.IsPaused ? `${method}, paused` : method,
+                method,
               ],
-              dim: s.PlayState?.IsPaused,
+              dim: paused,
             },
           ];
         }),
-        empty: "No one's watching",
+        empty: 'noOneWatching',
       },
       {
         kind: 'table',
-        title: 'Recently added',
-        columns: [{ label: 'Title' }, { label: 'Added', numeric: true }],
+        title: 'recentlyAdded',
+        columns: [{ label: 'title' }, { label: 'added', numeric: true }],
         rows: latest.Items.map((item) => ({
           cells: [
             itemName(item),
             item.DateCreated ? { at: Date.parse(item.DateCreated) } : '–',
           ],
         })),
-        empty: 'Nothing yet',
+        empty: 'nothingYet',
       },
     ];
   },

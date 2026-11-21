@@ -1,3 +1,5 @@
+import type { Messages } from 'next-intl';
+
 import type { Locale } from '@/i18n/locales';
 
 import type { Role } from '@/lib/auth/roles';
@@ -70,37 +72,72 @@ export type Service = {
   site?: { check?: SiteCheck };
 };
 
+/** A chip's label, a key under "stats" in the messages, which also tells it apart from its app's others. */
+export type StatKey = keyof Messages['stats'];
+/** Words in an app's window: a key under "details" in the messages. */
+export type DetailKey = keyof Messages['details'];
+
 /**
- * One cell of a details table: text; how far along something is, from 0 to
- * 1; or a moment, in milliseconds since 1970, shown in the viewer's own time.
+ * A number the page writes in its reader's language: a count; one with as
+ * many decimals as given, and its unit, "8.3 Mb/s"; bytes; bytes a second; a
+ * wait in milliseconds; or a length of time in seconds, "2 days 16 h".
  */
-export type DetailCell = string | { progress: number } | { at: number };
+export type Amount =
+  | { number: number }
+  | { fixed: number; digits: number; unit?: string }
+  | { bytes: number }
+  | { rate: number }
+  | { ms: number }
+  | { seconds: number };
+
+/** Words from the messages, with the values they take, numbers among them written in the reader's language. */
+export type DetailText = {
+  text: DetailKey;
+  values?: Record<string, string | number | Amount>;
+};
+
+/**
+ * One cell of a details table: text as it is, a name say; a number; words
+ * from the messages; how far along something is, from 0 to 1; or a moment,
+ * in milliseconds since 1970, shown in the viewer's own time.
+ */
+export type DetailCell =
+  string | Amount | DetailText | { progress: number } | { at: number };
 
 /** Part of what an app has to say in its window. */
 export type DetailSection =
   | {
       kind: 'table';
-      title: string;
+      title: DetailKey;
       /** Numeric ones line up on the right */
-      columns: { label: string; numeric?: boolean }[];
+      columns: { label: DetailKey; numeric?: boolean }[];
       /** Dimmed ones are there but quiet: a database no one's using */
       rows: { cells: DetailCell[]; dim?: boolean }[];
       /** What to say when there are no rows: "No one's watching" */
-      empty: string;
+      empty: DetailKey;
     }
   | {
       kind: 'facts';
-      title: string;
-      facts: { label: string; value: DetailCell }[];
+      title: DetailKey;
+      facts: { label: DetailKey; value: DetailCell }[];
     };
 
 /**
- * One of an app's numbers, ready to show: "Queued" and "3", "Down" and
- * "2.1 MB/s"; or one that says what it is alone, as "Paper 26.2" does.
+ * One of an app's numbers, ready to show: "3 queued", "2.1 MB/s down"; or
+ * one that says what it is alone, as "Paper 26.2" does.
  */
 export type WidgetStat = {
-  label?: string;
-  value: string;
+  /** Its label, plural by its number or count; what it's called among its app's others */
+  label: StatKey;
+  /** Its label left off the chip, its value saying what it is alone: an address, a version */
+  bare?: boolean;
+  /** Text as it is, a number written in the reader's language, or words of its own */
+  value: string | Amount | { says: StatKey };
+  /**
+   * How many, for its label's plural, where its value isn't one number;
+   * without, a label beside text is in the plural, as "1 / 20 players" reads
+   */
+  count?: number;
   /** "live" stands out, as a stream on air does; "off" is quiet, as one that isn't */
   tone?: 'live' | 'off';
 };

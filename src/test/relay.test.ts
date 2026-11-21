@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test';
 
 import type { Container } from '@/lib/docker/docker';
-import { formatDuration } from '@/lib/format';
+import type { WidgetStat } from '@/lib/types';
 
 /** The status file the relay is taken to have written, for each test to set */
 let file: object = {};
@@ -15,6 +15,14 @@ mock.module('@/lib/apps/app', () => ({
 const { relay } = await import('@/lib/apps/relay');
 
 const app = { container: {} as Container, url: '' };
+
+/** How long a chip says the fallback's been on, in seconds. */
+function fallbackSeconds(stats: WidgetStat[]) {
+  const value = stats.find((s) => s.label === 'fallback')?.value;
+  return typeof value === 'object' && 'seconds' in value
+    ? value.seconds
+    : undefined;
+}
 
 /** Live, with YouTube sending and Twitch failing */
 function live() {
@@ -56,9 +64,17 @@ describe('relay', () => {
 
   test('says on its tile which platform is failing while live', async () => {
     const stats = await relay.read(app);
-    expect(stats[0]).toEqual({ value: 'live', tone: 'live' });
-    expect(stats).toContainEqual({ label: 'Out', value: '16.0 Mb/s' });
-    expect(stats).toContainEqual({ label: 'Retrying', value: 'Twitch' });
+    expect(stats[0]).toEqual({
+      label: 'onAir',
+      bare: true,
+      value: { says: 'live' },
+      tone: 'live',
+    });
+    expect(stats).toContainEqual({
+      label: 'out',
+      value: { fixed: 16.0002, digits: 1, unit: 'Mb/s' },
+    });
+    expect(stats).toContainEqual({ label: 'retrying', value: 'Twitch' });
   });
 
   test("says nothing's retrying when every platform is sending", async () => {
@@ -67,48 +83,47 @@ describe('relay', () => {
       outputs: [live().outputs[0]],
     };
     const stats = await relay.read(app);
-    expect(stats.some((s) => s.label === 'Retrying')).toBe(false);
+    expect(stats.some((s) => s.label === 'retrying')).toBe(false);
   });
 
   test('says on its tile, and in its window, that OBS has dropped out', async () => {
     file = { ...live(), fallbackSince: Date.now() - 75_000 };
     const stats = await relay.read(app);
-    expect(stats).toContainEqual({
-      label: 'Fallback',
-      value: formatDuration(75),
-    });
+    expect(fallbackSeconds(stats)).toBeCloseTo(75, 0);
     const [facts] = await relay.details!(app);
     if (facts.kind !== 'facts') throw new Error('expected facts');
-    expect(facts.facts.map((f) => f.label)).toContain('OBS dropped out');
+    expect(facts.facts.map((f) => f.label)).toContain('obsDroppedOut');
   });
 
   test('is offline once the status has gone stale', async () => {
     file = { ...live(), updatedAt: Date.now() - 60_000 };
-    expect(await relay.read(app)).toEqual([{ value: 'offline', tone: 'off' }]);
+    expect(await relay.read(app)).toEqual([
+      { label: 'onAir', bare: true, value: { says: 'offline' }, tone: 'off' },
+    ]);
   });
 
   test('shows each platform, how it is doing, and why one failed', async () => {
     const [, table] = await relay.details!(app);
     if (table.kind !== 'table') throw new Error('expected a table');
     expect(table.columns.map((c) => c.label)).toEqual([
-      'Where',
-      'What',
-      'State',
-      'Frame rate',
-      'Bitrate',
-      'Keeping up',
-      'Restarts',
-      'Last error',
+      'where',
+      'what',
+      'state',
+      'frameRate',
+      'bitrate',
+      'keepingUp',
+      'restarts',
+      'lastError',
     ]);
     expect(table.rows[0]).toEqual({
       cells: [
         'YouTube',
         'as it comes in',
-        'Sending',
-        '60',
-        '16.0 Mb/s',
+        { text: 'relaySending' },
+        { number: 60 },
+        { fixed: 16.0002, digits: 1, unit: 'Mb/s' },
         '1x',
-        '0',
+        { number: 0 },
         '',
       ],
       dim: false,
@@ -117,11 +132,11 @@ describe('relay', () => {
       cells: [
         'Twitch',
         '1080p at 6000 kb/s',
-        'Retrying',
+        { text: 'relayRetrying' },
         '–',
         '–',
         '–',
-        '2',
+        { number: 2 },
         'Connection refused',
       ],
       dim: true,
@@ -132,7 +147,7 @@ describe('relay', () => {
     file = { ...live(), outputs: [live().outputs[0]] };
     const [, table] = await relay.details!(app);
     if (table.kind !== 'table') throw new Error('expected a table');
-    expect(table.columns.map((c) => c.label)).not.toContain('Last error');
+    expect(table.columns.map((c) => c.label)).not.toContain('lastError');
   });
 
   test("lists the relay's own problems with the stream", async () => {
@@ -144,7 +159,7 @@ describe('relay', () => {
     const [facts] = await relay.details!(app);
     if (facts.kind !== 'facts') throw new Error('expected facts');
     expect(facts.facts).toContainEqual({
-      label: 'Problem',
+      label: 'problem',
       value: "MediaMTX turned the relay's password away (HTTP 401)",
     });
   });
@@ -161,7 +176,7 @@ describe('relay', () => {
     expect(table.rows[0].cells.slice(0, 3)).toEqual([
       'YouTube',
       'as it comes in',
-      'Waiting',
+      { text: 'relayWaiting' },
     ]);
   });
 
@@ -196,24 +211,21 @@ describe('relay', () => {
       ],
     };
     const stats = await relay.read(app);
-    expect(stats).toContainEqual({
-      label: 'Fallback',
-      value: formatDuration(20),
-    });
+    expect(fallbackSeconds(stats)).toBeCloseTo(20, 0);
     const [facts, table] = await relay.details!(app);
     if (facts.kind !== 'facts' || table.kind !== 'table') {
       throw new Error('expected facts and a table');
     }
     expect(facts.facts).toContainEqual({
-      label: 'Vertical in',
+      label: 'verticalIn',
       value: 'h264, 1080x1920, 60 fps',
     });
-    expect(facts.facts.map((f) => f.label)).toContain('Vertical dropped out');
-    expect(table.columns.map((c) => c.label)).toContain('Input');
+    expect(facts.facts.map((f) => f.label)).toContain('verticalDroppedOut');
+    expect(table.columns.map((c) => c.label)).toContain('input');
     expect(table.rows[1].cells.slice(0, 3)).toEqual([
       'Shorts',
       'as it comes in',
-      'Vertical',
+      { text: 'vertical' },
     ]);
   });
 
@@ -224,6 +236,6 @@ describe('relay', () => {
     };
     const [, table] = await relay.details!(app);
     if (table.kind !== 'table') throw new Error('expected a table');
-    expect(table.columns.map((c) => c.label)).not.toContain('Input');
+    expect(table.columns.map((c) => c.label)).not.toContain('input');
   });
 });

@@ -3,6 +3,7 @@ import 'server-only';
 import { networkInterfaces } from 'node:os';
 
 import { env, getJson, TIMEOUT_MS, type App } from '@/lib/apps/app';
+import type { DetailCell, DetailKey } from '@/lib/types';
 
 /** What a recipient's delivery is doing: a word, or an object naming it in "@type". */
 type RecipientStatus = string | { '@type'?: string; errorType?: string };
@@ -24,19 +25,29 @@ type QueuedMessage = {
 };
 
 /** How Stalwart's delivery states read here. */
-const STATES: Record<string, string> = {
-  Scheduled: 'waiting',
-  TemporaryFailure: 'failing, will retry',
-  PermanentFailure: 'failed',
-  Completed: 'delivered',
-};
+const STATES = {
+  Scheduled: 'mailWaiting',
+  TemporaryFailure: 'mailRetrying',
+  PermanentFailure: 'mailFailed',
+  Completed: 'mailDelivered',
+} as const satisfies Record<string, DetailKey>;
 
-function stateOf(status?: RecipientStatus) {
+/** Its delivery state, one it doesn't know in Stalwart's own word, with the error it gave. */
+function stateOf(status?: RecipientStatus): DetailCell {
   const name = typeof status === 'string' ? status : status?.['@type'];
   const error = typeof status === 'object' ? status.errorType : undefined;
-  const state = (name && STATES[name]) ?? name ?? '–';
-  return error ? `${state} (${error})` : state;
+  const known =
+    name && Object.hasOwn(STATES, name)
+      ? STATES[name as keyof typeof STATES]
+      : undefined;
+  if (!known) return error ? `${name ?? '–'} (${error})` : (name ?? '–');
+  return error
+    ? { text: 'stateWithError', values: { state: known, error } }
+    : { text: known };
 }
+
+const delivered = (status?: RecipientStatus) =>
+  (typeof status === 'string' ? status : status?.['@type']) === 'Completed';
 
 /**
  * The dashboard's own address, not loopback, which Stalwart 1.0 turns away
@@ -99,7 +110,7 @@ export const stalwart: App = {
     const [query] = await jmap(url, [
       ['x:QueuedMessage/query', { accountId, calculateTotal: true }],
     ]);
-    return [{ label: 'Queued', value: `${query.total ?? 0}` }];
+    return [{ label: 'queued', value: { number: Number(query.total ?? 0) } }];
   },
   details: async ({ url }) => {
     const accountId = await accountOf(url);
@@ -121,13 +132,13 @@ export const stalwart: App = {
     return [
       {
         kind: 'table',
-        title: 'Waiting to go out',
+        title: 'waitingToGoOut',
         columns: [
-          { label: 'To' },
-          { label: 'From' },
-          { label: 'State' },
-          { label: 'Tries', numeric: true },
-          { label: 'Next try', numeric: true },
+          { label: 'to' },
+          { label: 'from' },
+          { label: 'state' },
+          { label: 'tries', numeric: true },
+          { label: 'nextTry', numeric: true },
         ],
         // One row for each recipient, since each is delivered on its own
         rows: messages.flatMap((m) =>
@@ -136,13 +147,13 @@ export const stalwart: App = {
               to,
               m.returnPath || '–',
               stateOf(r.status),
-              `${r.retryCount ?? 0}`,
+              { number: r.retryCount ?? 0 },
               r.retryDue ? { at: Date.parse(r.retryDue) } : '–',
             ],
-            dim: stateOf(r.status) === 'delivered',
+            dim: delivered(r.status),
           }))
         ),
-        empty: "Nothing's waiting to go out",
+        empty: 'nothingWaiting',
       },
     ];
   },

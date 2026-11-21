@@ -12,11 +12,11 @@ export const gluetun: App = {
     stats([
       // An address says what it is alone
       [
-        undefined,
+        { bare: 'address' },
         async () => (await run(c, ['cat', '/tmp/gluetun/ip'])).trim(),
       ],
       [
-        'Forwarded',
+        'forwarded',
         async () => {
           const port = (
             await run(c, ['cat', '/tmp/gluetun/forwarded_port'])

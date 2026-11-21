@@ -45,18 +45,18 @@ export const prowlarr: App = {
     const api = prowlarrApi(url);
     return stats([
       [
-        'Indexers',
+        'indexers',
         async () => (await api.indexers()).filter((i) => i.enable).length,
       ],
       [
-        'Grabs',
+        'grabs',
         async () =>
           (await api.stats()).indexers.reduce(
             (sum, i) => sum + i.numberOfGrabs,
             0
           ),
       ],
-      ['Failing', async () => (await failing(api)).size],
+      ['failing', async () => (await failing(api)).size],
     ]);
   },
   details: async ({ url }) => {
@@ -70,15 +70,15 @@ export const prowlarr: App = {
     return [
       {
         kind: 'table',
-        title: 'Indexers',
+        title: 'indexers',
         columns: [
-          { label: 'Name' },
-          { label: 'Queries', numeric: true },
-          { label: 'Grabs', numeric: true },
-          { label: 'Failed', numeric: true },
-          { label: 'State' },
+          { label: 'name' },
+          { label: 'queries', numeric: true },
+          { label: 'grabs', numeric: true },
+          { label: 'failed', numeric: true },
+          { label: 'state' },
           // When Prowlarr tries a failing one again
-          { label: 'Retried', numeric: true },
+          { label: 'retried', numeric: true },
         ],
         // The most used first; those turned off quiet
         rows: indexers
@@ -89,16 +89,20 @@ export const prowlarr: App = {
             return {
               cells: [
                 i.name,
-                `${c?.numberOfQueries ?? 0}`,
-                `${c?.numberOfGrabs ?? 0}`,
-                `${(c?.numberOfFailedQueries ?? 0) + (c?.numberOfFailedGrabs ?? 0)}`,
-                !i.enable ? 'off' : until ? 'failing' : 'ok',
+                { number: c?.numberOfQueries ?? 0 },
+                { number: c?.numberOfGrabs ?? 0 },
+                {
+                  number:
+                    (c?.numberOfFailedQueries ?? 0) +
+                    (c?.numberOfFailedGrabs ?? 0),
+                },
+                { text: !i.enable ? 'off' : until ? 'failing' : 'ok' },
                 i.enable && until ? { at: until } : '–',
               ],
               dim: !i.enable,
             };
           }),
-        empty: 'No indexers',
+        empty: 'noIndexers',
       },
     ];
   },

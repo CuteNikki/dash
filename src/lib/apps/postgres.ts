@@ -1,7 +1,6 @@
 import 'server-only';
 
 import { inTime, type App } from '@/lib/apps/app';
-import { formatBytes } from '@/lib/format';
 import { postgresDatabases, postgresRows } from '@/lib/postgres';
 
 /** Its databases, each with its size and connections, are in its window. */
@@ -23,28 +22,28 @@ export const postgres: App = {
     // The version second, short enough to share the first line with the
     // connections, so the four take two lines rather than three
     return [
-      { label: 'Conns', value: `${connections} / ${max}` },
+      { label: 'conns', value: `${connections} / ${max}` },
       // "16.15", or "18.1 (Debian 18.1-1)" from some builds
-      { value: `v${version.split(' ')[0]}` },
-      { label: 'Databases', value: databases },
-      { label: 'Used', value: formatBytes(+size) },
+      { label: 'version', bare: true, value: `v${version.split(' ')[0]}` },
+      { label: 'databases', value: { number: +databases } },
+      { label: 'used', value: { bytes: +size } },
     ];
   },
   details: async ({ container: c }) => [
     {
       kind: 'table',
-      title: 'Databases',
+      title: 'databases',
       columns: [
-        { label: 'Name' },
-        { label: 'Size', numeric: true },
-        { label: 'Conns', numeric: true },
+        { label: 'name' },
+        { label: 'size', numeric: true },
+        { label: 'conns', numeric: true },
       ],
       // Biggest first, those no one's connected to quiet
       rows: (await inTime(postgresDatabases(c.id), 'psql')).map((db) => ({
-        cells: [db.name, formatBytes(db.size), `${db.connections}`],
+        cells: [db.name, { bytes: db.size }, { number: db.connections }],
         dim: db.connections === 0,
       })),
-      empty: 'No databases',
+      empty: 'noDatabases',
     },
   ],
 };

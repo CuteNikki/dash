@@ -19,10 +19,12 @@ export const ludo: App = {
   read: async ({ url }) => {
     const { players, rooms, spectators } = await stats(url);
     return [
-      { label: 'Players', value: `${players}` },
-      { label: 'Games', value: `${rooms.playing}` },
+      { label: 'players', value: { number: players } },
+      { label: 'games', value: { number: rooms.playing } },
       // Only when someone is, as it usually isn't
-      ...(spectators ? [{ label: 'Watching', value: `${spectators}` }] : []),
+      ...(spectators
+        ? [{ label: 'watching' as const, value: { number: spectators } }]
+        : []),
     ];
   },
   details: async ({ url }) => {
@@ -30,20 +32,20 @@ export const ludo: App = {
     return [
       {
         kind: 'facts',
-        title: 'Rooms',
+        title: 'rooms',
         facts: [
-          { label: 'Playing', value: `${rooms.playing}` },
-          { label: 'In the lobby', value: `${rooms.lobby}` },
-          { label: 'Voting on a rematch', value: `${rooms.finished}` },
+          { label: 'playing', value: { number: rooms.playing } },
+          { label: 'inLobby', value: { number: rooms.lobby } },
+          { label: 'votingRematch', value: { number: rooms.finished } },
         ],
       },
       {
         kind: 'facts',
-        title: 'In them',
+        title: 'inThem',
         facts: [
-          { label: 'Players', value: `${players}` },
-          { label: 'Bots', value: `${bots}` },
-          { label: 'Watching', value: `${spectators}` },
+          { label: 'players', value: { number: players } },
+          { label: 'bots', value: { number: bots } },
+          { label: 'watching', value: { number: spectators } },
         ],
       },
     ];

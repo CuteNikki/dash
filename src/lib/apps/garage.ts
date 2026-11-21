@@ -2,7 +2,6 @@ import 'server-only';
 
 import { run, type App } from '@/lib/apps/app';
 import type { Container } from '@/lib/docker/docker';
-import { formatBytes } from '@/lib/format';
 import { NoAccess, storageKeyId } from '@/lib/storage';
 
 /** Garage's sizes, "216.7 kB (211.7 KiB)", in bytes: the one in powers of 1024 where there is one. */
@@ -43,29 +42,29 @@ export const garage: App = {
   read: async ({ container: c }) => {
     const all = await buckets(c);
     return [
-      { label: 'Objects', value: `${all.reduce((n, b) => n + b.objects, 0)}` },
       {
-        label: 'Used',
-        value: formatBytes(all.reduce((n, b) => n + b.size, 0)),
+        label: 'objects',
+        value: { number: all.reduce((n, b) => n + b.objects, 0) },
       },
+      { label: 'used', value: { bytes: all.reduce((n, b) => n + b.size, 0) } },
     ];
   },
   details: async ({ container: c }) => [
     {
       kind: 'table',
-      title: 'Buckets',
+      title: 'buckets',
       columns: [
-        { label: 'Name' },
-        { label: 'Objects', numeric: true },
-        { label: 'Size', numeric: true },
+        { label: 'name' },
+        { label: 'objects', numeric: true },
+        { label: 'size', numeric: true },
       ],
       rows: (await buckets(c))
         .sort((a, b) => b.size - a.size)
         .map((b) => ({
-          cells: [b.name, `${b.objects}`, formatBytes(b.size)],
+          cells: [b.name, { number: b.objects }, { bytes: b.size }],
           dim: b.objects === 0,
         })),
-      empty: 'No buckets',
+      empty: 'noBuckets',
     },
   ],
 };

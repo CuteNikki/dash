@@ -10,6 +10,6 @@ export const flaresolverr: App = {
       `${url}/`,
       {}
     );
-    return [{ value: `v${version}` }];
+    return [{ label: 'version', bare: true, value: `v${version}` }];
   },
 };

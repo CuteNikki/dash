@@ -8,7 +8,6 @@ import {
   TIMEOUT_MS,
   type App,
 } from '@/lib/apps/app';
-import { formatDuration, formatRate } from '@/lib/format';
 
 /**
  * qBittorrent's sessions, each kept until it stops being accepted. By its
@@ -86,10 +85,10 @@ export const qbittorrent: App = {
       )
     );
     return stats([
-      ['Down', async () => formatRate((await transfer()).dl_info_speed)],
-      ['Up', async () => formatRate((await transfer()).up_info_speed)],
+      ['down', async () => ({ rate: (await transfer()).dl_info_speed })],
+      ['up', async () => ({ rate: (await transfer()).up_info_speed })],
       [
-        'Downloading',
+        'downloading',
         async () =>
           (
             await qbitJson<unknown[]>(
@@ -100,7 +99,7 @@ export const qbittorrent: App = {
       ],
       // Moving data either way: downloading, or seeding to someone
       [
-        'Active',
+        'active',
         async () =>
           (
             await qbitJson<unknown[]>(
@@ -119,13 +118,13 @@ export const qbittorrent: App = {
     return [
       {
         kind: 'table',
-        title: 'Active',
+        title: 'active',
         columns: [
-          { label: 'Name' },
-          { label: 'Progress', numeric: true },
-          { label: 'Speed', numeric: true },
-          { label: 'Left', numeric: true },
-          { label: 'Ratio', numeric: true },
+          { label: 'name' },
+          { label: 'progress', numeric: true },
+          { label: 'speed', numeric: true },
+          { label: 'left', numeric: true },
+          { label: 'ratio', numeric: true },
         ],
         rows: torrents.map((t) => {
           const done = t.progress >= 1;
@@ -135,14 +134,21 @@ export const qbittorrent: App = {
               { progress: t.progress },
               // Finished ones only send
               done
-                ? `↑ ${formatRate(t.upspeed)}`
-                : `↓ ${formatRate(t.dlspeed)}`,
-              done ? 'done' : t.eta >= NEVER ? '∞' : formatDuration(t.eta),
-              t.ratio.toFixed(2),
+                ? { text: 'sendingRate', values: { rate: { rate: t.upspeed } } }
+                : {
+                    text: 'gettingRate',
+                    values: { rate: { rate: t.dlspeed } },
+                  },
+              done
+                ? { text: 'done' }
+                : t.eta >= NEVER
+                  ? '∞'
+                  : { seconds: t.eta },
+              { fixed: t.ratio, digits: 2 },
             ],
           };
         }),
-        empty: "Nothing's moving",
+        empty: 'nothingMoving',
       },
     ];
   },

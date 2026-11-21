@@ -6,6 +6,7 @@ import { isSiteKey, serviceKey } from '@/lib/dashboard/tiles';
 import { db } from '@/lib/db';
 import { listContainers } from '@/lib/docker/docker';
 import { RUN_LABEL } from '@/lib/docker/runner';
+import type { DetailSection } from '@/lib/types';
 
 /**
  * What the dashboard itself keeps: the services and websites on it, its
@@ -66,42 +67,58 @@ export const dashboard: App = {
   read: async () => {
     const o = await read();
     return [
-      { label: 'Services', value: `${o.services}` },
-      { label: 'Users', value: `${o.users}` },
-      { label: 'Alerts', value: `${o.alerts}` },
+      { label: 'services', value: { number: o.services } },
+      { label: 'users', value: { number: o.users } },
+      { label: 'alerts', value: { number: o.alerts } },
     ];
   },
-  details: async () => {
+  details: async (): Promise<DetailSection[]> => {
     const o = await read();
     return [
       {
         kind: 'facts',
-        title: 'On the dashboard',
+        title: 'onTheDashboard',
         facts: [
           {
-            label: 'Services',
-            value: `${o.running} of ${o.services} running`,
+            label: 'services',
+            value: {
+              text: 'runningOf',
+              values: { running: o.running, count: o.services },
+            },
           },
-          { label: 'Websites elsewhere', value: `${o.sites}` },
+          { label: 'websitesElsewhere', value: { number: o.sites } },
           {
-            label: 'Hidden',
-            value: `${o.hiddenServices} services, ${o.hiddenSites} websites`,
+            label: 'hidden',
+            value: {
+              text: 'hiddenTiles',
+              values: { services: o.hiddenServices, sites: o.hiddenSites },
+            },
           },
-          { label: 'Open alerts', value: `${o.alerts}` },
+          { label: 'openAlerts', value: { number: o.alerts } },
         ],
       },
       {
         kind: 'facts',
-        title: 'Dashboard',
+        title: 'dashboard',
         facts: [
-          { label: 'Users', value: `${o.users}` },
-          { label: 'Signed in', value: `${o.sessions} sessions` },
+          { label: 'users', value: { number: o.users } },
           {
-            label: 'Last backup',
-            value: o.backup ? { at: o.backup.startedAt.getTime() } : 'None yet',
+            label: 'signedIn',
+            value: { text: 'sessions', values: { count: o.sessions } },
+          },
+          {
+            label: 'lastBackup',
+            value: o.backup
+              ? { at: o.backup.startedAt.getTime() }
+              : { text: 'noneYet' },
           },
           ...(o.backup && !backupOk(o.backup.results)
-            ? [{ label: 'Backup errors', value: 'Some parts failed' }]
+            ? [
+                {
+                  label: 'backupErrors' as const,
+                  value: { text: 'somePartsFailed' as const },
+                },
+              ]
             : []),
         ],
       },

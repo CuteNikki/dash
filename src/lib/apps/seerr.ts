@@ -19,21 +19,21 @@ export const seerr: App = {
     );
     const reads: Parameters<typeof stats>[0] = [
       [
-        undefined,
+        { bare: 'update' },
         async () => {
           const status = await getJson<{ updateAvailable: boolean }>(
             `${url}/api/v1/status`,
             {}
           );
           if (!status.updateAvailable) throw new Error('Up to date');
-          return 'update available';
+          return { says: 'updateAvailable' };
         },
       ],
     ];
     if (key) {
       reads.unshift(
-        ['Pending', async () => (await counts()).pending],
-        ['Approved', async () => (await counts()).approved]
+        ['pending', async () => (await counts()).pending],
+        ['approved', async () => (await counts()).approved]
       );
     }
     return stats(reads);

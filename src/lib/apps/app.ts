@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { execShared, type Container } from '@/lib/docker/docker';
-import type { DetailSection, WidgetStat } from '@/lib/types';
+import type { Amount, DetailSection, StatKey, WidgetStat } from '@/lib/types';
 
 /** How long an app has to answer. */
 export const TIMEOUT_MS = 4_000;
@@ -79,19 +79,37 @@ export async function getJson<T>(
   return res.json();
 }
 
+/** What a stat reads: a count, words of its own, or a size or wait. */
+type StatValue = string | number | Amount | { says: StatKey };
+/** Or one with how many it counts, for its label's plural: "0 / 20" players */
+type StatRead = StatValue | { value: StatValue; count: number };
+
 /**
  * Each stat on its own, so one the app's version doesn't have leaves the
- * others; only when none can be read is it an error.
+ * others; only when none can be read is it an error. Labelled `bare`, its
+ * label's left off its chip, its value saying what it is alone.
  */
 export async function stats(
-  reads: [label: string | undefined, read: () => Promise<string | number>][]
+  reads: [label: StatKey | { bare: StatKey }, read: () => Promise<StatRead>][]
 ): Promise<WidgetStat[]> {
   const results = await Promise.allSettled(reads.map(([, read]) => read()));
-  const read = results.flatMap((r, i): WidgetStat[] =>
-    r.status === 'fulfilled'
-      ? [{ label: reads[i][0], value: `${r.value}` }]
-      : []
-  );
+  const read = results.flatMap((r, i): WidgetStat[] => {
+    if (r.status !== 'fulfilled') return [];
+    const label = reads[i][0];
+    const { value, count } =
+      typeof r.value === 'object' && 'value' in r.value
+        ? r.value
+        : { value: r.value, count: undefined };
+    return [
+      {
+        ...(typeof label === 'string'
+          ? { label }
+          : { label: label.bare, bare: true }),
+        value: typeof value === 'number' ? { number: value } : value,
+        ...(count !== undefined && { count }),
+      },
+    ];
+  });
   if (!read.length) {
     throw (
       results.find((r) => r.status === 'rejected') as PromiseRejectedResult

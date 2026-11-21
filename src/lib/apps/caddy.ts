@@ -48,13 +48,13 @@ function targets(route: unknown): string[] {
 
 export const caddy: App = {
   read: async ({ container: c }) => [
-    { label: 'Sites', value: `${(await sites(c)).length}` },
+    { label: 'sites', value: { number: (await sites(c)).length } },
   ],
   details: async ({ container: c }) => [
     {
       kind: 'table',
-      title: 'Sites',
-      columns: [{ label: 'Address' }, { label: 'Goes to' }],
+      title: 'sites',
+      columns: [{ label: 'address' }, { label: 'goesTo' }],
       rows: (await sites(c)).map((route) => {
         const hosts = route.match!.flatMap((m) => m.host ?? []);
         return {
@@ -62,13 +62,16 @@ export const caddy: App = {
             // The rest of a route's addresses, such as autoconfig.… for
             // mail, are counted rather than listed
             hosts.length > 1
-              ? `${hosts[0]} +${hosts.length - 1} more`
+              ? {
+                  text: 'andMore',
+                  values: { first: hosts[0], more: hosts.length - 1 },
+                }
               : hosts[0],
             targets(route).join(', ') || '–',
           ],
         };
       }),
-      empty: 'No sites',
+      empty: 'noSites',
     },
   ],
 };
