@@ -732,7 +732,11 @@
     "mailAlerts": "Warnungen per Mail",
     "alertsDescription": "Wenn ein Dienst ausfällt, der Datenträger voll wird, eine Website nicht mehr antwortet, ein Zertifikat abläuft oder eine Sicherung fehlschlägt, per Mail an {email}, und noch einmal, wenn es wieder stimmt.",
     "alertsNoMail": "Mail ist noch nicht eingerichtet, daher erscheinen Warnungen nur unter der Glocke oben.",
-    "changeFailed": "Das konnte nicht geändert werden"
+    "changeFailed": "Das konnte nicht geändert werden",
+    "profileDescription": "Dein Name und die Adresse, mit der du dich anmeldest",
+    "passwordDescription": "Womit du dich zusammen mit deiner Adresse anmeldest",
+    "preferences": "Einstellungen",
+    "preferencesDescription": "Wie das Dashboard mit dir spricht, und was es dir mailt"
   },
   "agent": {
     "on": "{browser} auf {system}",
@@ -750,7 +754,8 @@
     "codesHint": "Jeder meldet dich einmal an, falls du deine Authentifizierungs-App verlierst. Bewahre sie sicher auf, etwa in deinem Passwortmanager: Sie werden nur jetzt angezeigt.",
     "codesCopied": "Backup-Codes kopiert",
     "copy": "Kopieren",
-    "download": "Herunterladen"
+    "download": "Herunterladen",
+    "twoFactorDescription": "Ein Code aus einer Authentifizierungs-App, zusammen mit deinem Passwort abgefragt"
   },
   "emailNotice": {
     "notChanged": "Deine Adresse wurde nicht geändert",
@@ -785,7 +790,8 @@
     "addedOn": "Hinzugefügt am {date}",
     "rename": "{name} umbenennen",
     "renameShort": "Umbenennen",
-    "removeName": "{name} entfernen"
+    "removeName": "{name} entfernen",
+    "intro": "Ein Passkey meldet dich mit Fingerabdruck, Gesicht oder der PIN deines Geräts an, ohne Passwort."
   },
   "sessions": {
     "today": "heute",
@@ -805,7 +811,8 @@
     "signOutAll": "Alle anderen Geräte abmelden",
     "signOutAllTitle": "Alle anderen Geräte abmelden?",
     "signOutAllDescription": "Jedes braucht dein Passwort oder einen Passkey, um wieder hineinzukommen. Dieses bleibt angemeldet.",
-    "cancel": "Abbrechen"
+    "cancel": "Abbrechen",
+    "description": "Jeder Browser, der bei deinem Konto angemeldet ist, und von wo"
   },
   "activity": {
     "actions": {
@@ -990,9 +997,11 @@
     "sendInvite": "Einladung senden",
     "makeLink": "Link erstellen",
     "twoFactorTitle": "Zwei-Faktor",
-    "twoFactorDescription": "Rollen, deren Personen neben dem Passwort einen Code aus einer Authentifizierungs-App brauchen. Wer keine hat, wird ab dem nächsten Klick zur Einrichtung geschickt; ein Passkey allein reicht nicht, da das Passwort sie auch ohne ihn anmeldet.",
+    "twoFactorDescription": "Rollen, deren Personen neben dem Passwort einen Code aus einer Authentifizierungs-App brauchen. Ein Passkey allein reicht nicht, da das Passwort sie auch ohne ihn anmeldet.",
     "stillNeed": "{count, plural, one {# Person muss es noch einrichten} other {# Personen müssen es noch einrichten}}",
-    "twoFactorFailed": "Das konnte nicht geändert werden"
+    "twoFactorFailed": "Das konnte nicht geändert werden",
+    "peopleDescription": "Alle mit einem Konto, und was sie tun und sehen dürfen",
+    "invitesDescription": "Links zum Erstellen eines Kontos, noch nicht benutzt"
   },
   "twoFactor": {
     "on": "An",

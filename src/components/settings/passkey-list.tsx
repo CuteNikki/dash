@@ -19,6 +19,11 @@ import { authClient } from '@/lib/auth/auth-client';
 import { TextSkeleton } from '@/components/common/skeletons';
 import { attempt } from '@/components/common/toasts';
 import { useKeptCount } from '@/components/common/use-kept';
+import {
+  SettingsFooter,
+  SettingsItem,
+  SettingsSection,
+} from '@/components/settings/section';
 import { isStale, SignInAgain } from '@/components/settings/sign-in-again';
 import { describeAgent } from '@/components/settings/user-agent';
 import {
@@ -53,6 +58,7 @@ const addedOn = (passkey: Passkey, locale: string) =>
  * again after each of these.
  */
 export function PasskeyList() {
+  const tSecurity = useTranslations('security');
   const tAgent = useTranslations('agent');
   const t = useTranslations('passkeys');
   const { data: passkeys, error, isPending } = authClient.useListPasskeys();
@@ -106,16 +112,12 @@ export function PasskeyList() {
   }
 
   return (
-    <div className='flex flex-col gap-3'>
-      <p>
-        A passkey signs you in with your fingerprint, face or your device's PIN,
-        with no password to type.
-      </p>
+    <SettingsSection title={tSecurity('passkeys')} description={t('intro')}>
       {isPending && !passkeys ? (
         rows ? (
-          <ul className='flex flex-col gap-1'>
+          <>
             {Array.from({ length: rows }, (_, i) => (
-              <li key={i} className='flex min-h-7 items-center gap-3'>
+              <SettingsItem key={i}>
                 <KeyRoundIcon className='size-3.5 shrink-0 text-muted-foreground' />
                 {/* Its name and when it was added, under it on a phone */}
                 <span className='flex min-w-0 flex-1 flex-col sm:flex-row sm:items-center sm:gap-3'>
@@ -126,47 +128,50 @@ export function PasskeyList() {
                 </span>
                 {/* Its two buttons' room */}
                 <span className='h-7 w-15 shrink-0' />
-              </li>
+              </SettingsItem>
             ))}
-          </ul>
+          </>
         ) : (
-          <p className='text-muted-foreground'>{t('noneYet')}</p>
+          <SettingsItem>
+            <p className='text-muted-foreground'>{t('noneYet')}</p>
+          </SettingsItem>
         )
       ) : error && !passkeys ? (
-        <p className='text-destructive'>
-          {t('listFailed', { error: error.message || error.statusText })}
-        </p>
-      ) : passkeys && passkeys.length > 0 ? (
-        <ul className='flex flex-col gap-1'>
-          {passkeys.map((passkey) => (
-            <PasskeyRow
-              key={passkey.id}
-              passkey={passkey}
-              onRemoveAction={() => setRemoving(passkey)}
-            />
-          ))}
-        </ul>
-      ) : (
-        <p className='text-muted-foreground'>{t('noneYet')}</p>
-      )}
-      {isStale(addError) ? (
-        <SignInAgain />
-      ) : (
-        addError && (
+        <SettingsItem>
           <p className='text-destructive'>
-            {addError.message ?? t('addFailed')}
+            {t('listFailed', { error: error.message || error.statusText })}
           </p>
-        )
+        </SettingsItem>
+      ) : passkeys && passkeys.length > 0 ? (
+        passkeys.map((passkey) => (
+          <PasskeyRow
+            key={passkey.id}
+            passkey={passkey}
+            onRemoveAction={() => setRemoving(passkey)}
+          />
+        ))
+      ) : (
+        <SettingsItem>
+          <p className='text-muted-foreground'>{t('noneYet')}</p>
+        </SettingsItem>
       )}
-      <Button
-        variant='outline'
-        disabled={adding}
-        onClick={add}
-        className='self-start'
-      >
-        <PlusIcon />
-        {t('add')}
-      </Button>
+      <SettingsFooter>
+        {isStale(addError) ? (
+          <div className='mr-auto'>
+            <SignInAgain />
+          </div>
+        ) : (
+          addError && (
+            <p className='mr-auto text-destructive'>
+              {addError.message ?? t('addFailed')}
+            </p>
+          )
+        )}
+        <Button variant='outline' disabled={adding} onClick={add}>
+          <PlusIcon />
+          {t('add')}
+        </Button>
+      </SettingsFooter>
 
       <AlertDialog
         open={!!removing}
@@ -194,7 +199,7 @@ export function PasskeyList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </SettingsSection>
   );
 }
 
@@ -243,7 +248,7 @@ function PasskeyRow({
 
   const added = addedOn(passkey, locale);
   return (
-    <li className='flex min-h-7 items-center gap-3'>
+    <SettingsItem>
       <KeyRoundIcon className='size-3.5 shrink-0 text-muted-foreground' />
       {editing ? (
         <form
@@ -329,6 +334,6 @@ function PasskeyRow({
           </span>
         </>
       )}
-    </li>
+    </SettingsItem>
   );
 }

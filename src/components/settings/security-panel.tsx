@@ -2,8 +2,8 @@
 
 import { useTranslations } from 'next-intl';
 
-import { Panel } from '@/components/service/app-details';
 import { PasskeyList } from '@/components/settings/passkey-list';
+import { SettingsSection } from '@/components/settings/section';
 import { SessionList } from '@/components/settings/session-list';
 import { TwoFactor } from '@/components/settings/two-factor';
 
@@ -11,19 +11,18 @@ import { TwoFactor } from '@/components/settings/two-factor';
 export function SecurityPanel() {
   const t = useTranslations('security');
   return (
-    // One under another, each as wide as the window, so one that grows, as
-    // two-factor does while it's being set up, pushes the rest down rather
-    // than leaving a column of empty space beside it
-    <div className='flex flex-col gap-3'>
-      <Panel title={t('passkeys')}>
-        <PasskeyList />
-      </Panel>
-      <Panel title={t('twoFactor')}>
-        <TwoFactor />
-      </Panel>
-      <Panel title={t('signedIn')}>
-        <SessionList />
-      </Panel>
+    <div className='flex flex-col gap-6'>
+      <PasskeyList />
+      <SettingsSection
+        title={t('twoFactor')}
+        description={t('twoFactorDescription')}
+      >
+        {/* Setting it up is a few steps of its own, so it has the card */}
+        <div className='p-3'>
+          <TwoFactor />
+        </div>
+      </SettingsSection>
+      <SessionList />
     </div>
   );
 }

@@ -18,8 +18,12 @@ import { can } from '@/lib/auth/roles';
 import type { Me } from '@/lib/types';
 
 import { attempt } from '@/components/common/toasts';
-import { Panel } from '@/components/service/app-details';
 import { changingUrl, CONFIRMED_URL } from '@/components/settings/email-notice';
+import {
+  SettingsFooter,
+  SettingsRow,
+  SettingsSection,
+} from '@/components/settings/section';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -33,16 +37,27 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 
+/** How the dashboard speaks to them, and whether it mails them alerts. */
+function PreferencesSection({ me }: { me: Me }) {
+  const t = useTranslations('account');
+  return (
+    <SettingsSection
+      title={t('preferences')}
+      description={t('preferencesDescription')}
+    >
+      <LanguageRow me={me} />
+      {can(me.role, 'server') && <AlertsRow me={me} />}
+    </SettingsSection>
+  );
+}
+
 /** Who they are, as the dashboard knows them, and the password they sign in with. */
 export function AccountPanel({ me }: { me: Me }) {
   return (
-    // One under another, as the Security tab's are, each laying its fields
-    // out side by side, so none leaves a gap beside a taller one
-    <div className='flex flex-col gap-3'>
+    <div className='flex flex-col gap-6'>
       <ProfileForm me={me} />
       <PasswordForm />
-      <LanguageForm me={me} />
-      {can(me.role, 'server') && <AlertsForm me={me} />}
+      <PreferencesSection me={me} />
     </div>
   );
 }
@@ -108,51 +123,53 @@ function ProfileForm({ me }: { me: Me }) {
   }
 
   return (
-    <Panel title={t('profile')}>
-      <form
-        className='flex flex-col gap-4'
-        onSubmit={(e) => {
-          e.preventDefault();
-          save();
-        }}
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        save();
+      }}
+    >
+      <SettingsSection
+        title={t('profile')}
+        description={t('profileDescription')}
       >
-        <div className='grid gap-4 sm:grid-cols-2 sm:items-start'>
-          <div className='flex flex-col gap-2'>
-            <Label htmlFor='account-name'>{t('name')}</Label>
-            <Input
-              id='account-name'
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoComplete='name'
-              required
-            />
-          </div>
-          <div className='flex flex-col gap-2'>
-            <Label htmlFor='account-email'>{t('email')}</Label>
-            <Input
-              id='account-email'
-              type='email'
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete='email'
-              required
-            />
-            <EmailStatus me={me} />
-          </div>
-        </div>
-        {error && <p className='text-destructive'>{error}</p>}
-        {/* Quiet until there's something to save, rather than a solid
-            button greyed out, which looks broken */}
-        <Button
-          type='submit'
-          variant={changed ? 'default' : 'outline'}
-          disabled={pending || !changed}
-          className='self-start'
+        <SettingsRow label={t('name')} htmlFor='account-name'>
+          <Input
+            id='account-name'
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            autoComplete='name'
+            required
+          />
+        </SettingsRow>
+        <SettingsRow
+          label={t('email')}
+          htmlFor='account-email'
+          hint={<EmailStatus me={me} />}
         >
-          {t('save')}
-        </Button>
-      </form>
-    </Panel>
+          <Input
+            id='account-email'
+            type='email'
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete='email'
+            required
+          />
+        </SettingsRow>
+        <SettingsFooter>
+          {error && <p className='mr-auto text-destructive'>{error}</p>}
+          {/* Quiet until there's something to save, rather than a solid
+              button greyed out, which looks broken */}
+          <Button
+            type='submit'
+            variant={changed ? 'default' : 'outline'}
+            disabled={pending || !changed}
+          >
+            {t('save')}
+          </Button>
+        </SettingsFooter>
+      </SettingsSection>
+    </form>
   );
 }
 
@@ -164,89 +181,84 @@ function PasswordForm() {
   const [pending, startTransition] = useTransition();
 
   return (
-    <Panel title={t('password')}>
-      <form
-        className='flex flex-col gap-4'
-        // Sent from here rather than as the form's action, which would empty
-        // the fields after, when only one of them might be wrong
-        onSubmit={(e) => {
-          e.preventDefault();
-          const form = e.currentTarget;
-          const data = new FormData(form);
-          const currentPassword = String(data.get('current-password'));
-          const newPassword = String(data.get('new-password'));
-          if (newPassword.length < MIN_PASSWORD) {
-            setError(t('passwordTooShort', { count: MIN_PASSWORD }));
-            return;
-          }
-          // There's no email to reset a mistyped one with, so it's asked twice
-          if (newPassword !== String(data.get('repeat-password'))) {
-            setError(t('passwordsDiffer'));
-            return;
-          }
-          setError(undefined);
-          startTransition(() =>
-            attempt(t('passwordFailed'), async () => {
-              const { error } = await authClient.changePassword({
-                currentPassword,
-                newPassword,
-                revokeOtherSessions: signOutOthers,
-              });
-              if (error) {
-                setError(authError(error, t('passwordFailed')));
-                return;
-              }
-              form.reset();
-              toast.success(t('passwordChanged'), {
-                description: signOutOthers ? t('othersSignedOut') : undefined,
-              });
-            })
-          );
-        }}
+    <form
+      // Sent from here rather than as the form's action, which would empty
+      // the fields after, when only one of them might be wrong
+      onSubmit={(e) => {
+        e.preventDefault();
+        const form = e.currentTarget;
+        const data = new FormData(form);
+        const currentPassword = String(data.get('current-password'));
+        const newPassword = String(data.get('new-password'));
+        if (newPassword.length < MIN_PASSWORD) {
+          setError(t('passwordTooShort', { count: MIN_PASSWORD }));
+          return;
+        }
+        // There's no email to reset a mistyped one with, so it's asked twice
+        if (newPassword !== String(data.get('repeat-password'))) {
+          setError(t('passwordsDiffer'));
+          return;
+        }
+        setError(undefined);
+        startTransition(() =>
+          attempt(t('passwordFailed'), async () => {
+            const { error } = await authClient.changePassword({
+              currentPassword,
+              newPassword,
+              revokeOtherSessions: signOutOthers,
+            });
+            if (error) {
+              setError(authError(error, t('passwordFailed')));
+              return;
+            }
+            form.reset();
+            toast.success(t('passwordChanged'), {
+              description: signOutOthers ? t('othersSignedOut') : undefined,
+            });
+          })
+        );
+      }}
+    >
+      <SettingsSection
+        title={t('password')}
+        description={t('passwordDescription')}
       >
-        <div className='grid gap-4 sm:grid-cols-3 sm:items-start'>
-          <div className='flex flex-col gap-2'>
-            <Label htmlFor='current-password'>{t('currentPassword')}</Label>
-            <Input
-              id='current-password'
-              name='current-password'
-              type='password'
-              autoComplete='current-password'
-              required
-            />
-          </div>
-          <div className='flex flex-col gap-2'>
-            <Label htmlFor='new-password'>{t('newPassword')}</Label>
-            <Input
-              id='new-password'
-              name='new-password'
-              type='password'
-              autoComplete='new-password'
-              minLength={MIN_PASSWORD}
-              required
-            />
-            <p className='text-muted-foreground'>
-              {t('passwordHint', { count: MIN_PASSWORD })}
-            </p>
-          </div>
-          <div className='flex flex-col gap-2'>
-            <Label htmlFor='repeat-password'>{t('repeatPassword')}</Label>
-            <Input
-              id='repeat-password'
-              name='repeat-password'
-              type='password'
-              autoComplete='new-password'
-              minLength={MIN_PASSWORD}
-              required
-            />
-          </div>
-        </div>
-        {error && <p className='text-destructive'>{error}</p>}
-        <div className='flex flex-wrap items-center gap-x-4 gap-y-3'>
-          <Button type='submit' disabled={pending}>
-            {t('changePassword')}
-          </Button>
-          <div className='flex items-center gap-2'>
+        <SettingsRow label={t('currentPassword')} htmlFor='current-password'>
+          <Input
+            id='current-password'
+            name='current-password'
+            type='password'
+            autoComplete='current-password'
+            required
+          />
+        </SettingsRow>
+        <SettingsRow
+          label={t('newPassword')}
+          htmlFor='new-password'
+          hint={t('passwordHint', { count: MIN_PASSWORD })}
+        >
+          <Input
+            id='new-password'
+            name='new-password'
+            type='password'
+            autoComplete='new-password'
+            minLength={MIN_PASSWORD}
+            required
+          />
+        </SettingsRow>
+        <SettingsRow label={t('repeatPassword')} htmlFor='repeat-password'>
+          <Input
+            id='repeat-password'
+            name='repeat-password'
+            type='password'
+            autoComplete='new-password'
+            minLength={MIN_PASSWORD}
+            required
+          />
+        </SettingsRow>
+        <SettingsFooter>
+          {error && <p className='w-full text-destructive'>{error}</p>}
+          <div className='mr-auto flex items-center gap-2'>
             <Checkbox
               id='sign-out-others'
               checked={signOutOthers}
@@ -254,9 +266,12 @@ function PasswordForm() {
             />
             <Label htmlFor='sign-out-others'>{t('signOutOthers')}</Label>
           </div>
-        </div>
-      </form>
-    </Panel>
+          <Button type='submit' disabled={pending}>
+            {t('changePassword')}
+          </Button>
+        </SettingsFooter>
+      </SettingsSection>
+    </form>
   );
 }
 
@@ -308,90 +323,84 @@ function EmailStatus({ me }: { me: Me }) {
 }
 
 /** The language the dashboard speaks to them in, and mails them in. */
-function LanguageForm({ me }: { me: Me }) {
+function LanguageRow({ me }: { me: Me }) {
   const t = useTranslations('settings.language');
   const router = useRouter();
   const locale = useLocale();
   const [pending, startTransition] = useTransition();
   return (
-    <Panel title={t('title')}>
-      <div className='flex items-start justify-between gap-4'>
-        <div className='flex flex-col gap-1'>
-          <Label htmlFor='language'>{t('label')}</Label>
-          <p className='text-muted-foreground'>
-            {me.locale ? t('chosen') : t('browser')}
-          </p>
-        </div>
-        <Select
-          value={locale}
-          disabled={pending}
-          onValueChange={(next) =>
-            startTransition(() =>
-              attempt(t('failed'), async () => {
-                const { error } = await setLocale(next as Locale);
-                if (error) {
-                  toast.error(t('failed'), { description: error });
-                  return;
-                }
-                router.refresh();
-              })
-            )
-          }
-        >
-          <SelectTrigger id='language'>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {LOCALES.map((l) => (
-              // Each in its own language, as whoever reads it reads that
-              <SelectItem key={l} value={l} lang={l}>
-                {LOCALE_NAMES[l]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-    </Panel>
+    <SettingsRow
+      label={t('label')}
+      htmlFor='language'
+      hint={me.locale ? t('chosen') : t('browser')}
+    >
+      <Select
+        value={locale}
+        disabled={pending}
+        onValueChange={(next) =>
+          startTransition(() =>
+            attempt(t('failed'), async () => {
+              const { error } = await setLocale(next as Locale);
+              if (error) {
+                toast.error(t('failed'), { description: error });
+                return;
+              }
+              router.refresh();
+            })
+          )
+        }
+      >
+        <SelectTrigger id='language'>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {LOCALES.map((l) => (
+            // Each in its own language, as whoever reads it reads that
+            <SelectItem key={l} value={l} lang={l}>
+              {LOCALE_NAMES[l]}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </SettingsRow>
   );
 }
 
 /** Whether the monitor's alerts are mailed to them, for those who see the server. */
-function AlertsForm({ me }: { me: Me }) {
+function AlertsRow({ me }: { me: Me }) {
   const t = useTranslations('account');
   const router = useRouter();
   const [on, setOn] = useState(me.alertMail);
   const [pending, startTransition] = useTransition();
   return (
-    <Panel title={t('alerts')}>
-      <div className='flex items-start justify-between gap-4'>
-        <div className='flex flex-col gap-1'>
-          <Label htmlFor='alert-mail'>{t('mailAlerts')}</Label>
-          <p className='text-muted-foreground'>
-            {me.mail
-              ? t('alertsDescription', { email: me.email })
-              : t('alertsNoMail')}
-          </p>
-        </div>
-        <Switch
-          id='alert-mail'
-          checked={on}
-          disabled={pending || !me.mail}
-          onCheckedChange={(next) => {
-            setOn(next);
-            startTransition(() =>
-              attempt(t('changeFailed'), async () => {
-                const { error } = await setAlertMail(next);
-                if (error) {
-                  setOn(!next);
-                  toast.error(t('changeFailed'), { description: error });
-                  return;
-                }
-                router.refresh();
-              })
-            );
-          }}
-        />
-      </div>
-    </Panel>
+    <SettingsRow
+      label={t('mailAlerts')}
+      htmlFor='alert-mail'
+      hint={
+        me.mail
+          ? t('alertsDescription', { email: me.email })
+          : t('alertsNoMail')
+      }
+    >
+      <Switch
+        id='alert-mail'
+        checked={on}
+        disabled={pending || !me.mail}
+        onCheckedChange={(next) => {
+          setOn(next);
+          startTransition(() =>
+            attempt(t('changeFailed'), async () => {
+              const { error } = await setAlertMail(next);
+              if (error) {
+                setOn(!next);
+                toast.error(t('changeFailed'), { description: error });
+                return;
+              }
+              router.refresh();
+            })
+          );
+        }}
+      />
+    </SettingsRow>
   );
 }

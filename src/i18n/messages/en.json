@@ -732,7 +732,11 @@
     "mailAlerts": "Mail me alerts",
     "alertsDescription": "When a service goes down, the disk fills, a website stops answering, a certificate is running out or a backup fails, mailed to {email}, and again once it's right.",
     "alertsNoMail": "Mail isn't set up yet, so alerts only show under the bell at the top.",
-    "changeFailed": "Couldn't change that"
+    "changeFailed": "Couldn't change that",
+    "profileDescription": "Your name, and the address you sign in with",
+    "passwordDescription": "What you sign in with, with your address",
+    "preferences": "Preferences",
+    "preferencesDescription": "How the dashboard speaks to you, and what it mails you"
   },
   "agent": {
     "on": "{browser} on {system}",
@@ -750,7 +754,8 @@
     "codesHint": "Each signs you in once, should you lose your authenticator app. Keep them somewhere safe, such as your password manager: they're shown only now.",
     "codesCopied": "Copied the backup codes",
     "copy": "Copy",
-    "download": "Download"
+    "download": "Download",
+    "twoFactorDescription": "A code from an authenticator app, asked for with your password"
   },
   "emailNotice": {
     "notChanged": "Your address wasn't changed",
@@ -785,7 +790,8 @@
     "addedOn": "Added {date}",
     "rename": "Rename {name}",
     "renameShort": "Rename",
-    "removeName": "Remove {name}"
+    "removeName": "Remove {name}",
+    "intro": "A passkey signs you in with your fingerprint, face or your device's PIN, with no password to type."
   },
   "sessions": {
     "today": "today",
@@ -805,7 +811,8 @@
     "signOutAll": "Sign out all other devices",
     "signOutAllTitle": "Sign out all other devices?",
     "signOutAllDescription": "Each of them needs your password or a passkey to get back in. This one stays signed in.",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "description": "Every browser signed in to your account, and where from"
   },
   "activity": {
     "actions": {
@@ -990,9 +997,11 @@
     "sendInvite": "Send the invite",
     "makeLink": "Make the link",
     "twoFactorTitle": "Two-factor",
-    "twoFactorDescription": "Roles whose people need an authenticator app's code as well as their password. Those without one are sent to set it up from their next click; a passkey alone doesn't do, as the password still signs them in without it.",
+    "twoFactorDescription": "Roles whose people need an authenticator app's code as well as their password. A passkey alone doesn't do, as the password still signs them in without it.",
     "stillNeed": "{count, plural, one {# person still has to set it up} other {# people still have to set it up}}",
-    "twoFactorFailed": "Couldn't change that"
+    "twoFactorFailed": "Couldn't change that",
+    "peopleDescription": "Everyone with an account, what they may do and see",
+    "invitesDescription": "Links to make an account with, not used yet"
   },
   "twoFactor": {
     "on": "On",

@@ -1,7 +1,7 @@
 'use client';
 
 import { useLocale, useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import useSWRInfinite from 'swr/infinite';
 
 import { SearchIcon, XCircleIcon } from 'lucide-react';
@@ -13,6 +13,11 @@ import { Failure } from '@/components/common/failure';
 import { TextSkeleton } from '@/components/common/skeletons';
 import { useDebounced } from '@/components/common/use-debounced';
 import { keepShape, useKeptShape } from '@/components/common/use-kept';
+import {
+  SettingsFooter,
+  SettingsItem,
+  SettingsSection,
+} from '@/components/settings/section';
 import { Button } from '@/components/ui/button';
 import {
   InputGroup,
@@ -79,12 +84,10 @@ export function ActivityPanel() {
   };
 
   return (
-    <section className='flex flex-col gap-3'>
-      <div className='flex flex-wrap items-center gap-2'>
-        <div className='mr-auto flex flex-col'>
-          <h3 className='font-medium'>{t('title')}</h3>
-          <p className='text-muted-foreground'>{t('description')}</p>
-        </div>
+    <SettingsSection
+      title={t('title')}
+      description={t('description')}
+      action={
         <div className='flex w-full gap-2 sm:w-auto'>
           <InputGroup className='h-8 flex-1 sm:w-56 sm:flex-none'>
             <InputGroupAddon>
@@ -108,59 +111,85 @@ export function ActivityPanel() {
             {t('failed')}
           </Toggle>
         </div>
-      </div>
+      }
+    >
       {error && !data ? (
-        <p className='text-destructive'>{error.message}</p>
+        <SettingsItem>
+          <p className='text-destructive'>{error.message}</p>
+        </SettingsItem>
       ) : !data ? (
-        <div className='flex flex-col gap-4'>
+        <div className='contents'>
           {shape.days.map((rows, d) => (
-            <div key={d} className='flex flex-col gap-1'>
-              <h4>
+            <Fragment key={d}>
+              <DayHeading>
                 <TextSkeleton className='w-20' />
-              </h4>
-              <ul className='flex flex-col divide-y divide-border'>
+              </DayHeading>
+              <ul className={DAY}>
                 {rows.map((height, i) => (
                   <ActivityRow key={i} index={d + i} height={height} />
                 ))}
               </ul>
-            </div>
+            </Fragment>
           ))}
           {shape.more && (
-            <Button variant='outline' size='sm' disabled className='self-start'>
-              {t('older')}
-            </Button>
+            <SettingsFooter>
+              <Button variant='outline' size='sm' disabled>
+                {t('older')}
+              </Button>
+            </SettingsFooter>
           )}
         </div>
       ) : entries.length === 0 ? (
-        <p className='text-muted-foreground'>
-          {query ? t('noMatch') : failed ? t('noFailures') : t('nothingYet')}
-        </p>
+        <SettingsItem>
+          <p className='text-muted-foreground'>
+            {query ? t('noMatch') : failed ? t('noFailures') : t('nothingYet')}
+          </p>
+        </SettingsItem>
       ) : (
-        <div ref={measure} className='flex flex-col gap-4'>
+        // One child of the card, as its placeholder is, for measuring: the
+        // days draw their own lines
+        <div ref={measure} className='contents'>
           {byDay(entries, t, locale).map(([day, list]) => (
-            <div key={day} className='flex flex-col gap-1'>
-              <h4 className='text-muted-foreground'>{day}</h4>
-              <ul className='flex flex-col divide-y divide-border'>
+            <Fragment key={day}>
+              <DayHeading>{day}</DayHeading>
+              <ul className={DAY}>
                 {list.map((entry) => (
                   <ActivityRow key={entry.id} entry={entry} />
                 ))}
               </ul>
-            </div>
+            </Fragment>
           ))}
           {more && (
-            <Button
-              variant='outline'
-              size='sm'
-              disabled={loadingMore}
-              onClick={() => void setSize(size + 1)}
-              className='self-start'
-            >
-              {loadingMore ? t('loading') : t('older')}
-            </Button>
+            <SettingsFooter>
+              <Button
+                variant='outline'
+                size='sm'
+                disabled={loadingMore}
+                onClick={() => void setSize(size + 1)}
+              >
+                {loadingMore ? t('loading') : t('older')}
+              </Button>
+            </SettingsFooter>
           )}
         </div>
       )}
-    </section>
+    </SettingsSection>
+  );
+}
+
+/**
+ * A day's entries, as a list of their own in the card, a line under it
+ * unless it's the card's last.
+ */
+const DAY =
+  'flex flex-col divide-y divide-foreground/10 border-b border-foreground/10 px-3 last:border-b-0';
+
+/** The day a list of entries is from, heading them in the card. */
+function DayHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h4 className='border-b border-foreground/10 bg-foreground/2 px-3 py-1.5 text-muted-foreground'>
+      {children}
+    </h4>
   );
 }
 

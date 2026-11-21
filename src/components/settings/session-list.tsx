@@ -12,6 +12,11 @@ import { authClient } from '@/lib/auth/auth-client';
 import { TextSkeleton } from '@/components/common/skeletons';
 import { attempt } from '@/components/common/toasts';
 import { useKeptCount } from '@/components/common/use-kept';
+import {
+  SettingsFooter,
+  SettingsItem,
+  SettingsSection,
+} from '@/components/settings/section';
 import { isStale, SignInAgain } from '@/components/settings/sign-in-again';
 import { describeAgent, parseAgent } from '@/components/settings/user-agent';
 import {
@@ -70,6 +75,7 @@ function formatDay(
  * all of them at once.
  */
 export function SessionList() {
+  const tSecurity = useTranslations('security');
   const locale = useLocale();
   const tAgent = useTranslations('agent');
   const t = useTranslations('sessions');
@@ -128,110 +134,129 @@ export function SessionList() {
     );
   }
 
-  if (isStale(error)) return <SignInAgain />;
+  /** The section, the same whatever's in it */
+  const section = (children: React.ReactNode) => (
+    <SettingsSection
+      title={tSecurity('signedIn')}
+      description={t('description')}
+    >
+      {children}
+    </SettingsSection>
+  );
+
+  if (isStale(error)) {
+    return section(
+      <SettingsItem>
+        <SignInAgain />
+      </SettingsItem>
+    );
+  }
   if (isLoading) {
     // As many rows as last time, each with its columns, and the button to
     // sign the others out if there were others
-    return (
-      <div className='flex flex-col gap-3'>
-        <ul className='flex flex-col gap-2'>
-          {Array.from({ length: rows }, (_, i) => (
-            <li key={i} className='flex items-center gap-3'>
-              <MonitorIcon className='size-3.5 shrink-0 text-muted-foreground' />
-              <span className='flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-0.5'>
-                <span className='w-48 min-w-0'>
-                  <TextSkeleton className='w-32' />
-                </span>
-                <span className='w-32 shrink-0'>
-                  <TextSkeleton className='w-24' />
-                </span>
-                <span className='w-36 shrink-0'>
-                  <TextSkeleton className='w-28' />
-                </span>
-                <span className='w-36 shrink-0'>
-                  <TextSkeleton className='w-28' />
-                </span>
+    return section(
+      <>
+        {Array.from({ length: rows }, (_, i) => (
+          <SettingsItem key={i}>
+            <MonitorIcon className='size-3.5 shrink-0 text-muted-foreground' />
+            <span className='flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-0.5'>
+              <span className='w-48 min-w-0'>
+                <TextSkeleton className='w-32' />
               </span>
-              <span className='size-7 shrink-0' />
-            </li>
-          ))}
-        </ul>
-        {rows > 1 && <Skeleton className='h-7 w-44 bg-foreground/10' />}
-      </div>
+              <span className='w-32 shrink-0'>
+                <TextSkeleton className='w-24' />
+              </span>
+              <span className='w-36 shrink-0'>
+                <TextSkeleton className='w-28' />
+              </span>
+              <span className='w-36 shrink-0'>
+                <TextSkeleton className='w-28' />
+              </span>
+            </span>
+            <span className='size-7 shrink-0' />
+          </SettingsItem>
+        ))}
+        {rows > 1 && (
+          <SettingsFooter>
+            <Skeleton className='h-7 w-44 bg-foreground/10' />
+          </SettingsFooter>
+        )}
+      </>
     );
   }
   if (error) {
-    return (
-      <p className='text-destructive'>
-        {t('listFailed', { error: error.message ?? t('noAnswer') })}
-      </p>
+    return section(
+      <SettingsItem>
+        <p className='text-destructive'>
+          {t('listFailed', { error: error.message ?? t('noAnswer') })}
+        </p>
+      </SettingsItem>
     );
   }
 
-  return (
-    <div className='flex flex-col gap-3'>
-      <ul className='flex flex-col gap-2'>
-        {sessions.map((session) => {
-          const here = session.id === current?.session.id;
-          const Icon = parseAgent(session.userAgent).mobile
-            ? SmartphoneIcon
-            : MonitorIcon;
-          return (
-            <li key={session.id} className='flex items-center gap-3'>
-              <Icon className='size-3.5 shrink-0 text-muted-foreground' />
-              <span className='flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-0.5'>
-                <span className='flex w-48 min-w-0 items-center gap-2'>
-                  <span className='truncate font-medium'>
-                    {describeAgent(session.userAgent, tAgent)}
-                  </span>
-                  {here && <Badge variant='secondary'>{t('thisDevice')}</Badge>}
+  return section(
+    <>
+      {sessions.map((session) => {
+        const here = session.id === current?.session.id;
+        const Icon = parseAgent(session.userAgent).mobile
+          ? SmartphoneIcon
+          : MonitorIcon;
+        return (
+          <SettingsItem key={session.id}>
+            <Icon className='size-3.5 shrink-0 text-muted-foreground' />
+            <span className='flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-0.5'>
+              <span className='flex w-48 min-w-0 items-center gap-2'>
+                <span className='truncate font-medium'>
+                  {describeAgent(session.userAgent, tAgent)}
                 </span>
-                <span className='w-32 shrink-0 truncate font-mono text-muted-foreground tabular-nums'>
-                  {session.ipAddress || t('noAddress')}
-                </span>
-                <span className='w-36 shrink-0 text-muted-foreground'>
-                  {t('signedIn', {
-                    day: formatDay(session.createdAt, t, locale),
-                  })}
-                </span>
-                {/* Renewed at most once a day, so it's to within a day */}
-                <span className='w-36 shrink-0 text-muted-foreground'>
-                  {t('lastUsed', {
-                    day: formatDay(session.updatedAt, t, locale),
-                  })}
-                </span>
+                {here && <Badge variant='secondary'>{t('thisDevice')}</Badge>}
               </span>
-              {/* Its room kept on this one, so the others' buttons line up */}
-              <span className='flex size-7 shrink-0'>
-                {!here && (
-                  <Button
-                    variant='destructive'
-                    size='icon'
-                    disabled={pending}
-                    aria-label={t('signOutName', {
-                      name: describeAgent(session.userAgent, tAgent),
-                    })}
-                    title={t('signOut')}
-                    onClick={() => signOut(session)}
-                  >
-                    <LogOutIcon />
-                  </Button>
-                )}
+              <span className='w-32 shrink-0 truncate font-mono text-muted-foreground tabular-nums'>
+                {session.ipAddress || t('noAddress')}
               </span>
-            </li>
-          );
-        })}
-      </ul>
+              <span className='w-36 shrink-0 text-muted-foreground'>
+                {t('signedIn', {
+                  day: formatDay(session.createdAt, t, locale),
+                })}
+              </span>
+              {/* Renewed at most once a day, so it's to within a day */}
+              <span className='w-36 shrink-0 text-muted-foreground'>
+                {t('lastUsed', {
+                  day: formatDay(session.updatedAt, t, locale),
+                })}
+              </span>
+            </span>
+            {/* Its room kept on this one, so the others' buttons line up */}
+            <span className='flex size-7 shrink-0'>
+              {!here && (
+                <Button
+                  variant='destructive'
+                  size='icon'
+                  disabled={pending}
+                  aria-label={t('signOutName', {
+                    name: describeAgent(session.userAgent, tAgent),
+                  })}
+                  title={t('signOut')}
+                  onClick={() => signOut(session)}
+                >
+                  <LogOutIcon />
+                </Button>
+              )}
+            </span>
+          </SettingsItem>
+        );
+      })}
       {others.length > 0 && (
-        <Button
-          variant='destructive'
-          disabled={pending}
-          onClick={() => setConfirmAll(true)}
-          className='self-start'
-        >
-          <LogOutIcon />
-          {t('signOutAll')}
-        </Button>
+        <SettingsFooter>
+          <Button
+            variant='destructive'
+            disabled={pending}
+            onClick={() => setConfirmAll(true)}
+          >
+            <LogOutIcon />
+            {t('signOutAll')}
+          </Button>
+        </SettingsFooter>
       )}
 
       <AlertDialog open={confirmAll} onOpenChange={setConfirmAll}>
@@ -250,6 +275,6 @@ export function SessionList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }

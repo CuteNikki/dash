@@ -38,6 +38,11 @@ import { useKeptCount } from '@/components/common/use-kept';
 import { InviteDialog } from '@/components/settings/invite-dialog';
 import { EditAccessDialog } from '@/components/settings/people-access';
 import {
+  SettingsItem,
+  SettingsRow,
+  SettingsSection,
+} from '@/components/settings/section';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -49,7 +54,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 
 type PeopleTranslator = ReturnType<typeof useTranslations<'people'>>;
@@ -86,23 +90,20 @@ export function PeoplePanel() {
 
   return (
     <div className='flex flex-col gap-6'>
-      <section className='flex flex-col gap-2'>
-        <h3 className='font-medium'>{t('people')}</h3>
+      <SettingsSection title={t('people')} description={t('peopleDescription')}>
         {data ? (
-          <ul className='flex flex-col divide-y divide-border'>
-            {data.people.map((person) => (
-              <PersonRow
-                key={person.id}
-                person={person}
-                onEditAction={() => setEditing(person)}
-                onChangedAction={reload}
-              />
-            ))}
-          </ul>
+          data.people.map((person) => (
+            <PersonRow
+              key={person.id}
+              person={person}
+              onEditAction={() => setEditing(person)}
+              onChangedAction={reload}
+            />
+          ))
         ) : (
           <RowsSkeleton rows={peopleRows} lines={3} />
         )}
-      </section>
+      </SettingsSection>
 
       <TwoFactorRoles
         people={data?.people}
@@ -110,9 +111,10 @@ export function PeoplePanel() {
         onChangedAction={reload}
       />
 
-      <section className='flex flex-col gap-2'>
-        <div className='flex items-center gap-2'>
-          <h3 className='mr-auto font-medium'>{t('invites')}</h3>
+      <SettingsSection
+        title={t('invites')}
+        description={t('invitesDescription')}
+        action={
           <Button
             variant='outline'
             size='sm'
@@ -122,23 +124,24 @@ export function PeoplePanel() {
             <UserPlusIcon />
             {t('invite')}
           </Button>
-        </div>
+        }
+      >
         {!data ? (
           <RowsSkeleton rows={inviteRows} lines={2} />
         ) : data.invites.length === 0 ? (
-          <p className='text-muted-foreground'>{t('noInvites')}</p>
+          <SettingsItem>
+            <p className='text-muted-foreground'>{t('noInvites')}</p>
+          </SettingsItem>
         ) : (
-          <ul className='flex flex-col divide-y divide-border'>
-            {data.invites.map((invite) => (
-              <InviteRow
-                key={invite.id}
-                invite={invite}
-                onChangedAction={reload}
-              />
-            ))}
-          </ul>
+          data.invites.map((invite) => (
+            <InviteRow
+              key={invite.id}
+              invite={invite}
+              onChangedAction={reload}
+            />
+          ))
         )}
-      </section>
+      </SettingsSection>
 
       <EditAccessDialog
         person={editing}
@@ -166,27 +169,23 @@ function RowsSkeleton({ rows, lines }: { rows: number; lines: 2 | 3 }) {
   const t = useTranslations('people');
   if (!rows) {
     return (
-      <p>
+      <SettingsItem>
         <TextSkeleton className='w-40' />
-      </p>
+      </SettingsItem>
     );
   }
-  return (
-    <ul
+  return Array.from({ length: rows }, (_, i) => (
+    <SettingsItem
+      key={i}
+      className='flex-col items-start gap-0.5'
       aria-busy
-      role='status'
       aria-label={t('loading')}
-      className='flex flex-col divide-y divide-border'
     >
-      {Array.from({ length: rows }, (_, i) => (
-        <li key={i} className='flex flex-col gap-0.5 py-2'>
-          <TextSkeleton className='w-32' />
-          {lines === 3 && <TextSkeleton className='w-48' />}
-          <TextSkeleton className='w-80 max-w-full' />
-        </li>
-      ))}
-    </ul>
-  );
+      <TextSkeleton className='w-32' />
+      {lines === 3 && <TextSkeleton className='w-48' />}
+      <TextSkeleton className='w-80 max-w-full' />
+    </SettingsItem>
+  ));
 }
 
 /**
@@ -241,7 +240,7 @@ function PersonRow({
   const groups = groupsText(person.role, person.groups, t);
 
   return (
-    <li className='flex items-start gap-3 py-2'>
+    <SettingsItem className='items-start'>
       <div className='flex min-w-0 flex-1 flex-col gap-0.5'>
         <div className='flex min-w-0 items-center gap-2'>
           <span className='truncate font-medium'>{name}</span>
@@ -366,7 +365,7 @@ function PersonRow({
           </AlertDialog>
         </div>
       )}
-    </li>
+    </SettingsItem>
   );
 }
 
@@ -386,7 +385,7 @@ function InviteRow({
   const groups = groupsText(invite.role, invite.groups, t);
 
   return (
-    <li className='flex items-start gap-3 py-2'>
+    <SettingsItem className='items-start'>
       <div className='flex min-w-0 flex-1 flex-col gap-0.5'>
         <span className='truncate font-medium'>{email}</span>
         <div className='flex flex-wrap gap-x-3 text-muted-foreground'>
@@ -416,7 +415,7 @@ function InviteRow({
       >
         <XIcon />
       </Button>
-    </li>
+    </SettingsItem>
   );
 }
 
@@ -453,37 +452,35 @@ function TwoFactorRoles({
   }
 
   return (
-    <section className='flex flex-col gap-2'>
-      <div className='flex flex-col'>
-        <h3 className='font-medium'>{t('twoFactorTitle')}</h3>
-        <p className='text-muted-foreground'>{t('twoFactorDescription')}</p>
-      </div>
-      <ul className='flex flex-col divide-y divide-border'>
-        {ROLES.map((role) => {
-          const on = !!required?.includes(role);
-          const missing =
-            people?.filter((p) => p.role === role && !p.twoFactor).length ?? 0;
-          return (
-            <li key={role} className='flex items-center gap-3 py-2'>
-              <div className='flex min-w-0 flex-1 flex-col'>
-                <Label htmlFor={`two-factor-${role}`}>
-                  {tr(`${role}.name`)}
-                </Label>
-                {/* Its room kept, so the rows don't move as it comes and goes */}
-                <span className='min-h-lh text-muted-foreground'>
-                  {on && missing > 0 && t('stillNeed', { count: missing })}
-                </span>
-              </div>
-              <Switch
-                id={`two-factor-${role}`}
-                checked={on}
-                disabled={!required || pending}
-                onCheckedChange={(next) => set(role, next)}
-              />
-            </li>
-          );
-        })}
-      </ul>
-    </section>
+    <SettingsSection
+      title={t('twoFactorTitle')}
+      description={t('twoFactorDescription')}
+    >
+      {ROLES.map((role) => {
+        const on = !!required?.includes(role);
+        const missing =
+          people?.filter((p) => p.role === role && !p.twoFactor).length ?? 0;
+        return (
+          <SettingsRow
+            key={role}
+            label={tr(`${role}.name`)}
+            htmlFor={`two-factor-${role}`}
+            // Its room kept, so the rows don't move as it comes and goes
+            hint={
+              <span className='block min-h-lh'>
+                {on && missing > 0 && t('stillNeed', { count: missing })}
+              </span>
+            }
+          >
+            <Switch
+              id={`two-factor-${role}`}
+              checked={on}
+              disabled={!required || pending}
+              onCheckedChange={(next) => set(role, next)}
+            />
+          </SettingsRow>
+        );
+      })}
+    </SettingsSection>
   );
 }
