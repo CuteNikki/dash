@@ -125,9 +125,8 @@ function NewServiceBody({
       // Picking the shown one again would unpick it; keep one picked
       onValueChange={(v) => v && setSource(v as Source)}
       aria-label={t('startFrom')}
-      // Two by two on a phone, where four in a row don't fit beside a
-      // scrollbar; each keeps its whole name
-      className='max-sm:grid max-sm:h-auto max-sm:w-full max-sm:grid-cols-2'
+      // A little tighter on a phone, so all four fit in one row beside a scrollbar
+      className='max-sm:*:px-2'
     >
       <ToggleGroupItem value='template'>{t('template')}</ToggleGroupItem>
       <ToggleGroupItem value='run'>docker run</ToggleGroupItem>
