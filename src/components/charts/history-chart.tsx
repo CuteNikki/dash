@@ -93,6 +93,7 @@ export function HistoryChart({
   series,
   label,
   fit,
+  apart,
   band,
   className,
 }: {
@@ -106,6 +107,12 @@ export function HistoryChart({
    * for what's never near nothing, such as memory: its shape shows
    */
   fit?: boolean;
+  /**
+   * Each line on a scale of its own, for two of very different sizes, such
+   * as a server's downloads beside its uploads: on one, the smaller would
+   * be flat. The values themselves are beside the chart and in its tooltip.
+   */
+  apart?: boolean;
   /** Drawn as a soft area behind the lines, from its low readings to its high ones */
   band?: ChartBand;
   className?: string;
@@ -163,7 +170,18 @@ export function HistoryChart({
   // Along by when each was taken, so a pause takes the room it lasted
   const span = times[count - 1] - times[0] || 1;
   const x = (i: number) => ((times[i] - times[0]) / span) * 100;
-  const y = (v: number) => 100 - ((v - bottom) / (top - bottom || 1)) * 100;
+  const y = (v: number, own?: ChartSeries) => {
+    // Each on a scale of its own, from nothing to its own highest
+    if (own && apart) {
+      const ownTop =
+        Math.max(
+          ...own.values.filter((r): r is number => r !== null),
+          own.measure.floor
+        ) * HEADROOM;
+      return 100 - (v / ownTop) * 100;
+    }
+    return 100 - ((v - bottom) / (top - bottom || 1)) * 100;
+  };
   const shown = index === undefined ? undefined : Math.min(index, count - 1);
   const days = times[count - 1] - times[0] > DAYS_MS;
   // Filled alone; beside a band, the band is the fill
@@ -246,7 +264,7 @@ export function HistoryChart({
             // its round ends making one, as a circle would stretch with the box
             const alone = run.values.length === 1;
             const points = (alone ? [run.values[0], run.values[0]] : run.values)
-              .map((v, i) => `${x(run.start + (alone ? 0 : i))},${y(v)}`)
+              .map((v, i) => `${x(run.start + (alone ? 0 : i))},${y(v, s)}`)
               .join(' ');
             const end = run.start + run.values.length - 1;
             return (
@@ -289,7 +307,7 @@ export function HistoryChart({
                 className='pointer-events-none absolute size-1.5 -translate-1/2 rounded-full bg-foreground'
                 style={{
                   left: `${x(shown)}%`,
-                  top: `${y(s.values[shown]!)}%`,
+                  top: `${y(s.values[shown]!, s)}%`,
                 }}
               />
             ))}

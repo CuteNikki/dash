@@ -569,6 +569,7 @@ function FlowStat({
           })}
           times={times}
           series={series}
+          apart
           className='h-full'
         />
       )}
