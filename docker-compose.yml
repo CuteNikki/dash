@@ -13,14 +13,13 @@ services:
     restart: 'no'
     labels:
       dash.purpose: the database's migrations, before the dashboard starts
-    networks:
-      - caddy
 
   dash:
     build:
       context: .
       args:
-        NEXT_PUBLIC_SERVER_NAME: vps.niso.moe
+        # The name it shows for the server, from .env, as Next builds it in
+        NEXT_PUBLIC_SERVER_NAME: ${NEXT_PUBLIC_SERVER_NAME:-}
     container_name: dash
     restart: unless-stopped
     labels:
@@ -32,12 +31,12 @@ services:
     # Its secrets: the sign-in secret, the database and the image storage's keys.
     # Only on the server, never in the repository.
     env_file: .env
+    # Its address and the image storage's, and the networks it shares with
+    # Caddy and the apps it reads, are the server's own: in
+    # compose.override.yaml, as compose.override.example.yaml shows
     environment:
-      BETTER_AUTH_URL: https://dash.niso.moe
       DOCKER_HOST: unix:///var/run/docker.sock
       STACKS_ROOT: /home/nikki
-      STORAGE_API_URL: https://s3.niso.moe
-      STORAGE_PUBLIC_URL: https://images.niso.moe/dash
     # Sees the server's processes and its network, for the server's stats and
     # its process list, rather than only its own
     pid: host
@@ -49,15 +48,3 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       # The services' folders, at the same path as on the server, for their files
       - /home/nikki:/home/nikki
-    networks:
-      - caddy
-      - arr-stack
-
-networks:
-  # Behind Caddy, which serves it at dash.niso.moe
-  caddy:
-    external: true
-  # Beside Sonarr, Jellyfin and the rest, to read their numbers for their tiles
-  arr-stack:
-    name: arr-stack_default
-    external: true

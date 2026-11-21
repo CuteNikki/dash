@@ -373,7 +373,9 @@ an update for itself, and its Update pulls them and rebuilds it, restarting
 Dashboard. `bun run deploy` does the same from here: it pushes `master` (with no
 uncommitted changes), then pulls and runs `docker compose up -d --build` on
 the server. The server's `.env` stays where it is and is never in the
-repository.
+repository, as does its `compose.override.yaml`: its address, the image
+storage's, and the networks it shares with the reverse proxy and the apps it
+reads, as in [compose.override.example.yaml](compose.override.example.yaml).
 
 Either way, the database's migrations run first, in a one-off `migrate`
 container, and Dashboard only starts once they've gone through; one that fails

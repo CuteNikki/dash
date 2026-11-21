@@ -1,0 +1,24 @@
+# The server's own settings, copied to compose.override.yaml (ignored by git),
+# which Docker Compose reads beside docker-compose.yml.
+services:
+  dash:
+    build:
+      args:
+        # The name it shows for the server
+        NEXT_PUBLIC_SERVER_NAME: my-server
+    environment:
+      # Where it's reached, and the image storage's API and public address
+      BETTER_AUTH_URL: https://dash.example.com
+      STORAGE_API_URL: https://s3.example.com
+      STORAGE_PUBLIC_URL: https://images.example.com/dash
+      TZ: Europe/Berlin
+    # Beside the reverse proxy that serves it, and the apps it reads numbers from
+    networks: [proxy, apps]
+
+networks:
+  proxy:
+    name: caddy
+    external: true
+  apps:
+    name: arr-stack_default
+    external: true
