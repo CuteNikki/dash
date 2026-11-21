@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import { createContext, useContext } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -49,32 +50,34 @@ export function stackImagePath(src: string, file: string) {
   return parts.join('/');
 }
 
-/** GitHub's alerts, "> [!WARNING]" and the rest: each one's title, icon and color. */
+/** GitHub's alerts, "> [!WARNING]" and the rest: each one's icon and color, its title under "markdown" in the messages. */
 const ALERTS = {
-  NOTE: { title: 'Note', icon: InfoIcon, tone: 'border-update text-update' },
+  NOTE: { icon: InfoIcon, tone: 'border-update text-update' },
   TIP: {
-    title: 'Tip',
     icon: LightbulbIcon,
     tone: 'border-success text-success',
   },
   IMPORTANT: {
-    title: 'Important',
     icon: MessageSquareWarningIcon,
     tone: 'border-foreground text-foreground',
   },
   WARNING: {
-    title: 'Warning',
     icon: TriangleAlertIcon,
     tone: 'border-warning text-warning',
   },
   CAUTION: {
-    title: 'Caution',
     icon: OctagonAlertIcon,
     tone: 'border-destructive text-destructive',
   },
 } as const;
 
 type Alert = keyof typeof ALERTS;
+
+/** An alert's kind as its title, in the page's language: "Note", "Hinweis". */
+function AlertTitle({ kind }: { kind: Alert }) {
+  const t = useTranslations('markdown');
+  return t(kind);
+}
 
 /** As much of Markdown's tree as finding alerts needs. */
 type MdNode = {
@@ -196,7 +199,7 @@ const components: Components = {
     }
     // An alert: its kind as a title with its icon, in its color, the text
     // under it in the page's own
-    const { title, icon: Icon, tone } = ALERTS[kind];
+    const { icon: Icon, tone } = ALERTS[kind];
     return (
       <blockquote
         className={cn('my-4 border-l-4 py-1 pl-4', tone, className)}
@@ -204,7 +207,7 @@ const components: Components = {
       >
         <p className='mb-2 flex items-center gap-2 font-medium [&_svg]:size-4'>
           <Icon />
-          {title}
+          <AlertTitle kind={kind} />
         </p>
         <div className='text-foreground [&>p:last-child]:mb-0'>{children}</div>
       </blockquote>

@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
@@ -68,6 +69,7 @@ export function FilesPanel({
   /** After a file's saved, made, renamed or deleted, as its repository's status changes with it */
   onFilesChangedAction: () => void;
 }) {
+  const t = useTranslations('files');
   const base = `/api/containers/${containerId}/files`;
   const { data: info, error } = useSWR<StackInfo>(base, fetcher, {
     revalidateOnFocus: false,
@@ -116,8 +118,10 @@ export function FilesPanel({
     startTransition(() =>
       attempt(
         changed
-          ? `Couldn't save ${name}`
-          : `Couldn't ${then === 'build' ? 'rebuild' : 'redeploy'}`,
+          ? t('saveFailed', { name })
+          : then === 'build'
+            ? t('rebuildFailed')
+            : t('redeployFailed'),
         async () => {
           setProblem(undefined);
           if (changed && path) {
@@ -131,7 +135,7 @@ export function FilesPanel({
             // it, and anything typed meanwhile is still to save
             setEdits((e) => (e[path] === text ? without(e, path) : e));
             onFilesChangedAction();
-            toast.success(`Saved ${name}`);
+            toast.success(t('saved', { name }));
           }
           if (then) await deploy(then === 'build');
         }
@@ -149,10 +153,10 @@ export function FilesPanel({
       setOutput((lines) => [...(lines ?? []), line])
     );
     if (exitCode === 0) {
-      toast.success(build ? 'Rebuilt and redeployed' : 'Redeployed');
+      toast.success(build ? t('rebuilt') : t('redeployed'));
     } else {
-      toast.error("Couldn't redeploy", {
-        description: 'See its output below the file',
+      toast.error(t('redeployFailed'), {
+        description: t('seeOutput'),
       });
     }
     onDeployedAction();
@@ -162,7 +166,7 @@ export function FilesPanel({
     <div ref={panel} className='flex min-h-0 flex-1 flex-col gap-3'>
       <div className='flex min-h-0 flex-1 flex-col gap-3 sm:flex-row'>
         <nav
-          aria-label='Files'
+          aria-label={t('files')}
           className='max-h-40 shrink-0 overflow-auto rounded-lg bg-muted p-1 sm:max-h-none sm:w-56'
         >
           <FileTree
@@ -242,15 +246,15 @@ export function FilesPanel({
                       return next;
                     })
                   }
-                  aria-label='Show the file as'
+                  aria-label={t('showAs')}
                 >
                   <ToggleGroupItem value='edit'>
                     <PencilIcon />
-                    Edit
+                    {t('edit')}
                   </ToggleGroupItem>
                   <ToggleGroupItem value='preview'>
                     <EyeIcon />
-                    Preview
+                    {t('preview')}
                   </ToggleGroupItem>
                 </ToggleGroup>
               </div>
@@ -267,7 +271,7 @@ export function FilesPanel({
           {problem}
         </pre>
       )}
-      {output && <RunOutput lines={output} placeholder='Redeploying…' />}
+      {output && <RunOutput lines={output} placeholder={t('redeploying')} />}
 
       <div className='flex flex-wrap items-center gap-2'>
         <span className='mr-auto truncate font-mono text-muted-foreground'>
@@ -282,7 +286,7 @@ export function FilesPanel({
           }}
         >
           <Undo2Icon />
-          Revert
+          {t('revert')}
         </Button>
         <Button
           variant='outline'
@@ -290,26 +294,22 @@ export function FilesPanel({
           onClick={() => save()}
         >
           <SaveIcon />
-          Save
+          {t('save')}
         </Button>
         {/* Always there, so the buttons never move: off for a stack that
             uses others' images rather than building its own */}
         <Button
           variant='outline'
           disabled={pending || !info.builds}
-          title={
-            info.builds
-              ? undefined
-              : 'Its images are downloaded, not built here'
-          }
+          title={info.builds ? undefined : t('notBuilt')}
           onClick={() => save('build')}
         >
           <HammerIcon />
-          {changed && info.builds ? 'Save & rebuild' : 'Rebuild'}
+          {changed && info.builds ? t('saveRebuild') : t('rebuild')}
         </Button>
         <Button disabled={pending} onClick={() => save('deploy')}>
           <RocketIcon className={cn(pending && 'animate-pulse')} />
-          {changed ? 'Save & redeploy' : 'Redeploy'}
+          {changed ? t('saveRedeploy') : t('redeploy')}
         </Button>
       </div>
     </div>
@@ -336,6 +336,7 @@ function without(edits: Record<string, string>, path: string) {
 
 /** The tab's own layout while the stack is looked up, so nothing jumps after. */
 function FilesSkeleton() {
+  const t = useTranslations('files');
   return (
     <div className='flex min-h-0 flex-1 flex-col gap-3'>
       <div className='flex min-h-0 flex-1 flex-col gap-3 sm:flex-row'>
@@ -353,19 +354,19 @@ function FilesSkeleton() {
         </span>
         <Button variant='outline' disabled>
           <Undo2Icon />
-          Revert
+          {t('revert')}
         </Button>
         <Button variant='outline' disabled>
           <SaveIcon />
-          Save
+          {t('save')}
         </Button>
         <Button variant='outline' disabled>
           <HammerIcon />
-          Rebuild
+          {t('rebuild')}
         </Button>
         <Button disabled>
           <RocketIcon />
-          Redeploy
+          {t('redeploy')}
         </Button>
       </div>
     </div>

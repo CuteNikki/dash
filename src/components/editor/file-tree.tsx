@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import {
   createContext,
   use,
@@ -133,6 +134,7 @@ export function FileTree({
   /** Where F2 renames: the row it's pressed on, or else the open file, as from its editor */
   keysFrom: React.RefObject<HTMLElement | null>;
 }) {
+  const t = useTranslations('files');
   const { mutate } = useSWRConfig();
   // Kept by the folder, as the file that's open is
   const [open, setOpen] = useKept<Set<string>>(`tree:${dir}`, () => new Set());
@@ -162,7 +164,7 @@ export function FileTree({
   const composeIn = (path: string) => compose.find((c) => isWithin(path, c));
   /** What moving a compose file does, said once it's done or in asking */
   const stackWarning = (file: string) =>
-    `Docker finds this stack by ${file}, so Redeploy won't work until there's a ${nameOf(file)} there again.`;
+    t('stackWarning', { file, name: nameOf(file) });
   // Where the toolbar's New File and New Folder put things: beside the open file
   const here = parentOf(chosen);
 
@@ -208,8 +210,8 @@ export function FileTree({
       try {
         await attempt(
           current.action === 'create'
-            ? `Couldn't make ${trimmed}`
-            : `Couldn't rename ${nameOf(current.path)}`,
+            ? t('makeFailed', { name: trimmed })
+            : t('renameFailed', { name: nameOf(current.path) }),
           async () => {
             const path = await sendDraft(current, trimmed);
             if (fromKey && path) focusNext.current = path;
@@ -264,7 +266,7 @@ export function FileTree({
     onRenamedAction(current.path, path);
     const moved = composeIn(current.path);
     if (moved)
-      toast.warning(`Renamed ${nameOf(current.path)}`, {
+      toast.warning(t('renamed', { name: nameOf(current.path) }), {
         description: stackWarning(moved),
       });
     return path;
@@ -294,7 +296,7 @@ export function FileTree({
     const target = deleting;
     if (!target) return;
     startTransition(() =>
-      attempt(`Couldn't delete ${nameOf(target.path)}`, async () => {
+      attempt(t('deleteFailed', { name: nameOf(target.path) }), async () => {
         const result = await deleteEntry(containerId, target.path);
         if (!result.ok) return void toast.error(result.error);
         await refresh(parentOf(target.path));
@@ -304,12 +306,12 @@ export function FileTree({
         setDeleting(undefined);
         onDeletedAction(target.path);
         onChangedAction();
-        toast.success(`Deleted ${nameOf(target.path)}`);
+        toast.success(t('deleted', { name: nameOf(target.path) }));
       })
     );
   }
 
-  const copyPath = (path: string) => copyText(path, 'Copied', path);
+  const copyPath = (path: string) => copyText(path, t('copied'), path);
 
   const tree: Tree = {
     chosen,
@@ -350,7 +352,7 @@ export function FileTree({
             <ContextMenuSeparator />
             <ContextMenuItem onSelect={() => copyPath(dir)}>
               <CopyIcon />
-              Copy Path
+              {t('copyPath')}
             </ContextMenuItem>
           </ContextMenuContent>
         </ContextMenu>
@@ -363,20 +365,21 @@ export function FileTree({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Delete {deleting && nameOf(deleting.path)}?
+              {t('deleteTitle', {
+                name: deleting ? nameOf(deleting.path) : '',
+              })}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {deleting?.kind === 'dir'
-                ? 'The folder and everything in it are deleted from the server. '
-                : 'The file is deleted from the server. '}
-              This can't be undone.
+              {deleting?.kind === 'dir' ? t('deleteFolder') : t('deleteFile')}
               {deleting && composeIn(deleting.path) && (
                 <> {stackWarning(composeIn(deleting.path)!)}</>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={pending}>
+              {t('cancel')}
+            </AlertDialogCancel>
             <AlertDialogAction
               variant='destructive'
               disabled={pending}
@@ -387,7 +390,7 @@ export function FileTree({
               }}
             >
               <Trash2Icon />
-              Delete
+              {t('delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -421,21 +424,22 @@ export function TreeToolbar({
     () => void
   >;
 }) {
+  const t = useTranslations('files');
   return (
     <div className='flex items-center gap-0.5 py-0.5 pr-0.5 pl-2'>
       <span className='mr-auto min-w-0 truncate font-medium text-muted-foreground'>
         {name ?? <TextSkeleton className='w-20' />}
       </span>
-      <ToolbarButton label='New File' onClick={actions?.newFile}>
+      <ToolbarButton label={t('newFile')} onClick={actions?.newFile}>
         <FilePlusIcon />
       </ToolbarButton>
-      <ToolbarButton label='New Folder' onClick={actions?.newFolder}>
+      <ToolbarButton label={t('newFolder')} onClick={actions?.newFolder}>
         <FolderPlusIcon />
       </ToolbarButton>
-      <ToolbarButton label='Refresh' onClick={actions?.refresh}>
+      <ToolbarButton label={t('refresh')} onClick={actions?.refresh}>
         <RefreshCwIcon />
       </ToolbarButton>
-      <ToolbarButton label='Collapse All' onClick={actions?.collapseAll}>
+      <ToolbarButton label={t('collapseAll')} onClick={actions?.collapseAll}>
         <ChevronsDownUpIcon />
       </ToolbarButton>
     </div>
@@ -472,6 +476,7 @@ function ToolbarButton({
 
 /** New File and New Folder, for putting them in `folder`. */
 function NewItems({ folder }: { folder: string }) {
+  const t = useTranslations('files');
   const { startDraft } = useTree();
   return (
     <>
@@ -479,13 +484,13 @@ function NewItems({ folder }: { folder: string }) {
         onSelect={() => startDraft({ action: 'create', kind: 'file', folder })}
       >
         <FilePlusIcon />
-        New File…
+        {t('newFileMenu')}
       </ContextMenuItem>
       <ContextMenuItem
         onSelect={() => startDraft({ action: 'create', kind: 'dir', folder })}
       >
         <FolderPlusIcon />
-        New Folder…
+        {t('newFolderMenu')}
       </ContextMenuItem>
     </>
   );
@@ -551,6 +556,7 @@ function Entry({
   path: string;
   depth: number;
 }) {
+  const t = useTranslations('files');
   const tree = useTree();
   const isOpen = tree.open.has(path);
   const isDir = entry.kind === 'dir';
@@ -600,7 +606,7 @@ function Entry({
                   </span>
                   {tree.unsaved.has(path) && (
                     <span
-                      aria-label='Not saved'
+                      aria-label={t('notSaved')}
                       className='ml-auto size-1.5 shrink-0 rounded-full bg-foreground'
                     />
                   )}
@@ -616,22 +622,24 @@ function Entry({
               )}
               <ContextMenuItem onSelect={rename}>
                 <PencilIcon />
-                Rename…
+                {t('renameMenu')}
                 <ContextMenuShortcut>F2</ContextMenuShortcut>
               </ContextMenuItem>
               <ContextMenuItem variant='destructive' onSelect={remove}>
                 <Trash2Icon />
-                Delete
-                <ContextMenuShortcut>Del</ContextMenuShortcut>
+                {t('delete')}
+                <ContextMenuShortcut>{t('delKey')}</ContextMenuShortcut>
               </ContextMenuItem>
               <ContextMenuSeparator />
               <ContextMenuItem onSelect={() => tree.copyPath(path)}>
                 <CopyIcon />
-                Copy Path
+                {t('copyPath')}
               </ContextMenuItem>
-              <ContextMenuItem onSelect={() => copyText(path, 'Copied', path)}>
+              <ContextMenuItem
+                onSelect={() => copyText(path, t('copied'), path)}
+              >
                 <CopyIcon />
-                Copy Relative Path
+                {t('copyRelativePath')}
               </ContextMenuItem>
             </ContextMenuContent>
           </ContextMenu>
@@ -685,6 +693,7 @@ function NameInput({
   depth: number;
   name?: string;
 }) {
+  const t = useTranslations('files');
   const { finishDraft } = useTree();
   const field = useRef<HTMLInputElement>(null);
   // Once Enter or Escape has finished it, the blur as the field goes away
@@ -714,7 +723,7 @@ function NameInput({
         ref={field}
         autoFocus
         defaultValue={name}
-        aria-label={kind === 'dir' ? 'Folder name' : 'File name'}
+        aria-label={kind === 'dir' ? t('folderName') : t('fileName')}
         spellCheck={false}
         onFocus={(e) => {
           const dot = e.currentTarget.value.lastIndexOf('.');
