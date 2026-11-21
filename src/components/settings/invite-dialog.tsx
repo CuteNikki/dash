@@ -79,6 +79,7 @@ function InviteForm({
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<Role>('viewer');
   const [groups, setGroups] = useState<string[]>([]);
+  const [everyGroup, setEveryGroup] = useState(false);
   const [message, setMessage] = useState('');
   const [link, setLink] = useState<string>();
   const [error, setError] = useState<string>();
@@ -92,6 +93,7 @@ function InviteForm({
           email,
           role,
           groups: seesAllGroups(role) ? [] : groups,
+          everyGroup: !seesAllGroups(role) && everyGroup,
           send: mail && send,
           message: mail && send ? message : undefined,
         });
@@ -179,9 +181,11 @@ function InviteForm({
           id='invite'
           role={role}
           groups={groups}
+          everyGroup={everyGroup}
           allGroups={allGroups}
           onRoleChangeAction={setRole}
           onGroupsChangeAction={setGroups}
+          onEveryGroupChangeAction={setEveryGroup}
         />
         {mail && (
           <div className='flex flex-col gap-2'>

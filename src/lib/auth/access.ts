@@ -27,6 +27,8 @@ export type Access = {
   role: Role;
   /** The groups they're given; every one for a role that sees all */
   groups: string[];
+  /** Given every group, new ones too, whatever their role */
+  everyGroup: boolean;
   /**
    * Their role asks for two-factor, they haven't an authenticator app yet,
    * and this session wasn't signed in with a passkey, which is two factors
@@ -47,7 +49,12 @@ export const getAccess = cache(async (): Promise<Access | undefined> => {
   const [row, signedIn] = await Promise.all([
     db.user.findUnique({
       where: { id: session.user.id },
-      select: { role: true, allowedGroups: true, twoFactorEnabled: true },
+      select: {
+        role: true,
+        allowedGroups: true,
+        everyGroup: true,
+        twoFactorEnabled: true,
+      },
     }),
     db.session.findUnique({
       where: { id: session.session.id },
@@ -61,6 +68,7 @@ export const getAccess = cache(async (): Promise<Access | undefined> => {
     user: { id, name, email, emailVerified },
     role,
     groups: row.allowedGroups,
+    everyGroup: row.everyGroup,
     // A passkey's sign-in is two factors itself; a password's needs the app
     needsTwoFactor:
       !row.twoFactorEnabled &&

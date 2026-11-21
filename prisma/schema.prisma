@@ -85,6 +85,8 @@ model User {
   twoFactorEnabled Boolean?    @default(false)
   // The groups an operator or viewer sees; an owner or admin sees all
   allowedGroups    String[]    @default([])
+  // Every group, new ones too, rather than only those in allowedGroups
+  everyGroup       Boolean     @default(false)
   // Mailed the monitor's alerts, for those who see the server
   alertMail        Boolean     @default(true)
   // Their language, "en" or "de": none until they've chosen, their browser's then
@@ -194,6 +196,8 @@ model Invite {
   email       String
   role        String
   groups      String[]  @default([])
+  /// Every group, new ones too, rather than only those in groups
+  everyGroup  Boolean   @default(false)
   invitedById String
   invitedBy   User      @relation(fields: [invitedById], references: [id], onDelete: Cascade)
   /// Sent by mail, so whoever has the link has the address too

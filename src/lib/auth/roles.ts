@@ -76,10 +76,15 @@ export function can(role: Role, ability: Ability) {
 /** Whether a role sees every group, rather than only the ones it's given. */
 export const seesAllGroups = (role: Role) => can(role, 'manage');
 
-/** Whether someone sees a group: every one, or one they were given. */
+/**
+ * Whether someone sees a group: every one, by their role or as they were
+ * given every group, new ones too; or one they were given.
+ */
 export function seesGroup(
-  who: { role: Role; groups: readonly string[] },
+  who: { role: Role; groups: readonly string[]; everyGroup?: boolean },
   group: string
 ) {
-  return seesAllGroups(who.role) || who.groups.includes(group);
+  return (
+    seesAllGroups(who.role) || !!who.everyGroup || who.groups.includes(group)
+  );
 }

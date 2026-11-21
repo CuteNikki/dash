@@ -65,8 +65,13 @@ import { Switch } from '@/components/ui/switch';
 type PeopleTranslator = ReturnType<typeof useTranslations<'people'>>;
 
 /** The groups someone sees, as a line: all of them, for an owner or admin. */
-function groupsText(role: Role, groups: string[], t: PeopleTranslator) {
-  if (seesAllGroups(role)) return t('everyGroup');
+function groupsText(
+  role: Role,
+  groups: string[],
+  everyGroup: boolean,
+  t: PeopleTranslator
+) {
+  if (seesAllGroups(role) || everyGroup) return t('everyGroup');
   return groups.length > 0 ? groups.join(', ') : t('noGroups');
 }
 
@@ -269,7 +274,7 @@ function PersonRow({
   const [pending, run] = useRowAction(onChangedAction);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const { id, name } = person;
-  const groups = groupsText(person.role, person.groups, t);
+  const groups = groupsText(person.role, person.groups, person.everyGroup, t);
 
   return (
     <SettingsItem className='items-start'>
@@ -418,7 +423,7 @@ function InviteRow({
   const t = useTranslations('people');
   const [pending, run] = useRowAction(onChangedAction);
   const { email } = invite;
-  const groups = groupsText(invite.role, invite.groups, t);
+  const groups = groupsText(invite.role, invite.groups, invite.everyGroup, t);
 
   return (
     <SettingsItem className='items-start'>

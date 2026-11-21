@@ -61,4 +61,9 @@ describe('groups', () => {
     expect(seesGroup(friend, 'Media')).toBe(false);
     expect(seesGroup({ role: 'viewer', groups: [] }, 'Other')).toBe(false);
   });
+
+  test('one given every group sees one made after too', () => {
+    const viewer = { role: 'viewer' as const, groups: [], everyGroup: true };
+    expect(seesGroup(viewer, 'A group made later')).toBe(true);
+  });
 });

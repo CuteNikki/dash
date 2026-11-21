@@ -28,6 +28,8 @@ export type Person = {
   email: string;
   role: Role;
   groups: string[];
+  /** Every group, new ones too */
+  everyGroup: boolean;
   disabled: boolean;
   twoFactor: boolean;
   /** When they were last seen, as their newest session was */
@@ -42,6 +44,7 @@ export type PendingInvite = {
   email: string;
   role: Role;
   groups: string[];
+  everyGroup: boolean;
   expiresAt: number;
   invitedBy: string;
 };
@@ -88,6 +91,7 @@ export async function listPeople(): Promise<People> {
       email: u.email,
       role: roleOf(u.role),
       groups: u.allowedGroups,
+      everyGroup: u.everyGroup,
       disabled: !!u.banned,
       twoFactor: !!u.twoFactorEnabled,
       lastActive: u.sessions[0]?.updatedAt.getTime(),
@@ -99,6 +103,7 @@ export async function listPeople(): Promise<People> {
       email: i.email,
       role: roleOf(i.role),
       groups: i.groups,
+      everyGroup: i.everyGroup,
       expiresAt: i.expiresAt.getTime(),
       invitedBy: i.invitedBy.name,
     })),
@@ -139,6 +144,7 @@ const Access = z.object({
     .array(z.string().trim().min(1).max(MAX_GROUP))
     .max(MAX_GROUPS)
     .transform((groups) => [...new Set(groups)]),
+  everyGroup: z.boolean().default(false),
 });
 
 /**
@@ -166,26 +172,29 @@ async function keepsAnOwner(userId: string) {
  */
 export async function setPersonAccess(
   userId: string,
-  input: { role: Role; groups: string[] }
+  input: { role: Role; groups: string[]; everyGroup?: boolean }
 ): Promise<PeopleResult> {
   const access = await requireAccess('users');
   const parsed = Access.safeParse(input);
   if (!parsed.success)
     return { error: await issueText(parsed.error.issues[0].message) };
-  const { role, groups } = parsed.data;
+  const { role, groups, everyGroup } = parsed.data;
   if (role !== 'owner') {
     const kept = await keepsAnOwner(userId);
     if (kept) return { error: kept };
   }
   const person = await db.user.update({
     where: { id: userId },
-    data: { role, allowedGroups: groups },
+    data: { role, allowedGroups: groups, everyGroup },
     select: { name: true },
   });
   await record(access, {
     action: 'person.access',
     target: person.name,
-    detail: [ROLE_INFO[role].name, ...groups].join(', '),
+    detail: [
+      ROLE_INFO[role].name,
+      ...(everyGroup ? ['every group'] : groups),
+    ].join(', '),
   });
 }
 
@@ -274,6 +283,7 @@ export async function createInvite(input: {
   email: string;
   role: Role;
   groups: string[];
+  everyGroup?: boolean;
   send?: boolean;
   /** A few words of their own for the mail, when it's mailed */
   message?: string;
@@ -282,7 +292,7 @@ export async function createInvite(input: {
   const parsed = NewInvite.safeParse(input);
   if (!parsed.success)
     return { error: await issueText(parsed.error.issues[0].message) };
-  const { email, role, groups, message } = parsed.data;
+  const { email, role, groups, everyGroup, message } = parsed.data;
   if (await db.user.findUnique({ where: { email } })) {
     return { error: await errorText('emailTaken') };
   }
@@ -312,6 +322,7 @@ export async function createInvite(input: {
       email,
       role,
       groups,
+      everyGroup,
       invitedById: access.user.id,
       emailed: !!input.send && !sendError,
       expiresAt,
@@ -322,7 +333,7 @@ export async function createInvite(input: {
     target: email,
     detail: [
       ROLE_INFO[role].name,
-      ...groups,
+      ...(everyGroup ? ['every group'] : groups),
       ...(input.send ? [sendError ? 'not mailed' : 'by mail'] : []),
     ].join(', '),
   });

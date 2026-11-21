@@ -61,7 +61,11 @@ export async function acceptInvite(input: {
     const person = await db.user.update({
       where: { email: invite.email },
       // A mailed link reached its address, which shows it's theirs
-      data: { allowedGroups: invite.groups, emailVerified: invite.emailed },
+      data: {
+        allowedGroups: invite.groups,
+        everyGroup: invite.everyGroup,
+        emailVerified: invite.emailed,
+      },
       select: { id: true, name: true },
     });
     await record(

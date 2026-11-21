@@ -1006,7 +1006,8 @@ declare const messages: {
     "invitesDescription": "Links to make an account with, not used yet",
     "roleStatus": "{count, plural, =0 {Nobody yet} one {# person} other {# people}}{status, select, notRequired { · not required} missing {{missing, plural, one { · # still has to set it up} other { · # still have to set it up}}} allSet {{count, plural, one { · has it set up} other { · all have it set up}}} other {}}",
     "message": "A note for the mail",
-    "messagePlaceholder": "A note for the mail, if you like"
+    "messagePlaceholder": "A note for the mail, if you like",
+    "everyGroupToo": "Every group, new ones too"
   },
   "twoFactor": {
     "on": "On",

@@ -32,17 +32,22 @@ export function AccessFields({
   id,
   role,
   groups,
+  everyGroup,
   allGroups,
   onRoleChangeAction,
   onGroupsChangeAction,
+  onEveryGroupChangeAction,
 }: {
   id: string;
   role: Role;
   groups: string[];
+  /** Every group, new ones too, rather than those ticked */
+  everyGroup: boolean;
   /** Every group there is to give */
   allGroups: string[];
   onRoleChangeAction: (role: Role) => void;
   onGroupsChangeAction: (groups: string[]) => void;
+  onEveryGroupChangeAction: (every: boolean) => void;
 }) {
   const tr = useTranslations('roles');
   const t = useTranslations('people');
@@ -81,6 +86,16 @@ export function AccessFields({
       {seesAllGroups(role) ? null : (
         <div className='flex flex-col gap-2'>
           <Label id={`${id}-groups`}>{t('groups')}</Label>
+          <div className='flex items-center gap-2'>
+            <Checkbox
+              id={`${id}-every-group`}
+              checked={everyGroup}
+              onCheckedChange={(c) => onEveryGroupChangeAction(c === true)}
+            />
+            <Label htmlFor={`${id}-every-group`} className='font-normal'>
+              {t('everyGroupToo')}
+            </Label>
+          </div>
           {choices.length === 0 ? (
             <p className='text-muted-foreground'>{t('noGroupsYet')}</p>
           ) : (
@@ -92,7 +107,9 @@ export function AccessFields({
                 <li key={group} className='flex items-center gap-2'>
                   <Checkbox
                     id={`${id}-group-${group}`}
-                    checked={groups.includes(group)}
+                    // Each ticked and off while every one's given
+                    checked={everyGroup || groups.includes(group)}
+                    disabled={everyGroup}
                     onCheckedChange={(c) => toggle(group, c === true)}
                   />
                   <Label
@@ -105,7 +122,7 @@ export function AccessFields({
               ))}
             </ul>
           )}
-          {groups.length === 0 && choices.length > 0 && (
+          {!everyGroup && groups.length === 0 && choices.length > 0 && (
             <p className='text-muted-foreground'>{t('noneSeesNothing')}</p>
           )}
         </div>
@@ -157,13 +174,18 @@ function EditAccessForm({
   const t = useTranslations('people');
   const [role, setRole] = useState(person.role);
   const [groups, setGroups] = useState(person.groups);
+  const [everyGroup, setEveryGroup] = useState(person.everyGroup);
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
 
   function save() {
     startTransition(() =>
       attempt(t('accessFailed', { name: person.name }), async () => {
-        const result = await setPersonAccess(person.id, { role, groups });
+        const result = await setPersonAccess(person.id, {
+          role,
+          groups,
+          everyGroup,
+        });
         if (result?.error) {
           setError(result.error);
           return;
@@ -193,9 +215,11 @@ function EditAccessForm({
           id='edit-access'
           role={role}
           groups={groups}
+          everyGroup={everyGroup}
           allGroups={allGroups}
           onRoleChangeAction={setRole}
           onGroupsChangeAction={setGroups}
+          onEveryGroupChangeAction={setEveryGroup}
         />
         {error && <p className='text-destructive'>{error}</p>}
       </div>
