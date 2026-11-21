@@ -79,7 +79,9 @@ export function NewServiceDialog({
   return (
     // Not closed while it's adding, so its outcome isn't missed
     <Dialog open={open} onOpenChange={(o) => !o && !running && onCloseAction()}>
-      <DialogContent className='flex flex-col sm:max-w-3xl'>
+      {/* Full screen on a phone, and a fixed height above it, so moving
+          between its starting points doesn't resize and move it */}
+      <DialogContent className='flex h-full max-h-none max-w-full flex-col rounded-none sm:h-5/6 sm:max-w-3xl sm:rounded-xl'>
         {open && (
           <NewServiceBody
             groups={groups}
@@ -123,6 +125,9 @@ function NewServiceBody({
       // Picking the shown one again would unpick it; keep one picked
       onValueChange={(v) => v && setSource(v as Source)}
       aria-label={t('startFrom')}
+      // Two by two on a phone, where four in a row don't fit beside a
+      // scrollbar; each keeps its whole name
+      className='max-sm:grid max-sm:h-auto max-sm:w-full max-sm:grid-cols-2'
     >
       <ToggleGroupItem value='template'>{t('template')}</ToggleGroupItem>
       <ToggleGroupItem value='run'>docker run</ToggleGroupItem>
