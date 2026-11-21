@@ -45,7 +45,7 @@ export function ServiceTile({
       type='button'
       onClick={() => onOpen(service)}
       aria-label={editing ? t('edit', { name: service.name }) : undefined}
-      className='group/tile size-full rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-ring'
+      className='group/tile size-full rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring'
     >
       <Card
         size='sm'

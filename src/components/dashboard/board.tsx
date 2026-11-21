@@ -753,7 +753,7 @@ function Floating({
   return (
     <div
       className={cn(
-        'pointer-events-none fixed z-50 grid cursor-grabbing grid-cols-1 rounded-lg',
+        'pointer-events-none fixed z-50 grid cursor-grabbing grid-cols-1 rounded-xl',
         section ? '**:data-[slot=card]:shadow-lg' : 'shadow-lg'
       )}
       style={{
@@ -772,7 +772,7 @@ function Floating({
 function DropPlace({ height }: { height?: number }) {
   return (
     <div
-      className='min-h-24 rounded-lg border-2 border-dashed border-primary/50 bg-primary/5'
+      className='min-h-24 rounded-xl border-2 border-dashed border-primary/50 bg-primary/5'
       // A section's as tall as it is; a tile's, as its rows
       style={{ height }}
     />
@@ -966,7 +966,7 @@ function EditTile({
     <div
       ref={node}
       className={cn(
-        'relative grid cursor-grab grid-cols-1 rounded-lg select-none',
+        'relative grid cursor-grab grid-cols-1 rounded-xl select-none',
         resizing && 'z-10 ring-2 ring-primary'
       )}
       onPointerDown={(e) => onPress(e, 'move', node.current!)}

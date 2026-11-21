@@ -418,7 +418,7 @@ function DiskStat({ disk }: { disk?: Capacity }) {
         disabled={!disk}
         onClick={() => setOpen(true)}
         aria-label={t('diskOpen')}
-        className='group/stat flex rounded-lg text-left outline-none *:flex-1 *:transition-shadow focus-visible:ring-2 focus-visible:ring-ring enabled:*:group-hover/stat:ring-foreground/25'
+        className='group/stat flex rounded-xl text-left outline-none *:flex-1 *:transition-shadow focus-visible:ring-2 focus-visible:ring-ring enabled:*:group-hover/stat:ring-foreground/25'
       >
         <Stat
           icon={<HardDriveIcon />}
