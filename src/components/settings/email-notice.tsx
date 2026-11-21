@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -15,19 +16,23 @@ export const CONFIRMED_URL = '/?email=confirmed';
 export const changingUrl = (to: string) =>
   `/?email=changing&to=${encodeURIComponent(to)}`;
 
-/** Better Auth's reasons a link didn't work, in words. */
-const ERRORS: Record<string, string> = {
-  TOKEN_EXPIRED: 'The link has run out. Ask for a new one in Settings.',
-  INVALID_TOKEN: "The link isn't right, or has been used already.",
-  USER_NOT_FOUND: 'There is no account for that link any more.',
-  INVALID_USER: 'The link is for another account than the one signed in.',
-};
+/** Better Auth's reasons a link didn't work, by their keys under "emailNotice.errors". */
+const ERRORS = [
+  'TOKEN_EXPIRED',
+  'INVALID_TOKEN',
+  'USER_NOT_FOUND',
+  'INVALID_USER',
+] as const;
+
+const isKnown = (code: string): code is (typeof ERRORS)[number] =>
+  ERRORS.includes(code as (typeof ERRORS)[number]);
 
 /**
  * Says how a mailed link went once it's brought them back, then takes the
  * note off the address, so a reload doesn't say it again.
  */
 export function EmailNotice({ me }: { me: Me }) {
+  const t = useTranslations('emailNotice');
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const kind = params.get('email');
@@ -37,21 +42,18 @@ export function EmailNotice({ me }: { me: Me }) {
     // After the toaster's ready, which mounts beside this
     const timer = setTimeout(() => {
       if (error) {
-        toast.error(
-          kind === 'changing'
-            ? "Your address wasn't changed"
-            : "Your address wasn't confirmed",
-          { description: ERRORS[error] ?? error }
-        );
+        toast.error(kind === 'changing' ? t('notChanged') : t('notConfirmed'), {
+          description: isKnown(error) ? t(`errors.${error}`) : error,
+        });
       } else if (kind === 'confirmed') {
-        toast.success('Your address is confirmed', { description: me.email });
+        toast.success(t('confirmed'), { description: me.email });
       } else if (kind === 'changing' && me.email !== to.toLowerCase()) {
         // The old address agreed; the new one confirms it next
-        toast.success('Change agreed to', {
-          description: `Now confirm ${to} from the mail just sent to it.`,
+        toast.success(t('agreed'), {
+          description: t('nowConfirm', { email: to }),
         });
       } else if (kind === 'changing') {
-        toast.success('Your address is changed', { description: to });
+        toast.success(t('changed'), { description: to });
       }
       // Along with saying it, so a run that's called off (as React does
       // once in development) leaves the note for the next
@@ -66,6 +68,6 @@ export function EmailNotice({ me }: { me: Me }) {
       );
     });
     return () => clearTimeout(timer);
-  }, [me.email]);
+  }, [me.email, t]);
   return null;
 }

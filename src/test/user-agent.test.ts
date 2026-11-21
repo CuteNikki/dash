@@ -1,6 +1,21 @@
 import { describe, expect, test } from 'bun:test';
+import { createTranslator } from 'next-intl';
+
+import de from '@/i18n/messages/de.json';
+import en from '@/i18n/messages/en.json';
 
 import { describeAgent, parseAgent } from '@/components/settings/user-agent';
+
+const english = createTranslator({
+  locale: 'en',
+  messages: en,
+  namespace: 'agent',
+});
+const german = createTranslator({
+  locale: 'de',
+  messages: de,
+  namespace: 'agent',
+});
 
 describe('describeAgent', () => {
   test.each([
@@ -27,7 +42,17 @@ describe('describeAgent', () => {
     ['curl/8.5.0', 'curl'],
     ['', 'Unknown device'],
   ])('%s', (ua, name) => {
-    expect(describeAgent(ua)).toBe(name);
+    expect(describeAgent(ua, english)).toBe(name);
+  });
+
+  test('says it in German too', () => {
+    expect(
+      describeAgent(
+        'Mozilla/5.0 (X11; Linux x86_64; rv:144.0) Gecko/20100101 Firefox/144.0',
+        german
+      )
+    ).toBe('Firefox auf Linux');
+    expect(describeAgent('', german)).toBe('Unbekanntes Gerät');
   });
 
   test('a phone is mobile, a computer not', () => {

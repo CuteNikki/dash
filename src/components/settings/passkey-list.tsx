@@ -1,6 +1,7 @@
 'use client';
 
 import type { Passkey } from '@better-auth/passkey/client';
+import { useLocale, useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
@@ -33,12 +34,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-const nameOf = (passkey: Passkey) => passkey.name || 'Passkey';
+/** Its name, or the word for one it hasn't been given. */
+const nameOf = (passkey: Passkey, fallback: string) => passkey.name || fallback;
 
 /** The day it was added, "3 Nov 2026"; it comes over the wire as text. */
-const addedOn = (passkey: Passkey) =>
+const addedOn = (passkey: Passkey, locale: string) =>
   passkey.createdAt
-    ? new Date(passkey.createdAt).toLocaleDateString(undefined, {
+    ? new Date(passkey.createdAt).toLocaleDateString(locale, {
         day: 'numeric',
         month: 'short',
         year: 'numeric',
@@ -51,6 +53,8 @@ const addedOn = (passkey: Passkey) =>
  * again after each of these.
  */
 export function PasskeyList() {
+  const tAgent = useTranslations('agent');
+  const t = useTranslations('passkeys');
   const { data: passkeys, error, isPending } = authClient.useListPasskeys();
   const [adding, startAdding] = useTransition();
   const [addError, setAddError] = useState<{
@@ -64,10 +68,10 @@ export function PasskeyList() {
   function add() {
     setAddError(undefined);
     startAdding(() =>
-      attempt("Couldn't add the passkey", async () => {
+      attempt(t('addFailed'), async () => {
         // Named after where it was made, until it's renamed
         const result = await authClient.passkey.addPasskey({
-          name: describeAgent(navigator.userAgent),
+          name: describeAgent(navigator.userAgent, tAgent),
         });
         const error: { code?: string; message?: string } | null = result?.error;
         if (error) {
@@ -75,24 +79,30 @@ export function PasskeyList() {
           if (error.code !== 'ERROR_CEREMONY_ABORTED') setAddError(error);
           return;
         }
-        toast.success('Passkey added. You can sign in with it next time.');
+        toast.success(t('added'));
       })
     );
   }
 
   function remove(passkey: Passkey) {
-    void attempt(`Couldn't remove ${nameOf(passkey)}`, async () => {
-      const { error } = await authClient.passkey.deletePasskey({
-        id: passkey.id,
-      });
-      if (error) {
-        toast.error(`Couldn't remove ${nameOf(passkey)}`, {
-          description: error.message,
+    void attempt(
+      t('removeFailed', { name: nameOf(passkey, t('passkey')) }),
+      async () => {
+        const { error } = await authClient.passkey.deletePasskey({
+          id: passkey.id,
         });
-      } else {
-        toast.success(`Removed ${nameOf(passkey)}`);
+        if (error) {
+          toast.error(
+            t('removeFailed', { name: nameOf(passkey, t('passkey')) }),
+            {
+              description: error.message,
+            }
+          );
+        } else {
+          toast.success(t('removed', { name: nameOf(passkey, t('passkey')) }));
+        }
       }
-    });
+    );
   }
 
   return (
@@ -120,11 +130,11 @@ export function PasskeyList() {
             ))}
           </ul>
         ) : (
-          <p className='text-muted-foreground'>None yet.</p>
+          <p className='text-muted-foreground'>{t('noneYet')}</p>
         )
       ) : error && !passkeys ? (
         <p className='text-destructive'>
-          Couldn't list them: {error.message || error.statusText}
+          {t('listFailed', { error: error.message || error.statusText })}
         </p>
       ) : passkeys && passkeys.length > 0 ? (
         <ul className='flex flex-col gap-1'>
@@ -137,14 +147,14 @@ export function PasskeyList() {
           ))}
         </ul>
       ) : (
-        <p className='text-muted-foreground'>None yet.</p>
+        <p className='text-muted-foreground'>{t('noneYet')}</p>
       )}
       {isStale(addError) ? (
         <SignInAgain />
       ) : (
         addError && (
           <p className='text-destructive'>
-            {addError.message ?? "Couldn't add the passkey"}
+            {addError.message ?? t('addFailed')}
           </p>
         )
       )}
@@ -155,7 +165,7 @@ export function PasskeyList() {
         className='self-start'
       >
         <PlusIcon />
-        Add a passkey
+        {t('add')}
       </Button>
 
       <AlertDialog
@@ -165,20 +175,21 @@ export function PasskeyList() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Remove {removing && nameOf(removing)}?
+              {t('removeTitle', {
+                name: removing ? nameOf(removing, t('passkey')) : '',
+              })}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              It won't sign you in to the dashboard any more. Your device or
-              password manager keeps it until you delete it there too.
+              {t('removeDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               variant='destructive'
               onClick={() => removing && remove(removing)}
             >
-              Remove
+              {t('remove')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -195,6 +206,8 @@ function PasskeyRow({
   passkey: Passkey;
   onRemoveAction: () => void;
 }) {
+  const locale = useLocale();
+  const t = useTranslations('passkeys');
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(passkey.name ?? '');
   const [pending, startTransition] = useTransition();
@@ -206,23 +219,29 @@ function PasskeyRow({
       return;
     }
     startTransition(() =>
-      attempt(`Couldn't rename ${nameOf(passkey)}`, async () => {
-        const { error } = await authClient.passkey.updatePasskey({
-          id: passkey.id,
-          name: newName,
-        });
-        if (error) {
-          toast.error(`Couldn't rename ${nameOf(passkey)}`, {
-            description: error.message,
+      attempt(
+        t('renameFailed', { name: nameOf(passkey, t('passkey')) }),
+        async () => {
+          const { error } = await authClient.passkey.updatePasskey({
+            id: passkey.id,
+            name: newName,
           });
-          return;
+          if (error) {
+            toast.error(
+              t('renameFailed', { name: nameOf(passkey, t('passkey')) }),
+              {
+                description: error.message,
+              }
+            );
+            return;
+          }
+          setEditing(false);
         }
-        setEditing(false);
-      })
+      )
     );
   }
 
-  const added = addedOn(passkey);
+  const added = addedOn(passkey, locale);
   return (
     <li className='flex min-h-7 items-center gap-3'>
       <KeyRoundIcon className='size-3.5 shrink-0 text-muted-foreground' />
@@ -241,8 +260,8 @@ function PasskeyRow({
             // looks for this mark
             data-escape-cancels
             onKeyDown={(e) => e.key === 'Escape' && setEditing(false)}
-            aria-label='Name'
-            placeholder='Passkey'
+            aria-label={t('name')}
+            placeholder={t('passkey')}
             autoFocus
             required
             className='h-7 min-w-0 flex-1'
@@ -252,8 +271,8 @@ function PasskeyRow({
             variant='outline'
             size='icon'
             disabled={pending}
-            aria-label='Save the name'
-            title='Save the name'
+            aria-label={t('saveName')}
+            title={t('saveName')}
           >
             <CheckIcon />
           </Button>
@@ -261,8 +280,8 @@ function PasskeyRow({
             type='button'
             variant='outline'
             size='icon'
-            aria-label='Cancel'
-            title='Cancel'
+            aria-label={t('cancel')}
+            title={t('cancel')}
             onClick={() => setEditing(false)}
           >
             <XIcon />
@@ -274,11 +293,11 @@ function PasskeyRow({
               phone so the name has the width */}
           <div className='flex min-w-0 flex-1 flex-col sm:flex-row sm:items-center sm:gap-3'>
             <span className='min-w-0 truncate font-medium sm:flex-1'>
-              {nameOf(passkey)}
+              {nameOf(passkey, t('passkey'))}
             </span>
             {added && (
               <span className='shrink-0 whitespace-nowrap text-muted-foreground'>
-                Added {added}
+                {t('addedOn', { date: added })}
               </span>
             )}
           </div>
@@ -287,8 +306,8 @@ function PasskeyRow({
             <Button
               variant='outline'
               size='icon'
-              aria-label={`Rename ${nameOf(passkey)}`}
-              title='Rename'
+              aria-label={t('rename', { name: nameOf(passkey, t('passkey')) })}
+              title={t('renameShort')}
               onClick={() => {
                 setName(passkey.name ?? '');
                 setEditing(true);
@@ -299,8 +318,10 @@ function PasskeyRow({
             <Button
               variant='destructive'
               size='icon'
-              aria-label={`Remove ${nameOf(passkey)}`}
-              title='Remove'
+              aria-label={t('removeName', {
+                name: nameOf(passkey, t('passkey')),
+              })}
+              title={t('remove')}
               onClick={onRemoveAction}
             >
               <Trash2Icon />

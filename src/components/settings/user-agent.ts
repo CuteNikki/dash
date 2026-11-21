@@ -1,3 +1,5 @@
+import type { useTranslations } from 'next-intl';
+
 /**
  * What a browser's user agent says it is, as a person would name it:
  * "Firefox on Linux", "Safari on iPhone". Only the common ones are told
@@ -41,9 +43,12 @@ export function parseAgent(userAgent: string | null | undefined): Agent {
   return { browser, system, mobile: MOBILE.test(ua) };
 }
 
-/** "Firefox on Linux", or as much of that as it says. */
-export function describeAgent(userAgent: string | null | undefined) {
+/** "Firefox on Linux", or as much of that as it says, in the page's language. */
+export function describeAgent(
+  userAgent: string | null | undefined,
+  t: ReturnType<typeof useTranslations<'agent'>>
+) {
   const { browser, system } = parseAgent(userAgent);
-  if (browser && system) return `${browser} on ${system}`;
-  return browser ?? system ?? 'Unknown device';
+  if (browser && system) return t('on', { browser, system });
+  return browser ?? system ?? t('unknown');
 }

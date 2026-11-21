@@ -1,5 +1,9 @@
 import 'server-only';
 
+import { createTranslator } from 'next-intl';
+
+import en from '@/i18n/messages/en.json';
+
 import { ROLE_INFO, type Role } from '@/lib/auth/roles';
 import { formatDuration } from '@/lib/format';
 import type { Mail, MailDetail } from '@/lib/mail/mail';
@@ -45,7 +49,12 @@ export function formatMailTime(at: Date | number) {
 /** When it was asked for and from what, as far as the request says */
 function requested(origin: Origin | undefined, now: number): MailDetail[] {
   const from = [
-    origin?.userAgent ? describeAgent(origin.userAgent) : undefined,
+    origin?.userAgent
+      ? describeAgent(
+          origin.userAgent,
+          createTranslator({ locale: 'en', messages: en, namespace: 'agent' })
+        )
+      : undefined,
     origin?.ip || undefined,
   ].filter(Boolean);
   return [

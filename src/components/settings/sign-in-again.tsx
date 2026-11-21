@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 
 import { LogInIcon } from 'lucide-react';
@@ -19,9 +20,10 @@ export const isStale = (error: { code?: string } | null | undefined) =>
 
 /** Signs out, and goes to the sign-in page. */
 export function useSignOut() {
+  const t = useTranslations('security');
   const router = useRouter();
   return () =>
-    attempt("Couldn't sign out", async () => {
+    attempt(t('signOutFailed'), async () => {
       await authClient.signOut();
       router.replace('/login');
       router.refresh();
@@ -30,15 +32,14 @@ export function useSignOut() {
 
 /** Said in place of what needs a recent sign-in, with the way to one. */
 export function SignInAgain() {
+  const t = useTranslations('security');
   const signOut = useSignOut();
   return (
     <div className='flex flex-wrap items-center gap-3'>
-      <p className='text-muted-foreground'>
-        For this, sign in again: it needs a sign-in from the last day.
-      </p>
+      <p className='text-muted-foreground'>{t('signInAgainWhy')}</p>
       <Button variant='outline' size='sm' onClick={signOut}>
         <LogInIcon />
-        Sign in again
+        {t('signInAgain')}
       </Button>
     </div>
   );

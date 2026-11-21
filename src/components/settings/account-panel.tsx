@@ -47,6 +47,7 @@ export function AccountPanel({ me }: { me: Me }) {
 }
 
 function ProfileForm({ me }: { me: Me }) {
+  const t = useTranslations('account');
   const router = useRouter();
   const [name, setName] = useState(me.name);
   const [email, setEmail] = useState(me.email);
@@ -60,11 +61,11 @@ function ProfileForm({ me }: { me: Me }) {
   function save() {
     setError(undefined);
     startTransition(() =>
-      attempt("Couldn't save your details", async () => {
+      attempt(t('saveFailed'), async () => {
         if (newName !== me.name) {
           const { error } = await authClient.updateUser({ name: newName });
           if (error) {
-            setError(error.message ?? "Couldn't change your name");
+            setError(error.message ?? t('nameFailed'));
             return;
           }
         }
@@ -74,14 +75,14 @@ function ProfileForm({ me }: { me: Me }) {
             callbackURL: changingUrl(newEmail),
           });
           if (error) {
-            setError(error.message ?? "Couldn't change your email");
+            setError(error.message ?? t('emailFailed'));
             router.refresh();
             return;
           }
           // A confirmed address changes once the mail to it is agreed to
           if (confirmsByMail) {
-            toast.success(`Check your mail at ${me.email}`, {
-              description: `Agree to the change there, then confirm ${newEmail} from the mail sent to it`,
+            toast.success(t('checkMail', { email: me.email }), {
+              description: t('checkMailDescription', { email: newEmail }),
             });
             setEmail(me.email);
             router.refresh();
@@ -92,12 +93,12 @@ function ProfileForm({ me }: { me: Me }) {
           // session
           const { data } = await authClient.getSession();
           if (data?.user.email !== newEmail) {
-            setError('Another account has that email');
+            setError(t('emailTaken'));
             router.refresh();
             return;
           }
         }
-        toast.success('Saved your details');
+        toast.success(t('saved'));
         // So the page, and this form's starting point, are the new ones
         router.refresh();
       })
@@ -105,7 +106,7 @@ function ProfileForm({ me }: { me: Me }) {
   }
 
   return (
-    <Panel title='Profile'>
+    <Panel title={t('profile')}>
       <form
         className='flex flex-col gap-4'
         onSubmit={(e) => {
@@ -115,7 +116,7 @@ function ProfileForm({ me }: { me: Me }) {
       >
         <div className='grid gap-4 sm:grid-cols-2 sm:items-start'>
           <div className='flex flex-col gap-2'>
-            <Label htmlFor='account-name'>Name</Label>
+            <Label htmlFor='account-name'>{t('name')}</Label>
             <Input
               id='account-name'
               value={name}
@@ -125,7 +126,7 @@ function ProfileForm({ me }: { me: Me }) {
             />
           </div>
           <div className='flex flex-col gap-2'>
-            <Label htmlFor='account-email'>Email</Label>
+            <Label htmlFor='account-email'>{t('email')}</Label>
             <Input
               id='account-email'
               type='email'
@@ -146,7 +147,7 @@ function ProfileForm({ me }: { me: Me }) {
           disabled={pending || !changed}
           className='self-start'
         >
-          Save
+          {t('save')}
         </Button>
       </form>
     </Panel>
@@ -154,12 +155,13 @@ function ProfileForm({ me }: { me: Me }) {
 }
 
 function PasswordForm() {
+  const t = useTranslations('account');
   const [signOutOthers, setSignOutOthers] = useState(true);
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
 
   return (
-    <Panel title='Password'>
+    <Panel title={t('password')}>
       <form
         className='flex flex-col gap-4'
         // Sent from here rather than as the form's action, which would empty
@@ -171,31 +173,29 @@ function PasswordForm() {
           const currentPassword = String(data.get('current-password'));
           const newPassword = String(data.get('new-password'));
           if (newPassword.length < MIN_PASSWORD) {
-            setError(`A password needs ${MIN_PASSWORD} characters or more`);
+            setError(t('passwordTooShort', { count: MIN_PASSWORD }));
             return;
           }
           // There's no email to reset a mistyped one with, so it's asked twice
           if (newPassword !== String(data.get('repeat-password'))) {
-            setError("The new passwords don't match");
+            setError(t('passwordsDiffer'));
             return;
           }
           setError(undefined);
           startTransition(() =>
-            attempt("Couldn't change your password", async () => {
+            attempt(t('passwordFailed'), async () => {
               const { error } = await authClient.changePassword({
                 currentPassword,
                 newPassword,
                 revokeOtherSessions: signOutOthers,
               });
               if (error) {
-                setError(error.message ?? "Couldn't change your password");
+                setError(error.message ?? t('passwordFailed'));
                 return;
               }
               form.reset();
-              toast.success('Changed your password', {
-                description: signOutOthers
-                  ? 'Your other devices are signed out.'
-                  : undefined,
+              toast.success(t('passwordChanged'), {
+                description: signOutOthers ? t('othersSignedOut') : undefined,
               });
             })
           );
@@ -203,7 +203,7 @@ function PasswordForm() {
       >
         <div className='grid gap-4 sm:grid-cols-3 sm:items-start'>
           <div className='flex flex-col gap-2'>
-            <Label htmlFor='current-password'>Current password</Label>
+            <Label htmlFor='current-password'>{t('currentPassword')}</Label>
             <Input
               id='current-password'
               name='current-password'
@@ -213,7 +213,7 @@ function PasswordForm() {
             />
           </div>
           <div className='flex flex-col gap-2'>
-            <Label htmlFor='new-password'>New password</Label>
+            <Label htmlFor='new-password'>{t('newPassword')}</Label>
             <Input
               id='new-password'
               name='new-password'
@@ -223,11 +223,11 @@ function PasswordForm() {
               required
             />
             <p className='text-muted-foreground'>
-              {MIN_PASSWORD} characters or more.
+              {t('passwordHint', { count: MIN_PASSWORD })}
             </p>
           </div>
           <div className='flex flex-col gap-2'>
-            <Label htmlFor='repeat-password'>New password again</Label>
+            <Label htmlFor='repeat-password'>{t('repeatPassword')}</Label>
             <Input
               id='repeat-password'
               name='repeat-password'
@@ -241,7 +241,7 @@ function PasswordForm() {
         {error && <p className='text-destructive'>{error}</p>}
         <div className='flex flex-wrap items-center gap-x-4 gap-y-3'>
           <Button type='submit' disabled={pending}>
-            Change password
+            {t('changePassword')}
           </Button>
           <div className='flex items-center gap-2'>
             <Checkbox
@@ -249,7 +249,7 @@ function PasswordForm() {
               checked={signOutOthers}
               onCheckedChange={(checked) => setSignOutOthers(checked === true)}
             />
-            <Label htmlFor='sign-out-others'>Sign out my other devices</Label>
+            <Label htmlFor='sign-out-others'>{t('signOutOthers')}</Label>
           </div>
         </div>
       </form>
@@ -259,26 +259,22 @@ function PasswordForm() {
 
 /** Whether their address is confirmed, and if not, a way to, once there's mail. */
 function EmailStatus({ me }: { me: Me }) {
+  const t = useTranslations('account');
   const [pending, startTransition] = useTransition();
   if (!me.mail) {
-    return (
-      <p className='text-muted-foreground'>
-        What you sign in with. The dashboard can&apos;t send mail yet, so it
-        changes at once.
-      </p>
-    );
+    return <p className='text-muted-foreground'>{t('noMail')}</p>;
   }
   if (me.emailVerified) {
     return (
       <p className='flex items-center gap-1 text-muted-foreground [&_svg]:size-3.5'>
         <BadgeCheckIcon className='text-success' />
-        Confirmed. A new one changes once both addresses agree, by mail.
+        {t('confirmed')}
       </p>
     );
   }
   return (
     <div className='flex flex-wrap items-center gap-2'>
-      <p className='text-warning'>Not confirmed yet.</p>
+      <p className='text-warning'>{t('notConfirmed')}</p>
       <Button
         type='button'
         variant='outline'
@@ -286,23 +282,23 @@ function EmailStatus({ me }: { me: Me }) {
         disabled={pending}
         onClick={() =>
           startTransition(() =>
-            attempt("Couldn't send the link", async () => {
+            attempt(t('linkFailed'), async () => {
               const { error } = await authClient.sendVerificationEmail({
                 email: me.email,
                 callbackURL: CONFIRMED_URL,
               });
               if (error) {
-                toast.error("Couldn't send the link", {
+                toast.error(t('linkFailed'), {
                   description: error.message,
                 });
                 return;
               }
-              toast.success(`Sent a link to ${me.email}`);
+              toast.success(t('linkSent', { email: me.email }));
             })
           )
         }
       >
-        Send me a link to confirm it
+        {t('sendLink')}
       </Button>
     </div>
   );
@@ -358,18 +354,19 @@ function LanguageForm({ me }: { me: Me }) {
 
 /** Whether the monitor's alerts are mailed to them, for those who see the server. */
 function AlertsForm({ me }: { me: Me }) {
+  const t = useTranslations('account');
   const router = useRouter();
   const [on, setOn] = useState(me.alertMail);
   const [pending, startTransition] = useTransition();
   return (
-    <Panel title='Alerts'>
+    <Panel title={t('alerts')}>
       <div className='flex items-start justify-between gap-4'>
         <div className='flex flex-col gap-1'>
-          <Label htmlFor='alert-mail'>Mail me alerts</Label>
+          <Label htmlFor='alert-mail'>{t('mailAlerts')}</Label>
           <p className='text-muted-foreground'>
             {me.mail
-              ? `When a service goes down, the disk fills, a website stops answering, a certificate is running out or a backup fails, mailed to ${me.email}, and again once it's right.`
-              : "Mail isn't set up yet, so alerts only show under the bell at the top."}
+              ? t('alertsDescription', { email: me.email })
+              : t('alertsNoMail')}
           </p>
         </div>
         <Switch
@@ -379,11 +376,11 @@ function AlertsForm({ me }: { me: Me }) {
           onCheckedChange={(next) => {
             setOn(next);
             startTransition(() =>
-              attempt("Couldn't change that", async () => {
+              attempt(t('changeFailed'), async () => {
                 const { error } = await setAlertMail(next);
                 if (error) {
                   setOn(!next);
-                  toast.error("Couldn't change that", { description: error });
+                  toast.error(t('changeFailed'), { description: error });
                   return;
                 }
                 router.refresh();

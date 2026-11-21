@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { can, ROLE_INFO } from '@/lib/auth/roles';
 import type { Me } from '@/lib/types';
 
@@ -32,6 +34,7 @@ export function SettingsDialog({
   open: boolean;
   onOpenChangeAction: (open: boolean) => void;
 }) {
+  const t = useTranslations('settings');
   return (
     <Dialog open={open} onOpenChange={onOpenChangeAction}>
       {/* Full screen on a phone; on a computer, a large window as tall as
@@ -63,13 +66,13 @@ export function SettingsDialog({
         </DialogHeader>
         <Tabs defaultValue='account' className='min-h-0 flex-1 gap-4 p-4'>
           <TabsList>
-            <TabsTrigger value='account'>Account</TabsTrigger>
-            <TabsTrigger value='security'>Security</TabsTrigger>
+            <TabsTrigger value='account'>{t('account')}</TabsTrigger>
+            <TabsTrigger value='security'>{t('security')}</TabsTrigger>
             {me.role === 'owner' && (
-              <TabsTrigger value='people'>People</TabsTrigger>
+              <TabsTrigger value='people'>{t('people')}</TabsTrigger>
             )}
             {can(me.role, 'server') && (
-              <TabsTrigger value='activity'>Activity</TabsTrigger>
+              <TabsTrigger value='activity'>{t('activity')}</TabsTrigger>
             )}
           </TabsList>
           <Tab value='account'>

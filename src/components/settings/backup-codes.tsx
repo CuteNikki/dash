@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { CopyIcon, DownloadIcon } from 'lucide-react';
 
 import { SERVER_NAME } from '@/lib/site';
@@ -8,13 +10,17 @@ import { copyText } from '@/components/common/toasts';
 import { Button } from '@/components/ui/button';
 
 /** Saves the codes as a text file, named for the server they're for. */
-function download(codes: string[], email: string) {
+function download(
+  codes: string[],
+  email: string,
+  t: ReturnType<typeof useTranslations<'security'>>
+) {
   // Read here, in the browser, as there's no location while it's rendered
   // on the server
   const site = SERVER_NAME ?? location.hostname;
   const text = [
-    `Backup codes for the dashboard on ${site} (${email})`,
-    "Each signs you in once, in place of your authenticator app's code.",
+    t('codesFileTitle', { site, email }),
+    t('codesFileHint'),
     '',
     ...codes,
     '',
@@ -38,13 +44,10 @@ export function BackupCodes({
   codes: string[];
   email: string;
 }) {
+  const t = useTranslations('security');
   return (
     <div className='flex flex-col gap-3'>
-      <p>
-        Each signs you in once, should you lose your authenticator app. Keep
-        them somewhere safe, such as your password manager: they're shown only
-        now.
-      </p>
+      <p>{t('codesHint')}</p>
       <ul className='grid w-fit grid-cols-2 gap-x-6 gap-y-1 rounded-md border bg-field px-3 py-2 font-mono tabular-nums'>
         {codes.map((code) => (
           <li key={code}>{code}</li>
@@ -53,14 +56,14 @@ export function BackupCodes({
       <div className='flex flex-wrap gap-2'>
         <Button
           variant='outline'
-          onClick={() => copyText(codes.join('\n'), 'Copied the backup codes')}
+          onClick={() => copyText(codes.join('\n'), t('codesCopied'))}
         >
           <CopyIcon />
-          Copy
+          {t('copy')}
         </Button>
-        <Button variant='outline' onClick={() => download(codes, email)}>
+        <Button variant='outline' onClick={() => download(codes, email, t)}>
           <DownloadIcon />
-          Download
+          {t('download')}
         </Button>
       </div>
     </div>

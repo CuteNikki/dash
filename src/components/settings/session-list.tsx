@@ -1,5 +1,6 @@
 'use client';
 
+import { useLocale, useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
@@ -44,15 +45,19 @@ async function listSessions(): Promise<Session[]> {
 }
 
 /** A day as a list reads it: "today", "yesterday", "3 Nov 2026". */
-function formatDay(at: Date | string) {
+function formatDay(
+  at: Date | string,
+  t: ReturnType<typeof useTranslations<'sessions'>>,
+  locale: string
+) {
   const date = new Date(at);
   const days = Math.round(
     (new Date().setHours(0, 0, 0, 0) - new Date(date).setHours(0, 0, 0, 0)) /
       86_400_000
   );
-  if (days === 0) return 'today';
-  if (days === 1) return 'yesterday';
-  return date.toLocaleDateString(undefined, {
+  if (days === 0) return t('today');
+  if (days === 1) return t('yesterday');
+  return date.toLocaleDateString(locale, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -65,6 +70,9 @@ function formatDay(at: Date | string) {
  * all of them at once.
  */
 export function SessionList() {
+  const locale = useLocale();
+  const tAgent = useTranslations('agent');
+  const t = useTranslations('sessions');
   const { data: current } = authClient.useSession();
   const { data, error, isLoading, mutate } = useSWR<
     Session[],
@@ -86,18 +94,18 @@ export function SessionList() {
   const rows = useKeptCount('sessions', data?.length, 1);
 
   function signOut(session: Session) {
-    const name = describeAgent(session.userAgent);
+    const name = describeAgent(session.userAgent, tAgent);
     startTransition(() =>
-      attempt(`Couldn't sign out ${name}`, async () => {
+      attempt(t('signOutFailed', { name }), async () => {
         const { error } = await authClient.revokeSession({
           token: session.token,
         });
         if (error) {
-          toast.error(`Couldn't sign out ${name}`, {
+          toast.error(t('signOutFailed', { name }), {
             description: error.message,
           });
         } else {
-          toast.success(`Signed out ${name}`);
+          toast.success(t('signedOut', { name }));
         }
         await mutate();
       })
@@ -106,14 +114,14 @@ export function SessionList() {
 
   function signOutOthers() {
     startTransition(() =>
-      attempt("Couldn't sign out your other devices", async () => {
+      attempt(t('othersFailed'), async () => {
         const { error } = await authClient.revokeOtherSessions();
         if (error) {
-          toast.error("Couldn't sign out your other devices", {
+          toast.error(t('othersFailed'), {
             description: error.message,
           });
         } else {
-          toast.success('Signed out your other devices');
+          toast.success(t('othersSignedOut'));
         }
         await mutate();
       })
@@ -155,7 +163,7 @@ export function SessionList() {
   if (error) {
     return (
       <p className='text-destructive'>
-        Couldn't list them: {error.message ?? "dash didn't answer"}
+        {t('listFailed', { error: error.message ?? t('noAnswer') })}
       </p>
     );
   }
@@ -174,19 +182,23 @@ export function SessionList() {
               <span className='flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-0.5'>
                 <span className='flex w-48 min-w-0 items-center gap-2'>
                   <span className='truncate font-medium'>
-                    {describeAgent(session.userAgent)}
+                    {describeAgent(session.userAgent, tAgent)}
                   </span>
-                  {here && <Badge variant='secondary'>This device</Badge>}
+                  {here && <Badge variant='secondary'>{t('thisDevice')}</Badge>}
                 </span>
                 <span className='w-32 shrink-0 truncate font-mono text-muted-foreground tabular-nums'>
-                  {session.ipAddress || 'No address'}
+                  {session.ipAddress || t('noAddress')}
                 </span>
                 <span className='w-36 shrink-0 text-muted-foreground'>
-                  Signed in {formatDay(session.createdAt)}
+                  {t('signedIn', {
+                    day: formatDay(session.createdAt, t, locale),
+                  })}
                 </span>
                 {/* Renewed at most once a day, so it's to within a day */}
                 <span className='w-36 shrink-0 text-muted-foreground'>
-                  Last used {formatDay(session.updatedAt)}
+                  {t('lastUsed', {
+                    day: formatDay(session.updatedAt, t, locale),
+                  })}
                 </span>
               </span>
               {/* Its room kept on this one, so the others' buttons line up */}
@@ -196,8 +208,10 @@ export function SessionList() {
                     variant='destructive'
                     size='icon'
                     disabled={pending}
-                    aria-label={`Sign out ${describeAgent(session.userAgent)}`}
-                    title='Sign out'
+                    aria-label={t('signOutName', {
+                      name: describeAgent(session.userAgent, tAgent),
+                    })}
+                    title={t('signOut')}
                     onClick={() => signOut(session)}
                   >
                     <LogOutIcon />
@@ -216,23 +230,22 @@ export function SessionList() {
           className='self-start'
         >
           <LogOutIcon />
-          Sign out all other devices
+          {t('signOutAll')}
         </Button>
       )}
 
       <AlertDialog open={confirmAll} onOpenChange={setConfirmAll}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Sign out all other devices?</AlertDialogTitle>
+            <AlertDialogTitle>{t('signOutAllTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Each of them needs your password or a passkey to get back in. This
-              one stays signed in.
+              {t('signOutAllDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
             <AlertDialogAction variant='destructive' onClick={signOutOthers}>
-              Sign out
+              {t('signOut')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
