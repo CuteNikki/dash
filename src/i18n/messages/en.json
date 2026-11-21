@@ -1001,7 +1001,9 @@
     "twoFactorFailed": "Couldn't change that",
     "peopleDescription": "Everyone with an account, what they may do and see",
     "invitesDescription": "Links to make an account with, not used yet",
-    "roleStatus": "{count, plural, =0 {Nobody yet} one {# person} other {# people}}{status, select, notRequired { · not required} missing {{missing, plural, one { · # still has to set it up} other { · # still have to set it up}}} allSet {{count, plural, one { · has it set up} other { · all have it set up}}} other {}}"
+    "roleStatus": "{count, plural, =0 {Nobody yet} one {# person} other {# people}}{status, select, notRequired { · not required} missing {{missing, plural, one { · # still has to set it up} other { · # still have to set it up}}} allSet {{count, plural, one { · has it set up} other { · all have it set up}}} other {}}",
+    "message": "A note for the mail",
+    "messagePlaceholder": "A note for the mail, if you like"
   },
   "twoFactor": {
     "on": "On",
@@ -1499,7 +1501,8 @@
     "noAnswer": "No answer",
     "notDockerRun": "That isn't a docker run command",
     "noImage": "It has no image to run",
-    "twoFactorRequired": "Your role needs two-factor: set it up first"
+    "twoFactorRequired": "Your role needs two-factor: set it up first",
+    "messageTooLong": "Keep the note to 500 characters"
   },
   "alertWords": {
     "unhealthy": "Unhealthy",
@@ -1562,7 +1565,8 @@
       "textTheirs": "Hi, {by} invited you to the dashboard of their server. Make your account with the button below: you pick your own name and password.",
       "action": "Make my account",
       "note": "The link works once. If you weren't expecting it, there's nothing to do: it runs out by itself.",
-      "footer": "Sent by the dashboard of {server} for {by}."
+      "footer": "Sent by the dashboard of {server} for {by}.",
+      "wrote": "{by} wrote:"
     },
     "alerts": {
       "oneRight": "{subject} is all right again",

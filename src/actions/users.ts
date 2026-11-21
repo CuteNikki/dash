@@ -247,8 +247,12 @@ export async function removePerson(userId: string): Promise<PeopleResult> {
   await record(access, { action: 'person.remove', target: person.name });
 }
 
+/** The longest note an invite's mail carries. */
+const MAX_MESSAGE = 500;
+
 const NewInvite = Access.extend({
   email: z.email('enterEmail').transform((e) => e.toLowerCase()),
+  message: z.string().trim().max(MAX_MESSAGE, 'messageTooLong').optional(),
 });
 
 export type InviteResult =
@@ -271,12 +275,14 @@ export async function createInvite(input: {
   role: Role;
   groups: string[];
   send?: boolean;
+  /** A few words of their own for the mail, when it's mailed */
+  message?: string;
 }): Promise<InviteResult> {
   const access = await requireAccess('users');
   const parsed = NewInvite.safeParse(input);
   if (!parsed.success)
     return { error: await issueText(parsed.error.issues[0].message) };
-  const { email, role, groups } = parsed.data;
+  const { email, role, groups, message } = parsed.data;
   if (await db.user.findUnique({ where: { email } })) {
     return { error: await errorText('emailTaken') };
   }
@@ -293,6 +299,7 @@ export async function createInvite(input: {
           invitedBy: access.user.name,
           url: link,
           expiresAt,
+          message: message || undefined,
         })
       );
     } catch (error) {

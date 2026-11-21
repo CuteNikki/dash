@@ -56,6 +56,8 @@ export type Mail = {
   heading?: string;
   /** What it's about, each a paragraph */
   paragraphs: string[];
+  /** Someone's own words, set apart after the paragraphs: an invite's note */
+  quote?: { by: string; text: string };
   /** Lists of things, such as alerts, after the paragraphs */
   sections?: MailSection[];
   /** The facts of it, row by row: whose account, when, from where */
@@ -106,6 +108,12 @@ const escape = (text: string) =>
   );
 
 const text = (t: string) => escape(t).replaceAll('\n', '<br>');
+
+/** Someone's own words, who wrote them over them, set off by a bar at the left. */
+function quote({ by, text: words }: { by: string; text: string }) {
+  return `<tr><td style="padding:16px 0 0;${font}font-size:13px;line-height:1.5;color:${colors.muted};">${escape(by)}</td></tr>
+<tr><td style="padding:6px 0 0 12px;border-left:3px solid ${colors.border};${font}font-size:14px;line-height:1.6;color:${colors.foreground};">${text(words)}</td></tr>`;
+}
 
 /** A table that's only for layout, which screen readers read past. */
 const table = (style: string, rows: string) =>
@@ -195,6 +203,14 @@ function plain(mail: Mail, footer: string) {
   return [
     mail.heading ?? mail.subject,
     ...mail.paragraphs,
+    ...(mail.quote
+      ? [
+          `${mail.quote.by}\n${mail.quote.text
+            .split('\n')
+            .map((line) => `> ${line}`)
+            .join('\n')}`,
+        ]
+      : []),
     ...(mail.sections ?? []).map(
       (s) =>
         `${s.heading}\n${s.items
@@ -226,6 +242,7 @@ function render(mail: Mail) {
       'width:100%;',
       `<tr><td style="${font}font-size:20px;line-height:1.3;font-weight:600;color:${colors.foreground};">${escape(mail.heading ?? mail.subject)}</td></tr>
 ${paragraphs.join('\n')}
+${mail.quote ? quote(mail.quote) : ''}
 ${(mail.sections ?? []).map(section).join('\n')}
 ${mail.details?.length ? details(mail.details) : ''}
 ${mail.action ? button(mail.action) : ''}

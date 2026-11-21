@@ -24,6 +24,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 
 /**
  * Invites someone by email, with the role and groups their account will
@@ -60,6 +61,9 @@ export function InviteDialog({
   );
 }
 
+/** The longest note an invite's mail carries, as the server keeps it to. */
+const MAX_MESSAGE = 500;
+
 function InviteForm({
   allGroups,
   mail,
@@ -75,6 +79,7 @@ function InviteForm({
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<Role>('viewer');
   const [groups, setGroups] = useState<string[]>([]);
+  const [message, setMessage] = useState('');
   const [link, setLink] = useState<string>();
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
@@ -88,6 +93,7 @@ function InviteForm({
           role,
           groups: seesAllGroups(role) ? [] : groups,
           send: mail && send,
+          message: mail && send ? message : undefined,
         });
         if ('error' in result) {
           setError(result.error);
@@ -178,9 +184,26 @@ function InviteForm({
           onGroupsChangeAction={setGroups}
         />
         {mail && (
-          <div className='flex items-center gap-2'>
-            <Switch id='invite-send' checked={send} onCheckedChange={setSend} />
-            <Label htmlFor='invite-send'>{t('mailLink')}</Label>
+          <div className='flex flex-col gap-2'>
+            <div className='flex items-center gap-2'>
+              <Switch
+                id='invite-send'
+                checked={send}
+                onCheckedChange={setSend}
+              />
+              <Label htmlFor='invite-send'>{t('mailLink')}</Label>
+            </div>
+            {/* Off rather than gone while the link isn't mailed, so
+                nothing moves as it's switched */}
+            <Textarea
+              id='invite-message'
+              aria-label={t('message')}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              disabled={!send}
+              maxLength={MAX_MESSAGE}
+              placeholder={t('messagePlaceholder')}
+            />
           </div>
         )}
         {error && <p className='text-destructive'>{error}</p>}

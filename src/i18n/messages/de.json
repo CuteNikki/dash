@@ -1001,7 +1001,9 @@
     "twoFactorFailed": "Das konnte nicht geändert werden",
     "peopleDescription": "Alle mit einem Konto, und was sie tun und sehen dürfen",
     "invitesDescription": "Links zum Erstellen eines Kontos, noch nicht benutzt",
-    "roleStatus": "{count, plural, =0 {Noch niemand} one {# Person} other {# Personen}}{status, select, notRequired { · nicht nötig} missing {{missing, plural, one { · # muss es noch einrichten} other { · # müssen es noch einrichten}}} allSet {{count, plural, one { · hat es eingerichtet} other { · alle haben es eingerichtet}}} other {}}"
+    "roleStatus": "{count, plural, =0 {Noch niemand} one {# Person} other {# Personen}}{status, select, notRequired { · nicht nötig} missing {{missing, plural, one { · # muss es noch einrichten} other { · # müssen es noch einrichten}}} allSet {{count, plural, one { · hat es eingerichtet} other { · alle haben es eingerichtet}}} other {}}",
+    "message": "Eine Nachricht für die Mail",
+    "messagePlaceholder": "Eine Nachricht für die Mail, wenn du magst"
   },
   "twoFactor": {
     "on": "An",
@@ -1499,7 +1501,8 @@
     "noAnswer": "Keine Antwort",
     "notDockerRun": "Das ist kein docker-run-Befehl",
     "noImage": "Es hat kein Image zum Ausführen",
-    "twoFactorRequired": "Deine Rolle braucht Zwei-Faktor: Richte es zuerst ein"
+    "twoFactorRequired": "Deine Rolle braucht Zwei-Faktor: Richte es zuerst ein",
+    "messageTooLong": "Halte die Nachricht unter 500 Zeichen"
   },
   "alertWords": {
     "unhealthy": "Fehlerhaft",
@@ -1562,7 +1565,8 @@
       "textTheirs": "Hallo, {by} hat dich zum Dashboard seines Servers eingeladen. Erstelle dein Konto mit dem Button unten: Namen und Passwort wählst du selbst.",
       "action": "Mein Konto erstellen",
       "note": "Der Link funktioniert einmal. Wenn du ihn nicht erwartet hast, musst du nichts tun: Er läuft von selbst ab.",
-      "footer": "Gesendet vom Dashboard von {server} für {by}."
+      "footer": "Gesendet vom Dashboard von {server} für {by}.",
+      "wrote": "{by} schreibt:"
     },
     "alerts": {
       "oneRight": "{subject} ist wieder in Ordnung",

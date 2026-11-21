@@ -131,6 +131,8 @@ export function inviteMail(
     invitedBy: string;
     url: string;
     expiresAt: Date;
+    /** A few words of the inviter's own */
+    message?: string;
   }
 ): Mail {
   return {
@@ -147,6 +149,12 @@ export function inviteMail(
         ? w.t('invite.text', { by: invite.invitedBy, server: SERVER_NAME })
         : w.t('invite.textTheirs', { by: invite.invitedBy }),
     ],
+    ...(invite.message && {
+      quote: {
+        by: w.t('invite.wrote', { by: invite.invitedBy }),
+        text: invite.message,
+      },
+    }),
     details: [
       { label: w.t('invitedBy'), value: invite.invitedBy },
       {
