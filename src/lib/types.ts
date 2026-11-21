@@ -29,6 +29,8 @@ export type Service = {
   height: number;
   /** Left off the dashboard, except while editing it */
   hidden: boolean;
+  /** Its updates aren't looked for here: no badge, nor a row under Updates */
+  ignoreUpdates: boolean;
   /** Whether its tile has been edited here, rather than from labels */
   edited: boolean;
   image: string;

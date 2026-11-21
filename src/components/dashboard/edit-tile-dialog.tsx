@@ -74,6 +74,7 @@ function EditTileForm({
   const [addresses, setAddresses] = useState(() => toItems(service.addresses));
   const [group, setGroup] = useState(service.group);
   const [hidden, setHidden] = useState(service.hidden);
+  const [ignoreUpdates, setIgnoreUpdates] = useState(service.ignoreUpdates);
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
 
@@ -88,6 +89,7 @@ function EditTileForm({
           addresses: addresses.map((a) => a.value),
           group,
           hidden,
+          ignoreUpdates,
         });
         if (result?.error) {
           setError(result.error);
@@ -197,6 +199,17 @@ function EditTileForm({
           />
           <Label htmlFor='tile-hidden'>Hide from the dashboard</Label>
         </div>
+        {/* A website elsewhere has no image to update */}
+        {!site && (
+          <div className='flex items-center gap-2'>
+            <Switch
+              id='tile-ignore-updates'
+              checked={ignoreUpdates}
+              onCheckedChange={setIgnoreUpdates}
+            />
+            <Label htmlFor='tile-ignore-updates'>Ignore its updates</Label>
+          </div>
+        )}
         {error && <p className='text-destructive'>{error}</p>}
       </div>
 

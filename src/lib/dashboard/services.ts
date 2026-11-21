@@ -96,6 +96,7 @@ function siteService(
     width: tile.width,
     height: tile.height,
     hidden: tile.hidden,
+    ignoreUpdates: false,
     edited: true,
     image: '',
     state: !url
@@ -246,6 +247,7 @@ export async function getDashboard(who: {
       width: tile?.width ?? 1,
       height: tile?.height ?? 1,
       hidden: tile?.hidden ?? false,
+      ignoreUpdates: tile?.ignoreUpdates ?? false,
       edited: !!tile,
       image: c.image,
       state: c.state,
@@ -257,8 +259,13 @@ export async function getDashboard(who: {
             .filter((o) => o.stack?.project === c.stack!.project)
             .map((o) => o.name)
         : undefined,
-      update: updates.byContainer.get(c.id)?.update,
-      updateError: updates.byContainer.get(c.id)?.error,
+      // One whose updates are ignored has none waiting, nor failing to be looked for
+      update: tile?.ignoreUpdates
+        ? undefined
+        : updates.byContainer.get(c.id)?.update,
+      updateError: tile?.ignoreUpdates
+        ? undefined
+        : updates.byContainer.get(c.id)?.error,
       version: updates.byContainer.get(c.id)?.version,
       ports: publishedPorts(c),
       console: consoles.has(c.id),

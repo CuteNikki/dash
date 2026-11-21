@@ -36,6 +36,7 @@ const TileInput = z.object({
     ),
   group: Group,
   hidden: z.boolean(),
+  ignoreUpdates: z.boolean(),
 });
 
 export type TileInput = z.input<typeof TileInput>;
@@ -227,6 +228,7 @@ const TileSnapshot = z.object({
   width: z.number().int().min(1).max(MAX_COLUMNS),
   height: z.number().int().min(1).max(MAX_ROWS),
   hidden: z.boolean(),
+  ignoreUpdates: z.boolean(),
 });
 
 /** Puts back a tile's edits as a reset found them. */
