@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import createNextIntlPlugin from 'next-intl/plugin';
 
 /**
  * Every answer's: never in a frame, as another site of the same domain could
@@ -43,4 +44,13 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Its languages: the messages for each page from src/i18n/request.ts, and
+// English's keys and their arguments written out as types, for t() to check
+const withNextIntl = createNextIntlPlugin({
+  requestConfig: './src/i18n/request.ts',
+  experimental: {
+    createMessagesDeclaration: './src/i18n/messages/en.json',
+  },
+});
+
+export default withNextIntl(nextConfig);

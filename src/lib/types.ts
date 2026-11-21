@@ -1,3 +1,5 @@
+import type { Locale } from '@/i18n/locales';
+
 import type { Role } from '@/lib/auth/roles';
 import type { SavedCell } from '@/lib/dashboard/layout';
 import type { ContainerState, DockerInfo } from '@/lib/docker/docker';
@@ -126,6 +128,8 @@ export type Me = {
   mail: boolean;
   /** They're mailed the monitor's alerts, if they see the server */
   alertMail: boolean;
+  /** The language they've chosen; none for their browser's */
+  locale: Locale | null;
   role: Role;
   /** The groups they see; every one for a role that sees all */
   groups: string[];

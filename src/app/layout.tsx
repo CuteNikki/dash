@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from 'next';
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale } from 'next-intl/server';
 import { Geist, JetBrains_Mono } from 'next/font/google';
 import localFont from 'next/font/local';
 
@@ -47,10 +49,17 @@ export const viewport: Viewport = {
   colorScheme: 'light dark',
 };
 
-export default function RootLayout({ children }: LayoutProps<'/'>) {
+// Every page is in its reader's language, from their cookie or their
+// browser's, so none is the same for everyone to prerender; each already
+// waits for its sign-in, so none waits longer for it
+export const instant = false;
+
+export default async function RootLayout({ children }: LayoutProps<'/'>) {
+  // The person's language, from their setting or their browser's
+  const locale = await getLocale();
   return (
     <html
-      lang='en'
+      lang={locale}
       suppressHydrationWarning
       className={cn(
         // The scrollbar keeps its room when there's nothing to scroll, so a
@@ -68,10 +77,12 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
           enableSystem
           disableTransitionOnChange
         >
-          <TooltipProvider>
-            {children}
-            <Toaster />
-          </TooltipProvider>
+          <NextIntlClientProvider>
+            <TooltipProvider>
+              {children}
+              <Toaster />
+            </TooltipProvider>
+          </NextIntlClientProvider>
         </ThemeProvider>
       </body>
     </html>

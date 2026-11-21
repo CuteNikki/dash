@@ -1,0 +1,11 @@
+{
+  "settings": {
+    "language": {
+      "title": "Sprache",
+      "label": "Sprache",
+      "browser": "Die deines Browsers, bis du eine wählst. Auch Mails an dich sind in ihr.",
+      "chosen": "Auf jedem Gerät, auf dem du dich anmeldest, und in den Mails an dich.",
+      "failed": "Die Sprache konnte nicht geändert werden"
+    }
+  }
+}

@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 
+import { isLocale } from '@/i18n/locales';
+
 import { requireAccess } from '@/lib/auth/access';
 import { COLUMNS_COOKIE, columnsFromCookie } from '@/lib/dashboard/layout';
 import { getDashboard } from '@/lib/dashboard/services';
@@ -34,7 +36,7 @@ export default async function Home() {
   const access = await requireAccess('view');
   const settings = await db.user.findUnique({
     where: { id: access.user.id },
-    select: { alertMail: true },
+    select: { alertMail: true, locale: true },
   });
   // As many columns as the screen had last time, so tiles start where they'll stay
   const cookieStore = await cookies();
@@ -52,6 +54,7 @@ export default async function Home() {
         emailVerified: access.user.emailVerified,
         mail: mailReady(),
         alertMail: settings?.alertMail ?? false,
+        locale: isLocale(settings?.locale) ? settings.locale : null,
         role: access.role,
         groups: access.groups,
       }}

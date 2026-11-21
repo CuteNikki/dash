@@ -85,6 +85,8 @@ model User {
   allowedGroups    String[]    @default([])
   // Mailed the monitor's alerts, for those who see the server
   alertMail        Boolean     @default(true)
+  // Their language, "en" or "de": none until they've chosen, their browser's then
+  locale           String?
   sessions         Session[]
   accounts         Account[]
   passkeys         Passkey[]

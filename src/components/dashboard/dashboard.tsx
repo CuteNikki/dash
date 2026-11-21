@@ -39,6 +39,7 @@ import { cn } from '@/lib/utils';
 import { AlertsButton, AlertsDialog } from '@/components/alerts/alerts-dialog';
 import { AccountMenu } from '@/components/chrome/account-menu';
 import { Brand } from '@/components/chrome/brand';
+import { LocaleSync } from '@/components/chrome/locale-sync';
 import { ThemeButton } from '@/components/chrome/theme-button';
 import { ButtonCount } from '@/components/common/button-count';
 import { RoleProvider } from '@/components/common/role';
@@ -304,6 +305,7 @@ export function Dashboard({
 
   return (
     <RoleProvider role={me.role}>
+      <LocaleSync chosen={me.locale} />
       {/* Wider screens get more columns of tiles, up to a width past which
           the page would only spread out: then it's centered */}
       <main className='mx-auto flex w-full max-w-[2200px] flex-col gap-8 px-4 py-6 sm:px-6'>

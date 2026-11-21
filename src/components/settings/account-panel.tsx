@@ -1,12 +1,15 @@
 'use client';
 
+import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
 import { BadgeCheckIcon } from 'lucide-react';
 
-import { setAlertMail } from '@/actions/account';
+import { setAlertMail, setLocale } from '@/actions/account';
+
+import { LOCALE_NAMES, LOCALES, type Locale } from '@/i18n/locales';
 
 import { authClient } from '@/lib/auth/auth-client';
 import { MIN_PASSWORD } from '@/lib/auth/password';
@@ -20,6 +23,13 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 
 /** Who they are, as the dashboard knows them, and the password they sign in with. */
@@ -30,6 +40,7 @@ export function AccountPanel({ me }: { me: Me }) {
     <div className='flex flex-col gap-3'>
       <ProfileForm me={me} />
       <PasswordForm />
+      <LanguageForm me={me} />
       {can(me.role, 'server') && <AlertsForm me={me} />}
     </div>
   );
@@ -294,6 +305,54 @@ function EmailStatus({ me }: { me: Me }) {
         Send me a link to confirm it
       </Button>
     </div>
+  );
+}
+
+/** The language the dashboard speaks to them in, and mails them in. */
+function LanguageForm({ me }: { me: Me }) {
+  const t = useTranslations('settings.language');
+  const router = useRouter();
+  const locale = useLocale();
+  const [pending, startTransition] = useTransition();
+  return (
+    <Panel title={t('title')}>
+      <div className='flex items-start justify-between gap-4'>
+        <div className='flex flex-col gap-1'>
+          <Label htmlFor='language'>{t('label')}</Label>
+          <p className='text-muted-foreground'>
+            {me.locale ? t('chosen') : t('browser')}
+          </p>
+        </div>
+        <Select
+          value={locale}
+          disabled={pending}
+          onValueChange={(next) =>
+            startTransition(() =>
+              attempt(t('failed'), async () => {
+                const { error } = await setLocale(next as Locale);
+                if (error) {
+                  toast.error(t('failed'), { description: error });
+                  return;
+                }
+                router.refresh();
+              })
+            )
+          }
+        >
+          <SelectTrigger id='language'>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {LOCALES.map((l) => (
+              // Each in its own language, as whoever reads it reads that
+              <SelectItem key={l} value={l} lang={l}>
+                {LOCALE_NAMES[l]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </Panel>
   );
 }
 
