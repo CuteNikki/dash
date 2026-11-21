@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from 'cn';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -47,6 +48,7 @@ export function RemoveServiceDialog({
   onOpenChangeAction: (open: boolean) => void;
   onRemovedAction: () => void;
 }) {
+  const t = useTranslations('service');
   const others = (service.stackContainers ?? []).filter(
     (name) => name !== service.containerName
   );
@@ -65,10 +67,10 @@ export function RemoveServiceDialog({
     try {
       const result = await removeOneContainer(service.containerId);
       if (result.ok) {
-        toast.success(`Removed ${service.containerName}`);
+        toast.success(t('removed', { name: service.containerName }));
         onRemovedAction();
       } else {
-        toast.error(`Couldn't remove ${service.containerName}`, {
+        toast.error(t('removeFailed', { name: service.containerName }), {
           description: result.error,
         });
       }
@@ -89,11 +91,11 @@ export function RemoveServiceDialog({
         setOutput((lines) => [...(lines ?? []), line])
       );
       if (exitCode === 0) {
-        toast.success(`Removed ${project}`);
+        toast.success(t('removed', { name: project }));
         onRemovedAction();
       } else {
-        toast.error(`Couldn't remove ${project}`, {
-          description: 'See what happened in the window',
+        toast.error(t('removeFailed', { name: project }), {
+          description: t('seeWindow'),
         });
       }
     } finally {
@@ -118,7 +120,9 @@ export function RemoveServiceDialog({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            Remove {scope === 'container' ? service.containerName : project}?
+            {t('removeTitle', {
+              name: scope === 'container' ? service.containerName : project,
+            })}
           </AlertDialogTitle>
           {/* Both in one cell, so picking the other doesn't move what follows */}
           <AlertDialogDescription className='grid'>
@@ -129,8 +133,7 @@ export function RemoveServiceDialog({
                 scope !== 'container' && 'invisible'
               )}
             >
-              Only this container is removed. The rest of {project} keeps
-              running, and compose makes it again on the stack&apos;s next up.
+              {t('removeOne', { project })}
             </span>
             <span
               aria-hidden={scope !== 'stack'}
@@ -139,8 +142,7 @@ export function RemoveServiceDialog({
                 scope !== 'stack' && 'invisible'
               )}
             >
-              Every container in its stack ({stackNames}) is stopped and
-              removed, and its site in Caddy if it has one.
+              {t('removeStack', { names: stackNames })}
             </span>
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -152,10 +154,12 @@ export function RemoveServiceDialog({
             // Picking the shown one again would unpick it; keep one picked
             onValueChange={(v) => v && setPicked(v as Scope)}
             disabled={running}
-            aria-label='What to remove'
+            aria-label={t('whatToRemove')}
           >
-            <ToggleGroupItem value='container'>This container</ToggleGroupItem>
-            <ToggleGroupItem value='stack'>The whole stack</ToggleGroupItem>
+            <ToggleGroupItem value='container'>
+              {t('thisContainer')}
+            </ToggleGroupItem>
+            <ToggleGroupItem value='stack'>{t('wholeStack')}</ToggleGroupItem>
           </ToggleGroup>
         )}
         <div className='flex items-start gap-2'>
@@ -167,12 +171,14 @@ export function RemoveServiceDialog({
             className='mt-0.5'
           />
           <Label htmlFor='remove-files' className='leading-relaxed'>
-            Also delete {folder} and its volumes, with everything it keeps
+            {t('alsoDelete', { folder: folder ?? '' })}
           </Label>
         </div>
         {output && <RunOutput lines={output} />}
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={running}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={running}>
+            {t('cancel')}
+          </AlertDialogCancel>
           <Button
             variant='destructive'
             disabled={running}
@@ -181,10 +187,10 @@ export function RemoveServiceDialog({
             }
           >
             {running
-              ? 'Removing…'
+              ? t('removing')
               : scope === 'stack' && files
-                ? 'Remove and delete'
-                : 'Remove'}
+                ? t('removeAndDelete')
+                : t('remove')}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

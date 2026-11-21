@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
@@ -33,6 +34,7 @@ export function ConsoleInput({
   /** After a command went, so its reply shows */
   onSentAction: () => void;
 }) {
+  const t = useTranslations('service');
   const [command, setCommand] = useState('');
   const [history, setHistory] = useState<string[]>([]);
   // Which of the history is shown, while going through it, and what was
@@ -44,10 +46,10 @@ export function ConsoleInput({
     const sent = command.trim();
     if (!sent || pending) return;
     startTransition(() =>
-      attempt("Couldn't send that", async () => {
+      attempt(t('sendFailed'), async () => {
         const result = await sendToConsole(containerId, sent);
         if (!result.ok) {
-          toast.error("Couldn't send that", { description: result.error });
+          toast.error(t('sendFailed'), { description: result.error });
           return;
         }
         setHistory((old) =>
@@ -79,10 +81,8 @@ export function ConsoleInput({
         <ChevronRightIcon />
       </InputGroupAddon>
       <InputGroupInput
-        aria-label='Command'
-        placeholder={
-          running ? 'Type a command, then Enter' : 'Start it to type commands'
-        }
+        aria-label={t('command')}
+        placeholder={running ? t('typeCommand') : t('startToType')}
         disabled={!running}
         autoComplete='off'
         spellCheck={false}
@@ -104,7 +104,7 @@ export function ConsoleInput({
       <InputGroupAddon align='inline-end'>
         <InputGroupButton
           size='icon-xs'
-          aria-label='Send'
+          aria-label={t('send')}
           disabled={!running || pending || !command.trim()}
           onClick={send}
         >

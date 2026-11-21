@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import useSWR from 'swr';
 
@@ -8,7 +9,7 @@ import { useFormat } from '@/i18n/use-format';
 
 import { fetcher } from '@/lib/fetcher';
 import { MEASURES, type Measure } from '@/lib/format';
-import { HISTORY_RANGES, type HistoryRange } from '@/lib/monitor/ranges';
+import type { HistoryRange } from '@/lib/monitor/ranges';
 import type { HostHistory, HostStats } from '@/lib/types';
 
 import { HistoryChart } from '@/components/charts/history-chart';
@@ -49,13 +50,14 @@ export function HistoryDialog({
   host?: HostStats;
   onCloseAction: () => void;
 }) {
+  const tr = useTranslations('ranges');
   const [range, setRange] = useState<HistoryRange>('24h');
   const { data, error } = useSWR<HostHistory>(
     open ? `/api/history?range=${range}` : null,
     fetcher,
     { refreshInterval: REFRESH_MS, keepPreviousData: true }
   );
-  const words = HISTORY_RANGES[range].words;
+  const words = tr(`words.${range}`);
 
   // In pairs, a row each: the CPU and what's taken from it; how full the
   // memory and disk are; what's waiting, as load counts what waits on the
@@ -185,6 +187,7 @@ function HistoryPanel({
   lines?: Line[];
   words: string;
 }) {
+  const tr = useTranslations('ranges');
   const format = useFormat();
   const first = lines?.[0].values.filter((v) => v !== null) ?? [];
   const summary = !lines
@@ -204,7 +207,7 @@ function HistoryPanel({
       <div className='h-24'>
         {times && lines && (
           <HistoryChart
-            label={`${title} over ${words}`}
+            label={tr('over', { label: title, words })}
             times={times}
             series={lines.map((l) => ({ ...l, measure }))}
             className='h-full text-foreground'

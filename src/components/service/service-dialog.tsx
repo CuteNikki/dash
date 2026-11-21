@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
@@ -28,16 +29,9 @@ import { useFormat } from '@/i18n/use-format';
 import { isRunning, labelOf } from '@/lib/dashboard/status';
 import type { ContainerAction } from '@/lib/docker/docker';
 import { fetcher } from '@/lib/fetcher';
-import {
-  formatAddress,
-  formatDuration,
-  formatPast,
-  formatUptime,
-  MEASURES,
-  type Measure,
-} from '@/lib/format';
+import { formatAddress, MEASURES, type Measure } from '@/lib/format';
 import type { GitStatus } from '@/lib/git';
-import { HISTORY_RANGES, type HistoryRange } from '@/lib/monitor/ranges';
+import type { HistoryRange } from '@/lib/monitor/ranges';
 import { isCaddy } from '@/lib/stacks/caddy';
 import type {
   DetailCell,
@@ -83,12 +77,6 @@ const FilesPanel = dynamic(() =>
 const GitPanel = dynamic(() =>
   import('@/components/git/git-panel').then((m) => m.GitPanel)
 );
-
-const DONE: Record<ContainerAction, string> = {
-  start: 'Started',
-  stop: 'Stopped',
-  restart: 'Restarted',
-};
 
 /** A service's logs, usage and controls, over the dashboard. */
 export function ServiceDialog({
@@ -177,6 +165,9 @@ function ServiceBody({
   tab?: 'logs';
   memoryTotal?: number;
 }) {
+  const tu = useTranslations('updates');
+  const ta = useTranslations('actions');
+  const t = useTranslations('service');
   const [pending, startTransition] = useTransition();
   const [checking, startCheck] = useTransition();
   const [confirmStop, setConfirmStop] = useState(false);
@@ -226,11 +217,12 @@ function ServiceBody({
 
   function run(action: ContainerAction) {
     startTransition(() =>
-      attempt(`Couldn't ${action} ${service.name}`, async () => {
+      attempt(ta('failed', { action, name: service.name }), async () => {
         const result = await runContainerAction(service.containerId, action);
-        if (result.ok) toast.success(`${DONE[action]} ${service.name}`);
+        if (result.ok)
+          toast.success(ta('done', { action, name: service.name }));
         else
-          toast.error(`Couldn't ${action} ${service.name}`, {
+          toast.error(ta('failed', { action, name: service.name }), {
             description: result.error,
           });
         onChanged();
@@ -241,15 +233,15 @@ function ServiceBody({
   /** A website is only its tile: removing it forgets that, with Undo. */
   function removeSite() {
     startTransition(() =>
-      attempt(`Couldn't remove ${service.name}`, async () => {
+      attempt(t('removeFailed', { name: service.name }), async () => {
         const before = await resetTile(service.key);
-        toast.success(`Removed ${service.name}`, {
+        toast.success(t('removed', { name: service.name }), {
           action: before && {
-            label: 'Undo',
+            label: t('undo'),
             onClick: () =>
-              attempt(`Couldn't restore ${service.name}`, async () => {
+              attempt(t('restoreFailed', { name: service.name }), async () => {
                 await restoreTile(before);
-                toast.success(`Restored ${service.name}`);
+                toast.success(t('restored', { name: service.name }));
                 onChanged();
               }),
           },
@@ -262,17 +254,17 @@ function ServiceBody({
   /** Looks for its update now, rather than in a few hours with the rest. */
   function checkForUpdate() {
     startCheck(() =>
-      attempt(`Couldn't look for ${service.name}'s updates`, async () => {
+      attempt(t('checkFailed', { name: service.name }), async () => {
         const result = await checkUpdate(service.containerId);
         if (!result.ok) {
-          toast.error(`Couldn't look for ${service.name}'s updates`, {
+          toast.error(t('checkFailed', { name: service.name }), {
             description: result.error,
           });
         } else if (result.update) {
-          toast.success(`Found an update for ${service.name}`, {
-            description: updateLabel(result.update),
+          toast.success(t('foundUpdate', { name: service.name }), {
+            description: updateLabel(result.update, tu),
           });
-        } else toast.success(`${service.name} is up to date`);
+        } else toast.success(t('upToDate', { name: service.name }));
         onChanged();
       })
     );
@@ -280,11 +272,11 @@ function ServiceBody({
 
   function reloadConfig() {
     startTransition(() =>
-      attempt('Caddy kept its old config', async () => {
+      attempt(t('reloadFailed'), async () => {
         const result = await reloadCaddyConfig(service.containerId);
-        if (result.ok) toast.success('Caddy is using the new Caddyfile');
+        if (result.ok) toast.success(t('reloaded'));
         else
-          toast.error('Caddy kept its old config', {
+          toast.error(t('reloadFailed'), {
             description: result.error,
           });
       })
@@ -331,7 +323,7 @@ function ServiceBody({
               onClick={() => setConfirmStop(true)}
             >
               <SquareIcon />
-              Stop
+              {t('stop')}
             </Button>
           ) : (
             <Button
@@ -340,7 +332,7 @@ function ServiceBody({
               onClick={() => run('start')}
             >
               <PlayIcon />
-              Start
+              {t('start')}
             </Button>
           )}
           {!site && controls && (
@@ -350,24 +342,24 @@ function ServiceBody({
               onClick={() => run('restart')}
             >
               <RotateCwIcon />
-              Restart
+              {t('restart')}
             </Button>
           )}
           {isCaddy(service.image) && manages && (
             <Button
               variant='outline'
               disabled={pending || !running}
-              title='Reads the Caddyfile again without restarting, so no site goes down'
+              title={t('reloadTitle')}
               onClick={reloadConfig}
             >
               <RefreshCwIcon />
-              Reload config
+              {t('reloadConfig')}
             </Button>
           )}
           {manages && (
             <Button variant='outline' onClick={() => onEdit(service)}>
               <PencilIcon />
-              Edit tile
+              {t('editTile')}
             </Button>
           )}
           {/* Until there's one to run, as one found's Update takes its place */}
@@ -379,7 +371,7 @@ function ServiceBody({
               onClick={checkForUpdate}
             >
               <RefreshCwIcon className={cn(checking && 'animate-spin')} />
-              Check for updates
+              {t('checkForUpdates')}
             </Button>
           )}
           {/* New commits rebuild the whole stack, which only they may */}
@@ -393,8 +385,10 @@ function ServiceBody({
                 className='text-update hover:text-update'
               >
                 <ArrowUpCircleIcon />
-                Update
-                <span className='font-mono'>{updateLabel(service.update)}</span>
+                {t('update')}
+                <span className='font-mono'>
+                  {updateLabel(service.update, tu)}
+                </span>
               </Button>
             )}
           {(service.removable || site) && manages && (
@@ -404,14 +398,14 @@ function ServiceBody({
               onClick={() => (site ? removeSite() : setConfirmRemove(true))}
             >
               <Trash2Icon />
-              Remove
+              {t('remove')}
             </Button>
           )}
           {service.url && (
             <Button variant='outline' className='ml-auto' asChild>
               <a href={service.url} target='_blank' rel='noreferrer'>
                 <ExternalLinkIcon />
-                Open
+                {t('open')}
               </a>
             </Button>
           )}
@@ -438,15 +432,15 @@ function ServiceBody({
               tabs' line where there's room for both, else under them */}
           <div className='flex flex-wrap items-center justify-between gap-2'>
             <TabsList>
-              <TabsTrigger value='usage'>Usage</TabsTrigger>
+              <TabsTrigger value='usage'>{t('usage')}</TabsTrigger>
               <TabsTrigger value='logs'>
-                {service.console && manages ? 'Console' : 'Logs'}
+                {service.console && manages ? t('console') : t('logs')}
               </TabsTrigger>
               {service.stack && manages && (
-                <TabsTrigger value='files'>Files</TabsTrigger>
+                <TabsTrigger value='files'>{t('files')}</TabsTrigger>
               )}
               {service.browse && manages && (
-                <TabsTrigger value='browse'>Browse</TabsTrigger>
+                <TabsTrigger value='browse'>{t('browse')}</TabsTrigger>
               )}
               {git ? (
                 <TabsTrigger value='git'>
@@ -577,11 +571,6 @@ type UsageRange = 'live' | HistoryRange;
 
 const USAGE_RANGES = ['live', '6h', '24h', '7d'] as const;
 
-const LIVE_WORDS = 'the last ten minutes';
-
-const rangeWords = (range: UsageRange) =>
-  range === 'live' ? LIVE_WORDS : HISTORY_RANGES[range].words;
-
 /** One measure as a card: its current value, and a chart of it over a while. */
 function UsageChart({
   label,
@@ -590,7 +579,7 @@ function UsageChart({
   times,
   measure,
   measuring,
-  words = LIVE_WORDS,
+  range = 'live',
 }: {
   label: string;
   value?: number;
@@ -599,9 +588,11 @@ function UsageChart({
   measure: Measure;
   /** Running, but not measured yet: its value's to come */
   measuring: boolean;
-  /** What the chart covers: "the last day" */
-  words?: string;
+  /** How far back the chart looks */
+  range?: UsageRange;
 }) {
+  const tr = useTranslations('ranges');
+  const words = tr(`words.${range}`);
   const format = useFormat();
   return (
     <Panel title={label}>
@@ -615,15 +606,13 @@ function UsageChart({
             '–'
           )}
         </span>
-        <span className='text-muted-foreground'>
-          {words.replace(/^the /, '')}
-        </span>
+        <span className='text-muted-foreground'>{tr(`short.${range}`)}</span>
       </span>
       {/* The chart's room, kept until there are readings to draw */}
       <div className='h-16'>
         {values && times && (
           <HistoryChart
-            label={`${label} over ${words}`}
+            label={tr('over', { label, words })}
             times={times}
             series={[{ label, values, measure }]}
             className='h-full text-foreground'
@@ -643,6 +632,7 @@ const SITE_RANGES = ['live', '24h', '7d', '30d'] as const;
  * of the range up or down, and the times it was down.
  */
 function SitePanel({ service }: { service: Service }) {
+  const t = useTranslations('service');
   const check = service.site?.check;
   const [range, setRange] = useState<UsageRange>('live');
   // The month's uptime comes with every range, so it's asked for at once
@@ -652,18 +642,14 @@ function SitePanel({ service }: { service: Service }) {
     { refreshInterval: 60_000, keepPreviousData: true }
   );
   const recorded = range === 'live' ? undefined : uptime?.history;
-  const words = rangeWords(range);
   const facts: { label: string; value: DetailCell }[] = [
-    { label: 'Status', value: service.status },
+    { label: t('status'), value: service.status },
     {
-      label: 'Address',
-      value: service.url ? formatAddress(service.url) : 'None to check',
+      label: t('address'),
+      value: service.url ? formatAddress(service.url) : t('noneToCheck'),
     },
-    ...(check ? [{ label: 'Last checked', value: { at: check.at } }] : []),
-    {
-      label: 'Checked',
-      value: 'Every minute, every 30 s while open',
-    },
+    ...(check ? [{ label: t('lastChecked'), value: { at: check.at } }] : []),
+    { label: t('checked'), value: t('checkedEvery') },
   ];
   return (
     <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
@@ -675,18 +661,18 @@ function SitePanel({ service }: { service: Service }) {
         />
       </div>
       <UsageChart
-        label='Response time'
+        label={t('responseTime')}
         value={check?.ms}
         values={range === 'live' ? check?.history.ms : recorded?.ms}
         times={range === 'live' ? check?.history.at : recorded?.at}
         measure={MEASURES.response}
         measuring={!check && !!service.url}
-        words={words}
+        range={range}
       />
-      <Panel title='Website'>
+      <Panel title={t('website')}>
         <Facts facts={facts} />
       </Panel>
-      <Panel title='Uptime' className='sm:col-span-2'>
+      <Panel title={t('uptime')} className='sm:col-span-2'>
         {error && !uptime ? (
           <p className='text-destructive'>{error.message}</p>
         ) : (
@@ -709,19 +695,6 @@ function SitePanel({ service }: { service: Service }) {
 
 type UptimeRange = SiteUptime['shares'][number]['range'];
 
-const SHARE_WORDS: Record<UptimeRange, string> = {
-  '24h': 'Last day',
-  '7d': 'Last week',
-  '30d': 'Last month',
-};
-
-/** Where the strip starts, under its left end. */
-const STRIP_START: Record<UptimeRange, string> = {
-  '24h': 'A day ago',
-  '7d': 'A week ago',
-  '30d': 'A month ago',
-};
-
 /** The shares answered, a strip of the range's stretches, and the outages. */
 function SiteUptimeView({
   uptime,
@@ -730,13 +703,16 @@ function SiteUptimeView({
   uptime?: SiteUptime;
   range: UptimeRange;
 }) {
+  const tr = useTranslations('ranges');
+  const format = useFormat();
+  const t = useTranslations('service');
   const strip = uptime?.history;
   return (
     <div className='flex flex-col gap-4'>
       <dl className='grid grid-cols-3 gap-3'>
         {(uptime?.shares ?? SHARE_SKELETONS).map((s) => (
           <div key={s.range} className='flex flex-col'>
-            <dt className='text-muted-foreground'>{SHARE_WORDS[s.range]}</dt>
+            <dt className='text-muted-foreground'>{t(`share.${s.range}`)}</dt>
             <dd
               className={cn(
                 'font-mono text-lg tabular-nums',
@@ -749,7 +725,7 @@ function SiteUptimeView({
               ) : s.up === null ? (
                 '–'
               ) : (
-                formatUptime(s.up)
+                format.uptime(s.up)
               )}
             </dd>
           </div>
@@ -760,7 +736,7 @@ function SiteUptimeView({
             amber when some didn't, red when none did, and faint without any */}
         <div
           role='img'
-          aria-label={`Up and down over ${HISTORY_RANGES[range].words}`}
+          aria-label={t('upAndDown', { words: tr(`words.${range}`) })}
           // Side by side, no gap, as a month is hundreds of them
           className='flex h-6 overflow-hidden rounded-sm'
         >
@@ -769,8 +745,8 @@ function SiteUptimeView({
               key={strip.at[i]}
               title={
                 up === null
-                  ? 'Not checked'
-                  : `${formatPast(strip.at[i])}: ${formatUptime(up)}`
+                  ? t('notChecked')
+                  : `${format.past(strip.at[i])}: ${format.uptime(up)}`
               }
               className={cn(
                 'flex-1',
@@ -786,12 +762,12 @@ function SiteUptimeView({
           ))}
         </div>
         <span className='flex justify-between text-muted-foreground'>
-          <span>{STRIP_START[range]}</span>
-          <span>Now</span>
+          <span>{t(`stripStart.${range}`)}</span>
+          <span>{t('now')}</span>
         </span>
       </div>
       <div className='flex flex-col gap-2'>
-        <h4 className='text-muted-foreground'>Outages in the last month</h4>
+        <h4 className='text-muted-foreground'>{t('outages')}</h4>
         {!uptime ? (
           <TextSkeleton className='w-48' />
         ) : uptime.outages.length ? (
@@ -802,7 +778,7 @@ function SiteUptimeView({
                 className='flex flex-wrap items-baseline gap-x-3 py-1.5 first:pt-0 last:pb-0'
               >
                 <span className='font-mono tabular-nums'>
-                  {formatPast(o.from)}
+                  {format.past(o.from)}
                 </span>
                 <span
                   className={cn(
@@ -811,8 +787,10 @@ function SiteUptimeView({
                   )}
                 >
                   {o.to
-                    ? `for ${formatDuration((o.to - o.from) / 1000)}`
-                    : 'still down'}
+                    ? t('downFor', {
+                        duration: format.duration((o.to - o.from) / 1000),
+                      })
+                    : t('stillDown')}
                 </span>
                 <span className='min-w-0 truncate text-muted-foreground'>
                   {o.reason}
@@ -821,7 +799,7 @@ function SiteUptimeView({
             ))}
           </ul>
         ) : (
-          <p className='text-muted-foreground'>None</p>
+          <p className='text-muted-foreground'>{t('noOutages')}</p>
         )}
       </div>
     </div>
@@ -849,6 +827,8 @@ function UsagePanel({
   /** How far back its charts look, as picked beside the tabs */
   range: UsageRange;
 }) {
+  const tu = useTranslations('updates');
+  const t = useTranslations('service');
   const usage = service.usage;
   const { data: history } = useSWR<ServiceHistory>(
     range === 'live'
@@ -858,47 +838,48 @@ function UsagePanel({
     { refreshInterval: 60_000, keepPreviousData: true }
   );
   const recorded = range === 'live' ? undefined : history;
-  const words = rangeWords(range);
   // A running one that hasn't been measured yet, as just after it starts
   const measuring =
     !usage && ['running', 'unhealthy', 'starting'].includes(service.state);
   const app = service.details && isRunning(service.state);
   const facts = [
-    { label: 'Status', value: service.status },
-    { label: 'Image', value: service.image },
-    { label: 'Container', value: service.containerName },
+    { label: t('status'), value: service.status },
+    { label: t('image'), value: service.image },
+    { label: t('container'), value: service.containerName },
     {
-      label: 'Stack',
-      value: service.stack?.dir ?? 'Not part of a compose stack',
+      label: t('stack'),
+      value: service.stack?.dir ?? t('noStack'),
     },
-    ...(service.version ? [{ label: 'Version', value: service.version }] : []),
+    ...(service.version
+      ? [{ label: t('version'), value: service.version }]
+      : []),
     {
-      label: 'Updates',
+      label: t('updates'),
       value: service.update
-        ? `${updateLabel(service.update)} available`
+        ? t('updateAvailable', { label: updateLabel(service.update, tu) })
         : service.updateError
-          ? `Couldn't check: ${service.updateError}`
-          : 'None found',
+          ? t('couldntCheck', { error: service.updateError })
+          : t('noneFound'),
     },
   ];
   return (
     // Columns no wider than the window, whatever's in them
     <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
       <UsageChart
-        label='CPU'
+        label={t('cpu')}
         value={usage?.cpu}
         values={range === 'live' ? usage?.history.cpu : recorded?.cpu}
         times={range === 'live' ? usage?.history.at : recorded?.at}
         measure={MEASURES.cpu}
         measuring={measuring}
-        words={words}
+        range={range}
       />
       <UsageChart
-        label='Memory'
+        label={t('memory')}
         value={usage?.memory}
         values={range === 'live' ? usage?.history.memory : recorded?.memory}
         times={range === 'live' ? usage?.history.at : recorded?.at}
-        words={words}
+        range={range}
         // Against the server's memory, so a steady amount sits as low as
         // its share is, rather than at the top of a scale it alone sets,
         // and a leak shows as a climb
@@ -913,13 +894,13 @@ function UsagePanel({
           their own, as a list of them needs no more */}
       <div className='grid grid-cols-1 gap-3 sm:col-span-2 lg:grid-cols-[minmax(0,1fr)_20rem]'>
         <Panel
-          title='Container'
+          title={t('container')}
           className={cn(!service.ports?.length && 'lg:col-span-2')}
         >
           <Facts facts={facts} />
         </Panel>
         {service.ports && service.ports.length > 0 && (
-          <Panel title='Ports'>
+          <Panel title={t('ports')}>
             <PortList service={service} />
           </Panel>
         )}

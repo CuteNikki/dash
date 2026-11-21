@@ -1,3 +1,7 @@
+'use client';
+
+import { useTranslations } from 'next-intl';
+
 import { ArrowUpCircleIcon, ArrowUpIcon } from 'lucide-react';
 
 import type { ServiceUpdate } from '@/lib/types';
@@ -19,7 +23,8 @@ export function UpdateBadge({
   corner?: boolean;
   className?: string;
 }) {
-  const label = `Update: ${updateLabel(update)}`;
+  const t = useTranslations('updates');
+  const label = t('badge', { label: updateLabel(update, t) });
   if (corner) {
     return (
       <span

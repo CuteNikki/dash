@@ -1,3 +1,5 @@
+import { getTranslations } from 'next-intl/server';
+
 import { recordRun } from '@/lib/activity/record';
 import { AccessError, refusal, serviceForRoute } from '@/lib/auth/access';
 import { can } from '@/lib/auth/roles';
@@ -22,10 +24,12 @@ export async function POST(
   if (update?.kind === 'commits' && !can(access.role, 'manage')) {
     return refusal(new AccessError(403));
   }
+  // Kept in the activity log as it was, in English, whoever reads it later
+  const t = await getTranslations({ locale: 'en', namespace: 'updates' });
   const by = {
     who: { user: { id: access.user.id, name: access.user.name } },
     target: container.name,
-    detail: update && updateLabel(update),
+    detail: update && updateLabel(update, t),
   };
   const began = Date.now();
   const { target, detail } = by;

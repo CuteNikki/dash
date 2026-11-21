@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { CopyIcon } from 'lucide-react';
 
 import { splitAddress } from '@/lib/format';
@@ -28,11 +30,12 @@ function hostFor(service: Service) {
  * for a well-known one, what it's for; each to copy as host:port.
  */
 export function PortList({ service }: { service: Service }) {
+  const t = useTranslations('service');
   const host = hostFor(service);
 
   function copy(port: number) {
     const address = `${host}:${port}`;
-    return copyText(address, `Copied ${address}`);
+    return copyText(address, t('copied', { text: address }));
   }
 
   return (
@@ -51,8 +54,8 @@ export function PortList({ service }: { service: Service }) {
           <Button
             variant='outline'
             size='icon-xs'
-            aria-label={`Copy ${host}:${port}`}
-            title={`Copy ${host}:${port}`}
+            aria-label={t('copyThis', { text: `${host}:${port}` })}
+            title={t('copyThis', { text: `${host}:${port}` })}
             onClick={() => copy(port)}
           >
             {/* A size up from the button's own, to be made out at a glance */}

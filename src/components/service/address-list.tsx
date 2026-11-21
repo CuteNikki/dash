@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { CopyIcon, ExternalLinkIcon } from 'lucide-react';
 
 import { formatAddress, isLink, splitAddress } from '@/lib/format';
@@ -15,10 +17,11 @@ import {
 
 /** A service's addresses, each to copy, and links to open as well. */
 export function AddressList({ addresses }: { addresses: string[] }) {
+  const t = useTranslations('service');
   // The address alone, without what it's for
   function copy(entry: string) {
     const { address } = splitAddress(entry);
-    return copyText(address, `Copied ${formatAddress(address)}`);
+    return copyText(address, t('copied', { text: formatAddress(address) }));
   }
 
   return (
@@ -33,13 +36,13 @@ export function AddressList({ addresses }: { addresses: string[] }) {
               <Button
                 variant='outline'
                 size='icon-sm'
-                aria-label={`Copy ${address}`}
+                aria-label={t('copyThis', { text: address })}
                 onClick={() => copy(address)}
               >
                 <CopyIcon />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Copy</TooltipContent>
+            <TooltipContent>{t('copy')}</TooltipContent>
           </Tooltip>
           {isLink(address) && (
             <Tooltip>
@@ -49,13 +52,13 @@ export function AddressList({ addresses }: { addresses: string[] }) {
                     href={splitAddress(address).address}
                     target='_blank'
                     rel='noreferrer'
-                    aria-label={`Open ${address}`}
+                    aria-label={t('openThis', { text: address })}
                   >
                     <ExternalLinkIcon />
                   </a>
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Open</TooltipContent>
+              <TooltipContent>{t('open')}</TooltipContent>
             </Tooltip>
           )}
         </li>

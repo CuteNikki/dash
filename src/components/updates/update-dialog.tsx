@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -9,6 +10,7 @@ import { readRunStream } from '@/lib/docker/read-run-stream';
 import { DASH_PROJECT } from '@/lib/site';
 import type { Service } from '@/lib/types';
 import { releasesUrl, updateDescription } from '@/lib/updates/describe';
+import type { UpdatesTranslator } from '@/lib/updates/describe';
 
 import { RunOutput } from '@/components/common/run-output';
 import {
@@ -41,6 +43,7 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export async function runUpdate(
   service: Service,
   onLine: (line: string) => void,
+  t: UpdatesTranslator,
   { first, onRestart }: { first?: Response; onRestart?: () => void } = {}
 ) {
   const url = `/api/containers/${service.containerId}/update`;
@@ -49,16 +52,12 @@ export async function runUpdate(
   if (service.stack?.project !== DASH_PROJECT) return exit;
   const giveUp = Date.now() + RECONNECT_MS;
   while (exit === undefined) {
-    onLine(
-      '— Lost the connection, as the dashboard restarting does. Following the rebuild again once it is back…'
-    );
+    onLine(t('lostConnection'));
     let again: Response | undefined;
     // Not back while there's no answer, or only the proxy's in front of it
     while (!again || again.status >= 500) {
       if (Date.now() > giveUp) {
-        onLine(
-          '— Still no answer from dash. The rebuild carries on on the server; open Updates again to follow it.'
-        );
+        onLine(t('noAnswer'));
         return 1;
       }
       await wait(RETRY_MS);
@@ -90,6 +89,7 @@ export function UpdateDialog({
   onOpenChangeAction: (open: boolean) => void;
   onUpdatedAction: () => void;
 }) {
+  const t = useTranslations('updates');
   const [running, setRunning] = useState(false);
   const [output, setOutput] = useState<string[]>();
   const [outcome, setOutcome] = useState<Outcome>();
@@ -118,16 +118,17 @@ export function UpdateDialog({
       const exitCode = await runUpdate(
         shown,
         (line) => setOutput((lines) => [...(lines ?? []), line]),
+        t,
         { onRestart: () => setOutput([]) }
       ).catch(() => 1);
       if (exitCode === 0) {
         setOutcome('done');
-        toast.success(`Updated ${shown.name}`);
+        toast.success(t('updated', { name: shown.name }));
         onUpdatedAction();
       } else {
         setOutcome('failed');
-        toast.error(`Couldn't update ${shown.name}`, {
-          description: 'See what happened in the window',
+        toast.error(t('updateFailed', { name: shown.name }), {
+          description: t('seeWindow'),
         });
       }
     } finally {
@@ -145,20 +146,17 @@ export function UpdateDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>
             {outcome === 'done'
-              ? `Updated ${shown.name}`
+              ? t('updated', { name: shown.name })
               : outcome === 'failed'
-                ? `Couldn't update ${shown.name}`
-                : `Update ${shown.name}?`}
+                ? t('updateFailed', { name: shown.name })
+                : t('updateTitle', { name: shown.name })}
           </AlertDialogTitle>
           <AlertDialogDescription>
-            {updateDescription(update, shown.name)}
+            {updateDescription(update, shown.name, t)}
           </AlertDialogDescription>
         </AlertDialogHeader>
         {update.kind === 'version' && update.major && (
-          <p className='text-xs/relaxed text-warning'>
-            A new major version, which can change how it works or need its data
-            migrated: check what's new first.
-          </p>
+          <p className='text-xs/relaxed text-warning'>{t('majorWarning')}</p>
         )}
         {notes && (
           <a
@@ -168,21 +166,21 @@ export function UpdateDialog({
             className='inline-flex w-fit items-center gap-1.5 text-xs/relaxed font-medium underline-offset-4 hover:underline'
           >
             <ExternalLinkIcon className='size-3.5' />
-            What's new
+            {t('whatsNew')}
           </a>
         )}
         {output && <RunOutput lines={output} />}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={running}>
-            {outcome ? 'Close' : 'Cancel'}
+            {outcome ? t('close') : t('cancel')}
           </AlertDialogCancel>
           {outcome !== 'done' && (
             <Button disabled={running} onClick={() => void start()}>
               {running
-                ? 'Updating…'
+                ? t('updating')
                 : outcome === 'failed'
-                  ? 'Try again'
-                  : 'Update'}
+                  ? t('tryAgain')
+                  : t('update')}
             </Button>
           )}
         </AlertDialogFooter>

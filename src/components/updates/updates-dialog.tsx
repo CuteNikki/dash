@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import {
   useEffect,
   useEffectEvent,
@@ -13,10 +14,12 @@ import { CheckIcon, RefreshCwIcon, XIcon } from 'lucide-react';
 
 import { checkUpdates } from '@/actions/containers';
 
-import { formatAgo } from '@/lib/format';
+import { useFormat } from '@/i18n/use-format';
+
 import { DASH_PROJECT } from '@/lib/site';
 import type { Service } from '@/lib/types';
 import { updateLabel } from '@/lib/updates/describe';
+import type { UpdatesTranslator } from '@/lib/updates/describe';
 import { cn } from '@/lib/utils';
 
 import { useCan } from '@/components/common/role';
@@ -48,7 +51,7 @@ type Outcome = 'running' | 'done' | 'failed';
  * One row for each update: a service's own, or a stack's, for those built
  * here, whose one rebuild updates all its services.
  */
-function rowsOf(services: Service[]): Row[] {
+function rowsOf(services: Service[], t: UpdatesTranslator): Row[] {
   const rows = new Map<string, Row>();
   for (const service of services) {
     const update = service.update;
@@ -65,8 +68,11 @@ function rowsOf(services: Service[]): Row[] {
         service,
         name: service.name,
         what: update.behind
-          ? `${updateLabel(update)} on ${update.upstream}`
-          : `${update.upstream} pulled, rebuild failed`,
+          ? t('onUpstream', {
+              label: updateLabel(update, t),
+              upstream: update.upstream,
+            })
+          : t('pulledRebuildFailed', { upstream: update.upstream }),
         major: false,
       });
       continue;
@@ -77,12 +83,15 @@ function rowsOf(services: Service[]): Row[] {
       name: service.name,
       what:
         update.kind === 'version'
-          ? `${update.from} → ${update.to}`
+          ? t('fromTo', { from: update.from, to: update.to })
           : update.kind === 'image' && update.rebuilt
-            ? `${update.to}, rebuilt`
+            ? t('rebuiltRow', { to: update.to ?? update.tag })
             : update.kind === 'image' && service.version
-              ? `${service.version} → ${update.to ?? `newer ${update.tag}`}`
-              : updateLabel(update),
+              ? t('fromTo', {
+                  from: service.version,
+                  to: update.to ?? t('newer', { tag: update.tag }),
+                })
+              : updateLabel(update, t),
       major: update.kind === 'version' && update.major,
     });
   }
@@ -124,13 +133,17 @@ export function UpdatesDialog({
   onCloseAction: () => void;
   onChangedAction: () => void;
 }) {
+  const format = useFormat();
+  const t = useTranslations('updates');
   // The rows as the window opened, so one stays, done, once it's updated
   const [rows, setRows] = useState<Row[]>([]);
   // New commits rebuild a whole stack, which only those who may change its
   // files can; the rest see what they can update
   const manages = useCan()('manage');
   const updatable = (list: Service[]) =>
-    rowsOf(list).filter((r) => r.service.update?.kind !== 'commits' || manages);
+    rowsOf(list, t).filter(
+      (r) => r.service.update?.kind !== 'commits' || manages
+    );
   const [outcomes, setOutcomes] = useState<Record<string, Outcome>>({});
   // What each row's update printed, by its key, and whose is shown
   const [outputs, setOutputs] = useState<Record<string, string[]>>({});
@@ -184,13 +197,14 @@ export function UpdatesDialog({
       const exitCode = await runUpdate(
         row.service,
         (line) => show([...lines, line]),
+        t,
         { first: followed, onRestart: () => show([]) }
       ).catch(() => 1);
       const ok = exitCode === 0;
       setOutcomes((o) => ({ ...o, [row.key]: ok ? 'done' : 'failed' }));
       onChangedAction();
       if (!ok) {
-        toast.error(`Couldn't update ${row.name}`);
+        toast.error(t('updateFailed', { name: row.name }));
         setShown(row.key);
       }
       return ok;
@@ -245,7 +259,7 @@ export function UpdatesDialog({
       key: `stack:${DASH_PROJECT}`,
       service: dash,
       name: dash.name,
-      what: 'Rebuilding',
+      what: t('rebuilding'),
       major: false,
     };
     // Once it answers, as following it is waiting on the server
@@ -266,7 +280,7 @@ export function UpdatesDialog({
     startCheck(async () => {
       const result = await checkUpdates();
       if (!result.ok) {
-        toast.error("Couldn't look for updates", { description: result.error });
+        toast.error(t('lookFailed'), { description: result.error });
       }
       onChangedAction();
     });
@@ -288,13 +302,13 @@ export function UpdatesDialog({
     <Dialog open={open} onOpenChange={(o) => !o && !running && onCloseAction()}>
       <DialogContent className='flex flex-col sm:max-w-xl'>
         <DialogHeader>
-          <DialogTitle>Updates</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription>
             {checking || checkPending
-              ? 'Looking for updates…'
+              ? t('looking')
               : checkedAt
-                ? `Looked ${formatAgo(checkedAt)}, and again every few hours while the dashboard is open.`
-                : 'Not looked for yet.'}
+                ? t('looked', { ago: format.ago(checkedAt) })
+                : t('notLooked')}
           </DialogDescription>
         </DialogHeader>
 
@@ -333,7 +347,7 @@ export function UpdatesDialog({
                     {row.what}
                     {row.major && (
                       <span className='ml-2 font-sans text-warning'>
-                        major version
+                        {t('majorVersion')}
                       </span>
                     )}
                   </span>
@@ -347,12 +361,12 @@ export function UpdatesDialog({
             ))}
           </ul>
         ) : (
-          <p className='text-muted-foreground'>Everything's up to date.</p>
+          <p className='text-muted-foreground'>{t('allUpToDate')}</p>
         )}
 
         {failedChecks.length > 0 && (
           <div className='flex flex-col gap-1 text-muted-foreground'>
-            <span>Couldn't check:</span>
+            <span>{t('couldntCheck')}</span>
             {failedChecks.map((s) => (
               <span key={s.key} className='truncate'>
                 {s.name}: {s.updateError}
@@ -365,11 +379,10 @@ export function UpdatesDialog({
 
         {failed && (
           <p className='text-destructive'>
-            {failed.names.join(', ')} didn't update;{' '}
-            {failed.names.length > 1
-              ? "pick one's row to see its output"
-              : 'its output is above'}
-            . Go on with the rest?
+            {t('didntUpdate', {
+              names: failed.names.join(', '),
+              count: failed.names.length,
+            })}
           </p>
         )}
 
@@ -381,11 +394,9 @@ export function UpdatesDialog({
                 onClick={() => failed.resolve(false)}
                 className='sm:mr-auto'
               >
-                Stop here
+                {t('stopHere')}
               </Button>
-              <Button onClick={() => failed.resolve(true)}>
-                Go on with the rest
-              </Button>
+              <Button onClick={() => failed.resolve(true)}>{t('goOn')}</Button>
             </>
           ) : (
             <>
@@ -396,13 +407,13 @@ export function UpdatesDialog({
                 className='sm:mr-auto'
               >
                 <RefreshCwIcon className={checkPending ? 'animate-spin' : ''} />
-                Check now
+                {t('checkNow')}
               </Button>
               {all.length > 0 && (
                 <Button disabled={running} onClick={() => void update(all)}>
                   {running
-                    ? 'Updating…'
-                    : `Update all${all.length > 1 ? ` ${all.length}` : ''}`}
+                    ? t('updating')
+                    : t('updateAll', { count: all.length })}
                 </Button>
               )}
             </>
@@ -422,15 +433,20 @@ function RowAction({
   disabled: boolean;
   onUpdate: () => void;
 }) {
+  const t = useTranslations('updates');
   if (outcome === 'done') {
-    return <CheckIcon aria-label='Updated' className='size-4 text-success' />;
+    return (
+      <CheckIcon aria-label={t('rowUpdated')} className='size-4 text-success' />
+    );
   }
   if (outcome === 'failed') {
-    return <XIcon aria-label='Failed' className='size-4 text-destructive' />;
+    return (
+      <XIcon aria-label={t('rowFailed')} className='size-4 text-destructive' />
+    );
   }
   return (
     <Button variant='outline' size='sm' disabled={disabled} onClick={onUpdate}>
-      {outcome === 'running' ? 'Updating…' : 'Update'}
+      {outcome === 'running' ? t('updating') : t('update')}
     </Button>
   );
 }

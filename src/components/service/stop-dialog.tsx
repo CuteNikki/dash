@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,20 +25,22 @@ export function StopDialog({
   onOpenChangeAction: (open: boolean) => void;
   onStopAction: () => void;
 }) {
+  const t = useTranslations('service');
   return (
     <AlertDialog open={open} onOpenChange={onOpenChangeAction}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Stop {name}?</AlertDialogTitle>
+          <AlertDialogTitle>
+            {t('stopTitle', { name: name ?? '' })}
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            It stays stopped until you start it again, including after the
-            server restarts.
+            {t('stopDescription')}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
           <AlertDialogAction variant='destructive' onClick={onStopAction}>
-            Stop
+            {t('stop')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
