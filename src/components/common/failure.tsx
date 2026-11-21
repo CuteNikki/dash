@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useLayoutEffect, useRef, useState } from 'react';
 
 import { XCircleIcon } from 'lucide-react';
@@ -12,6 +13,7 @@ import { cn } from '@/lib/utils';
  * clicked.
  */
 export function Failure({ children }: { children: string }) {
+  const t = useTranslations('common');
   const ref = useRef<HTMLSpanElement>(null);
   const [open, setOpen] = useState(false);
   const [cut, setCut] = useState(false);
@@ -49,7 +51,7 @@ export function Failure({ children }: { children: string }) {
             onClick={() => setOpen(!open)}
             className='text-muted-foreground hover:text-foreground'
           >
-            {open ? 'Show less' : 'Show all'}
+            {open ? t('showLess') : t('showAll')}
           </button>
         )}
       </span>

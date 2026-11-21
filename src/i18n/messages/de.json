@@ -1361,5 +1361,34 @@
       "homebox": "Inventar für zu Hause",
       "drawio": "Diagramme"
     }
+  },
+  "toasts": {
+    "noAnswer": "Das Dashboard hat nicht geantwortet; versuche es gleich noch einmal",
+    "copyFailed": "Konnte nicht kopieren; markiere es stattdessen"
+  },
+  "common": {
+    "close": "Schließen",
+    "showLess": "Weniger zeigen",
+    "showAll": "Alles zeigen",
+    "starting": "Wird gestartet…",
+    "loading": "Wird geladen",
+    "noReading": "Kein Messwert"
+  },
+  "logBox": {
+    "filter": "Filtern",
+    "filterWhat": "{what, select, logs {Logs filtern} other {Ausgabe filtern}}",
+    "wrap": "Umbrechen",
+    "follow": "Folgen",
+    "copyWhat": "{what, select, logs {Logs kopieren} other {Ausgabe kopieren}}",
+    "copy": "Kopieren",
+    "copiedLines": "{count, plural, one {Zeile kopiert} other {# Zeilen kopiert}}",
+    "today": "Heute",
+    "yesterday": "Gestern",
+    "foldLine": "Zeile einklappen",
+    "showLine": "Ganze Zeile zeigen",
+    "foldName": "{name} einklappen",
+    "openName": "{name} aufklappen",
+    "foldIt": "Einklappen",
+    "openIt": "Aufklappen"
   }
 }

@@ -1,3 +1,5 @@
+import { useTranslations } from 'next-intl';
+
 import { cn } from '@/lib/utils';
 
 /** Line lengths that read like text, repeated as needed: never all alike. */
@@ -49,11 +51,12 @@ export function CodeSkeleton({
   lines?: number;
   className?: string;
 }) {
+  const t = useTranslations('common');
   return (
     <div
       aria-busy
       role='status'
-      aria-label='Loading'
+      aria-label={t('loading')}
       className={cn('flex h-full flex-col rounded-lg bg-muted p-3', className)}
     >
       {Array.from({ length: lines }, (_, i) => (

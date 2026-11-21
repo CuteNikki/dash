@@ -1361,5 +1361,34 @@
       "homebox": "Home inventory",
       "drawio": "Diagrams"
     }
+  },
+  "toasts": {
+    "noAnswer": "dash didn't answer; try again in a moment",
+    "copyFailed": "Couldn't copy; select it instead"
+  },
+  "common": {
+    "close": "Close",
+    "showLess": "Show less",
+    "showAll": "Show all",
+    "starting": "Starting…",
+    "loading": "Loading",
+    "noReading": "No reading"
+  },
+  "logBox": {
+    "filter": "Filter",
+    "filterWhat": "{what, select, logs {Filter the logs} other {Filter the output}}",
+    "wrap": "Wrap",
+    "follow": "Follow",
+    "copyWhat": "{what, select, logs {Copy the logs} other {Copy the output}}",
+    "copy": "Copy",
+    "copiedLines": "{count, plural, one {Copied the line} other {Copied # lines}}",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "foldLine": "Fold the line",
+    "showLine": "Show the whole line",
+    "foldName": "Fold {name}",
+    "openName": "Open {name}",
+    "foldIt": "Fold it",
+    "openIt": "Open it"
   }
 }

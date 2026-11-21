@@ -12,6 +12,8 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 
 import './globals.css';
 
+import { ToastWords } from '@/components/common/toast-words';
+
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
 const jetbrainsMono = JetBrains_Mono({
   variable: '--font-jetbrains-mono',
@@ -81,6 +83,7 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
           disableTransitionOnChange
         >
           <NextIntlClientProvider>
+            <ToastWords />
             <TooltipProvider>
               {children}
               <Toaster />

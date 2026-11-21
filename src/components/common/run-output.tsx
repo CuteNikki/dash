@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
 import { parseLogLine } from '@/lib/log-lines';
@@ -13,11 +14,12 @@ import { LogBox } from '@/components/common/log-box';
  */
 export function RunOutput({
   lines,
-  placeholder = 'Starting…',
+  placeholder,
 }: {
   lines: string[];
   placeholder?: string;
 }) {
+  const t = useTranslations('common');
   // Again as lines come in, which is cheap for the few hundred a job prints
   const parsed = useMemo(
     () => lines.map((line, i) => parseLogLine(i, line)),
@@ -29,7 +31,9 @@ export function RunOutput({
       label='output'
       className='shrink-0'
       boxClassName='h-60 flex-none'
-      empty={<p className='text-muted-foreground'>{placeholder}</p>}
+      empty={
+        <p className='text-muted-foreground'>{placeholder ?? t('starting')}</p>
+      }
     />
   );
 }

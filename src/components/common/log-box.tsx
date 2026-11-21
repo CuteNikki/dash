@@ -1,5 +1,6 @@
 'use client';
 
+import { useLocale, useTranslations } from 'next-intl';
 import {
   Fragment,
   useEffect,
@@ -67,8 +68,8 @@ export function LogBox({
   lines: LogLine[];
   /** What shows before there are lines: a placeholder, a skeleton, an error */
   empty: React.ReactNode;
-  /** What the lines are, for the filter's label: "logs", "output" */
-  label: string;
+  /** What the lines are, for the filter's label: a container's logs, or a job's output */
+  label: 'logs' | 'output';
   /** Following the newest line, for a parent that also sets it */
   follow?: boolean;
   onFollowChangeAction?: (follow: boolean) => void;
@@ -77,6 +78,8 @@ export function LogBox({
   /** The box's own, such as its height in a window */
   boxClassName?: string;
 }) {
+  const locale = useLocale();
+  const t = useTranslations('logBox');
   const [filter, setFilter] = useState('');
   const [ownFollow, setOwnFollow] = useState(true);
   const follow = followProp ?? ownFollow;
@@ -204,8 +207,8 @@ export function LogBox({
             <SearchIcon />
           </InputGroupAddon>
           <InputGroupInput
-            placeholder='Filter'
-            aria-label={`Filter ${label}`}
+            placeholder={t('filter')}
+            aria-label={t('filterWhat', { what: label })}
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           />
@@ -217,7 +220,7 @@ export function LogBox({
           onClick={() => setWrap(!wrap)}
         >
           <WrapTextIcon />
-          Wrap
+          {t('wrap')}
         </Button>
         <Button
           type='button'
@@ -226,7 +229,7 @@ export function LogBox({
           onClick={() => setFollow(!follow)}
         >
           <ListEndIcon />
-          Follow
+          {t('follow')}
         </Button>
       </div>
       {/* The box clips the fades to its rounded corners */}
@@ -249,16 +252,14 @@ export function LogBox({
             type='button'
             variant='outline'
             size='icon-sm'
-            aria-label={`Copy the ${label}`}
-            title='Copy'
+            aria-label={t('copyWhat', { what: label })}
+            title={t('copy')}
             style={{ right: `calc(0.5lh + ${pinnedEdge.bar}px)` }}
             className='absolute top-[0.5lh] z-20 opacity-0 transition-opacity group-hover/log:opacity-100 focus-visible:opacity-100 dark:bg-muted'
             onClick={() =>
               void copyText(
                 shown.map((l) => l.text).join('\n'),
-                shown.length === 1
-                  ? 'Copied the line'
-                  : `Copied ${shown.length} lines`
+                t('copiedLines', { count: shown.length })
               )
             }
           >
@@ -287,10 +288,10 @@ export function LogBox({
                       // at the top of the scroll as the first one does, and
                       // the day pinned there stands where both are
                       <div
-                        data-day={dayLabel(line.time)}
+                        data-day={dayLabel(line.time, t, locale)}
                         className='mt-2 flex items-center gap-3 pb-2 text-muted-foreground first:mt-0'
                       >
-                        {dayLabel(line.time)}
+                        {dayLabel(line.time, t, locale)}
                         <span className='mr-9 h-px flex-1 bg-border' />
                       </div>
                     )}
@@ -335,13 +336,17 @@ function dayOf(time?: Date) {
 }
 
 /** "Today", "Yesterday", or the date, with the year once it's not this one. */
-function dayLabel(time: Date) {
+function dayLabel(
+  time: Date,
+  t: ReturnType<typeof useTranslations<'logBox'>>,
+  locale: string
+) {
   const now = new Date();
   const yesterday = new Date(now);
   yesterday.setDate(now.getDate() - 1);
-  if (dayOf(time) === dayOf(now)) return 'Today';
-  if (dayOf(time) === dayOf(yesterday)) return 'Yesterday';
-  return time.toLocaleDateString(undefined, {
+  if (dayOf(time) === dayOf(now)) return t('today');
+  if (dayOf(time) === dayOf(yesterday)) return t('yesterday');
+  return time.toLocaleDateString(locale, {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
@@ -361,11 +366,12 @@ const TIME_FORMAT: Intl.DateTimeFormatOptions = {
 
 /** One line: its time, if it has one, then its text, wrapping at the log's edge under the text, not the time. */
 function Line({ line, wrap }: { line: LogLine; wrap: boolean }) {
+  const locale = useLocale();
   return (
     <div className={cn('flex', line.time && 'gap-3')}>
       {line.time && (
         <span className='shrink-0 whitespace-pre text-muted-foreground tabular-nums'>
-          {line.time.toLocaleTimeString(undefined, TIME_FORMAT)}
+          {line.time.toLocaleTimeString(locale, TIME_FORMAT)}
         </span>
       )}
       <span
@@ -403,13 +409,14 @@ function Line({ line, wrap }: { line: LogLine; wrap: boolean }) {
  * indented.
  */
 function JsonText({ json }: { json: JsonLog }) {
+  const t = useTranslations('logBox');
   const [open, setOpen] = useState(false);
   return (
     <>
       <button
         type='button'
         aria-expanded={open}
-        aria-label={open ? 'Fold the line' : 'Show the whole line'}
+        aria-label={open ? t('foldLine') : t('showLine')}
         onClick={() => setOpen(!open)}
         className='mr-1 inline-flex h-lh items-center align-top text-muted-foreground outline-none hover:text-foreground focus-visible:text-foreground'
       >
@@ -466,6 +473,7 @@ function JsonNode({
   /** Open at first, as the whole object is */
   open?: boolean;
 }) {
+  const t = useTranslations('logBox');
   const [open, setOpen] = useState(openAtFirst);
   const key = name !== undefined && (
     <span className='text-muted-foreground'>{JSON.stringify(name)}: </span>
@@ -490,7 +498,11 @@ function JsonNode({
     <button
       type='button'
       aria-expanded={open}
-      aria-label={open ? `Fold ${name ?? 'it'}` : `Open ${name ?? 'it'}`}
+      aria-label={
+        name
+          ? t(open ? 'foldName' : 'openName', { name })
+          : t(open ? 'foldIt' : 'openIt')
+      }
       onClick={() => setOpen(!open)}
       className='-ml-4 inline-flex h-lh w-4 items-center align-top text-muted-foreground outline-none hover:text-foreground focus-visible:text-foreground'
     >

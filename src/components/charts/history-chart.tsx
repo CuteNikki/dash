@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 
 import { useFormat } from '@/i18n/use-format';
@@ -85,6 +86,7 @@ export function HistoryChart({
   label: string;
   className?: string;
 }) {
+  const t = useTranslations('common');
   const format = useFormat();
   const [index, setIndex] = useState<number>();
   const ref = useRef<HTMLDivElement>(null);
@@ -260,7 +262,7 @@ export function HistoryChart({
                     />
                     <span className='font-mono font-medium tabular-nums'>
                       {s.values[shown] == null
-                        ? 'No reading'
+                        ? t('noReading')
                         : s.measure.format(s.values[shown], format)}
                     </span>
                     {series.length > 1 && (
