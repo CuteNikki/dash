@@ -8,7 +8,7 @@ import useSWR from 'swr';
 
 import {
   ArrowUpCircleIcon,
-  ExternalLinkIcon,
+  EllipsisIcon,
   PencilIcon,
   PlayIcon,
   RefreshCwIcon,
@@ -61,8 +61,15 @@ import { ServiceIcon } from '@/components/service/service-icon';
 import { StatePill } from '@/components/service/status-dot';
 import { StopDialog } from '@/components/service/stop-dialog';
 import { BucketBrowser } from '@/components/storage/bucket-browser';
-import { Button } from '@/components/ui/button';
+import { Button, ButtonLabel } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UpdateDialog } from '@/components/updates/update-dialog';
 
@@ -222,6 +229,16 @@ function ServiceBody({
       ? openTab
       : 'usage';
 
+  // New commits rebuild the whole stack, which only they may
+  const canUpdate =
+    !!service.update &&
+    controls &&
+    (service.update.kind !== 'commits' || manages);
+  const removable = (service.removable || site) && manages;
+  // Whether its menu has anything in it, for those who may do little
+  const more =
+    (!site && controls) || (isCaddy(service.image) && manages) || manages;
+
   function run(action: ContainerAction) {
     startTransition(() =>
       attempt(ta('failed', { action, name: service.name }), async () => {
@@ -292,129 +309,136 @@ function ServiceBody({
 
   return (
     <>
-      <header className='flex flex-col gap-4 border-b p-4'>
-        <div className='flex items-center gap-3'>
-          <ServiceIcon
-            icon={service.icon}
-            variants={service.iconVariants}
-            missing={service.iconMissing}
-            name={service.name}
-            className='size-10'
-          />
-          <div className='min-w-0'>
-            <h2 className='truncate text-base font-medium'>{service.name}</h2>
-            {/* Its container, or a website's host, alone, its state being
-                with what changes it */}
-            <p className='truncate font-mono text-muted-foreground'>
-              {service.containerName}
-            </p>
+      <header className='flex flex-col gap-3 border-b p-4'>
+        {/* Its name and state, and beside them what can be done, on one line
+            where there's room; on a phone, the actions on a line below */}
+        <div className='flex flex-wrap items-center gap-x-4 gap-y-3'>
+          <div className='flex min-w-0 flex-1 basis-60 items-center gap-3'>
+            <ServiceIcon
+              icon={service.icon}
+              variants={service.iconVariants}
+              missing={service.iconMissing}
+              name={service.name}
+              className='size-10'
+            />
+            <div className='min-w-0'>
+              <div className='flex items-center gap-2'>
+                <h2 className='truncate text-base font-medium'>
+                  {service.name}
+                </h2>
+                <StatePill state={service.state} label={labelOf(service)} />
+              </div>
+              {/* Its container, or a website's host */}
+              <p className='truncate font-mono text-muted-foreground'>
+                {service.containerName}
+              </p>
+            </div>
+          </div>
+          {/* The one most likely wanted stands out: the update when there's
+              one, else Start when it's stopped; Restart beside it, and the
+              rest in the menu, Remove last and apart */}
+          <div className='flex items-center gap-2 max-sm:w-full'>
+            {!site && controls && running && (
+              <Button
+                variant='outline'
+                disabled={pending}
+                onClick={() => run('restart')}
+                aria-label={t('restart')}
+              >
+                <RotateCwIcon />
+                {/* Its icon alone on a phone, beside an update's longer name */}
+                <ButtonLabel hideOn='screen'>{t('restart')}</ButtonLabel>
+              </Button>
+            )}
+            {!site && controls && !running && (
+              <Button disabled={pending} onClick={() => run('start')}>
+                <PlayIcon />
+                {t('start')}
+              </Button>
+            )}
+            {canUpdate && (
+              <Button disabled={pending} onClick={() => setConfirmUpdate(true)}>
+                <ArrowUpCircleIcon />
+                {t('update')}
+                <span className='font-mono'>
+                  {updateLabel(service.update!, tu)}
+                </span>
+              </Button>
+            )}
+            {more && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant='outline'
+                    size='icon'
+                    aria-label={t('more')}
+                    className='max-sm:ml-auto'
+                  >
+                    <EllipsisIcon />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align='end' className='w-max'>
+                  {!site && controls && running && (
+                    <DropdownMenuItem
+                      disabled={pending}
+                      onSelect={() => setConfirmStop(true)}
+                    >
+                      <SquareIcon />
+                      {t('stop')}
+                    </DropdownMenuItem>
+                  )}
+                  {isCaddy(service.image) && manages && (
+                    <DropdownMenuItem
+                      disabled={pending || !running}
+                      title={t('reloadTitle')}
+                      onSelect={reloadConfig}
+                    >
+                      <RefreshCwIcon />
+                      {t('reloadConfig')}
+                    </DropdownMenuItem>
+                  )}
+                  {/* Until there's one to run, as one found's Update takes its place */}
+                  {!site && controls && !service.update && (
+                    <DropdownMenuItem
+                      disabled={checking}
+                      title={service.updateError}
+                      onSelect={checkForUpdate}
+                    >
+                      <RefreshCwIcon
+                        className={cn(checking && 'animate-spin')}
+                      />
+                      {t('checkForUpdates')}
+                    </DropdownMenuItem>
+                  )}
+                  {manages && (
+                    <DropdownMenuItem onSelect={() => onEdit(service)}>
+                      <PencilIcon />
+                      {t('editTile')}
+                    </DropdownMenuItem>
+                  )}
+                  {removable && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        variant='destructive'
+                        disabled={pending}
+                        onSelect={() =>
+                          site ? removeSite() : setConfirmRemove(true)
+                        }
+                      >
+                        <Trash2Icon />
+                        {t('remove')}
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
         {service.addresses.length > 0 && (
           <AddressList addresses={service.addresses} />
         )}
-        <div className='flex flex-wrap items-center gap-2'>
-          {/* A step shorter than the buttons beside it, centred on their
-              row, so it reads as the service's state, not one of them */}
-          <StatePill
-            state={service.state}
-            label={labelOf(service)}
-            className='mr-1 h-6 items-center px-2.5'
-          />
-          {site || !controls ? null : running ? (
-            <Button
-              variant='destructive'
-              disabled={pending}
-              onClick={() => setConfirmStop(true)}
-            >
-              <SquareIcon />
-              {t('stop')}
-            </Button>
-          ) : (
-            <Button
-              variant='success'
-              disabled={pending}
-              onClick={() => run('start')}
-            >
-              <PlayIcon />
-              {t('start')}
-            </Button>
-          )}
-          {!site && controls && (
-            <Button
-              variant='warning'
-              disabled={pending || !running}
-              onClick={() => run('restart')}
-            >
-              <RotateCwIcon />
-              {t('restart')}
-            </Button>
-          )}
-          {isCaddy(service.image) && manages && (
-            <Button
-              variant='outline'
-              disabled={pending || !running}
-              title={t('reloadTitle')}
-              onClick={reloadConfig}
-            >
-              <RefreshCwIcon />
-              {t('reloadConfig')}
-            </Button>
-          )}
-          {manages && (
-            <Button variant='outline' onClick={() => onEdit(service)}>
-              <PencilIcon />
-              {t('editTile')}
-            </Button>
-          )}
-          {/* Until there's one to run, as one found's Update takes its place */}
-          {!site && controls && !service.update && (
-            <Button
-              variant='outline'
-              disabled={checking}
-              title={service.updateError}
-              onClick={checkForUpdate}
-            >
-              <RefreshCwIcon className={cn(checking && 'animate-spin')} />
-              {t('checkForUpdates')}
-            </Button>
-          )}
-          {/* New commits rebuild the whole stack, which only they may */}
-          {service.update &&
-            controls &&
-            (service.update.kind !== 'commits' || manages) && (
-              <Button
-                variant='outline'
-                disabled={pending}
-                onClick={() => setConfirmUpdate(true)}
-                className='text-update hover:text-update'
-              >
-                <ArrowUpCircleIcon />
-                {t('update')}
-                <span className='font-mono'>
-                  {updateLabel(service.update, tu)}
-                </span>
-              </Button>
-            )}
-          {(service.removable || site) && manages && (
-            <Button
-              variant='destructive'
-              disabled={pending}
-              onClick={() => (site ? removeSite() : setConfirmRemove(true))}
-            >
-              <Trash2Icon />
-              {t('remove')}
-            </Button>
-          )}
-          {service.url && (
-            <Button variant='outline' className='ml-auto' asChild>
-              <a href={service.url} target='_blank' rel='noreferrer'>
-                <ExternalLinkIcon />
-                {t('open')}
-              </a>
-            </Button>
-          )}
-        </div>
       </header>
 
       {site ? (

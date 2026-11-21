@@ -516,7 +516,8 @@ declare const messages: {
     "alsoDelete": "Also delete {folder} and its volumes, with everything it keeps",
     "removing": "Removing…",
     "removeAndDelete": "Remove and delete",
-    "groupOnly": "Show only {group}'s services"
+    "groupOnly": "Show only {group}'s services",
+    "more": "More"
   },
   "host": {
     "memory": "Memory",

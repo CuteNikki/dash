@@ -513,7 +513,8 @@
     "alsoDelete": "Auch {folder} und seine Volumes löschen, mit allem, was darin liegt",
     "removing": "Wird entfernt…",
     "removeAndDelete": "Entfernen und löschen",
-    "groupOnly": "Nur die Dienste in {group} zeigen"
+    "groupOnly": "Nur die Dienste in {group} zeigen",
+    "more": "Mehr"
   },
   "host": {
     "memory": "Speicher",
