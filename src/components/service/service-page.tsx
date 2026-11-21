@@ -634,7 +634,6 @@ function UsageChart({
             '–'
           )}
         </span>
-        <span className='text-muted-foreground'>{tr(`short.${range}`)}</span>
       </span>
       {/* The chart's room, kept until there are readings to draw */}
       <div className='h-16'>

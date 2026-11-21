@@ -420,14 +420,6 @@ declare const messages: {
       "7d": "the last week",
       "30d": "the last month"
     },
-    "short": {
-      "live": "last ten minutes",
-      "1h": "last hour",
-      "6h": "last six hours",
-      "24h": "last day",
-      "7d": "last week",
-      "30d": "last month"
-    },
     "over": "{label} over {words}"
   },
   "service": {

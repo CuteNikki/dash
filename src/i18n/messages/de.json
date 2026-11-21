@@ -417,14 +417,6 @@
       "7d": "die letzte Woche",
       "30d": "den letzten Monat"
     },
-    "short": {
-      "live": "letzte zehn Minuten",
-      "1h": "letzte Stunde",
-      "6h": "letzte sechs Stunden",
-      "24h": "letzter Tag",
-      "7d": "letzte Woche",
-      "30d": "letzter Monat"
-    },
     "over": "{label} über {words}"
   },
   "service": {
