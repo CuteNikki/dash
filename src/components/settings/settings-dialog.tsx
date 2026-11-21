@@ -61,7 +61,9 @@ export function SettingsDialog({
       >
         <DialogHeader className='border-b p-4 pr-12'>
           <DialogTitle className='text-base'>Settings</DialogTitle>
-          <DialogDescription className='truncate'>
+          {/* Said to a screen reader alone: who they are is on the People tab
+              and in the account menu */}
+          <DialogDescription className='sr-only'>
             {me.name} · {tr(`${me.role}.name`)}
           </DialogDescription>
         </DialogHeader>
