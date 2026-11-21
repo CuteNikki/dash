@@ -225,7 +225,12 @@ function DetailTable({
   // Without, as Caddy's sites, every column is whole, and it scrolls sideways
   const cuts = section.columns.some((c) => c.numeric);
   const align = (i: number) =>
-    section.columns[i].numeric ? 'pl-6 text-right' : i ? 'pl-6' : '';
+    // Closer together on a phone, so its columns fit without scrolling
+    section.columns[i].numeric
+      ? 'pl-6 text-right max-sm:pl-3'
+      : i
+        ? 'pl-6 max-sm:pl-3'
+        : '';
   return (
     // Wider than its card, as on a phone, it scrolls sideways within it
     <div className='overflow-x-auto'>
@@ -240,7 +245,7 @@ function DetailTable({
                   align(i),
                   // Taking what's left, though never so little its names vanish
                   i === 0 && 'w-full',
-                  i === 0 && cuts && 'min-w-28'
+                  i === 0 && cuts && 'min-w-28 max-sm:min-w-20'
                 )}
               >
                 {words.detail(column.label)}
