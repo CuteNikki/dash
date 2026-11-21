@@ -1422,7 +1422,8 @@
       "kanboard": "Kanban-Boards",
       "homebox": "Inventar für zu Hause",
       "drawio": "Diagramme"
-    }
+    },
+    "preview": "Vorschau"
   },
   "toasts": {
     "noAnswer": "Das Dashboard hat nicht geantwortet; versuche es gleich noch einmal",

@@ -1425,7 +1425,8 @@ declare const messages: {
       "kanboard": "Kanban boards",
       "homebox": "Home inventory",
       "drawio": "Diagrams"
-    }
+    },
+    "preview": "Preview"
   },
   "toasts": {
     "noAnswer": "dash didn't answer; try again in a moment",
