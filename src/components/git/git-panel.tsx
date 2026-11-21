@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useTransition } from 'react';
 import { toast } from 'sonner';
 import useSWR, { useSWRConfig } from 'swr';
@@ -60,6 +61,7 @@ export function GitPanel({
   /** After anything that changes the repository, to read it again */
   onChangedAction: () => Promise<unknown>;
 }) {
+  const t = useTranslations('git');
   // Files left out of the next commit; every other changed file goes in,
   // ones that change later included
   // Kept by the repository while the page is open, as the files are
@@ -99,7 +101,7 @@ export function GitPanel({
     done: string
   ) {
     startTransition(() =>
-      attempt("Couldn't run git", async () => {
+      attempt(t('runFailed'), async () => {
         const result = await run();
         const output = result.output.trim();
         if (result.ok) {
@@ -108,8 +110,8 @@ export function GitPanel({
           });
         } else {
           // Until closed, as git's reason is worth reading
-          toast.error('Git refused', {
-            description: <GitOutput text={output || 'It gave no reason'} />,
+          toast.error(t('refused'), {
+            description: <GitOutput text={output || t('noReason')} />,
             duration: Infinity,
             closeButton: true,
           });
@@ -133,7 +135,7 @@ export function GitPanel({
         }
         return result;
       },
-      create ? `Made and switched to ${branch}` : `Switched to ${branch}`
+      create ? t('madeAndSwitched', { branch }) : t('switched', { branch })
     );
   }
 
@@ -144,7 +146,7 @@ export function GitPanel({
         if (result.ok) setMessage('');
         return result;
       },
-      push ? 'Committed and pushed' : 'Committed'
+      push ? t('committedPushed') : t('committed')
     );
   }
 
@@ -157,14 +159,14 @@ export function GitPanel({
       <div className='flex flex-wrap items-center gap-2'>
         <TabsList>
           <TabsTrigger value='changes'>
-            Changes
+            {t('changes')}
             {status.changes.length > 0 && (
               <span className='font-mono text-muted-foreground tabular-nums'>
                 {status.changes.length}
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value='history'>History</TabsTrigger>
+          <TabsTrigger value='history'>{t('history')}</TabsTrigger>
         </TabsList>
         <BranchPicker
           current={status.branch}
@@ -178,18 +180,18 @@ export function GitPanel({
             {status.upstream}
           </span>
         ) : (
-          <span className='text-muted-foreground'>tracks no remote branch</span>
+          <span className='text-muted-foreground'>{t('noUpstream')}</span>
         )}
         <span
           className='flex items-center gap-0.5 font-mono text-muted-foreground tabular-nums'
-          title={`${status.ahead} to push`}
+          title={t('toPush', { count: status.ahead })}
         >
           <ArrowUpIcon className='size-3.5' />
           {status.ahead}
         </span>
         <span
           className='flex items-center gap-0.5 font-mono text-muted-foreground tabular-nums'
-          title={`${status.behind} to pull`}
+          title={t('toPull', { count: status.behind })}
         >
           <ArrowDownIcon className='size-3.5' />
           {status.behind}
@@ -199,27 +201,29 @@ export function GitPanel({
           <Button
             variant='outline'
             disabled={pending}
-            onClick={() => act(() => runGit(containerId, 'fetch'), 'Fetched')}
+            onClick={() =>
+              act(() => runGit(containerId, 'fetch'), t('fetched'))
+            }
           >
             <RefreshCwIcon />
-            Fetch
+            {t('fetch')}
           </Button>
           <Button
             variant='outline'
             // Once a fetch has found something to pull
             disabled={pending || !status.upstream || status.behind === 0}
-            onClick={() => act(() => runGit(containerId, 'pull'), 'Pulled')}
+            onClick={() => act(() => runGit(containerId, 'pull'), t('pulled'))}
           >
             <ArrowDownIcon />
-            Pull
+            {t('pull')}
           </Button>
           <Button
             variant='outline'
             disabled={pending || status.ahead === 0}
-            onClick={() => act(() => runGit(containerId, 'push'), 'Pushed')}
+            onClick={() => act(() => runGit(containerId, 'push'), t('pushed'))}
           >
             <ArrowUpIcon />
-            Push
+            {t('push')}
           </Button>
         </span>
       </div>
@@ -227,13 +231,13 @@ export function GitPanel({
       <TabsContent value='changes' className='flex flex-col sm:min-h-0'>
         {status.changes.length === 0 ? (
           <p className='rounded-lg bg-muted p-3 text-muted-foreground'>
-            Nothing changed since the last commit.
+            {t('nothingChanged')}
           </p>
         ) : (
           <div className='flex flex-1 flex-col gap-3 sm:min-h-0 sm:flex-row'>
             <div className='flex shrink-0 flex-col gap-3 sm:w-72'>
               <section
-                aria-label='Changes'
+                aria-label={t('changes')}
                 className='flex min-h-0 flex-1 flex-col gap-1 overflow-auto rounded-lg bg-muted p-1 max-sm:max-h-48'
               >
                 {status.changes.map((change) => (
@@ -244,7 +248,7 @@ export function GitPanel({
                   >
                     <Checkbox
                       checked={!skipped.has(change.path)}
-                      aria-label={`Commit ${change.path}`}
+                      aria-label={t('commitPath', { path: change.path })}
                       onCheckedChange={(on) =>
                         setSkipped((s) => {
                           const next = new Set(s);
@@ -268,12 +272,12 @@ export function GitPanel({
                 ))}
               </section>
               <div className='flex flex-col gap-2'>
-                <Label htmlFor='commit-message'>Commit message</Label>
+                <Label htmlFor='commit-message'>{t('commitMessage')}</Label>
                 <Textarea
                   id='commit-message'
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder='What these changes do'
+                  placeholder={t('commitPlaceholder')}
                 />
                 <div className='flex flex-wrap gap-2'>
                   <Button
@@ -282,7 +286,7 @@ export function GitPanel({
                     onClick={() => commit(false)}
                   >
                     <GitCommitHorizontalIcon />
-                    Commit {chosen.length}
+                    {t('commitCount', { count: chosen.length })}
                   </Button>
                   <Button
                     disabled={
@@ -294,7 +298,7 @@ export function GitPanel({
                     onClick={() => commit(true)}
                   >
                     <ArrowUpIcon />
-                    Commit & push
+                    {t('commitPush')}
                   </Button>
                 </div>
               </div>
@@ -307,7 +311,7 @@ export function GitPanel({
                   diff={diff}
                   path={diffPath}
                   layout={layout}
-                  label={`Changes to ${diffPath}`}
+                  label={t('changesTo', { path: diffPath })}
                 />
               ) : (
                 <CodeSkeleton />

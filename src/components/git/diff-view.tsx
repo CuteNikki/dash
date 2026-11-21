@@ -10,6 +10,7 @@ import {
   type DecorationSet,
   type ViewUpdate,
 } from '@codemirror/view';
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 
 import type { FileDiff } from '@/lib/git';
@@ -153,6 +154,7 @@ export function DiffLayoutToggle({
   layout: DiffLayout;
   onPickAction: (layout: DiffLayout) => void;
 }) {
+  const t = useTranslations('git');
   return (
     <ToggleGroup
       type='single'
@@ -160,10 +162,10 @@ export function DiffLayoutToggle({
       value={layout}
       // Picking the shown one again would unpick it; keep one picked
       onValueChange={(v) => v && onPickAction(v as DiffLayout)}
-      aria-label='Show changes'
+      aria-label={t('showChanges')}
     >
-      <ToggleGroupItem value='unified'>Unified</ToggleGroupItem>
-      <ToggleGroupItem value='split'>Split</ToggleGroupItem>
+      <ToggleGroupItem value='unified'>{t('unified')}</ToggleGroupItem>
+      <ToggleGroupItem value='split'>{t('split')}</ToggleGroupItem>
     </ToggleGroup>
   );
 }
@@ -218,6 +220,7 @@ function SplitDiff({
   path: string;
   label: string;
 }) {
+  const t = useTranslations('git');
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const parent = box.current;
@@ -234,11 +237,11 @@ function SplitDiff({
     const view = new MergeView({
       a: {
         doc: before,
-        extensions: [...side, codeAttributes(`${label}, before`)],
+        extensions: [...side, codeAttributes(t('before', { label }))],
       },
       b: {
         doc: after,
-        extensions: [...side, codeAttributes(`${label}, after`)],
+        extensions: [...side, codeAttributes(t('after', { label }))],
       },
       parent,
       gutter: true,
@@ -246,7 +249,7 @@ function SplitDiff({
       collapseUnchanged: { margin: CONTEXT_LINES, minSize: MIN_FOLDED },
     });
     return () => view.destroy();
-  }, [before, after, path, label]);
+  }, [before, after, path, label, t]);
   return (
     <div
       ref={box}

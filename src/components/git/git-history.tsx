@@ -1,13 +1,15 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import useSWR from 'swr';
 import useSWRInfinite from 'swr/infinite';
 
 import { CopyIcon } from 'lucide-react';
 
+import { useFormat } from '@/i18n/use-format';
+
 import { fetcher } from '@/lib/fetcher';
-import { formatAgo } from '@/lib/format';
 import type { FileDiff, GitCommit, GitCommitDetails } from '@/lib/git';
 
 import { ScrollFade } from '@/components/common/scroll-fade';
@@ -58,6 +60,8 @@ export function GitHistory({
   head: string;
   layout: DiffLayout;
 }) {
+  const format = useFormat();
+  const t = useTranslations('git');
   const { data, setSize, isValidating } = useSWRInfinite<LogPage>(
     // Every page before the last is full, so its size says where the next starts
     (i, previous: LogPage | null) =>
@@ -93,7 +97,7 @@ export function GitHistory({
   return (
     <div className='flex flex-1 flex-col gap-3 sm:min-h-0 sm:flex-row'>
       <section
-        aria-label='Commits'
+        aria-label={t('commits')}
         className='flex h-48 shrink-0 flex-col overflow-hidden rounded-lg bg-muted sm:h-auto sm:w-72'
       >
         <ScrollFade
@@ -104,7 +108,7 @@ export function GitHistory({
           {!data ? (
             <CommitsSkeleton />
           ) : commits.length === 0 ? (
-            <p className='p-2 text-muted-foreground'>No commits yet.</p>
+            <p className='p-2 text-muted-foreground'>{t('noCommits')}</p>
           ) : (
             <ul className='flex flex-col gap-1'>
               {commits.map((c) => (
@@ -122,9 +126,12 @@ export function GitHistory({
                       <span className='shrink-0 font-mono'>{c.hash}</span>
                       <span
                         className='truncate'
-                        title={new Date(c.at).toLocaleString()}
+                        title={new Date(c.at).toLocaleString(format.locale)}
                       >
-                        {c.author}, {formatAgo(c.at)}
+                        {t('byAgo', {
+                          author: c.author,
+                          ago: format.ago(c.at),
+                        })}
                       </span>
                     </span>
                   </button>
@@ -162,11 +169,12 @@ function CommitRowSkeleton() {
 }
 
 function CommitsSkeleton() {
+  const t = useTranslations('git');
   return (
     <div
       aria-busy
       role='status'
-      aria-label='Loading'
+      aria-label={t('loading')}
       className='flex flex-col gap-1'
     >
       {Array.from({ length: LOADING_ROWS }, (_, i) => (
@@ -186,6 +194,8 @@ function CommitView({
   hash: string;
   layout: DiffLayout;
 }) {
+  const format = useFormat();
+  const t = useTranslations('git');
   const base = `/api/containers/${containerId}/git/commits/${hash}`;
   const { data: commit, error } = useSWR<GitCommitDetails>(base, fetcher, {
     revalidateOnFocus: false,
@@ -199,15 +209,11 @@ function CommitView({
   );
 
   function copy(id: string) {
-    return copyText(id, `Copied ${id.slice(0, 12)}`);
+    return copyText(id, t('copiedHash', { hash: id.slice(0, 12) }));
   }
 
   if (error) {
-    return (
-      <p className='flex-1 p-2 text-destructive'>
-        Couldn&apos;t read that commit.
-      </p>
-    );
+    return <p className='flex-1 p-2 text-destructive'>{t('commitFailed')}</p>;
   }
 
   return (
@@ -227,7 +233,7 @@ function CommitView({
             <div className='flex flex-wrap items-center gap-x-2 text-muted-foreground'>
               <span title={commit.email}>{commit.author}</span>
               <span>·</span>
-              <span>{new Date(commit.at).toLocaleString()}</span>
+              <span>{new Date(commit.at).toLocaleString(format.locale)}</span>
               <span>·</span>
               <span className='flex items-center gap-1'>
                 <span className='font-mono'>{commit.id.slice(0, 12)}</span>
@@ -236,13 +242,13 @@ function CommitView({
                     <Button
                       variant='outline'
                       size='icon-sm'
-                      aria-label='Copy the whole hash'
+                      aria-label={t('copyHash')}
                       onClick={() => copy(commit.id)}
                     >
                       <CopyIcon />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Copy</TooltipContent>
+                  <TooltipContent>{t('copy')}</TooltipContent>
                 </Tooltip>
               </span>
             </div>
@@ -258,10 +264,10 @@ function CommitView({
       </div>
 
       {commit && commit.files.length === 0 ? (
-        <p className='text-muted-foreground'>It changed no files.</p>
+        <p className='text-muted-foreground'>{t('noFiles')}</p>
       ) : (
         <section
-          aria-label='Changed files'
+          aria-label={t('changedFiles')}
           className='shrink-0 overflow-hidden rounded-lg bg-muted'
         >
           <ScrollFade
@@ -306,7 +312,7 @@ function CommitView({
             diff={diff}
             path={file}
             layout={layout}
-            label={`Changes to ${file} in ${hash}`}
+            label={t('changesIn', { path: file, hash })}
           />
         ) : commit && !file ? null : (
           <CodeSkeleton />
@@ -318,8 +324,11 @@ function CommitView({
 
 /** Lines added and removed, or that it's binary, which git doesn't count in lines. */
 function LineCounts({ added, removed }: { added?: number; removed?: number }) {
+  const t = useTranslations('git');
   if (added === undefined || removed === undefined) {
-    return <span className='shrink-0 text-muted-foreground'>binary</span>;
+    return (
+      <span className='shrink-0 text-muted-foreground'>{t('binary')}</span>
+    );
   }
   return (
     <span className='flex shrink-0 gap-2 font-mono tabular-nums'>

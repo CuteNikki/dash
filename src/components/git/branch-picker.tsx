@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 import {
@@ -42,6 +43,7 @@ export function BranchPicker({
   disabled?: boolean;
   onSwitchAction: (branch: string, create: boolean) => void;
 }) {
+  const t = useTranslations('git');
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const typed = query.trim();
@@ -63,7 +65,7 @@ export function BranchPicker({
           variant='outline'
           role='combobox'
           aria-expanded={open}
-          aria-label='Branch'
+          aria-label={t('branch')}
           disabled={disabled}
           className='font-mono'
         >
@@ -75,12 +77,12 @@ export function BranchPicker({
       <PopoverContent align='start' className='p-0'>
         <Command>
           <CommandInput
-            placeholder='Find or create a branch'
+            placeholder={t('findBranch')}
             value={query}
             onValueChange={setQuery}
           />
           <CommandList>
-            <CommandGroup heading='Branches'>
+            <CommandGroup heading={t('branches')}>
               {local.map((branch) => (
                 <CommandItem
                   key={branch}
@@ -96,7 +98,7 @@ export function BranchPicker({
               ))}
             </CommandGroup>
             {remote.length > 0 && (
-              <CommandGroup heading='Only on the remote'>
+              <CommandGroup heading={t('onlyRemote')}>
                 {remote.map((branch) => (
                   <CommandItem
                     key={branch}
@@ -111,13 +113,18 @@ export function BranchPicker({
               </CommandGroup>
             )}
             {isNew && (
-              <CommandGroup heading='New'>
+              <CommandGroup heading={t('newBranch')}>
                 <CommandItem
                   value={`create ${typed}`}
                   onSelect={() => pick(typed, true)}
                 >
                   <PlusIcon />
-                  Create branch <span className='font-mono'>{typed}</span>
+                  {t.rich('createBranch', {
+                    name: typed,
+                    code: (chunks) => (
+                      <span className='font-mono'>{chunks}</span>
+                    ),
+                  })}
                 </CommandItem>
               </CommandGroup>
             )}
