@@ -23,6 +23,9 @@ services:
         NEXT_PUBLIC_SERVER_NAME: vps.niso.moe
     container_name: dash
     restart: unless-stopped
+    labels:
+      # Its own widget: its services, websites, users and alerts
+      dash.app: dash
     depends_on:
       migrate:
         condition: service_completed_successfully
