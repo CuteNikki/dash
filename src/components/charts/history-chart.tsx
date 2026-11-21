@@ -16,6 +16,8 @@ import {
 
 /** Room above the highest reading, so a steady line doesn't run along the top edge. */
 const HEADROOM = 1.25;
+/** A fitted scale spans at least this share of its highest reading */
+const FIT_LEAST_SPAN = 0.1;
 
 /** Readings over longer than this say which day they're from, not just the time. */
 const DAYS_MS = 20 * 60 * 60_000;
@@ -80,6 +82,7 @@ export function HistoryChart({
   times,
   series,
   label,
+  fit,
   className,
 }: {
   /** When each reading was taken, in milliseconds */
@@ -87,6 +90,11 @@ export function HistoryChart({
   series: ChartSeries[];
   /** What the chart shows, for screen readers */
   label: string;
+  /**
+   * Scaled from its lowest reading to its highest rather than from nothing,
+   * for what's never near nothing, such as memory: its shape shows
+   */
+  fit?: boolean;
   className?: string;
 }) {
   const t = useTranslations('common');
@@ -126,16 +134,22 @@ export function HistoryChart({
   const count = times.length;
   if (count < 2) return null;
 
-  const top =
-    Math.max(
-      ...series.flatMap((s) => s.values.filter((v) => v !== null)),
-      ...series.map((s) => s.measure.floor)
-    ) * HEADROOM;
+  const readings = series.flatMap((s) =>
+    s.values.filter((v): v is number => v !== null)
+  );
+  const highest = Math.max(...readings, ...series.map((s) => s.measure.floor));
+  // Fitted, the scale spans at least a share of the value, so a wobble of a
+  // few bytes stays a wobble, and has room above and below the line
+  const least = Math.max(...readings) * FIT_LEAST_SPAN;
+  const fitted = Math.max(Math.max(...readings) - Math.min(...readings), least);
+  const middle = (Math.max(...readings) + Math.min(...readings)) / 2;
+  const bottom = fit ? Math.max(0, middle - (fitted * HEADROOM) / 2) : 0;
+  const top = fit ? bottom + fitted * HEADROOM : highest * HEADROOM;
   // Positions in percent of the chart, so the line and markers stretch with it
   // Along by when each was taken, so a pause takes the room it lasted
   const span = times[count - 1] - times[0] || 1;
   const x = (i: number) => ((times[i] - times[0]) / span) * 100;
-  const y = (v: number) => 100 - (v / top) * 100;
+  const y = (v: number) => 100 - ((v - bottom) / (top - bottom || 1)) * 100;
   const shown = index === undefined ? undefined : Math.min(index, count - 1);
   const days = times[count - 1] - times[0] > DAYS_MS;
   const fillable = series.length === 1;

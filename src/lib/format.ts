@@ -151,14 +151,10 @@ const ms = (value: number, f: Format) => f.ms(value);
 const rate = (value: number, f: Format) => f.rate(value);
 
 export const MEASURES = {
-  /** A tenth of a core */
-  cpu: { format: cpu, floor: 10 },
-  /**
-   * The server's CPU, a share of all of it: idling at a few percent, it fills
-   * a third of the chart, so a few more is a ripple rather than a spike, and
-   * still shows
-   */
-  serverCpu: { format: cpu, floor: 25 },
+  /** A hundredth of a core: a quiet one's line still has its shape */
+  cpu: { format: cpu, floor: 1 },
+  /** The server's CPU, a share of all of it: a few percent fills the chart, so its shape shows */
+  serverCpu: { format: cpu, floor: 5 },
   /** A few percent is already worth seeing, where the CPU's own scale would flatten it */
   steal: { format: cpu, floor: 5 },
   memory: { format: bytes, floor: 64 * MB },

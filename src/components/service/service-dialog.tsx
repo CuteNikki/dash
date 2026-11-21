@@ -86,7 +86,6 @@ export function ServiceDialog({
   onChangedAction,
   onEditAction,
   tab,
-  memoryTotal,
 }: {
   service?: Service;
   onCloseAction: () => void;
@@ -95,8 +94,6 @@ export function ServiceDialog({
   onEditAction: (service: Service) => void;
   /** A tab it opens on, rather than the one it was left on */
   tab?: 'logs';
-  /** The server's memory, in bytes, which a container's is charted against */
-  memoryTotal?: number;
 }) {
   // Its removal's window, here rather than in the body, so the service it's
   // removing can be held on to
@@ -137,7 +134,6 @@ export function ServiceDialog({
             }}
             onEdit={onEditAction}
             tab={tab}
-            memoryTotal={memoryTotal}
           />
         )}
       </DialogContent>
@@ -153,7 +149,6 @@ function ServiceBody({
   onRemoved,
   onEdit,
   tab,
-  memoryTotal,
 }: {
   service: Service;
   /** Whether its removal's window is open */
@@ -164,7 +159,6 @@ function ServiceBody({
   onRemoved: () => void;
   onEdit: (service: Service) => void;
   tab?: 'logs';
-  memoryTotal?: number;
 }) {
   const tu = useTranslations('updates');
   const ta = useTranslations('actions');
@@ -532,11 +526,7 @@ function ServiceBody({
               className='h-full overflow-x-hidden overflow-y-auto'
               fadeFrom='from-popover'
             >
-              <UsagePanel
-                service={service}
-                memoryTotal={memoryTotal}
-                range={range}
-              />
+              <UsagePanel service={service} range={range} />
             </ScrollFade>
           </TabsContent>
         </Tabs>
@@ -581,6 +571,7 @@ function UsageChart({
   measure,
   measuring,
   range = 'live',
+  fit,
 }: {
   label: string;
   value?: number;
@@ -591,6 +582,8 @@ function UsageChart({
   measuring: boolean;
   /** How far back the chart looks */
   range?: UsageRange;
+  /** Scaled to its own readings rather than from nothing, see HistoryChart */
+  fit?: boolean;
 }) {
   const tr = useTranslations('ranges');
   const words = tr(`words.${range}`);
@@ -616,6 +609,7 @@ function UsageChart({
             label={tr('over', { label, words })}
             times={times}
             series={[{ label, values, measure }]}
+            fit={fit}
             className='h-full text-foreground'
           />
         )}
@@ -821,11 +815,9 @@ const SHARE_SKELETONS = (['24h', '7d', '30d'] as const).map((range) => ({
  */
 function UsagePanel({
   service,
-  memoryTotal,
   range,
 }: {
   service: Service;
-  memoryTotal?: number;
   /** How far back its charts look, as picked beside the tabs */
   range: UsageRange;
 }) {
@@ -882,14 +874,10 @@ function UsagePanel({
         values={range === 'live' ? usage?.history.memory : recorded?.memory}
         times={range === 'live' ? usage?.history.at : recorded?.at}
         range={range}
-        // Against the server's memory, so a steady amount sits as low as
-        // its share is, rather than at the top of a scale it alone sets,
-        // and a leak shows as a climb
-        measure={
-          memoryTotal
-            ? { ...MEASURES.memory, floor: memoryTotal }
-            : MEASURES.memory
-        }
+        // Fitted to its own readings, so its shape shows: a steady amount a
+        // flat line, a leak a climb
+        measure={MEASURES.memory}
+        fit
         measuring={measuring}
       />
       {/* Its ports beside its facts where there's room, in a column of
