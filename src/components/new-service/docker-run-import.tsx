@@ -5,6 +5,8 @@ import { useState } from 'react';
 
 import { ArrowRightIcon } from 'lucide-react';
 
+import { useIssueText } from '@/i18n/use-issue-text';
+
 import { convertRun, type ConvertedRun } from '@/lib/templates/docker-run';
 
 import { Button } from '@/components/ui/button';
@@ -20,6 +22,7 @@ export function DockerRunImport({
 }: {
   onConvertAction: (converted: ConvertedRun) => void;
 }) {
+  const issueText = useIssueText();
   const t = useTranslations('newService');
   const [command, setCommand] = useState('');
   const [error, setError] = useState<string>();
@@ -32,7 +35,7 @@ export function DockerRunImport({
       setSkipped(converted.skipped);
       onConvertAction(converted);
     } catch (e) {
-      setError((e as Error).message);
+      setError(issueText((e as Error).message));
       setSkipped([]);
     }
   }

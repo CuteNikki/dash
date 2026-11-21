@@ -1479,7 +1479,9 @@ declare const messages: {
     "processStillRunning": "It's still running: it may be finishing up, or ignoring the request.",
     "backupNeedsPassword": "Set BACKUP_PASSWORD in the dashboard's .env to turn backups on",
     "backupNeedsStorage": "Set the storage's keys, or BACKUP_REPOSITORY, for where backups go",
-    "noAnswer": "No answer"
+    "noAnswer": "No answer",
+    "notDockerRun": "That isn't a docker run command",
+    "noImage": "It has no image to run"
   },
   "alertWords": {
     "unhealthy": "Unhealthy",

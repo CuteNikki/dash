@@ -1476,7 +1476,9 @@
     "processStillRunning": "Er läuft noch: Vielleicht wird er gerade fertig, oder er ignoriert die Anfrage.",
     "backupNeedsPassword": "Setze BACKUP_PASSWORD in der .env des Dashboards, um Sicherungen einzuschalten",
     "backupNeedsStorage": "Setze die Schlüssel des Speichers oder BACKUP_REPOSITORY, wohin die Sicherungen gehen",
-    "noAnswer": "Keine Antwort"
+    "noAnswer": "Keine Antwort",
+    "notDockerRun": "Das ist kein docker-run-Befehl",
+    "noImage": "Es hat kein Image zum Ausführen"
   },
   "alertWords": {
     "unhealthy": "Fehlerhaft",

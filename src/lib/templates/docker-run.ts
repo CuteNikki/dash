@@ -149,7 +149,8 @@ export function convertRun(command: string): ConvertedRun {
   let all = words(command.trim());
   // Whatever comes before `run`: docker, sudo docker, podman, `docker container`
   const at = all.findIndex((w) => w === 'run');
-  if (at < 0) throw new Error("That isn't a docker run command");
+  // Keys under "errors", said in the page's language where it's shown
+  if (at < 0) throw new Error('notDockerRun');
   all = all.slice(at + 1);
 
   const values: Record<string, string[]> = {};
@@ -180,7 +181,7 @@ export function convertRun(command: string): ConvertedRun {
     }
   }
   const image = all[i];
-  if (!image) throw new Error('It has no image to run');
+  if (!image) throw new Error('noImage');
   const args = all.slice(i + 1);
 
   const one = (flag: string) => values[flag]?.at(-1);
