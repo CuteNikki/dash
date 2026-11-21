@@ -528,7 +528,7 @@ declare const messages: {
     "system": "System",
     "kernel": "Kernel",
     "processor": "Processor",
-    "processorCores": "{model}, {count, plural, one {# core} other {# cores}}",
+    "processorThreads": "{model} · {count, plural, one {# thread} other {# threads}}",
     "upFor": "Up for",
     "load": "Load",
     "swap": "Swap",

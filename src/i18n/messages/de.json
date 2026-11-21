@@ -525,7 +525,7 @@
     "system": "System",
     "kernel": "Kernel",
     "processor": "Prozessor",
-    "processorCores": "{model}, {count, plural, one {# Kern} other {# Kerne}}",
+    "processorThreads": "{model} · {count, plural, one {# Thread} other {# Threads}}",
     "upFor": "Läuft seit",
     "load": "Last",
     "swap": "Swap",

@@ -22,7 +22,7 @@ import {
 import type { Format } from '@/i18n/format';
 import { useFormat } from '@/i18n/use-format';
 
-import { MEASURES, type Measure } from '@/lib/format';
+import { MEASURES, processorName, type Measure } from '@/lib/format';
 import type { HostTileKey } from '@/lib/host/host-tiles';
 import type { Capacity, HostStats, Service, SystemUpdates } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -164,13 +164,19 @@ const TILE_BUTTON =
 function serverDetails(
   t: ReturnType<typeof useTranslations<'host'>>,
   format: Format
-): [string, (host: HostStats) => string][] {
+): [string, (host: HostStats) => string, ((host: HostStats) => string)?][] {
   return [
     [t('system'), (h) => h.system.os],
     [t('kernel'), (h) => `${h.system.kernel} (${h.system.architecture})`],
     [
       t('processor'),
-      (h) => t('processorCores', { model: h.system.cpuModel, count: h.cores }),
+      (h) =>
+        t('processorThreads', {
+          model: processorName(h.system.cpuModel),
+          count: h.cores,
+        }),
+      // The name in full when it's pointed at, as the system gives it
+      (h) => h.system.cpuModel,
     ],
     [t('upFor'), (h) => format.duration(h.system.uptime)],
     [t('load'), (h) => h.system.load.map((l) => format.fixed(l, 2)).join('  ')],
@@ -248,10 +254,10 @@ function ServerDetails({
       />
       <BackupsDialog open={backups} onCloseAction={() => setBackups(false)} />
       <dl className='grid grid-cols-1 gap-x-6 gap-y-3 @md:grid-cols-2 @3xl:grid-cols-4 @7xl:grid-cols-8'>
-        {serverDetails(t, format).map(([label, value]) => (
+        {serverDetails(t, format).map(([label, value, full = value]) => (
           <div key={label} className='flex min-w-0 flex-col'>
             <dt className='text-muted-foreground'>{label}</dt>
-            <dd className='truncate' title={host && value(host)}>
+            <dd className='truncate' title={host && full(host)}>
               {host ? value(host) : <TextSkeleton className='w-32' />}
             </dd>
           </div>

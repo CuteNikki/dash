@@ -6,6 +6,7 @@ import {
   formatDuration,
   formatUptime,
   imageName,
+  processorName,
   splitAddress,
 } from '@/lib/format';
 import { hostOf } from '@/lib/ports';
@@ -128,5 +129,29 @@ describe('stackImagePath', () => {
     expect(
       stackImagePath('data:image/png;base64,AAAA', 'README.md')
     ).toBeUndefined();
+  });
+});
+
+describe('processorName', () => {
+  test('drops trademarks, generation, clock speed and core count', () => {
+    expect(processorName('13th Gen Intel(R) Core(TM) i5-13500')).toBe(
+      'Intel Core i5-13500'
+    );
+    expect(processorName('Intel(R) Xeon(R) CPU E5-2680 v4 @ 2.40GHz')).toBe(
+      'Intel Xeon E5-2680 v4'
+    );
+    expect(processorName('AMD Ryzen 9 7950X 16-Core Processor')).toBe(
+      'AMD Ryzen 9 7950X'
+    );
+    expect(processorName('AMD Ryzen 7 5700G with Radeon Graphics')).toBe(
+      'AMD Ryzen 7 5700G'
+    );
+  });
+
+  test('leaves a name it has nothing to drop from as it is', () => {
+    expect(processorName('QEMU Virtual CPU version 2.5+')).toBe(
+      'QEMU Virtual CPU version 2.5+'
+    );
+    expect(processorName('Apple M2')).toBe('Apple M2');
   });
 });

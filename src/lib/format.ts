@@ -70,6 +70,25 @@ export function formatCpu(percent: number) {
 
 const SCHEME = /^https?:\/\//i;
 
+/**
+ * A processor's name as the system gives it, without its trademarks,
+ * generation, clock speed and core count, so its model shows:
+ * "13th Gen Intel(R) Core(TM) i5-13500" → "Intel Core i5-13500".
+ */
+export function processorName(model: string) {
+  const short = model
+    .replace(/\((R|TM)\)|[®™]/gi, '')
+    .replace(/^\s*\d+(st|nd|rd|th) Gen\s+/i, '')
+    .replace(/\s+@\s*[\d.]+\s*GHz/i, '')
+    .replace(/\s+\d+-Core Processor$/i, '')
+    .replace(/\s+(Processor|with Radeon.*Graphics)$/i, '')
+    // "CPU" before a model number, as in Intel's "Xeon(R) CPU E5-2680"
+    .replace(/\s+CPU\s+(?=[A-Z0-9])/, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return short || model;
+}
+
 /** What an image is, without its registry, owner or tag: "lscr.io/linuxserver/sonarr:latest" → "sonarr". */
 export function imageName(image: string) {
   return image.split('/').pop()?.split(/[:@]/)[0] ?? image;
