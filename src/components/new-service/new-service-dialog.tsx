@@ -365,8 +365,10 @@ function NewServiceForm({
           </div>
         </div>
         {/* The one part that gives way when the window is short, down to
-              half its height, before the window scrolls: it scrolls itself */}
-        <div className='flex min-h-39 flex-col gap-2'>
+              half its height, before the window scrolls: it scrolls itself.
+              When the window is tall, it takes the room left over, so none
+              is left empty below the button */}
+        <div className='flex min-h-39 grow flex-col gap-2'>
           <span className='text-xs/relaxed font-medium'>
             {t('composeFile')}
           </span>
