@@ -14,6 +14,16 @@ dash is one person's (or a small team's) control room for a single Docker server
 
 Design for this order. The first job should take zero clicks and zero reading; the fifth may take a few.
 
+## Chosen direction
+
+Picked on 2026-11-21 after three directions (status first, control-room table, act in place) were mocked up and scored:
+
+- **Board:** today's board, cleaned up, not a new layout. Free tile sizes and positions per width stay.
+- **Verdict:** a one-line answer on top ("Everything is running", or "1 stopped, 1 update waiting" with problem rows), with a subline (services running, last check, last backup). A nice-to-have.
+- **Table:** the existing list view.
+- **Service:** its own page (breadcrumbs, the actions in a fixed header, tabs), with every detail, including a memory graph beside the CPU graph. The liked graph card: title, big number, range picker top right, filled line.
+- **Phone:** used often, so phone layouts are first-class (big Start/Update buttons, nothing cut off).
+
 ## Everything dash does
 
 A redesign may move or regroup any of this, but must keep all of it, and every mockup round is checked against this list. From the components and the translation keys.
