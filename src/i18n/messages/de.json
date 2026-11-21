@@ -997,7 +997,7 @@
     "sendInvite": "Einladung senden",
     "makeLink": "Link erstellen",
     "twoFactorTitle": "Zwei-Faktor",
-    "twoFactorDescription": "Rollen, deren Personen neben dem Passwort einen Code aus einer Authentifizierungs-App brauchen. Ein Passkey allein reicht nicht, da das Passwort sie auch ohne ihn anmeldet.",
+    "twoFactorDescription": "Rollen, deren Personen sich mit einem Passkey anmelden, oder mit Passwort und dem Code einer Authentifizierungs-App. Mit dem Passwort allein angemeldet, werden sie zur Einrichtung der App geschickt.",
     "stillNeed": "{count, plural, one {# Person muss es noch einrichten} other {# Personen müssen es noch einrichten}}",
     "twoFactorFailed": "Das konnte nicht geändert werden",
     "peopleDescription": "Alle mit einem Konto, und was sie tun und sehen dürfen",
@@ -1117,7 +1117,7 @@
     "joinDashboard": "Dem Dashboard beitreten",
     "joinDescription": "Erstelle das Konto für {email}, als {role, select, owner {Inhaber} admin {Admin} operator {Operator} other {Betrachter}}: {abilities}.",
     "twoFactorTitle": "Zwei-Faktor einrichten",
-    "twoFactorDescription": "Deine Rolle braucht neben deinem Passwort einen Code aus einer Authentifizierungs-App, bevor du das Dashboard nutzen kannst.",
+    "twoFactorDescription": "Deine Rolle braucht mehr als ein Passwort: Richte eine Authentifizierungs-App ein, oder melde dich stattdessen mit einem Passkey an.",
     "continue": "Weiter",
     "signOut": "Abmelden"
   },

@@ -110,6 +110,9 @@ model Session {
   updatedAt      DateTime @updatedAt
   // Better Auth's admin plugin's, though impersonating is turned off
   impersonatedBy String?
+  /// Signed in with a passkey, two factors itself: where a role requires
+  /// two-factor, it lets this session in without an authenticator app
+  viaPasskey     Boolean  @default(false)
 
   @@index([userId])
   @@map("session")

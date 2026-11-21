@@ -3,7 +3,7 @@ import 'server-only';
 import { passkey } from '@better-auth/passkey';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
-import { APIError } from 'better-auth/api';
+import { APIError, createAuthMiddleware } from 'better-auth/api';
 import { nextCookies } from 'better-auth/next-js';
 import { admin, twoFactor } from 'better-auth/plugins';
 import { createAccessControl } from 'better-auth/plugins/access';
@@ -134,6 +134,17 @@ export const auth = betterAuth({
     twoFactor({ issuer: SERVER_NAME ?? 'Dashboard' }),
     nextCookies(),
   ],
+  hooks: {
+    // A passkey's sign-in is two factors itself, the device and what
+    // unlocks it, so its session counts where a role requires two-factor
+    after: createAuthMiddleware(async (ctx) => {
+      if (ctx.path !== '/passkey/verify-authentication') return;
+      const id = ctx.context.newSession?.session.id;
+      if (id) {
+        await db.session.update({ where: { id }, data: { viaPasskey: true } });
+      }
+    }),
+  },
   databaseHooks: {
     user: {
       create: {

@@ -28,9 +28,11 @@ export type Access = {
   /** The groups they're given; every one for a role that sees all */
   groups: string[];
   /**
-   * Their role asks for two-factor and they haven't an authenticator app
-   * yet: until they have, they can only set one up. A passkey doesn't do,
-   * as the password alone still signs in an account with only that
+   * Their role asks for two-factor, they haven't an authenticator app yet,
+   * and this session wasn't signed in with a passkey, which is two factors
+   * itself: until then, they can only set the app up. Having a passkey
+   * isn't enough, as the password alone still signs in an account with
+   * only that
    */
   needsTwoFactor: boolean;
 };
@@ -42,14 +44,16 @@ export type Access = {
 export const getAccess = cache(async (): Promise<Access | undefined> => {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return undefined;
-  const row = await db.user.findUnique({
-    where: { id: session.user.id },
-    select: {
-      role: true,
-      allowedGroups: true,
-      twoFactorEnabled: true,
-    },
-  });
+  const [row, signedIn] = await Promise.all([
+    db.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true, allowedGroups: true, twoFactorEnabled: true },
+    }),
+    db.session.findUnique({
+      where: { id: session.session.id },
+      select: { viaPasskey: true },
+    }),
+  ]);
   if (!row) return undefined;
   const { id, name, email, emailVerified } = session.user;
   const role = roleOf(row.role);
@@ -57,7 +61,11 @@ export const getAccess = cache(async (): Promise<Access | undefined> => {
     user: { id, name, email, emailVerified },
     role,
     groups: row.allowedGroups,
-    needsTwoFactor: !row.twoFactorEnabled && (await requiresTwoFactor(role)),
+    // A passkey's sign-in is two factors itself; a password's needs the app
+    needsTwoFactor:
+      !row.twoFactorEnabled &&
+      !signedIn?.viaPasskey &&
+      (await requiresTwoFactor(role)),
   };
 });
 
