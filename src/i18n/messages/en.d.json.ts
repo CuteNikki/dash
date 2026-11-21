@@ -1000,7 +1000,7 @@ declare const messages: {
     "sendInvite": "Send the invite",
     "makeLink": "Make the link",
     "twoFactorTitle": "Two-factor",
-    "twoFactorDescription": "Roles whose people need an authenticator app's code as well as their password. A passkey alone doesn't do, as the password still signs them in without it.",
+    "twoFactorDescription": "Roles whose people sign in with a passkey, or with their password and an authenticator app's code. Signed in with the password alone, they're sent to set the app up.",
     "stillNeed": "{count, plural, one {# person still has to set it up} other {# people still have to set it up}}",
     "twoFactorFailed": "Couldn't change that",
     "peopleDescription": "Everyone with an account, what they may do and see",
@@ -1120,7 +1120,7 @@ declare const messages: {
     "joinDashboard": "Join the dashboard",
     "joinDescription": "Make the account for {email}, as {role, select, owner {an owner} admin {an admin} operator {an operator} other {a viewer}}: {abilities}.",
     "twoFactorTitle": "Set up two-factor",
-    "twoFactorDescription": "Your role needs an authenticator app's code as well as your password before you can use the dashboard.",
+    "twoFactorDescription": "Your role needs more than a password: set up an authenticator app, or sign in with a passkey instead.",
     "continue": "Continue",
     "signOut": "Sign out"
   },

@@ -8,9 +8,15 @@ import useSWR from 'swr';
 import {
   BanIcon,
   CircleCheckIcon,
+  ClockIcon,
+  HourglassIcon,
+  LayersIcon,
   LogOutIcon,
   PencilIcon,
+  ShieldCheckIcon,
+  ShieldOffIcon,
   Trash2Icon,
+  UserIcon,
   UserPlusIcon,
   XIcon,
 } from 'lucide-react';
@@ -161,6 +167,32 @@ export function PeoplePanel() {
 }
 
 /**
+ * The facts under a person or invite, each with its icon so it reads as its
+ * own, dots between: a long one, as many groups, is cut short in its place.
+ */
+function RowFacts({
+  facts,
+}: {
+  facts: { icon: React.ReactNode; text: string }[];
+}) {
+  return (
+    <div className='flex min-w-0 flex-wrap items-center gap-x-2 text-muted-foreground [&_svg]:size-3.5 [&_svg]:shrink-0'>
+      {facts.map(({ icon, text }, i) => (
+        <span key={i} className='flex min-w-0 items-center gap-2'>
+          {i > 0 && <span aria-hidden>·</span>}
+          <span className='flex min-w-0 items-center gap-1'>
+            {icon}
+            <span className='truncate' title={text}>
+              {text}
+            </span>
+          </span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/**
  * Rows where people or invites will be, as many as last time, each with as
  * many lines as theirs: a person's name, address and access; an invite's
  * address and access. None is the line saying so.
@@ -245,23 +277,27 @@ function PersonRow({
         <div className='flex min-w-0 items-center gap-2'>
           <span className='truncate font-medium'>{name}</span>
           {person.you && <Badge variant='secondary'>{t('you')}</Badge>}
+          <Badge variant='outline'>{tr(`${person.role}.name`)}</Badge>
           {person.disabled && (
             <Badge variant='destructive'>{t('disabled')}</Badge>
           )}
         </div>
         <span className='truncate text-muted-foreground'>{person.email}</span>
-        <div className='flex flex-wrap gap-x-3 text-muted-foreground'>
-          <span className='text-foreground'>{tr(`${person.role}.name`)}</span>
-          <span className='min-w-0 truncate' title={groups}>
-            {groups}
-          </span>
-          <span>{person.twoFactor ? t('twoFactorOn') : t('twoFactorOff')}</span>
-          <span>
-            {person.lastActive
-              ? t('active', { ago: format.ago(person.lastActive) })
-              : t('notSignedIn')}
-          </span>
-        </div>
+        <RowFacts
+          facts={[
+            { icon: <LayersIcon />, text: groups },
+            {
+              icon: person.twoFactor ? <ShieldCheckIcon /> : <ShieldOffIcon />,
+              text: person.twoFactor ? t('twoFactorOn') : t('twoFactorOff'),
+            },
+            {
+              icon: <ClockIcon />,
+              text: person.lastActive
+                ? t('active', { ago: format.ago(person.lastActive) })
+                : t('notSignedIn'),
+            },
+          ]}
+        />
       </div>
       {!person.you && (
         <div className='flex shrink-0 items-center gap-1'>
@@ -387,17 +423,25 @@ function InviteRow({
   return (
     <SettingsItem className='items-start'>
       <div className='flex min-w-0 flex-1 flex-col gap-0.5'>
-        <span className='truncate font-medium'>{email}</span>
-        <div className='flex flex-wrap gap-x-3 text-muted-foreground'>
-          <span className='text-foreground'>{tr(`${invite.role}.name`)}</span>
-          <span className='min-w-0 truncate' title={groups}>
-            {groups}
-          </span>
-          <span>
-            {t('expiresIn', { duration: timeLeft(invite.expiresAt, format) })}
-          </span>
-          <span>{t('invitedBy', { name: invite.invitedBy })}</span>
+        <div className='flex min-w-0 items-center gap-2'>
+          <span className='truncate font-medium'>{email}</span>
+          <Badge variant='outline'>{tr(`${invite.role}.name`)}</Badge>
         </div>
+        <RowFacts
+          facts={[
+            { icon: <LayersIcon />, text: groups },
+            {
+              icon: <HourglassIcon />,
+              text: t('expiresIn', {
+                duration: timeLeft(invite.expiresAt, format),
+              }),
+            },
+            {
+              icon: <UserIcon />,
+              text: t('invitedBy', { name: invite.invitedBy }),
+            },
+          ]}
+        />
       </div>
       <Button
         variant='destructive'
