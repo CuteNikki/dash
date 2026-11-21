@@ -48,6 +48,8 @@ export type MailSection = {
 
 /** A mail as the dashboard writes them: what it's about, its details, and maybe a button to a link. */
 export type Mail = {
+  /** The language it's in, its reader's */
+  lang: string;
   to: string | string[];
   subject: string;
   /** The heading over the text; the subject when not given */
@@ -63,7 +65,7 @@ export type Mail = {
   /** After the button, quieter: what to do if it wasn't them */
   note?: string;
   /** Small print under it all: why they got it */
-  footer?: string;
+  footer: string;
 };
 
 /**
@@ -213,8 +215,7 @@ function plain(mail: Mail, footer: string) {
 
 /** The mail as plain text, and as HTML in the dashboard's colours. */
 function render(mail: Mail) {
-  const footer =
-    mail.footer ?? `Sent by the dashboard of ${SERVER_NAME ?? 'your server'}.`;
+  const footer = mail.footer;
   const paragraphs = mail.paragraphs.map(
     (p, i) =>
       `<tr><td style="padding:${i ? 12 : 8}px 0 0;${font}font-size:14px;line-height:1.6;color:${colors.foreground};">${text(p)}</td></tr>`
@@ -232,7 +233,7 @@ ${mail.note ? `<tr><td style="padding:20px 0 0;${font}font-size:13px;line-height
     )}</td></tr>`
   );
   const html = `<!doctype html>
-<html lang="en">
+<html lang="${escape(mail.lang)}">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />

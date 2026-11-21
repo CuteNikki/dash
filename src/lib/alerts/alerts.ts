@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { Prisma } from '@/lib/generated/prisma/client';
 import { mailReady, sendMail } from '@/lib/mail/mail';
 import { alertsMail } from '@/lib/mail/templates';
+import { mailWords } from '@/lib/mail/words';
 import type { AlertWords } from '@/lib/types';
 
 /** What a check finds wrong now. Whatever it checks and doesn't find is fine. */
@@ -71,7 +72,7 @@ export async function reconcile(
   }
 }
 
-/** Who's mailed alerts: those who see the server, who haven't turned them off. */
+/** Who's mailed alerts: those who see the server, who haven't turned them off, by the language each reads. */
 async function recipients() {
   const people = await db.user.findMany({
     where: {
@@ -79,9 +80,13 @@ async function recipients() {
       banned: { not: true },
       role: { in: ROLES.filter((r) => can(r, 'server')) },
     },
-    select: { email: true },
+    select: { email: true, locale: true },
   });
-  return people.map((p) => p.email);
+  const byLocale = new Map<string | null, string[]>();
+  for (const p of people) {
+    byLocale.set(p.locale, [...(byLocale.get(p.locale) ?? []), p.email]);
+  }
+  return byLocale;
 }
 
 /**
@@ -112,10 +117,24 @@ export async function notify() {
   // Each over one is said once: it's marked by its notifiedAt moving past it
   const resolved = over.filter((a) => a.notifiedAt! < a.resolvedAt!);
   if (!due.length && !resolved.length) return;
-  const to = await recipients();
-  if (to.length) {
+  // Its words kept with each, to say in each reader's language
+  const lines = (rows: typeof due) =>
+    rows.map((a) => ({ ...a, words: a.words as AlertWords | null }));
+  // One mail for each language, to those who read it
+  const groups = await recipients();
+  if (groups.size) {
     try {
-      await sendMail(alertsMail(to, due, resolved, now));
+      for (const [locale, to] of groups) {
+        await sendMail(
+          alertsMail(
+            await mailWords(locale),
+            to,
+            lines(due),
+            lines(resolved),
+            now
+          )
+        );
+      }
     } catch (error) {
       // Tried again next round, as nothing's marked
       console.error("Couldn't mail the alerts:", error);

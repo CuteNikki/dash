@@ -1494,5 +1494,67 @@
     "backupOf": "Sicherung von {name}",
     "failed": "Fehlgeschlagen",
     "raw": "{text}"
+  },
+  "mail": {
+    "requested": "Angefordert",
+    "from": "Von",
+    "yourServer": "deinem Server",
+    "footer": "Gesendet vom Dashboard von {server}.",
+    "account": "Konto",
+    "address": "Adresse",
+    "linkUntil": "Link gültig bis",
+    "currentAddress": "Aktuelle Adresse",
+    "newAddress": "Neue Adresse",
+    "invitedBy": "Eingeladen von",
+    "role": "Rolle",
+    "for": "Für",
+    "inviteUntil": "Einladung gültig bis",
+    "aServer": "einem Server",
+    "theServer": "dem Server",
+    "reset": {
+      "subject": "Setze dein Passwort zurück",
+      "text": "Hallo {name}, jemand möchte das Passwort deines Kontos auf dem Dashboard von {server} zurücksetzen. Wenn du das warst, wähle mit dem Button unten ein neues.",
+      "action": "Neues Passwort wählen",
+      "note": "Wenn du das nicht warst, musst du nichts tun: Dein Passwort bleibt, wie es ist, und der Link läuft von selbst ab. Ein neues Passwort meldet dich überall sonst ab."
+    },
+    "confirm": {
+      "subject": "Bestätige deine E-Mail-Adresse",
+      "text": "Hallo {name}, bestätige, dass das deine Adresse ist, damit das Dashboard von {server} dich erreichen kann: um ein vergessenes Passwort zurückzusetzen, und mit Warnungen, falls du sie bekommst.",
+      "action": "Meine Adresse bestätigen",
+      "note": "Wenn du dort kein Konto hast, musst du nichts tun: Die Adresse wird erst benutzt, wenn sie bestätigt ist."
+    },
+    "change": {
+      "subject": "Deine E-Mail-Adresse ändern?",
+      "heading": "Deine E-Mail-Adresse ändern",
+      "text": "Hallo {name}, jemand, der als du angemeldet ist, möchte die Adresse deines Kontos auf dem Dashboard von {server} ändern. Wenn du das warst, stimme hier zu; die neue Adresse bekommt dann einen Link zur Bestätigung.",
+      "action": "Der Änderung zustimmen",
+      "note": "Wenn du das nicht warst, öffne den Link nicht: Jemand kennt dein Passwort. Ändere es unter Einstellungen > Konto und melde dort deine anderen Sitzungen ab."
+    },
+    "invite": {
+      "subject": "Du bist zu {server} eingeladen",
+      "subjectDashboard": "Du bist zum Dashboard eingeladen",
+      "heading": "{server} beitreten",
+      "headingDashboard": "Dem Dashboard beitreten",
+      "text": "Hallo, {by} hat dich zum Dashboard von {server} eingeladen. Erstelle dein Konto mit dem Button unten: Namen und Passwort wählst du selbst.",
+      "textTheirs": "Hallo, {by} hat dich zum Dashboard seines Servers eingeladen. Erstelle dein Konto mit dem Button unten: Namen und Passwort wählst du selbst.",
+      "action": "Mein Konto erstellen",
+      "note": "Der Link funktioniert einmal. Wenn du ihn nicht erwartet hast, musst du nichts tun: Er läuft von selbst ab.",
+      "footer": "Gesendet vom Dashboard von {server} für {by}."
+    },
+    "alerts": {
+      "oneRight": "{subject} ist wieder in Ordnung",
+      "counts": "{due, plural, =0 {} one {# neue Warnung} other {# neue Warnungen}}{due, plural, =0 {} other {{resolved, plural, =0 {} other {, }}}}{resolved, plural, =0 {} other {# behoben}} auf {server}",
+      "wrongHeading": "Etwas stimmt nicht auf {server}",
+      "rightHeading": "Wieder in Ordnung auf {server}",
+      "wrongText": "Das Dashboard hat {count, plural, one {ein Problem gefunden, das} other {# Probleme gefunden, die}} schon eine Weile {count, plural, one {besteht} other {bestehen}}.{alsoRight, select, yes { Etwas, worüber es vorher gemailt hat, ist auch wieder in Ordnung.} other {}}",
+      "rightText": "{count, plural, one {Das, worüber} other {Alles, worüber}} das Dashboard gemailt hat, ist wieder in Ordnung.",
+      "wrongNow": "Jetzt fehlerhaft",
+      "rightAgain": "Wieder in Ordnung",
+      "since": "Seit {since}, bisher {lasted}",
+      "was": "War: {message}",
+      "lasted": "Dauerte {lasted}, bis {until}",
+      "action": "Dashboard öffnen",
+      "footer": "Gesendet vom Dashboard von {server} an alle, die den Server sehen. Abschalten unter Einstellungen > Konto."
+    }
   }
 }

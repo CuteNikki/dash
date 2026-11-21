@@ -19,6 +19,7 @@ import {
   originOf,
   resetPasswordMail,
 } from '@/lib/mail/templates';
+import { wordsFor } from '@/lib/mail/words';
 import { SERVER_NAME, SITE_URL } from '@/lib/site';
 
 /**
@@ -73,7 +74,13 @@ export const auth = betterAuth({
     sendResetPassword: mailReady()
       ? async ({ user, url }, request) =>
           sendMail(
-            resetPasswordMail(user, url, linkExpiry(), originOf(request))
+            resetPasswordMail(
+              await wordsFor(user.id),
+              user,
+              url,
+              linkExpiry(),
+              originOf(request)
+            )
           )
       : undefined,
     resetPasswordTokenExpiresIn: LINK_SECONDS,
@@ -85,7 +92,9 @@ export const auth = betterAuth({
         expiresIn: LINK_SECONDS,
         autoSignInAfterVerification: true,
         sendVerificationEmail: async ({ user, url }) =>
-          sendMail(confirmAddressMail(user, url, linkExpiry())),
+          sendMail(
+            confirmAddressMail(await wordsFor(user.id), user, url, linkExpiry())
+          ),
       }
     : undefined,
   user: {
@@ -100,6 +109,7 @@ export const auth = betterAuth({
         ? async ({ user, newEmail, url }, request) =>
             sendMail(
               changeAddressMail(
+                await wordsFor(user.id),
                 user,
                 newEmail,
                 url,

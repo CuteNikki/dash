@@ -1494,5 +1494,67 @@
     "backupOf": "Backup of {name}",
     "failed": "Failed",
     "raw": "{text}"
+  },
+  "mail": {
+    "requested": "Requested",
+    "from": "From",
+    "yourServer": "your server",
+    "footer": "Sent by the dashboard of {server}.",
+    "account": "Account",
+    "address": "Address",
+    "linkUntil": "Link works until",
+    "currentAddress": "Current address",
+    "newAddress": "New address",
+    "invitedBy": "Invited by",
+    "role": "Role",
+    "for": "For",
+    "inviteUntil": "Invite works until",
+    "aServer": "a server",
+    "theServer": "the server",
+    "reset": {
+      "subject": "Reset your password",
+      "text": "Hi {name}, someone asked to reset the password of your account on the dashboard of {server}. If it was you, pick a new one with the button below.",
+      "action": "Pick a new password",
+      "note": "If it wasn't you, there's nothing to do: your password stays as it is, and the link runs out by itself. Picking a new one signs you out everywhere else."
+    },
+    "confirm": {
+      "subject": "Confirm your email address",
+      "text": "Hi {name}, confirm this is your address, so the dashboard of {server} can reach you: to reset a forgotten password, and with alerts if you get them.",
+      "action": "Confirm my address",
+      "note": "If you don't have an account there, there's nothing to do: the address isn't used until it's confirmed."
+    },
+    "change": {
+      "subject": "Change your email address?",
+      "heading": "Change your email address",
+      "text": "Hi {name}, someone signed in as you asked to change your account's address on the dashboard of {server}. If it was you, agree to it here; the new address is then sent a link to confirm it.",
+      "action": "Agree to the change",
+      "note": "If it wasn't you, don't open the link: someone knows your password. Change it in Settings > Account and sign out your other sessions there."
+    },
+    "invite": {
+      "subject": "You're invited to {server}",
+      "subjectDashboard": "You're invited to the dashboard",
+      "heading": "Join {server}",
+      "headingDashboard": "Join the dashboard",
+      "text": "Hi, {by} invited you to the dashboard of {server}. Make your account with the button below: you pick your own name and password.",
+      "textTheirs": "Hi, {by} invited you to the dashboard of their server. Make your account with the button below: you pick your own name and password.",
+      "action": "Make my account",
+      "note": "The link works once. If you weren't expecting it, there's nothing to do: it runs out by itself.",
+      "footer": "Sent by the dashboard of {server} for {by}."
+    },
+    "alerts": {
+      "oneRight": "{subject} is all right again",
+      "counts": "{due, plural, =0 {} one {# new alert} other {# new alerts}}{due, plural, =0 {} other {{resolved, plural, =0 {} other {, }}}}{resolved, plural, =0 {} other {# resolved}} on {server}",
+      "wrongHeading": "Something's wrong on {server}",
+      "rightHeading": "All right again on {server}",
+      "wrongText": "The dashboard found {count, plural, one {a problem that has} other {# problems that have}} lasted a while.{alsoRight, select, yes { Something it mailed about before is all right again, too.} other {}}",
+      "rightText": "{count, plural, one {What} other {Everything}} the dashboard mailed about is all right again.",
+      "wrongNow": "Wrong now",
+      "rightAgain": "All right again",
+      "since": "Since {since}, {lasted} so far",
+      "was": "Was: {message}",
+      "lasted": "Lasted {lasted}, until {until}",
+      "action": "Open the dashboard",
+      "footer": "Sent by the dashboard of {server} to everyone who sees the server. Turn these off in Settings > Account."
+    }
   }
 }

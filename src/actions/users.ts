@@ -1,5 +1,6 @@
 'use server';
 
+import { getLocale } from 'next-intl/server';
 import { z } from 'zod';
 
 import { errorText, issueText } from '@/i18n/errors';
@@ -13,6 +14,7 @@ import { getDashboard } from '@/lib/dashboard/services';
 import { db } from '@/lib/db';
 import { mailReady, sendMail } from '@/lib/mail/mail';
 import { inviteMail } from '@/lib/mail/templates';
+import { mailWords } from '@/lib/mail/words';
 import { SITE_URL } from '@/lib/site';
 
 /** Groups given to one person, far past any real number */
@@ -255,7 +257,7 @@ export async function createInvite(input: {
   if (input.send) {
     try {
       await sendMail(
-        inviteMail({
+        inviteMail(await mailWords(await getLocale()), {
           email,
           role,
           invitedBy: access.user.name,

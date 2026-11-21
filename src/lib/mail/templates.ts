@@ -1,19 +1,17 @@
 import 'server-only';
 
-import { createTranslator } from 'next-intl';
-
-import en from '@/i18n/messages/en.json';
-
-import { ROLE_INFO, type Role } from '@/lib/auth/roles';
-import { formatDuration } from '@/lib/format';
+import type { Role } from '@/lib/auth/roles';
 import type { Mail, MailDetail } from '@/lib/mail/mail';
+import type { MailWords } from '@/lib/mail/words';
 import { SERVER_NAME, SITE_URL } from '@/lib/site';
+import type { AlertWords } from '@/lib/types';
 
 import { describeAgent } from '@/components/settings/user-agent';
 
 /**
- * Every mail the dashboard sends, worded in one place: who it's to and
- * where its link goes are filled in by what sends it.
+ * Every mail the dashboard sends, worded in one place, in its reader's
+ * language by mailWords(): who it's to and where its link goes are filled
+ * in by what sends it.
  */
 
 type Who = { name: string; email: string };
@@ -30,42 +28,30 @@ export function originOf(request?: Request): Origin | undefined {
   };
 }
 
-/**
- * A moment, written out with its zone, as a mail's reader may be anywhere
- * and read it any time later: "20 Nov 2026, 18:42 CET". In the server's
- * own zone (TZ), the one its logs are in.
- */
-export function formatMailTime(at: Date | number) {
-  return new Intl.DateTimeFormat('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZoneName: 'short',
-  }).format(at);
-}
-
 /** When it was asked for and from what, as far as the request says */
-function requested(origin: Origin | undefined, now: number): MailDetail[] {
+function requested(
+  w: MailWords,
+  origin: Origin | undefined,
+  now: number
+): MailDetail[] {
   const from = [
-    origin?.userAgent
-      ? describeAgent(
-          origin.userAgent,
-          createTranslator({ locale: 'en', messages: en, namespace: 'agent' })
-        )
-      : undefined,
+    origin?.userAgent ? describeAgent(origin.userAgent, w.agent) : undefined,
     origin?.ip || undefined,
   ].filter(Boolean);
   return [
-    { label: 'Requested', value: formatMailTime(now) },
-    ...(from.length ? [{ label: 'From', value: from.join(', ') }] : []),
+    { label: w.t('requested'), value: w.time(now) },
+    ...(from.length ? [{ label: w.t('from'), value: from.join(', ') }] : []),
   ];
 }
 
-const server = () => SERVER_NAME ?? 'your server';
+/** The server, by its name, or in words where it has none. */
+const server = (w: MailWords) => SERVER_NAME ?? w.t('yourServer');
+
+/** The small print every mail ends with, unless it says more. */
+const footer = (w: MailWords) => w.t('footer', { server: server(w) });
 
 export function resetPasswordMail(
+  w: MailWords,
   user: Who,
   url: string,
   expiresAt: Date,
@@ -73,43 +59,45 @@ export function resetPasswordMail(
   now = Date.now()
 ): Mail {
   return {
+    lang: w.lang,
     to: user.email,
-    subject: 'Reset your password',
-    paragraphs: [
-      `Hi ${user.name}, someone asked to reset the password of your account on the dashboard of ${server()}. If it was you, pick a new one with the button below.`,
-    ],
+    subject: w.t('reset.subject'),
+    paragraphs: [w.t('reset.text', { name: user.name, server: server(w) })],
     details: [
-      { label: 'Account', value: user.email },
-      ...requested(origin, now),
-      { label: 'Link works until', value: formatMailTime(expiresAt) },
+      { label: w.t('account'), value: user.email },
+      ...requested(w, origin, now),
+      { label: w.t('linkUntil'), value: w.time(expiresAt) },
     ],
-    action: { label: 'Pick a new password', url },
-    note: "If it wasn't you, there's nothing to do: your password stays as it is, and the link runs out by itself. Picking a new one signs you out everywhere else.",
+    action: { label: w.t('reset.action'), url },
+    note: w.t('reset.note'),
+    footer: footer(w),
   };
 }
 
 export function confirmAddressMail(
+  w: MailWords,
   user: Who,
   url: string,
   expiresAt: Date
 ): Mail {
   return {
+    lang: w.lang,
     to: user.email,
-    subject: 'Confirm your email address',
-    paragraphs: [
-      `Hi ${user.name}, confirm this is your address, so the dashboard of ${server()} can reach you: to reset a forgotten password, and with alerts if you get them.`,
-    ],
+    subject: w.t('confirm.subject'),
+    paragraphs: [w.t('confirm.text', { name: user.name, server: server(w) })],
     details: [
-      { label: 'Account', value: user.name },
-      { label: 'Address', value: user.email },
-      { label: 'Link works until', value: formatMailTime(expiresAt) },
+      { label: w.t('account'), value: user.name },
+      { label: w.t('address'), value: user.email },
+      { label: w.t('linkUntil'), value: w.time(expiresAt) },
     ],
-    action: { label: 'Confirm my address', url },
-    note: "If you don't have an account there, there's nothing to do: the address isn't used until it's confirmed.",
+    action: { label: w.t('confirm.action'), url },
+    note: w.t('confirm.note'),
+    footer: footer(w),
   };
 }
 
 export function changeAddressMail(
+  w: MailWords,
   user: Who,
   newEmail: string,
   url: string,
@@ -118,102 +106,132 @@ export function changeAddressMail(
   now = Date.now()
 ): Mail {
   return {
+    lang: w.lang,
     to: user.email,
-    subject: 'Change your email address?',
-    heading: 'Change your email address',
-    paragraphs: [
-      `Hi ${user.name}, someone signed in as you asked to change your account's address on the dashboard of ${server()}. If it was you, agree to it here; the new address is then sent a link to confirm it.`,
-    ],
+    subject: w.t('change.subject'),
+    heading: w.t('change.heading'),
+    paragraphs: [w.t('change.text', { name: user.name, server: server(w) })],
     details: [
-      { label: 'Current address', value: user.email },
-      { label: 'New address', value: newEmail },
-      ...requested(origin, now),
-      { label: 'Link works until', value: formatMailTime(expiresAt) },
+      { label: w.t('currentAddress'), value: user.email },
+      { label: w.t('newAddress'), value: newEmail },
+      ...requested(w, origin, now),
+      { label: w.t('linkUntil'), value: w.time(expiresAt) },
     ],
-    action: { label: 'Agree to the change', url },
-    note: "If it wasn't you, don't open the link: someone knows your password. Change it in Settings > Account and sign out your other sessions there.",
+    action: { label: w.t('change.action'), url },
+    note: w.t('change.note'),
+    footer: footer(w),
   };
 }
 
-export function inviteMail(invite: {
-  email: string;
-  role: Role;
-  invitedBy: string;
-  url: string;
-  expiresAt: Date;
-}): Mail {
-  const info = ROLE_INFO[invite.role];
+export function inviteMail(
+  w: MailWords,
+  invite: {
+    email: string;
+    role: Role;
+    invitedBy: string;
+    url: string;
+    expiresAt: Date;
+  }
+): Mail {
   return {
+    lang: w.lang,
     to: invite.email,
-    subject: `You're invited to ${SERVER_NAME ?? 'the dashboard'}`,
-    heading: `Join ${SERVER_NAME ?? 'the dashboard'}`,
+    subject: SERVER_NAME
+      ? w.t('invite.subject', { server: SERVER_NAME })
+      : w.t('invite.subjectDashboard'),
+    heading: SERVER_NAME
+      ? w.t('invite.heading', { server: SERVER_NAME })
+      : w.t('invite.headingDashboard'),
     paragraphs: [
-      `Hi, ${invite.invitedBy} invited you to the dashboard of ${SERVER_NAME ?? 'their server'}. Make your account with the button below: you pick your own name and password.`,
+      SERVER_NAME
+        ? w.t('invite.text', { by: invite.invitedBy, server: SERVER_NAME })
+        : w.t('invite.textTheirs', { by: invite.invitedBy }),
     ],
     details: [
-      { label: 'Invited by', value: invite.invitedBy },
+      { label: w.t('invitedBy'), value: invite.invitedBy },
       {
-        label: 'Role',
-        value: `${info.name}: ${info.description[0].toLowerCase()}${info.description.slice(1)}`,
+        label: w.t('role'),
+        value: `${w.roles(`${invite.role}.name`)}: ${w.roles(`${invite.role}.abilities`)}`,
       },
-      { label: 'For', value: invite.email },
-      { label: 'Invite works until', value: formatMailTime(invite.expiresAt) },
+      { label: w.t('for'), value: invite.email },
+      { label: w.t('inviteUntil'), value: w.time(invite.expiresAt) },
     ],
-    action: { label: 'Make my account', url: invite.url },
-    note: "The link works once. If you weren't expecting it, there's nothing to do: it runs out by itself.",
-    footer: `Sent by the dashboard of ${SERVER_NAME ?? 'a server'} for ${invite.invitedBy}.`,
+    action: { label: w.t('invite.action'), url: invite.url },
+    note: w.t('invite.note'),
+    footer: w.t('invite.footer', {
+      server: SERVER_NAME ?? w.t('aServer'),
+      by: invite.invitedBy,
+    }),
   };
 }
 
 type AlertLine = {
   subject: string;
   message: string;
+  /** The two in words for each reader's language; none in alerts from before them */
+  words?: AlertWords | null;
   since: Date;
   resolvedAt?: Date | null;
 };
 
-const lasted = (from: Date, to: number) =>
-  formatDuration((to - from.getTime()) / 1000);
-
 /** A round of alerts: what's newly wrong, and what's right again, in one mail. */
 export function alertsMail(
+  w: MailWords,
   to: string[],
   due: AlertLine[],
   resolved: AlertLine[],
   now = Date.now()
 ): Mail {
-  const name = SERVER_NAME ?? 'the server';
-  const counts = [
-    due.length && `${due.length} new alert${due.length === 1 ? '' : 's'}`,
-    resolved.length && `${resolved.length} resolved`,
-  ].filter(Boolean);
+  const name = SERVER_NAME ?? w.t('theServer');
+  const lasted = (from: Date, until: number) =>
+    w.format.duration((until - from.getTime()) / 1000);
+  // In the reader's language where it has words, else as it was kept
+  const subjectOf = (a: AlertLine) =>
+    a.words?.subject
+      ? w.alertWords(a.words.subject.key, a.words.subject.values)
+      : a.subject;
+  const messageOf = (a: AlertLine) =>
+    a.words?.message
+      ? w.alertWords(a.words.message.key, a.words.message.values)
+      : a.message;
   const subject =
     due.length === 1 && !resolved.length
-      ? `${due[0].subject}: ${due[0].message}`
+      ? `${subjectOf(due[0])}: ${messageOf(due[0])}`
       : !due.length && resolved.length === 1
-        ? `${resolved[0].subject} is all right again`
-        : `${counts.join(', ')} on ${name}`;
+        ? w.t('alerts.oneRight', { subject: subjectOf(resolved[0]) })
+        : w.t('alerts.counts', {
+            due: due.length,
+            resolved: resolved.length,
+            server: name,
+          });
   return {
+    lang: w.lang,
     to,
     subject,
     heading: due.length
-      ? `Something's wrong on ${name}`
-      : `All right again on ${name}`,
+      ? w.t('alerts.wrongHeading', { server: name })
+      : w.t('alerts.rightHeading', { server: name }),
     paragraphs: [
       due.length
-        ? `The dashboard found ${due.length === 1 ? 'a problem that has' : `${due.length} problems that have`} lasted a while.${resolved.length ? ' Something it mailed about before is all right again, too.' : ''}`
-        : `${resolved.length === 1 ? 'What' : 'Everything'} the dashboard mailed about is all right again.`,
+        ? w.t('alerts.wrongText', {
+            count: due.length,
+            alsoRight: resolved.length ? 'yes' : 'no',
+          })
+        : w.t('alerts.rightText', { count: resolved.length }),
     ],
     sections: [
       ...(due.length
         ? [
             {
-              heading: 'Wrong now',
+              heading: w.t('alerts.wrongNow'),
               tone: 'destructive' as const,
               items: due.map((a) => ({
-                title: a.subject,
-                text: a.message,
-                meta: `Since ${formatMailTime(a.since)}, ${lasted(a.since, now)} so far`,
+                title: subjectOf(a),
+                text: messageOf(a),
+                meta: w.t('alerts.since', {
+                  since: w.time(a.since),
+                  lasted: lasted(a.since, now),
+                }),
               })),
             },
           ]
@@ -221,18 +239,21 @@ export function alertsMail(
       ...(resolved.length
         ? [
             {
-              heading: 'All right again',
+              heading: w.t('alerts.rightAgain'),
               tone: 'success' as const,
               items: resolved.map((a) => ({
-                title: a.subject,
-                text: `Was: ${a.message}`,
-                meta: `Lasted ${lasted(a.since, a.resolvedAt!.getTime())}, until ${formatMailTime(a.resolvedAt!)}`,
+                title: subjectOf(a),
+                text: w.t('alerts.was', { message: messageOf(a) }),
+                meta: w.t('alerts.lasted', {
+                  lasted: lasted(a.since, a.resolvedAt!.getTime()),
+                  until: w.time(a.resolvedAt!),
+                }),
               })),
             },
           ]
         : []),
     ],
-    action: { label: 'Open the dashboard', url: SITE_URL.href },
-    footer: `Sent by the dashboard of ${name} to everyone who sees the server. Turn these off in Settings > Account.`,
+    action: { label: w.t('alerts.action'), url: SITE_URL.href },
+    footer: w.t('alerts.footer', { server: name }),
   };
 }
