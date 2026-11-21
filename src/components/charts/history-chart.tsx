@@ -69,6 +69,8 @@ type ChartBand = {
   high: number[];
   lowLabel: string;
   highLabel: string;
+  /** What the band spreads across, each listed with its reading at the moment pointed at */
+  members?: { label: string; short: string; values: number[] }[];
 };
 
 type ChartSeries = {
@@ -348,6 +350,24 @@ export function HistoryChart({
                       <span className='opacity-70'>{name}</span>
                     </span>
                   ))}
+                {band?.members && (
+                  // Every one at once, in a grid of short names, as twenty
+                  // rows would stand taller than the chart
+                  <span className='mt-1 grid grid-cols-4 gap-x-3 gap-y-0.5 border-t border-current/20 pt-1.5'>
+                    {band.members.map((m) => (
+                      <span
+                        key={m.label}
+                        aria-label={`${m.label} ${series[0].measure.format(m.values[shown], format)}`}
+                        className='flex justify-between gap-2'
+                      >
+                        <span className='opacity-70'>{m.short}</span>
+                        <span className='font-mono tabular-nums'>
+                          {series[0].measure.format(m.values[shown], format)}
+                        </span>
+                      </span>
+                    ))}
+                  </span>
+                )}
               </div>
             </TooltipContent>
           </Tooltip>

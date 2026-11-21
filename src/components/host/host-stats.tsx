@@ -365,7 +365,7 @@ function CpuStat({ host }: { host?: HostStats }) {
     ...(shown === 'cores' ? cores.map((c) => c.length) : [])
   );
   const total = {
-    label: t('allCores'),
+    label: t('allThreads'),
     values: host?.history.cpu.slice(-count) ?? [],
     measure: MEASURES.serverCpu,
   };
@@ -386,9 +386,7 @@ function CpuStat({ host }: { host?: HostStats }) {
           aria-label={t('showInGraph')}
         >
           <ToggleGroupItem value='total'>{t('total')}</ToggleGroupItem>
-          <ToggleGroupItem value='cores'>
-            {host ? t('cores', { count: host.cores }) : t('coresLabel')}
-          </ToggleGroupItem>
+          <ToggleGroupItem value='cores'>{t('perThread')}</ToggleGroupItem>
         </ToggleGroup>
       }
       value={host ? format.cpu(host.cpu) : <ValueSkeleton />}
@@ -396,7 +394,7 @@ function CpuStat({ host }: { host?: HostStats }) {
     >
       {host && (
         <HistoryChart
-          label={shown === 'cores' ? t('cpuEachCore') : t('cpuChart')}
+          label={shown === 'cores' ? t('cpuEachThread') : t('cpuChart')}
           times={host.history.at.slice(-count)}
           series={[shown === 'cores' ? total : { ...total, label: t('cpu') }]}
           // Each core as one soft band, from the least busy to the busiest at
@@ -406,8 +404,14 @@ function CpuStat({ host }: { host?: HostStats }) {
               ? {
                   low: spread(cores, count, Math.min),
                   high: spread(cores, count, Math.max),
-                  lowLabel: t('leastBusyCore'),
-                  highLabel: t('busiestCore'),
+                  lowLabel: t('leastBusyThread'),
+                  highLabel: t('busiestThread'),
+                  // Each one's reading too, when the chart's pointed at
+                  members: cores.map((values, i) => ({
+                    label: t('thread', { number: i }),
+                    short: String(i),
+                    values: values.slice(-count),
+                  })),
                 }
               : undefined
           }
