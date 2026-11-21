@@ -554,6 +554,8 @@ declare const messages: {
     "cpuEachCore": "CPU, each core and all together, over the last ten minutes",
     "cpuChart": "CPU over the last ten minutes",
     "core": "Core {number, number}",
+    "busiestCore": "Busiest core",
+    "leastBusyCore": "Least busy core",
     "diskOpen": "Disk: see what takes up space",
     "disk": "Disk",
     "both": "Both",

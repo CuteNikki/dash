@@ -551,6 +551,8 @@
     "cpuEachCore": "CPU, jeder Kern und alle zusammen, über die letzten zehn Minuten",
     "cpuChart": "CPU über die letzten zehn Minuten",
     "core": "Kern {number, number}",
+    "busiestCore": "Kern mit der meisten Last",
+    "leastBusyCore": "Kern mit der wenigsten Last",
     "diskOpen": "Datenträger: sehen, was Platz belegt",
     "disk": "Datenträger",
     "both": "Beide",

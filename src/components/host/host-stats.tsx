@@ -342,6 +342,18 @@ function Of({ capacity }: { capacity?: Capacity }) {
  * The CPU over all cores, as a graph of their total, or with each core's own
  * line behind it, faint, to see how they share the work.
  */
+/** The least or most of the cores' readings at each of the last count moments. */
+function spread(
+  cores: number[][],
+  count: number,
+  pick: (...values: number[]) => number
+) {
+  const recent = cores.map((c) => c.slice(-count));
+  return Array.from({ length: count }, (_, i) =>
+    pick(...recent.map((c) => c[i]))
+  );
+}
+
 function CpuStat({ host }: { host?: HostStats }) {
   const format = useFormat();
   const t = useTranslations('host');
@@ -386,18 +398,18 @@ function CpuStat({ host }: { host?: HostStats }) {
         <HistoryChart
           label={shown === 'cores' ? t('cpuEachCore') : t('cpuChart')}
           times={host.history.at.slice(-count)}
-          series={
-            shown === 'cores'
-              ? [
-                  total,
-                  ...cores.map((values, i) => ({
-                    label: t('core', { number: i }),
-                    values: values.slice(-count),
-                    measure: MEASURES.serverCpu,
-                    faint: true,
-                  })),
-                ]
-              : [{ ...total, label: t('cpu') }]
+          series={[shown === 'cores' ? total : { ...total, label: t('cpu') }]}
+          // Each core as one soft band, from the least busy to the busiest at
+          // each moment: twenty lines would only tangle
+          band={
+            shown === 'cores' && cores.length
+              ? {
+                  low: spread(cores, count, Math.min),
+                  high: spread(cores, count, Math.max),
+                  lowLabel: t('leastBusyCore'),
+                  highLabel: t('busiestCore'),
+                }
+              : undefined
           }
           className='h-full'
         />

@@ -63,6 +63,14 @@ function runs(values: (number | null)[], times: number[]) {
 /** How strong a lone line's fill is just under it, before it fades away below */
 const FILL_TOP = 0.25;
 
+/** The spread of many readings at each moment, such as the least and most busy cores. */
+type ChartBand = {
+  low: number[];
+  high: number[];
+  lowLabel: string;
+  highLabel: string;
+};
+
 type ChartSeries = {
   label: string;
   /** Null where there's no reading, as while the dashboard was down: a gap in the line */
@@ -83,6 +91,7 @@ export function HistoryChart({
   series,
   label,
   fit,
+  band,
   className,
 }: {
   /** When each reading was taken, in milliseconds */
@@ -95,6 +104,8 @@ export function HistoryChart({
    * for what's never near nothing, such as memory: its shape shows
    */
   fit?: boolean;
+  /** Drawn as a soft area behind the lines, from its low readings to its high ones */
+  band?: ChartBand;
   className?: string;
 }) {
   const t = useTranslations('common');
@@ -134,9 +145,10 @@ export function HistoryChart({
   const count = times.length;
   if (count < 2) return null;
 
-  const readings = series.flatMap((s) =>
-    s.values.filter((v): v is number => v !== null)
-  );
+  const readings = [
+    ...series.flatMap((s) => s.values.filter((v): v is number => v !== null)),
+    ...(band?.high ?? []),
+  ];
   const highest = Math.max(...readings, ...series.map((s) => s.measure.floor));
   // Fitted, the scale spans at least a share of the value, so a wobble of a
   // few bytes stays a wobble, and has room above and below the line
@@ -152,7 +164,8 @@ export function HistoryChart({
   const y = (v: number) => 100 - ((v - bottom) / (top - bottom || 1)) * 100;
   const shown = index === undefined ? undefined : Math.min(index, count - 1);
   const days = times[count - 1] - times[0] > DAYS_MS;
-  const fillable = series.length === 1;
+  // Filled alone; beside a band, the band is the fill
+  const fillable = series.length === 1 && !band;
 
   function pointAt(clientX: number, element: HTMLElement) {
     const { left, width } = element.getBoundingClientRect();
@@ -215,6 +228,16 @@ export function HistoryChart({
             <stop offset='1' stopColor='currentColor' stopOpacity={0} />
           </linearGradient>
         </defs>
+        {band && (
+          <polygon
+            points={[
+              ...band.high.map((v, i) => `${x(i)},${y(v)}`),
+              ...band.low.map((v, i) => `${x(i)},${y(v)}`).reverse(),
+            ].join(' ')}
+            fill='currentColor'
+            className='opacity-20'
+          />
+        )}
         {series.flatMap((s) =>
           runs(s.values, times).map((run) => {
             // A reading alone between gaps is a dot: a line of no length,
@@ -302,11 +325,29 @@ export function HistoryChart({
                         ? t('noReading')
                         : s.measure.format(s.values[shown], format)}
                     </span>
-                    {series.length > 1 && (
+                    {(series.length > 1 || band) && (
                       <span className='opacity-70'>{s.label}</span>
                     )}
                   </span>
                 ))}
+                {band &&
+                  (
+                    [
+                      [band.high[shown], band.highLabel],
+                      [band.low[shown], band.lowLabel],
+                    ] as const
+                  ).map(([value, name]) => (
+                    <span key={name} className='flex items-center gap-2'>
+                      <span
+                        aria-hidden
+                        className='h-2 w-3 rounded-xs bg-current opacity-30'
+                      />
+                      <span className='font-mono font-medium tabular-nums'>
+                        {series[0].measure.format(value, format)}
+                      </span>
+                      <span className='opacity-70'>{name}</span>
+                    </span>
+                  ))}
               </div>
             </TooltipContent>
           </Tooltip>
