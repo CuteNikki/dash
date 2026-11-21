@@ -42,6 +42,7 @@ import type { OrderInput } from '@/actions/tiles';
 import { useFormat } from '@/i18n/use-format';
 
 import {
+  DEFAULT_GROUP,
   groupsOf,
   HEADING,
   listRows,
@@ -355,7 +356,7 @@ export function ServiceList({
         {groups.map((g) => (
           <FilterItem
             key={g.name}
-            label={g.name}
+            label={g.name === DEFAULT_GROUP ? t('otherGroup') : g.name}
             count={g.services.length}
             active={same({ kind: 'group', name: g.name })}
             onPick={() => onFilterAction({ kind: 'group', name: g.name })}
@@ -673,7 +674,9 @@ function GroupHeading({
               />
             </span>
           ) : (
-            <span className='truncate'>{name}</span>
+            <span className='truncate'>
+              {name === DEFAULT_GROUP ? t('otherGroup') : name}
+            </span>
           )}
         </span>
       </th>

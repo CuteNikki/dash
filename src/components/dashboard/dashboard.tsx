@@ -25,7 +25,11 @@ import {
 } from '@/actions/tiles';
 
 import { can, type Ability } from '@/lib/auth/roles';
-import { groupNames, groupServices } from '@/lib/dashboard/groups';
+import {
+  DEFAULT_GROUP,
+  groupNames,
+  groupServices,
+} from '@/lib/dashboard/groups';
 import {
   FILTER_COOKIE,
   filterToCookie,
@@ -89,6 +93,7 @@ export function Dashboard({
   /** Whoever's signed in, whose role says what shows */
   me: Me;
 }) {
+  const tHost = useTranslations('host');
   const t = useTranslations('dashboard');
   const columns = useColumns(initialColumns);
   // What their role may use shows; the server refuses the rest regardless
@@ -258,7 +263,7 @@ export function Dashboard({
             label: t('server'),
             tiles: data.hostTiles.map((t) => ({
               key: `host:${t.key}`,
-              name: t.name,
+              name: tHost(`tiles.${t.key}`),
               w: t.width,
               h: t.height,
               inert: true,
@@ -280,7 +285,7 @@ export function Dashboard({
     ...(view === 'list' ? [] : groups).map((g) => ({
       id: `group:${g.name}`,
       kind: 'group' as const,
-      label: g.name,
+      label: g.name === DEFAULT_GROUP ? t('otherGroup') : g.name,
       tiles: g.services.map((service) => ({
         key: service.key,
         name: service.name,

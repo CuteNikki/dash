@@ -278,7 +278,8 @@ declare const messages: {
     "cancel": "Cancel",
     "cancelTitle": "Put back what's been moved, resized and renamed",
     "done": "Done",
-    "editDashboard": "Edit"
+    "editDashboard": "Edit",
+    "otherGroup": "Other"
   },
   "board": {
     "move": "Move {name}: arrow keys move it, with Shift they resize it",
@@ -302,7 +303,8 @@ declare const messages: {
     "logs": "Logs",
     "restart": "Restart",
     "stop": "Stop",
-    "start": "Start"
+    "start": "Start",
+    "otherGroup": "Other"
   },
   "actions": {
     "failed": "{action, select, start {Couldn't start {name}} stop {Couldn't stop {name}} restart {Couldn't restart {name}} other {Couldn't change {name}}}",
@@ -538,7 +540,16 @@ declare const messages: {
     "disk": "Disk",
     "both": "Both",
     "flowChart": "{label} {count, plural, one {{first}} other {{first} and {second}}} over the last ten minutes",
-    "used": "Used"
+    "used": "Used",
+    "tiles": {
+      "server": "Server",
+      "cpu": "CPU",
+      "processes": "Processes",
+      "memory": "Memory",
+      "disk": "Disk",
+      "disk-io": "Disk I/O",
+      "network": "Network"
+    }
   },
   "history": {
     "cpu": "CPU",

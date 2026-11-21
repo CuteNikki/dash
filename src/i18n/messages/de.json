@@ -275,7 +275,8 @@
     "cancel": "Abbrechen",
     "cancelTitle": "Verschobenes, Vergrößertes und Umbenanntes zurücksetzen",
     "done": "Fertig",
-    "editDashboard": "Bearbeiten"
+    "editDashboard": "Bearbeiten",
+    "otherGroup": "Sonstiges"
   },
   "board": {
     "move": "{name} verschieben: Pfeiltasten verschieben, mit Umschalt ändern sie die Größe",
@@ -299,7 +300,8 @@
     "logs": "Logs",
     "restart": "Neu starten",
     "stop": "Stoppen",
-    "start": "Starten"
+    "start": "Starten",
+    "otherGroup": "Sonstiges"
   },
   "actions": {
     "failed": "{action, select, start {{name} konnte nicht gestartet werden} stop {{name} konnte nicht gestoppt werden} restart {{name} konnte nicht neu gestartet werden} other {{name} konnte nicht geändert werden}}",
@@ -535,7 +537,16 @@
     "disk": "Datenträger",
     "both": "Beide",
     "flowChart": "{label} {count, plural, one {{first}} other {{first} und {second}}} über die letzten zehn Minuten",
-    "used": "Belegt"
+    "used": "Belegt",
+    "tiles": {
+      "server": "Server",
+      "cpu": "CPU",
+      "processes": "Prozesse",
+      "memory": "Speicher",
+      "disk": "Datenträger",
+      "disk-io": "Datenträger-E/A",
+      "network": "Netzwerk"
+    }
   },
   "history": {
     "cpu": "CPU",
