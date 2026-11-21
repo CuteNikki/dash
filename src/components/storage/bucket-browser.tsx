@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import {
   createElement,
   Fragment,
@@ -35,8 +36,11 @@ import {
 
 import { deleteStoredFiles } from '@/actions/storage';
 
+import type { Format } from '@/i18n/format';
+import { useFormat } from '@/i18n/use-format';
+
 import { fetcher } from '@/lib/fetcher';
-import { formatBytes, formatMoment, formatPast } from '@/lib/format';
+import { formatBytes } from '@/lib/format';
 import { fileKind, mediaKind, type FileKind } from '@/lib/media';
 import type {
   FolderPeek,
@@ -125,6 +129,8 @@ const iconOf = (key: string) => {
  * where it is one, picked to delete one or many at a time.
  */
 export function BucketBrowser({ containerId }: { containerId: string }) {
+  const format = useFormat();
+  const t = useTranslations('storage');
   const base = `/api/containers/${containerId}/browse`;
   const {
     data: buckets,
@@ -159,16 +165,16 @@ export function BucketBrowser({ containerId }: { containerId: string }) {
           own, as a bucket's folders are, the grid having the room */}
       {!at.bucket && (
         <section
-          aria-label='Buckets'
+          aria-label={t('buckets')}
           className='flex min-h-0 flex-1 flex-col gap-3 sm:hidden'
         >
           <div className='flex min-h-7 items-center gap-2'>
-            <span className='flex-1 px-1 font-mono'>Buckets</span>
+            <span className='flex-1 px-1 font-mono'>{t('buckets')}</span>
             <Button
               variant='outline'
               size='icon'
-              aria-label='Read again'
-              title='Read again'
+              aria-label={t('readAgain')}
+              title={t('readAgain')}
               onClick={() => void rereadBuckets()}
             >
               <RefreshCwIcon />
@@ -200,7 +206,7 @@ export function BucketBrowser({ containerId }: { containerId: string }) {
                   ))}
                 </ul>
               ) : buckets.length === 0 ? (
-                <p className='text-muted-foreground'>No buckets yet.</p>
+                <p className='text-muted-foreground'>{t('noBuckets')}</p>
               ) : (
                 <ul className='flex flex-col'>
                   {buckets.map((b) => (
@@ -215,8 +221,10 @@ export function BucketBrowser({ containerId }: { containerId: string }) {
                           {b.name}
                         </span>
                         <span className='shrink-0 text-muted-foreground tabular-nums'>
-                          {b.objects} {b.objects === 1 ? 'file' : 'files'} ·{' '}
-                          {formatBytes(b.size)}
+                          {t('filesSize', {
+                            count: b.objects,
+                            size: format.bytes(b.size),
+                          })}
                         </span>
                       </button>
                     </li>
@@ -228,7 +236,7 @@ export function BucketBrowser({ containerId }: { containerId: string }) {
         </section>
       )}
       <section
-        aria-label='Buckets'
+        aria-label={t('buckets')}
         className='hidden shrink-0 flex-col overflow-hidden rounded-lg bg-muted sm:flex sm:w-60'
       >
         <ScrollFade
@@ -256,7 +264,7 @@ export function BucketBrowser({ containerId }: { containerId: string }) {
               ))}
             </ul>
           ) : buckets.length === 0 ? (
-            <p className='p-2 text-muted-foreground'>No buckets yet.</p>
+            <p className='p-2 text-muted-foreground'>{t('noBuckets')}</p>
           ) : (
             <ul className='flex flex-col gap-1'>
               {buckets.map((b) => (
@@ -274,8 +282,10 @@ export function BucketBrowser({ containerId }: { containerId: string }) {
                   >
                     <span className='truncate font-mono'>{b.name}</span>
                     <span className='text-muted-foreground tabular-nums'>
-                      {b.objects} {b.objects === 1 ? 'file' : 'files'} ·{' '}
-                      {formatBytes(b.size)}
+                      {t('filesSize', {
+                        count: b.objects,
+                        size: format.bytes(b.size),
+                      })}
                     </span>
                   </button>
                 </li>
@@ -329,6 +339,7 @@ function Folder({
   onDeletedAction: () => void;
   className?: string;
 }) {
+  const t = useTranslations('storage');
   const { data, error, setSize, isValidating, mutate } =
     useSWRInfinite<StoredPage>(
       (_i, previous: StoredPage | null) =>
@@ -393,15 +404,15 @@ function Folder({
 
   function remove(keys: string[]) {
     startTransition(() =>
-      attempt(`Couldn't delete from ${bucket}`, async () => {
+      attempt(t('deleteFailed', { bucket }), async () => {
         const result = await deleteStoredFiles(containerId, bucket, keys);
         if (!result.ok) {
-          toast.error(`Couldn't delete from ${bucket}`, {
+          toast.error(t('deleteFailed', { bucket }), {
             description: result.error,
           });
           return;
         }
-        toast.success(`Deleted ${described(keys)}`);
+        toast.success(t('deleted', { what: described(keys, t) }));
         setSelected((was) => {
           const next = new Set(was);
           for (const key of keys) next.delete(key);
@@ -425,8 +436,8 @@ function Folder({
   // Where the arrow before them goes: the folder this one's in, or the
   // buckets from a bucket's top
   const back = prefix
-    ? `Back to ${crumbs.at(-2)?.name ?? bucket}`
-    : 'Back to the buckets';
+    ? t('backTo', { name: crumbs.at(-2)?.name ?? bucket })
+    : t('backToBuckets');
   const everything = [...folders, ...files.map((f) => f.key)];
   const all = everything.length > 0 && everything.every((k) => selected.has(k));
   const picking = selected.size > 0;
@@ -456,7 +467,7 @@ function Folder({
             <ArrowLeftIcon />
           </Button>
           <nav
-            aria-label='Folder'
+            aria-label={t('folder')}
             className='flex min-w-0 flex-1 items-center overflow-hidden font-mono whitespace-nowrap'
           >
             {[{ name: bucket, prefix: '' }, ...crumbs].map((c, i, all) => {
@@ -494,12 +505,12 @@ function Folder({
               onClick={() => setConfirming([...selected])}
             >
               <Trash2Icon />
-              Delete
+              {t('delete')}
             </Button>
           )}
           {everything.length > 0 && (
             <label className='flex items-center gap-2 whitespace-nowrap text-muted-foreground'>
-              {picking ? `${selected.size} picked` : 'Pick all'}
+              {picking ? t('picked', { count: selected.size }) : t('pickAll')}
               <Checkbox
                 checked={all ? true : picking ? 'indeterminate' : false}
                 onCheckedChange={(on) =>
@@ -511,8 +522,8 @@ function Folder({
           <Button
             variant='outline'
             size='icon'
-            aria-label={view === 'grid' ? 'Show as a list' : 'Show as a grid'}
-            title={view === 'grid' ? 'Show as a list' : 'Show as a grid'}
+            aria-label={view === 'grid' ? t('showList') : t('showGrid')}
+            title={view === 'grid' ? t('showList') : t('showGrid')}
             onClick={() => setView(view === 'grid' ? 'list' : 'grid')}
           >
             {view === 'grid' ? <ListIcon /> : <LayoutGridIcon />}
@@ -520,8 +531,8 @@ function Folder({
           <Button
             variant='outline'
             size='icon'
-            aria-label='Read again'
-            title='Read again'
+            aria-label={t('readAgain')}
+            title={t('readAgain')}
             disabled={isValidating}
             onClick={() => void mutate()}
           >
@@ -557,7 +568,7 @@ function Folder({
             )
           ) : folders.length === 0 && files.length === 0 ? (
             <p className='text-muted-foreground'>
-              {prefix ? 'This folder is empty.' : 'This bucket is empty.'}
+              {prefix ? t('folderEmpty') : t('bucketEmpty')}
             </p>
           ) : view === 'list' ? (
             <ul className='flex flex-col'>
@@ -627,35 +638,32 @@ function Folder({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Delete {confirming && described(confirming)}?
+              {t('deleteTitle', {
+                what: confirming ? described(confirming, t) : '',
+              })}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {confirming?.length === 1 && !isFolder(confirming[0])
-                ? 'It goes'
-                : 'They go'}{' '}
-              from {bucket} for good
-              {confirming?.some(isFolder) && ', with all that’s in them'}, and
-              anything showing{' '}
-              {confirming?.length === 1 && !isFolder(confirming[0])
-                ? 'it'
-                : 'them'}{' '}
-              stops being able to.
+              {t('deleteDescription', {
+                bucket,
+                one: String(
+                  confirming?.length === 1 && !isFolder(confirming[0])
+                ),
+                folders: String(!!confirming?.some(isFolder)),
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           {backups && (
             <p className='text-xs/relaxed text-warning'>
-              These are the backups&apos; own files, which restic looks after:
-              deleting any can leave every backup unreadable. Old backups go by
-              themselves, as only the last few are kept.
+              {t('backupFilesWarning')}
             </p>
           )}
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               variant='destructive'
               onClick={() => confirming && remove(confirming)}
             >
-              Delete
+              {t('delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -665,20 +673,17 @@ function Folder({
 }
 
 /** What's to be deleted, in words: "cat.png", "the folder a", "2 folders and 3 files". */
-function described(keys: string[]) {
+function described(
+  keys: string[],
+  t: ReturnType<typeof useTranslations<'storage'>>
+) {
   if (keys.length === 1) {
     return isFolder(keys[0])
-      ? `the folder ${nameOf(keys[0])}`
+      ? t('theFolder', { name: nameOf(keys[0]) })
       : nameOf(keys[0]);
   }
   const folders = keys.filter(isFolder).length;
-  const files = keys.length - folders;
-  return [
-    folders && `${folders} ${folders === 1 ? 'folder' : 'folders'}`,
-    files && `${files} ${files === 1 ? 'file' : 'files'}`,
-  ]
-    .filter(Boolean)
-    .join(' and ');
+  return t('foldersAndFiles', { folders, files: keys.length - folders });
 }
 
 function TileGrid({ children }: { children: React.ReactNode }) {
@@ -750,8 +755,14 @@ function useFolderPeek<T extends Element>(
 }
 
 /** "12 files · 3.4 MB", "1000+ files · …" */
-const peekSummary = (peek: FolderPeek) =>
-  `${peek.files}${peek.more ? '+' : ''} ${peek.files === 1 && !peek.more ? 'file' : 'files'} · ${formatBytes(peek.size)}`;
+const peekSummary = (
+  peek: FolderPeek,
+  t: ReturnType<typeof useTranslations<'storage'>>,
+  format: Format
+) =>
+  peek.more
+    ? t('moreFilesSize', { count: peek.files, size: format.bytes(peek.size) })
+    : t('filesSize', { count: peek.files, size: format.bytes(peek.size) });
 
 /** A box to pick a tile by, shown once it's pointed at or any are picked, so the pictures are clear otherwise. */
 function TileCheckbox({
@@ -765,11 +776,12 @@ function TileCheckbox({
   picking: boolean;
   onPickAction: (on: boolean) => void;
 }) {
+  const t = useTranslations('storage');
   return (
     <Checkbox
       checked={picked}
       onCheckedChange={(on) => onPickAction(on === true)}
-      aria-label={`Pick ${name}`}
+      aria-label={t('pick', { name })}
       // Solid, and bordered strongly, to be seen against any picture
       className={cn(
         'absolute top-2 left-2 size-5 border-foreground/50 bg-background/90 shadow-md backdrop-blur-sm',
@@ -812,6 +824,8 @@ function FolderTile({
   onPickAction: (on: boolean) => void;
   onOpenAction: () => void;
 }) {
+  const format = useFormat();
+  const t = useTranslations('storage');
   const [ref, peek] = useFolderPeek<HTMLDivElement>(base, bucket, folder);
   const pictures = peek?.pictures ?? [];
   return (
@@ -845,7 +859,11 @@ function FolderTile({
             <span className='truncate font-mono'>{nameOf(folder)}</span>
           </span>
           <span className='text-muted-foreground tabular-nums'>
-            {peek ? peekSummary(peek) : <TextSkeleton className='w-2/3' />}
+            {peek ? (
+              peekSummary(peek, t, format)
+            ) : (
+              <TextSkeleton className='w-2/3' />
+            )}
           </span>
         </span>
       </button>
@@ -874,13 +892,14 @@ function FileTile({
   onPickAction: (on: boolean) => void;
   onOpenAction: () => void;
 }) {
+  const t = useTranslations('storage');
   return (
     <div className={tileFrame(picked)}>
       <button
         type='button'
         onClick={onOpenAction}
         className='flex flex-col text-left'
-        aria-label={`Look at ${nameOf(file.key)}`}
+        aria-label={t('lookAt', { name: nameOf(file.key) })}
       >
         <span className='flex aspect-square items-center justify-center overflow-hidden bg-foreground/5'>
           {mediaKind(file.key) === 'image' ? (
@@ -930,6 +949,7 @@ function ListRow({
   onOpenAction: () => void;
   rowRef?: React.Ref<HTMLLIElement>;
 }) {
+  const t = useTranslations('storage');
   return (
     <li
       ref={rowRef}
@@ -942,7 +962,7 @@ function ListRow({
       <Checkbox
         checked={picked}
         onCheckedChange={(on) => onPickAction(on === true)}
-        aria-label={`Pick ${name}`}
+        aria-label={t('pick', { name })}
       />
       <button
         type='button'
@@ -994,13 +1014,17 @@ function FolderRow({
   onPickAction: (on: boolean) => void;
   onOpenAction: () => void;
 }) {
+  const format = useFormat();
+  const t = useTranslations('storage');
   const [ref, peek] = useFolderPeek<HTMLLIElement>(base, bucket, folder);
   return (
     <ListRow
       rowRef={ref}
       name={nameOf(folder)}
       icon={FolderIcon}
-      size={peek ? peekSummary(peek) : <TextSkeleton className='w-24' />}
+      size={
+        peek ? peekSummary(peek, t, format) : <TextSkeleton className='w-24' />
+      }
       picked={picked}
       onPickAction={onPickAction}
       onOpenAction={onOpenAction}
@@ -1019,12 +1043,13 @@ function FileRow({
   onPickAction: (on: boolean) => void;
   onOpenAction: () => void;
 }) {
+  const format = useFormat();
   return (
     <ListRow
       name={nameOf(file.key)}
       icon={iconOf(file.key)}
-      size={formatBytes(file.size)}
-      when={formatPast(file.modified)}
+      size={format.bytes(file.size)}
+      when={format.past(file.modified)}
       picked={picked}
       onPickAction={onPickAction}
       onOpenAction={onOpenAction}
@@ -1048,6 +1073,8 @@ function FileView({
   onCloseAction: () => void;
   onDeleteAction: (file: StoredFile) => void;
 }) {
+  const format = useFormat();
+  const t = useTranslations('storage');
   // Kept while it closes, so it doesn't empty as it fades
   const [last, setLast] = useState(file);
   if (file && file !== last) setLast(file);
@@ -1063,8 +1090,10 @@ function FileView({
                 {nameOf(shown.key)}
               </DialogTitle>
               <DialogDescription className='tabular-nums'>
-                {formatBytes(shown.size)} · written{' '}
-                {formatMoment(shown.modified)}
+                {t('written', {
+                  size: format.bytes(shown.size),
+                  when: format.moment(shown.modified),
+                })}
               </DialogDescription>
             </DialogHeader>
             <div className='flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-lg bg-muted'>
@@ -1090,10 +1119,7 @@ function FileView({
                   className='h-[65vh] w-full'
                 />
               ) : backups ? (
-                <p className='p-6 text-muted-foreground'>
-                  One of the backups&apos; files, encrypted by restic: they come
-                  back through the Backups window.
-                </p>
+                <p className='p-6 text-muted-foreground'>{t('backupFile')}</p>
               ) : (
                 // Anything else shown as text, where it's text
                 <TextView key={shown.key} bucket={bucket} file={shown} />
@@ -1109,18 +1135,18 @@ function FileView({
                 onClick={() => onDeleteAction(shown)}
               >
                 <Trash2Icon />
-                Delete
+                {t('delete')}
               </Button>
               <Button variant='outline' className='ml-auto' asChild>
                 <a href={shown.download}>
                   <DownloadIcon />
-                  Download
+                  {t('download')}
                 </a>
               </Button>
               <Button variant='outline' asChild>
                 <a href={shown.url} target='_blank' rel='noreferrer'>
                   <ExternalLinkIcon />
-                  Open
+                  {t('open')}
                 </a>
               </Button>
             </div>
@@ -1133,6 +1159,7 @@ function FileView({
 
 /** The start of a file as text, or that it isn't any. */
 function TextView({ bucket, file }: { bucket: string; file: StoredFile }) {
+  const t = useTranslations('storage');
   const { data, error } = useSWR<TextPeek>(
     `/api/storage/text?${new URLSearchParams({ bucket, key: file.key, v: `${file.modified}` })}`,
     fetcher,
@@ -1141,7 +1168,7 @@ function TextView({ bucket, file }: { bucket: string; file: StoredFile }) {
   if (error) {
     return (
       <p className='p-6 text-muted-foreground'>
-        Couldn&apos;t read it: {error.message}
+        {t('readFailed', { error: error.message })}
       </p>
     );
   }
@@ -1155,14 +1182,10 @@ function TextView({ bucket, file }: { bucket: string; file: StoredFile }) {
     );
   }
   if ('binary' in data) {
-    return (
-      <p className='p-6 text-muted-foreground'>
-        Not a text file, so there&apos;s nothing to show here.
-      </p>
-    );
+    return <p className='p-6 text-muted-foreground'>{t('notText')}</p>;
   }
   if (!data.text) {
-    return <p className='p-6 text-muted-foreground'>It&apos;s empty.</p>;
+    return <p className='p-6 text-muted-foreground'>{t('empty')}</p>;
   }
   return (
     <div className='flex max-h-[65vh] w-full flex-col self-stretch overflow-auto'>
@@ -1170,9 +1193,7 @@ function TextView({ bucket, file }: { bucket: string; file: StoredFile }) {
         {data.text}
       </pre>
       {data.cut && (
-        <p className='px-4 pb-4 text-muted-foreground'>
-          Only its start is shown; download it for the rest.
-        </p>
+        <p className='px-4 pb-4 text-muted-foreground'>{t('cut')}</p>
       )}
     </div>
   );
