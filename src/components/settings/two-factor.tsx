@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
@@ -23,13 +24,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 
-/** What the password's asked for, and the button that sends it. */
-const PURPOSES = {
-  enable: 'Turn on',
-  disable: 'Turn off',
-  codes: 'Make new codes',
-} as const;
-type Purpose = keyof typeof PURPOSES;
+/** What the password's asked for; its button's words are under "twoFactor.purpose". */
+type Purpose = 'enable' | 'disable' | 'codes';
 
 type Step =
   | { kind: 'idle' }
@@ -56,6 +52,7 @@ function secretOf(totpURI: string) {
  * factors itself: the device, and the fingerprint or PIN that unlocks it.
  */
 export function TwoFactor() {
+  const t = useTranslations('twoFactor');
   const { data: session, isPending } = authClient.useSession();
   const [step, setStep] = useState<Step>({ kind: 'idle' });
   const user = session?.user;
@@ -82,19 +79,15 @@ export function TwoFactor() {
         {on ? (
           <Badge variant='secondary'>
             <ShieldCheckIcon />
-            On
+            {t('on')}
           </Badge>
         ) : (
           <Badge variant='outline'>
             <ShieldOffIcon />
-            Off
+            {t('off')}
           </Badge>
         )}
-        <span>
-          {on
-            ? 'Signing in with your password asks for a code from your authenticator app too.'
-            : 'Ask for a code from an authenticator app too, when signing in with your password.'}
-        </span>
+        <span>{on ? t('onDescription') : t('offDescription')}</span>
       </div>
 
       {step.kind === 'password' ? (
@@ -114,14 +107,12 @@ export function TwoFactor() {
       ) : step.kind === 'codes' ? (
         <>
           <BackupCodes codes={step.backupCodes} email={user?.email ?? ''} />
-          <p className='text-muted-foreground'>
-            The ones you had before work no more.
-          </p>
+          <p className='text-muted-foreground'>{t('oldCodesGone')}</p>
           <Button
             onClick={() => setStep({ kind: 'idle' })}
             className='self-start'
           >
-            Done
+            {t('done')}
           </Button>
         </>
       ) : on ? (
@@ -130,13 +121,13 @@ export function TwoFactor() {
             variant='outline'
             onClick={() => setStep({ kind: 'password', purpose: 'codes' })}
           >
-            New backup codes
+            {t('newCodes')}
           </Button>
           <Button
             variant='destructive'
             onClick={() => setStep({ kind: 'password', purpose: 'disable' })}
           >
-            Turn off
+            {t('purpose.disable')}
           </Button>
         </div>
       ) : (
@@ -145,7 +136,7 @@ export function TwoFactor() {
           onClick={() => setStep({ kind: 'password', purpose: 'enable' })}
           className='self-start'
         >
-          Turn on
+          {t('purpose.enable')}
         </Button>
       )}
     </div>
@@ -163,20 +154,21 @@ function PasswordStep({
   /** Called with what follows: the setup, new codes, or nothing more */
   onDoneAction: (next: Step) => void;
 }) {
+  const t = useTranslations('twoFactor');
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
 
   function send(password: string) {
     setError(undefined);
     startTransition(() =>
-      attempt(`Couldn't ${PURPOSES[purpose].toLowerCase()}`, async () => {
+      attempt(t(`failed.${purpose}`), async () => {
         if (purpose === 'enable') {
           const { data, error } = await authClient.twoFactor.enable({
             password,
           });
           // Asked for an app's code, which is what gives these
           if (error || data?.method !== 'totp') {
-            setError(error?.message ?? "Couldn't turn it on");
+            setError(error?.message ?? t('failed.enable'));
             return;
           }
           onDoneAction({
@@ -187,16 +179,16 @@ function PasswordStep({
         } else if (purpose === 'disable') {
           const { error } = await authClient.twoFactor.disable({ password });
           if (error) {
-            setError(error.message ?? "Couldn't turn it off");
+            setError(error.message ?? t('failed.disable'));
             return;
           }
-          toast.success('Two-factor is off');
+          toast.success(t('isOff'));
           onDoneAction({ kind: 'idle' });
         } else {
           const { data, error } =
             await authClient.twoFactor.generateBackupCodes({ password });
           if (error || !data) {
-            setError(error?.message ?? "Couldn't make new codes");
+            setError(error?.message ?? t('failed.codes'));
             return;
           }
           onDoneAction({ kind: 'codes', backupCodes: data.backupCodes });
@@ -214,7 +206,7 @@ function PasswordStep({
       }}
     >
       <div className='flex flex-col gap-2'>
-        <Label htmlFor='two-factor-password'>Your password</Label>
+        <Label htmlFor='two-factor-password'>{t('password')}</Label>
         <Input
           id='two-factor-password'
           name='password'
@@ -232,18 +224,18 @@ function PasswordStep({
           variant={purpose === 'disable' ? 'destructive' : 'default'}
           disabled={pending}
         >
-          {PURPOSES[purpose]}
+          {t(`purpose.${purpose}`)}
         </Button>
         <Button type='button' variant='outline' onClick={onCancelAction}>
-          Cancel
+          {t('cancel')}
         </Button>
       </div>
     </form>
   );
 }
 
-/** Setting it up, a step at a time, so the panel stays short. */
-const SETUP_STEPS = ['Scan', 'Backup codes', 'Confirm'] as const;
+/** Setting it up, a step at a time, so the panel stays short; their names are under "twoFactor.steps". */
+const SETUP_STEPS = ['scan', 'codes', 'confirm'] as const;
 
 /**
  * The app's secret, as a QR code and as text to type in, the backup codes,
@@ -263,6 +255,7 @@ function SetupStep({
   onCancelAction: () => void;
   onDoneAction: () => void;
 }) {
+  const t = useTranslations('twoFactor');
   const [at, setAt] = useState(0);
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
@@ -271,14 +264,14 @@ function SetupStep({
   function verify(code: string) {
     setError(undefined);
     startTransition(() =>
-      attempt("Couldn't turn it on", async () => {
+      attempt(t('failed.enable'), async () => {
         const { error } = await authClient.twoFactor.verifyTotp({ code });
         if (error) {
-          setError(error.message ?? "That code isn't right");
+          setError(error.message ?? t('wrongCode'));
           return;
         }
-        toast.success('Two-factor is on', {
-          description: 'Signing in will ask for a code from your app.',
+        toast.success(t('isOn'), {
+          description: t('isOnDescription'),
         });
         onDoneAction();
       })
@@ -287,12 +280,12 @@ function SetupStep({
 
   const back = (
     <Button type='button' variant='outline' onClick={() => setAt(at - 1)}>
-      Back
+      {t('back')}
     </Button>
   );
   const cancel = (
     <Button type='button' variant='outline' onClick={onCancelAction}>
-      Cancel
+      {t('cancel')}
     </Button>
   );
 
@@ -317,7 +310,7 @@ function SetupStep({
             >
               {i < at ? <CheckIcon className='size-3' /> : i + 1}
             </span>
-            {name}
+            {t(`steps.${name}`)}
           </li>
         ))}
       </ol>
@@ -327,23 +320,20 @@ function SetupStep({
           <div className='flex flex-col gap-4 sm:flex-row sm:items-start'>
             <QrCode
               value={totpURI}
-              label='QR code for your authenticator app'
+              label={t('qrLabel')}
               className='size-40 shrink-0'
             />
             <div className='flex min-w-0 flex-col gap-2'>
-              <p>
-                Scan this with an authenticator app, such as 1Password, Google
-                Authenticator or Aegis, or type in the key instead.
-              </p>
+              <p>{t('scanHint')}</p>
               <div className='flex items-center gap-1'>
                 <code className='font-mono break-all'>{secret}</code>
                 <Button
                   variant='outline'
                   size='icon'
-                  aria-label='Copy the key'
-                  title='Copy the key'
+                  aria-label={t('copyKey')}
+                  title={t('copyKey')}
                   onClick={() =>
-                    copyText(secret.replace(/ /g, ''), 'Copied the key')
+                    copyText(secret.replace(/ /g, ''), t('keyCopied'))
                   }
                 >
                   <CopyIcon />
@@ -352,7 +342,7 @@ function SetupStep({
             </div>
           </div>
           <div className='flex gap-2'>
-            <Button onClick={() => setAt(1)}>Next</Button>
+            <Button onClick={() => setAt(1)}>{t('next')}</Button>
             {cancel}
           </div>
         </div>
@@ -362,7 +352,7 @@ function SetupStep({
         <div className='flex flex-col gap-3'>
           <BackupCodes codes={backupCodes} email={email} />
           <div className='flex gap-2'>
-            <Button onClick={() => setAt(2)}>I've saved them</Button>
+            <Button onClick={() => setAt(2)}>{t('savedThem')}</Button>
             {back}
           </div>
         </div>
@@ -376,9 +366,7 @@ function SetupStep({
             verify(String(new FormData(e.currentTarget).get('code')).trim());
           }}
         >
-          <Label htmlFor='two-factor-code'>
-            The code your app shows for the dashboard
-          </Label>
+          <Label htmlFor='two-factor-code'>{t('codeLabel')}</Label>
           <Input
             id='two-factor-code'
             name='code'
@@ -394,7 +382,7 @@ function SetupStep({
           {error && <p className='text-destructive'>{error}</p>}
           <div className='flex gap-2'>
             <Button type='submit' disabled={pending}>
-              Turn on
+              {t('purpose.enable')}
             </Button>
             {back}
           </div>

@@ -1,11 +1,12 @@
 'use client';
 
+import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import useSWRInfinite from 'swr/infinite';
 
 import { SearchIcon, XCircleIcon } from 'lucide-react';
 
-import { actionWords, type ActivityEntry } from '@/lib/activity/actions';
+import { isActivityAction, type ActivityEntry } from '@/lib/activity/actions';
 import { fetcher } from '@/lib/fetcher';
 
 import { Failure } from '@/components/common/failure';
@@ -39,6 +40,8 @@ const REFRESH_MS = 30_000;
  * starting and stopping, updates, files, people's accounts. Kept 90 days.
  */
 export function ActivityPanel() {
+  const locale = useLocale();
+  const t = useTranslations('activity');
   const [search, setSearch] = useState('');
   const query = useDebounced(search.trim());
   const [failed, setFailed] = useState(false);
@@ -79,11 +82,8 @@ export function ActivityPanel() {
     <section className='flex flex-col gap-3'>
       <div className='flex flex-wrap items-center gap-2'>
         <div className='mr-auto flex flex-col'>
-          <h3 className='font-medium'>Activity</h3>
-          <p className='text-muted-foreground'>
-            What's been done from the dashboard, and by whom, over the last 90
-            days
-          </p>
+          <h3 className='font-medium'>{t('title')}</h3>
+          <p className='text-muted-foreground'>{t('description')}</p>
         </div>
         <div className='flex w-full gap-2 sm:w-auto'>
           <InputGroup className='h-8 flex-1 sm:w-56 sm:flex-none'>
@@ -91,8 +91,8 @@ export function ActivityPanel() {
               <SearchIcon />
             </InputGroupAddon>
             <InputGroupInput
-              placeholder='Filter by person, service…'
-              aria-label='Filter the activity'
+              placeholder={t('filter')}
+              aria-label={t('filterLabel')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -105,7 +105,7 @@ export function ActivityPanel() {
             className='data-[state=on]:text-destructive'
           >
             <XCircleIcon />
-            Failed
+            {t('failed')}
           </Toggle>
         </div>
       </div>
@@ -127,21 +127,17 @@ export function ActivityPanel() {
           ))}
           {shape.more && (
             <Button variant='outline' size='sm' disabled className='self-start'>
-              Older
+              {t('older')}
             </Button>
           )}
         </div>
       ) : entries.length === 0 ? (
         <p className='text-muted-foreground'>
-          {query
-            ? 'Nothing matches that.'
-            : failed
-              ? 'Nothing has failed.'
-              : 'Nothing done yet.'}
+          {query ? t('noMatch') : failed ? t('noFailures') : t('nothingYet')}
         </p>
       ) : (
         <div ref={measure} className='flex flex-col gap-4'>
-          {byDay(entries).map(([day, list]) => (
+          {byDay(entries, t, locale).map(([day, list]) => (
             <div key={day} className='flex flex-col gap-1'>
               <h4 className='text-muted-foreground'>{day}</h4>
               <ul className='flex flex-col divide-y divide-border'>
@@ -159,7 +155,7 @@ export function ActivityPanel() {
               onClick={() => void setSize(size + 1)}
               className='self-start'
             >
-              {loadingMore ? 'Loading…' : 'Older'}
+              {loadingMore ? t('loading') : t('older')}
             </Button>
           )}
         </div>
@@ -183,6 +179,8 @@ function ActivityRow({
   /** A placeholder's height, as its entry's was */
   height?: number;
 }) {
+  const locale = useLocale();
+  const t = useTranslations('activity');
   if (!entry) {
     return (
       <li className='flex items-baseline gap-3 py-1.5' style={{ height }}>
@@ -202,18 +200,23 @@ function ActivityRow({
         dateTime={new Date(entry.at).toISOString()}
         className='shrink-0 font-mono whitespace-nowrap text-muted-foreground tabular-nums'
       >
-        {new Date(entry.at).toLocaleTimeString(undefined, {
+        {new Date(entry.at).toLocaleTimeString(locale, {
           hour: '2-digit',
           minute: '2-digit',
         })}
       </time>
       <div className='flex min-w-0 flex-col'>
         <span className='wrap-break-word'>
-          <span className='font-medium'>{entry.user}</span>{' '}
-          {actionWords(entry.action)}
-          {entry.target && (
+          {isActivityAction(entry.action) ? (
+            t.rich(`actions.${entry.action}`, {
+              user: entry.user,
+              target: entry.target ?? '',
+              b: (chunks) => <span className='font-medium'>{chunks}</span>,
+            })
+          ) : (
+            // One this copy doesn't know, as it was written
             <>
-              {' '}
+              <span className='font-medium'>{entry.user}</span> {entry.action}{' '}
               <span className='font-medium'>{entry.target}</span>
             </>
           )}
@@ -222,7 +225,11 @@ function ActivityRow({
           )}
         </span>
         {!entry.ok && (
-          <Failure>{`Didn't work${entry.error ? `: ${entry.error}` : ''}`}</Failure>
+          <Failure>
+            {entry.error
+              ? t('didntWorkBecause', { error: entry.error })
+              : t('didntWork')}
+          </Failure>
         )}
       </div>
     </li>
@@ -230,7 +237,11 @@ function ActivityRow({
 }
 
 /** Entries under the day they're from: "Today", "Yesterday", "Mon 20 Oct". */
-function byDay(entries: ActivityEntry[]) {
+function byDay(
+  entries: ActivityEntry[],
+  t: ReturnType<typeof useTranslations<'activity'>>,
+  locale: string
+) {
   const days = new Map<string, ActivityEntry[]>();
   const today = new Date().setHours(0, 0, 0, 0);
   for (const entry of entries) {
@@ -238,10 +249,10 @@ function byDay(entries: ActivityEntry[]) {
     const ago = Math.round((today - day) / 86_400_000);
     const name =
       ago === 0
-        ? 'Today'
+        ? t('today')
         : ago === 1
-          ? 'Yesterday'
-          : new Date(entry.at).toLocaleDateString(undefined, {
+          ? t('yesterday')
+          : new Date(entry.at).toLocaleDateString(locale, {
               weekday: 'short',
               day: 'numeric',
               month: 'short',

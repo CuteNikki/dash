@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
 
 import { CopyIcon } from 'lucide-react';
@@ -68,6 +69,7 @@ function InviteForm({
   mail: boolean;
   onCreatedAction: () => void;
 }) {
+  const t = useTranslations('people');
   const [send, setSend] = useState(mail);
   const [sent, setSent] = useState<{ ok: boolean; error?: string }>();
   const [email, setEmail] = useState('');
@@ -79,7 +81,7 @@ function InviteForm({
 
   function create() {
     startTransition(() =>
-      attempt(`Couldn't invite ${email}`, async () => {
+      attempt(t('inviteFailed', { email }), async () => {
         // An owner or admin sees every group, so any ticked before don't count
         const result = await createInvite({
           email,
@@ -103,42 +105,40 @@ function InviteForm({
       <div className='flex flex-col gap-6'>
         <DialogHeader>
           <DialogTitle>
-            {sent?.ok ? `Sent to ${email}` : 'Send them this link'}
+            {sent?.ok ? t('sentTo', { email }) : t('sendLink')}
           </DialogTitle>
           <DialogDescription>
-            {sent?.ok
-              ? "It's in their mail, and here too, should it not arrive."
-              : `It makes ${email}'s account.`}{' '}
-            It works once, for 24 hours, and won&apos;t be shown again: only a
-            hash of it is kept.
+            {sent?.ok ? t('inTheirMail') : t('makesAccount', { email })}{' '}
+            {t('linkOnce')}
           </DialogDescription>
         </DialogHeader>
         {sent && !sent.ok && (
           <p className='text-destructive'>
-            Couldn&apos;t mail it{sent.error ? `: ${sent.error}` : ''}. Send
-            them the link yourself.
+            {sent.error
+              ? t('mailFailedBecause', { error: sent.error })
+              : t('mailFailed')}
           </p>
         )}
         <div className='flex items-center gap-2'>
           <Input
             readOnly
             value={link}
-            aria-label='Invite link'
+            aria-label={t('inviteLink')}
             className='font-mono'
             // All of it at once, to copy by hand where the button can't
             onFocus={(e) => e.currentTarget.select()}
           />
           <Button
             variant='outline'
-            onClick={() => copyText(link, 'Copied the invite link')}
+            onClick={() => copyText(link, t('linkCopied'))}
           >
             <CopyIcon />
-            Copy
+            {t('copy')}
           </Button>
         </div>
         <DialogFooter>
           <DialogClose asChild>
-            <Button>Done</Button>
+            <Button>{t('done')}</Button>
           </DialogClose>
         </DialogFooter>
       </div>
@@ -154,15 +154,12 @@ function InviteForm({
       }}
     >
       <DialogHeader>
-        <DialogTitle>Invite someone</DialogTitle>
-        <DialogDescription>
-          They get a link to make their account with, which works once, for 24
-          hours.
-        </DialogDescription>
+        <DialogTitle>{t('invite')}</DialogTitle>
+        <DialogDescription>{t('inviteDescription')}</DialogDescription>
       </DialogHeader>
       <div className='flex flex-col gap-4'>
         <div className='flex flex-col gap-2'>
-          <Label htmlFor='invite-email'>Email</Label>
+          <Label htmlFor='invite-email'>{t('email')}</Label>
           <Input
             id='invite-email'
             type='email'
@@ -183,14 +180,14 @@ function InviteForm({
         {mail && (
           <div className='flex items-center gap-2'>
             <Switch id='invite-send' checked={send} onCheckedChange={setSend} />
-            <Label htmlFor='invite-send'>Mail them the link</Label>
+            <Label htmlFor='invite-send'>{t('mailLink')}</Label>
           </div>
         )}
         {error && <p className='text-destructive'>{error}</p>}
       </div>
       <DialogFooter>
         <Button type='submit' disabled={pending}>
-          {mail && send ? 'Send the invite' : 'Make the link'}
+          {mail && send ? t('sendInvite') : t('makeLink')}
         </Button>
       </DialogFooter>
     </form>

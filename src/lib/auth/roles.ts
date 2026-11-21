@@ -34,6 +34,11 @@ const ROLE_ABILITIES: Record<Role, readonly Ability[]> = {
 };
 
 /** How each role reads, for picking one and showing it. */
+/**
+ * Each role's name and what it may do, in English, as the activity log and
+ * the server keep them; the page says them in its language from "roles" in
+ * the messages.
+ */
 export const ROLE_INFO: Record<Role, { name: string; description: string }> = {
   owner: {
     name: 'Owner',

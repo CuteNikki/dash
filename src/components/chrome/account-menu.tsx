@@ -5,7 +5,6 @@ import { useState } from 'react';
 
 import { LogOutIcon, SettingsIcon } from 'lucide-react';
 
-import { ROLE_INFO } from '@/lib/auth/roles';
 import type { Me } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -23,6 +22,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 export function AccountMenu({ me }: { me: Me }) {
+  const tr = useTranslations('roles');
   const t = useTranslations('chrome');
   const signOut = useSignOut();
   // Beside the menu rather than in it, so it stays open once the menu closes
@@ -47,7 +47,7 @@ export function AccountMenu({ me }: { me: Me }) {
             <span className='flex min-w-0 flex-col'>
               <span className='truncate text-sm font-medium'>{me.name}</span>
               <span className='text-muted-foreground'>
-                {ROLE_INFO[me.role].name}
+                {tr(`${me.role}.name`)}
               </span>
             </span>
           </DropdownMenuLabel>

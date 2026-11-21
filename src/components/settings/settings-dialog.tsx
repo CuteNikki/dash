@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 
-import { can, ROLE_INFO } from '@/lib/auth/roles';
+import { can } from '@/lib/auth/roles';
 import type { Me } from '@/lib/types';
 
 import { ScrollFade } from '@/components/common/scroll-fade';
@@ -34,6 +34,7 @@ export function SettingsDialog({
   open: boolean;
   onOpenChangeAction: (open: boolean) => void;
 }) {
+  const tr = useTranslations('roles');
   const t = useTranslations('settings');
   return (
     <Dialog open={open} onOpenChange={onOpenChangeAction}>
@@ -61,7 +62,7 @@ export function SettingsDialog({
         <DialogHeader className='border-b p-4 pr-12'>
           <DialogTitle className='text-base'>Settings</DialogTitle>
           <DialogDescription className='truncate'>
-            {me.name} · {ROLE_INFO[me.role].name}
+            {me.name} · {tr(`${me.role}.name`)}
           </DialogDescription>
         </DialogHeader>
         <Tabs defaultValue='account' className='min-h-0 flex-1 gap-4 p-4'>

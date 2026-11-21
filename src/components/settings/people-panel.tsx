@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
@@ -25,8 +26,10 @@ import {
   type Person,
 } from '@/actions/users';
 
-import { ROLE_INFO, seesAllGroups, type Role } from '@/lib/auth/roles';
-import { formatAgo, formatDuration } from '@/lib/format';
+import type { Format } from '@/i18n/format';
+import { useFormat } from '@/i18n/use-format';
+
+import { seesAllGroups, type Role } from '@/lib/auth/roles';
 
 import { TextSkeleton } from '@/components/common/skeletons';
 import { attempt } from '@/components/common/toasts';
@@ -46,15 +49,17 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
+type PeopleTranslator = ReturnType<typeof useTranslations<'people'>>;
+
 /** The groups someone sees, as a line: all of them, for an owner or admin. */
-function groupsText(role: Role, groups: string[]) {
-  if (seesAllGroups(role)) return 'Every group';
-  return groups.length > 0 ? groups.join(', ') : 'No groups';
+function groupsText(role: Role, groups: string[], t: PeopleTranslator) {
+  if (seesAllGroups(role)) return t('everyGroup');
+  return groups.length > 0 ? groups.join(', ') : t('noGroups');
 }
 
-/** How long until a moment, as formatAgo says how long since one. */
-function timeLeft(at: number) {
-  return formatDuration(Math.max(0, (at - Date.now()) / 1000));
+/** How long until a moment, as format.ago says how long since one. */
+function timeLeft(at: number, format: Format) {
+  return format.duration(Math.max(0, (at - Date.now()) / 1000));
 }
 
 /**
@@ -63,6 +68,7 @@ function timeLeft(at: number) {
  * can do about them. The owner's alone.
  */
 export function PeoplePanel() {
+  const t = useTranslations('people');
   const { data, error, mutate } = useSWR('people', () => listPeople());
   const [editing, setEditing] = useState<Person>();
   const [inviting, setInviting] = useState(false);
@@ -72,13 +78,13 @@ export function PeoplePanel() {
   const inviteRows = useKeptCount('invites', data?.invites.length, 0);
 
   if (error && !data) {
-    return <p className='text-destructive'>Couldn&apos;t load the people</p>;
+    return <p className='text-destructive'>{t('loadFailed')}</p>;
   }
 
   return (
     <div className='flex flex-col gap-6'>
       <section className='flex flex-col gap-2'>
-        <h3 className='font-medium'>People</h3>
+        <h3 className='font-medium'>{t('people')}</h3>
         {data ? (
           <ul className='flex flex-col divide-y divide-border'>
             {data.people.map((person) => (
@@ -97,7 +103,7 @@ export function PeoplePanel() {
 
       <section className='flex flex-col gap-2'>
         <div className='flex items-center gap-2'>
-          <h3 className='mr-auto font-medium'>Invites</h3>
+          <h3 className='mr-auto font-medium'>{t('invites')}</h3>
           <Button
             variant='outline'
             size='sm'
@@ -105,13 +111,13 @@ export function PeoplePanel() {
             onClick={() => setInviting(true)}
           >
             <UserPlusIcon />
-            Invite someone
+            {t('invite')}
           </Button>
         </div>
         {!data ? (
           <RowsSkeleton rows={inviteRows} lines={2} />
         ) : data.invites.length === 0 ? (
-          <p className='text-muted-foreground'>None waiting to be used.</p>
+          <p className='text-muted-foreground'>{t('noInvites')}</p>
         ) : (
           <ul className='flex flex-col divide-y divide-border'>
             {data.invites.map((invite) => (
@@ -148,6 +154,7 @@ export function PeoplePanel() {
  * address and access. None is the line saying so.
  */
 function RowsSkeleton({ rows, lines }: { rows: number; lines: 2 | 3 }) {
+  const t = useTranslations('people');
   if (!rows) {
     return (
       <p>
@@ -159,7 +166,7 @@ function RowsSkeleton({ rows, lines }: { rows: number; lines: 2 | 3 }) {
     <ul
       aria-busy
       role='status'
-      aria-label='Loading'
+      aria-label={t('loading')}
       className='flex flex-col divide-y divide-border'
     >
       {Array.from({ length: rows }, (_, i) => (
@@ -216,30 +223,35 @@ function PersonRow({
   onEditAction: () => void;
   onChangedAction: () => void;
 }) {
+  const format = useFormat();
+  const tr = useTranslations('roles');
+  const t = useTranslations('people');
   const [pending, run] = useRowAction(onChangedAction);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const { id, name } = person;
-  const groups = groupsText(person.role, person.groups);
+  const groups = groupsText(person.role, person.groups, t);
 
   return (
     <li className='flex items-start gap-3 py-2'>
       <div className='flex min-w-0 flex-1 flex-col gap-0.5'>
         <div className='flex min-w-0 items-center gap-2'>
           <span className='truncate font-medium'>{name}</span>
-          {person.you && <Badge variant='secondary'>You</Badge>}
-          {person.disabled && <Badge variant='destructive'>Disabled</Badge>}
+          {person.you && <Badge variant='secondary'>{t('you')}</Badge>}
+          {person.disabled && (
+            <Badge variant='destructive'>{t('disabled')}</Badge>
+          )}
         </div>
         <span className='truncate text-muted-foreground'>{person.email}</span>
         <div className='flex flex-wrap gap-x-3 text-muted-foreground'>
-          <span className='text-foreground'>{ROLE_INFO[person.role].name}</span>
+          <span className='text-foreground'>{tr(`${person.role}.name`)}</span>
           <span className='min-w-0 truncate' title={groups}>
             {groups}
           </span>
-          <span>Two-factor {person.twoFactor ? 'on' : 'off'}</span>
+          <span>{person.twoFactor ? t('twoFactorOn') : t('twoFactorOff')}</span>
           <span>
             {person.lastActive
-              ? `Active ${formatAgo(person.lastActive)}`
-              : 'Not signed in'}
+              ? t('active', { ago: format.ago(person.lastActive) })
+              : t('notSignedIn')}
           </span>
         </div>
       </div>
@@ -248,8 +260,8 @@ function PersonRow({
           <Button
             variant='outline'
             size='icon'
-            aria-label={`Change ${name}'s access`}
-            title='Change access'
+            aria-label={t('changeAccessOf', { name })}
+            title={t('changeAccess')}
             disabled={pending}
             onClick={onEditAction}
           >
@@ -258,14 +270,14 @@ function PersonRow({
           <Button
             variant='destructive'
             size='icon'
-            aria-label={`Sign ${name} out everywhere`}
-            title='Sign out everywhere'
+            aria-label={t('signOutEverywhereOf', { name })}
+            title={t('signOutEverywhere')}
             disabled={pending}
             onClick={() =>
               run(
-                `Couldn't sign ${name} out`,
+                t('signOutFailed', { name }),
                 () => signOutPerson(id),
-                `Signed ${name} out everywhere`
+                t('signedOut', { name })
               )
             }
           >
@@ -275,14 +287,14 @@ function PersonRow({
             <Button
               variant='outline'
               size='icon'
-              aria-label={`Enable ${name}'s account`}
-              title='Enable'
+              aria-label={t('enableOf', { name })}
+              title={t('enable')}
               disabled={pending}
               onClick={() =>
                 run(
-                  `Couldn't enable ${name}'s account`,
+                  t('enableFailed', { name }),
                   () => setPersonDisabled(id, false),
-                  `${name} can sign in again`
+                  t('enabled', { name })
                 )
               }
             >
@@ -292,14 +304,14 @@ function PersonRow({
             <Button
               variant='destructive'
               size='icon'
-              aria-label={`Disable ${name}'s account`}
-              title='Disable: signs them out, and keeps them out'
+              aria-label={t('disableOf', { name })}
+              title={t('disable')}
               disabled={pending}
               onClick={() =>
                 run(
-                  `Couldn't disable ${name}'s account`,
+                  t('disableFailed', { name }),
                   () => setPersonDisabled(id, true),
-                  `Disabled ${name}'s account`
+                  t('disabledToast', { name })
                 )
               }
             >
@@ -309,8 +321,8 @@ function PersonRow({
           <Button
             variant='destructive'
             size='icon'
-            aria-label={`Remove ${name}`}
-            title='Remove'
+            aria-label={t('removeOf', { name })}
+            title={t('remove')}
             disabled={pending}
             onClick={() => setConfirmRemove(true)}
           >
@@ -319,25 +331,26 @@ function PersonRow({
           <AlertDialog open={confirmRemove} onOpenChange={setConfirmRemove}>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Remove {name}?</AlertDialogTitle>
+                <AlertDialogTitle>
+                  {t('removeTitle', { name })}
+                </AlertDialogTitle>
                 <AlertDialogDescription>
-                  Their account goes, with its passkeys, and they&apos;re signed
-                  out at once. To come back, they&apos;d need a new invite.
+                  {t('removeDescription')}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
                 <AlertDialogAction
                   variant='destructive'
                   onClick={() =>
                     run(
-                      `Couldn't remove ${name}`,
+                      t('removeFailed', { name }),
                       () => removePerson(id),
-                      `Removed ${name}`
+                      t('removed', { name })
                     )
                   }
                 >
-                  Remove
+                  {t('remove')}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -356,34 +369,39 @@ function InviteRow({
   invite: PendingInvite;
   onChangedAction: () => void;
 }) {
+  const format = useFormat();
+  const tr = useTranslations('roles');
+  const t = useTranslations('people');
   const [pending, run] = useRowAction(onChangedAction);
   const { email } = invite;
-  const groups = groupsText(invite.role, invite.groups);
+  const groups = groupsText(invite.role, invite.groups, t);
 
   return (
     <li className='flex items-start gap-3 py-2'>
       <div className='flex min-w-0 flex-1 flex-col gap-0.5'>
         <span className='truncate font-medium'>{email}</span>
         <div className='flex flex-wrap gap-x-3 text-muted-foreground'>
-          <span className='text-foreground'>{ROLE_INFO[invite.role].name}</span>
+          <span className='text-foreground'>{tr(`${invite.role}.name`)}</span>
           <span className='min-w-0 truncate' title={groups}>
             {groups}
           </span>
-          <span>Expires in {timeLeft(invite.expiresAt)}</span>
-          <span>Invited by {invite.invitedBy}</span>
+          <span>
+            {t('expiresIn', { duration: timeLeft(invite.expiresAt, format) })}
+          </span>
+          <span>{t('invitedBy', { name: invite.invitedBy })}</span>
         </div>
       </div>
       <Button
         variant='destructive'
         size='icon'
-        aria-label={`Revoke the invite for ${email}`}
-        title='Revoke: its link stops working'
+        aria-label={t('revokeOf', { email })}
+        title={t('revoke')}
         disabled={pending}
         onClick={() =>
           run(
-            `Couldn't revoke the invite for ${email}`,
+            t('revokeFailed', { email }),
             () => revokeInvite(invite.id),
-            `Revoked the invite for ${email}`
+            t('revoked', { email })
           )
         }
       >

@@ -786,5 +786,219 @@
     "signOutAllTitle": "Sign out all other devices?",
     "signOutAllDescription": "Each of them needs your password or a passkey to get back in. This one stays signed in.",
     "cancel": "Cancel"
+  },
+  "activity": {
+    "actions": {
+      "start": "<b>{user}</b> started <b>{target}</b>",
+      "stop": "<b>{user}</b> stopped <b>{target}</b>",
+      "restart": "<b>{user}</b> restarted <b>{target}</b>",
+      "update": "<b>{user}</b> updated <b>{target}</b>",
+      "console": "<b>{user}</b> typed into the console of <b>{target}</b>",
+      "caddy": {
+        "reload": "<b>{user}</b> reloaded the config of <b>{target}</b>"
+      },
+      "deploy": "<b>{user}</b> redeployed <b>{target}</b>",
+      "service": {
+        "create": "<b>{user}</b> added the service <b>{target}</b>",
+        "remove": "<b>{user}</b> removed the service <b>{target}</b>"
+      },
+      "container": {
+        "remove": "<b>{user}</b> removed the container <b>{target}</b>"
+      },
+      "file": {
+        "save": "<b>{user}</b> saved <b>{target}</b>",
+        "create": "<b>{user}</b> made <b>{target}</b>",
+        "rename": "<b>{user}</b> renamed <b>{target}</b>",
+        "delete": "<b>{user}</b> deleted <b>{target}</b>"
+      },
+      "git": {
+        "fetch": "<b>{user}</b> fetched <b>{target}</b>",
+        "pull": "<b>{user}</b> pulled <b>{target}</b>",
+        "push": "<b>{user}</b> pushed <b>{target}</b>",
+        "commit": "<b>{user}</b> committed to <b>{target}</b>",
+        "switch": "<b>{user}</b> switched the branch of <b>{target}</b>"
+      },
+      "storage": {
+        "delete": "<b>{user}</b> deleted files from <b>{target}</b>"
+      },
+      "tile": {
+        "edit": "<b>{user}</b> edited the tile of <b>{target}</b>",
+        "reset": "<b>{user}</b> reset the tile of <b>{target}</b>",
+        "restore": "<b>{user}</b> put back the tile of <b>{target}</b>"
+      },
+      "site": {
+        "add": "<b>{user}</b> added the website <b>{target}</b>",
+        "remove": "<b>{user}</b> removed the website <b>{target}</b>"
+      },
+      "group": {
+        "rename": "<b>{user}</b> renamed the group <b>{target}</b>"
+      },
+      "process": {
+        "stop": "<b>{user}</b> stopped the process <b>{target}</b>"
+      },
+      "docker": {
+        "prune": "<b>{user}</b> freed <b>{target}</b>"
+      },
+      "system": {
+        "upgrade": "<b>{user}</b> upgraded the server's packages",
+        "reboot": "<b>{user}</b> restarted the server"
+      },
+      "backup": {
+        "run": "<b>{user}</b> backed up <b>{target}</b>",
+        "restore": "<b>{user}</b> restored <b>{target}</b>",
+        "folder": "<b>{user}</b> added to the backups <b>{target}</b>"
+      },
+      "person": {
+        "access": "<b>{user}</b> changed what this person may do: <b>{target}</b>",
+        "disable": "<b>{user}</b> disabled <b>{target}</b>",
+        "enable": "<b>{user}</b> enabled <b>{target}</b>",
+        "signout": "<b>{user}</b> signed out <b>{target}</b>",
+        "remove": "<b>{user}</b> removed <b>{target}</b>"
+      },
+      "invite": {
+        "create": "<b>{user}</b> invited <b>{target}</b>",
+        "revoke": "<b>{user}</b> revoked the invite for <b>{target}</b>",
+        "accept": "<b>{user}</b> joined from an invite, as <b>{target}</b>"
+      }
+    },
+    "title": "Activity",
+    "description": "What's been done from the dashboard, and by whom, over the last 90 days",
+    "filter": "Filter by person, service…",
+    "filterLabel": "Filter the activity",
+    "failed": "Failed",
+    "older": "Older",
+    "loading": "Loading…",
+    "noMatch": "Nothing matches that.",
+    "noFailures": "Nothing has failed.",
+    "nothingYet": "Nothing done yet.",
+    "didntWork": "Didn't work",
+    "didntWorkBecause": "Didn't work: {error}",
+    "today": "Today",
+    "yesterday": "Yesterday"
+  },
+  "roles": {
+    "owner": {
+      "name": "Owner",
+      "description": "Everything, and other people's accounts"
+    },
+    "admin": {
+      "name": "Admin",
+      "description": "Everything but other people's accounts"
+    },
+    "operator": {
+      "name": "Operator",
+      "description": "Logs, start, stop, restart and updates, in their groups"
+    },
+    "viewer": {
+      "name": "Viewer",
+      "description": "Status, usage and logs, in their groups"
+    }
+  },
+  "people": {
+    "everyGroup": "Every group",
+    "noGroups": "No groups",
+    "loadFailed": "Couldn't load the people",
+    "people": "People",
+    "invites": "Invites",
+    "invite": "Invite someone",
+    "noInvites": "None waiting to be used.",
+    "loading": "Loading",
+    "you": "You",
+    "disabled": "Disabled",
+    "twoFactorOn": "Two-factor on",
+    "twoFactorOff": "Two-factor off",
+    "active": "Active {ago}",
+    "notSignedIn": "Not signed in",
+    "changeAccessOf": "Change {name}'s access",
+    "changeAccess": "Change access",
+    "signOutEverywhereOf": "Sign {name} out everywhere",
+    "signOutEverywhere": "Sign out everywhere",
+    "signOutFailed": "Couldn't sign {name} out",
+    "signedOut": "Signed {name} out everywhere",
+    "enableOf": "Enable {name}'s account",
+    "enable": "Enable",
+    "enableFailed": "Couldn't enable {name}'s account",
+    "enabled": "{name} can sign in again",
+    "disableOf": "Disable {name}'s account",
+    "disable": "Disable: signs them out, and keeps them out",
+    "disableFailed": "Couldn't disable {name}'s account",
+    "disabledToast": "Disabled {name}'s account",
+    "removeOf": "Remove {name}",
+    "remove": "Remove",
+    "removeTitle": "Remove {name}?",
+    "removeDescription": "Their account goes, with its passkeys, and they're signed out at once. To come back, they'd need a new invite.",
+    "cancel": "Cancel",
+    "removeFailed": "Couldn't remove {name}",
+    "removed": "Removed {name}",
+    "invitedBy": "Invited by {name}",
+    "revokeOf": "Revoke the invite for {email}",
+    "revoke": "Revoke: its link stops working",
+    "revokeFailed": "Couldn't revoke the invite for {email}",
+    "revoked": "Revoked the invite for {email}",
+    "expiresIn": "Expires in {duration}",
+    "role": "Role",
+    "groups": "Groups",
+    "noGroupsYet": "There are no groups yet: put services in one on the dashboard first.",
+    "noneSeesNothing": "With none, they see no services at all.",
+    "accessFailed": "Couldn't change {name}'s access",
+    "accessChanged": "Changed {name}'s access",
+    "accessApplies": "It applies from whatever they do next.",
+    "accessTitle": "{name}'s access",
+    "save": "Save",
+    "inviteFailed": "Couldn't invite {email}",
+    "sentTo": "Sent to {email}",
+    "sendLink": "Send them this link",
+    "inTheirMail": "It's in their mail, and here too, should it not arrive.",
+    "makesAccount": "It makes {email}'s account.",
+    "linkOnce": "It works once, for 24 hours, and won't be shown again: only a hash of it is kept.",
+    "mailFailed": "Couldn't mail it. Send them the link yourself.",
+    "mailFailedBecause": "Couldn't mail it: {error}. Send them the link yourself.",
+    "inviteLink": "Invite link",
+    "linkCopied": "Copied the invite link",
+    "copy": "Copy",
+    "done": "Done",
+    "inviteDescription": "They get a link to make their account with, which works once, for 24 hours.",
+    "email": "Email",
+    "mailLink": "Mail them the link",
+    "sendInvite": "Send the invite",
+    "makeLink": "Make the link"
+  },
+  "twoFactor": {
+    "on": "On",
+    "off": "Off",
+    "onDescription": "Signing in with your password asks for a code from your authenticator app too.",
+    "offDescription": "Ask for a code from an authenticator app too, when signing in with your password.",
+    "oldCodesGone": "The ones you had before work no more.",
+    "done": "Done",
+    "newCodes": "New backup codes",
+    "isOff": "Two-factor is off",
+    "password": "Your password",
+    "cancel": "Cancel",
+    "wrongCode": "That code isn't right",
+    "isOn": "Two-factor is on",
+    "isOnDescription": "Signing in will ask for a code from your app.",
+    "back": "Back",
+    "qrLabel": "QR code for your authenticator app",
+    "scanHint": "Scan this with an authenticator app, such as 1Password, Google Authenticator or Aegis, or type in the key instead.",
+    "copyKey": "Copy the key",
+    "keyCopied": "Copied the key",
+    "next": "Next",
+    "savedThem": "I've saved them",
+    "codeLabel": "The code your app shows for the dashboard",
+    "purpose": {
+      "enable": "Turn on",
+      "disable": "Turn off",
+      "codes": "Make new codes"
+    },
+    "failed": {
+      "enable": "Couldn't turn it on",
+      "disable": "Couldn't turn it off",
+      "codes": "Couldn't make new codes"
+    },
+    "steps": {
+      "scan": "Scan",
+      "codes": "Backup codes",
+      "confirm": "Confirm"
+    }
   }
 }

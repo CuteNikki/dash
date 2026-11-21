@@ -1,52 +1,53 @@
 /**
- * What can be done from the dashboard, as the activity log keeps it, and how
- * each reads: "Nikki stopped minecraft". Shared with the browser.
+ * What can be done from the dashboard, as the activity log keeps it. How
+ * each reads, "Nikki stopped minecraft", is under "activity.actions" in the
+ * messages, a key's dots nesting it. Shared with the browser.
  */
-export const ACTIVITY_ACTIONS = {
-  start: 'started',
-  stop: 'stopped',
-  restart: 'restarted',
-  update: 'updated',
-  console: 'typed into the console of',
-  'caddy.reload': 'reloaded the config of',
-  deploy: 'redeployed',
-  'service.create': 'added the service',
-  'service.remove': 'removed the service',
-  'container.remove': 'removed the container',
-  'file.save': 'saved',
-  'file.create': 'made',
-  'file.rename': 'renamed',
-  'file.delete': 'deleted',
-  'git.fetch': 'fetched',
-  'git.pull': 'pulled',
-  'git.push': 'pushed',
-  'git.commit': 'committed to',
-  'git.switch': 'switched the branch of',
-  'storage.delete': 'deleted files from',
-  'tile.edit': 'edited the tile of',
-  'tile.reset': 'reset the tile of',
-  'tile.restore': 'put back the tile of',
-  'site.add': 'added the website',
-  'site.remove': 'removed the website',
-  'group.rename': 'renamed the group',
-  'process.stop': 'stopped the process',
-  'docker.prune': 'freed',
-  'system.upgrade': "upgraded the server's packages",
-  'system.reboot': 'restarted the server',
-  'backup.run': 'backed up',
-  'backup.restore': 'restored',
-  'backup.folder': 'added to the backups',
-  'person.access': 'changed what this person may do:',
-  'person.disable': 'disabled',
-  'person.enable': 'enabled',
-  'person.signout': 'signed out',
-  'person.remove': 'removed',
-  'invite.create': 'invited',
-  'invite.revoke': 'revoked the invite for',
-  'invite.accept': 'joined from an invite, as',
-} as const;
+export const ACTIVITY_ACTIONS = [
+  'start',
+  'stop',
+  'restart',
+  'update',
+  'console',
+  'caddy.reload',
+  'deploy',
+  'service.create',
+  'service.remove',
+  'container.remove',
+  'file.save',
+  'file.create',
+  'file.rename',
+  'file.delete',
+  'git.fetch',
+  'git.pull',
+  'git.push',
+  'git.commit',
+  'git.switch',
+  'storage.delete',
+  'tile.edit',
+  'tile.reset',
+  'tile.restore',
+  'site.add',
+  'site.remove',
+  'group.rename',
+  'process.stop',
+  'docker.prune',
+  'system.upgrade',
+  'system.reboot',
+  'backup.run',
+  'backup.restore',
+  'backup.folder',
+  'person.access',
+  'person.disable',
+  'person.enable',
+  'person.signout',
+  'person.remove',
+  'invite.create',
+  'invite.revoke',
+  'invite.accept',
+] as const;
 
-export type ActivityAction = keyof typeof ACTIVITY_ACTIONS;
+export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];
 
 /** One entry of the log, as the browser shows it. */
 export type ActivityEntry = {
@@ -61,9 +62,6 @@ export type ActivityEntry = {
   error?: string;
 };
 
-/** How an entry's action reads; one this copy doesn't know, as it's written. */
-export function actionWords(action: string) {
-  return Object.hasOwn(ACTIVITY_ACTIONS, action)
-    ? ACTIVITY_ACTIONS[action as ActivityAction]
-    : action;
-}
+/** Whether this copy knows an entry's action, to say it in words. */
+export const isActivityAction = (action: string): action is ActivityAction =>
+  (ACTIVITY_ACTIONS as readonly string[]).includes(action);

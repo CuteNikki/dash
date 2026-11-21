@@ -1,17 +1,12 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
 import { setPersonAccess, type Person } from '@/actions/users';
 
-import {
-  isRole,
-  ROLE_INFO,
-  ROLES,
-  seesAllGroups,
-  type Role,
-} from '@/lib/auth/roles';
+import { isRole, ROLES, seesAllGroups, type Role } from '@/lib/auth/roles';
 
 import { attempt } from '@/components/common/toasts';
 import { Button } from '@/components/ui/button';
@@ -49,6 +44,8 @@ export function AccessFields({
   onRoleChangeAction: (role: Role) => void;
   onGroupsChangeAction: (groups: string[]) => void;
 }) {
+  const tr = useTranslations('roles');
+  const t = useTranslations('people');
   // Any they have that's no longer on the dashboard too, so it can be taken off
   const choices = [
     ...allGroups,
@@ -64,7 +61,7 @@ export function AccessFields({
   return (
     <>
       <div className='flex flex-col gap-2'>
-        <Label id={`${id}-role`}>Role</Label>
+        <Label id={`${id}-role`}>{t('role')}</Label>
         <ToggleGroup
           type='single'
           variant='segmented'
@@ -75,20 +72,17 @@ export function AccessFields({
         >
           {ROLES.map((r) => (
             <ToggleGroupItem key={r} value={r}>
-              {ROLE_INFO[r].name}
+              {tr(`${r}.name`)}
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
-        <p className='text-muted-foreground'>{ROLE_INFO[role].description}</p>
+        <p className='text-muted-foreground'>{tr(`${role}.description`)}</p>
       </div>
       {seesAllGroups(role) ? null : (
         <div className='flex flex-col gap-2'>
-          <Label id={`${id}-groups`}>Groups</Label>
+          <Label id={`${id}-groups`}>{t('groups')}</Label>
           {choices.length === 0 ? (
-            <p className='text-muted-foreground'>
-              There are no groups yet: put services in one on the dashboard
-              first.
-            </p>
+            <p className='text-muted-foreground'>{t('noGroupsYet')}</p>
           ) : (
             <ul
               aria-labelledby={`${id}-groups`}
@@ -112,9 +106,7 @@ export function AccessFields({
             </ul>
           )}
           {groups.length === 0 && choices.length > 0 && (
-            <p className='text-muted-foreground'>
-              With none, they see no services at all.
-            </p>
+            <p className='text-muted-foreground'>{t('noneSeesNothing')}</p>
           )}
         </div>
       )}
@@ -162,6 +154,7 @@ function EditAccessForm({
   allGroups: string[];
   onDone: () => void;
 }) {
+  const t = useTranslations('people');
   const [role, setRole] = useState(person.role);
   const [groups, setGroups] = useState(person.groups);
   const [error, setError] = useState<string>();
@@ -169,14 +162,14 @@ function EditAccessForm({
 
   function save() {
     startTransition(() =>
-      attempt(`Couldn't change ${person.name}'s access`, async () => {
+      attempt(t('accessFailed', { name: person.name }), async () => {
         const result = await setPersonAccess(person.id, { role, groups });
         if (result?.error) {
           setError(result.error);
           return;
         }
-        toast.success(`Changed ${person.name}'s access`, {
-          description: 'It applies from whatever they do next.',
+        toast.success(t('accessChanged', { name: person.name }), {
+          description: t('accessApplies'),
         });
         onDone();
       })
@@ -192,7 +185,7 @@ function EditAccessForm({
       }}
     >
       <DialogHeader>
-        <DialogTitle>{person.name}&apos;s access</DialogTitle>
+        <DialogTitle>{t('accessTitle', { name: person.name })}</DialogTitle>
         <DialogDescription>{person.email}</DialogDescription>
       </DialogHeader>
       <div className='flex flex-col gap-4'>
@@ -208,7 +201,7 @@ function EditAccessForm({
       </div>
       <DialogFooter>
         <Button type='submit' disabled={pending}>
-          Save
+          {t('save')}
         </Button>
       </DialogFooter>
     </form>

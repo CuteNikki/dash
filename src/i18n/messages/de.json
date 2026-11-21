@@ -786,5 +786,219 @@
     "signOutAllTitle": "Alle anderen Geräte abmelden?",
     "signOutAllDescription": "Jedes braucht dein Passwort oder einen Passkey, um wieder hineinzukommen. Dieses bleibt angemeldet.",
     "cancel": "Abbrechen"
+  },
+  "activity": {
+    "actions": {
+      "start": "<b>{user}</b> hat <b>{target}</b> gestartet",
+      "stop": "<b>{user}</b> hat <b>{target}</b> gestoppt",
+      "restart": "<b>{user}</b> hat <b>{target}</b> neu gestartet",
+      "update": "<b>{user}</b> hat <b>{target}</b> aktualisiert",
+      "console": "<b>{user}</b> hat in die Konsole von <b>{target}</b> geschrieben",
+      "caddy": {
+        "reload": "<b>{user}</b> hat die Konfiguration von <b>{target}</b> neu geladen"
+      },
+      "deploy": "<b>{user}</b> hat <b>{target}</b> neu bereitgestellt",
+      "service": {
+        "create": "<b>{user}</b> hat den Dienst <b>{target}</b> hinzugefügt",
+        "remove": "<b>{user}</b> hat den Dienst <b>{target}</b> entfernt"
+      },
+      "container": {
+        "remove": "<b>{user}</b> hat den Container <b>{target}</b> entfernt"
+      },
+      "file": {
+        "save": "<b>{user}</b> hat <b>{target}</b> gespeichert",
+        "create": "<b>{user}</b> hat <b>{target}</b> erstellt",
+        "rename": "<b>{user}</b> hat <b>{target}</b> umbenannt",
+        "delete": "<b>{user}</b> hat <b>{target}</b> gelöscht"
+      },
+      "git": {
+        "fetch": "<b>{user}</b> hat <b>{target}</b> abgerufen",
+        "pull": "<b>{user}</b> hat <b>{target}</b> gepullt",
+        "push": "<b>{user}</b> hat <b>{target}</b> gepusht",
+        "commit": "<b>{user}</b> hat in <b>{target}</b> committet",
+        "switch": "<b>{user}</b> hat den Branch von <b>{target}</b> gewechselt"
+      },
+      "storage": {
+        "delete": "<b>{user}</b> hat Dateien aus <b>{target}</b> gelöscht"
+      },
+      "tile": {
+        "edit": "<b>{user}</b> hat die Kachel von <b>{target}</b> bearbeitet",
+        "reset": "<b>{user}</b> hat die Kachel von <b>{target}</b> zurückgesetzt",
+        "restore": "<b>{user}</b> hat die Kachel von <b>{target}</b> wiederhergestellt"
+      },
+      "site": {
+        "add": "<b>{user}</b> hat die Website <b>{target}</b> hinzugefügt",
+        "remove": "<b>{user}</b> hat die Website <b>{target}</b> entfernt"
+      },
+      "group": {
+        "rename": "<b>{user}</b> hat die Gruppe <b>{target}</b> umbenannt"
+      },
+      "process": {
+        "stop": "<b>{user}</b> hat den Prozess <b>{target}</b> gestoppt"
+      },
+      "docker": {
+        "prune": "<b>{user}</b> hat <b>{target}</b> freigegeben"
+      },
+      "system": {
+        "upgrade": "<b>{user}</b> hat die Pakete des Servers aktualisiert",
+        "reboot": "<b>{user}</b> hat den Server neu gestartet"
+      },
+      "backup": {
+        "run": "<b>{user}</b> hat <b>{target}</b> gesichert",
+        "restore": "<b>{user}</b> hat <b>{target}</b> wiederhergestellt",
+        "folder": "<b>{user}</b> hat <b>{target}</b> zu den Sicherungen hinzugefügt"
+      },
+      "person": {
+        "access": "<b>{user}</b> hat geändert, was diese Person darf: <b>{target}</b>",
+        "disable": "<b>{user}</b> hat <b>{target}</b> deaktiviert",
+        "enable": "<b>{user}</b> hat <b>{target}</b> aktiviert",
+        "signout": "<b>{user}</b> hat <b>{target}</b> abgemeldet",
+        "remove": "<b>{user}</b> hat <b>{target}</b> entfernt"
+      },
+      "invite": {
+        "create": "<b>{user}</b> hat <b>{target}</b> eingeladen",
+        "revoke": "<b>{user}</b> hat die Einladung für <b>{target}</b> zurückgezogen",
+        "accept": "<b>{user}</b> ist über eine Einladung beigetreten, als <b>{target}</b>"
+      }
+    },
+    "title": "Aktivität",
+    "description": "Was in den letzten 90 Tagen über das Dashboard getan wurde, und von wem",
+    "filter": "Nach Person, Dienst… filtern",
+    "filterLabel": "Aktivität filtern",
+    "failed": "Fehlgeschlagen",
+    "older": "Ältere",
+    "loading": "Wird geladen…",
+    "noMatch": "Nichts passt dazu.",
+    "noFailures": "Nichts ist fehlgeschlagen.",
+    "nothingYet": "Noch nichts getan.",
+    "didntWork": "Hat nicht funktioniert",
+    "didntWorkBecause": "Hat nicht funktioniert: {error}",
+    "today": "Heute",
+    "yesterday": "Gestern"
+  },
+  "roles": {
+    "owner": {
+      "name": "Inhaber",
+      "description": "Alles, auch die Konten anderer"
+    },
+    "admin": {
+      "name": "Admin",
+      "description": "Alles außer den Konten anderer"
+    },
+    "operator": {
+      "name": "Operator",
+      "description": "Logs, Starten, Stoppen, Neustarten und Updates, in ihren Gruppen"
+    },
+    "viewer": {
+      "name": "Betrachter",
+      "description": "Status, Auslastung und Logs, in ihren Gruppen"
+    }
+  },
+  "people": {
+    "everyGroup": "Alle Gruppen",
+    "noGroups": "Keine Gruppen",
+    "loadFailed": "Die Personen konnten nicht geladen werden",
+    "people": "Personen",
+    "invites": "Einladungen",
+    "invite": "Jemanden einladen",
+    "noInvites": "Keine offen.",
+    "loading": "Wird geladen",
+    "you": "Du",
+    "disabled": "Deaktiviert",
+    "twoFactorOn": "Zwei-Faktor an",
+    "twoFactorOff": "Zwei-Faktor aus",
+    "active": "Aktiv {ago}",
+    "notSignedIn": "Nicht angemeldet",
+    "changeAccessOf": "Zugriff von {name} ändern",
+    "changeAccess": "Zugriff ändern",
+    "signOutEverywhereOf": "{name} überall abmelden",
+    "signOutEverywhere": "Überall abmelden",
+    "signOutFailed": "{name} konnte nicht abgemeldet werden",
+    "signedOut": "{name} überall abgemeldet",
+    "enableOf": "Konto von {name} aktivieren",
+    "enable": "Aktivieren",
+    "enableFailed": "Das Konto von {name} konnte nicht aktiviert werden",
+    "enabled": "{name} kann sich wieder anmelden",
+    "disableOf": "Konto von {name} deaktivieren",
+    "disable": "Deaktivieren: meldet sie ab und hält sie draußen",
+    "disableFailed": "Das Konto von {name} konnte nicht deaktiviert werden",
+    "disabledToast": "Konto von {name} deaktiviert",
+    "removeOf": "{name} entfernen",
+    "remove": "Entfernen",
+    "removeTitle": "{name} entfernen?",
+    "removeDescription": "Das Konto wird mit seinen Passkeys entfernt und sofort abgemeldet. Um zurückzukommen, bräuchte die Person eine neue Einladung.",
+    "cancel": "Abbrechen",
+    "removeFailed": "{name} konnte nicht entfernt werden",
+    "removed": "{name} entfernt",
+    "invitedBy": "Eingeladen von {name}",
+    "revokeOf": "Einladung für {email} zurückziehen",
+    "revoke": "Zurückziehen: Der Link funktioniert nicht mehr",
+    "revokeFailed": "Die Einladung für {email} konnte nicht zurückgezogen werden",
+    "revoked": "Einladung für {email} zurückgezogen",
+    "expiresIn": "Läuft ab in {duration}",
+    "role": "Rolle",
+    "groups": "Gruppen",
+    "noGroupsYet": "Es gibt noch keine Gruppen: Lege zuerst Dienste auf dem Dashboard in eine.",
+    "noneSeesNothing": "Ohne Gruppe sieht die Person gar keine Dienste.",
+    "accessFailed": "Der Zugriff von {name} konnte nicht geändert werden",
+    "accessChanged": "Zugriff von {name} geändert",
+    "accessApplies": "Es gilt ab dem nächsten Schritt der Person.",
+    "accessTitle": "Zugriff von {name}",
+    "save": "Speichern",
+    "inviteFailed": "{email} konnte nicht eingeladen werden",
+    "sentTo": "An {email} gesendet",
+    "sendLink": "Schick der Person diesen Link",
+    "inTheirMail": "Er ist in ihrem Postfach, und auch hier, falls er nicht ankommt.",
+    "makesAccount": "Damit wird das Konto von {email} erstellt.",
+    "linkOnce": "Er funktioniert einmal, für 24 Stunden, und wird nicht noch einmal angezeigt: Nur ein Hash davon wird aufbewahrt.",
+    "mailFailed": "Konnte nicht gemailt werden. Schick den Link selbst.",
+    "mailFailedBecause": "Konnte nicht gemailt werden: {error}. Schick den Link selbst.",
+    "inviteLink": "Einladungslink",
+    "linkCopied": "Einladungslink kopiert",
+    "copy": "Kopieren",
+    "done": "Fertig",
+    "inviteDescription": "Die Person bekommt einen Link, um ihr Konto zu erstellen, der einmal und 24 Stunden lang funktioniert.",
+    "email": "E-Mail",
+    "mailLink": "Link per Mail schicken",
+    "sendInvite": "Einladung senden",
+    "makeLink": "Link erstellen"
+  },
+  "twoFactor": {
+    "on": "An",
+    "off": "Aus",
+    "onDescription": "Die Anmeldung mit deinem Passwort fragt auch nach einem Code aus deiner Authentifizierungs-App.",
+    "offDescription": "Bei der Anmeldung mit deinem Passwort auch nach einem Code aus einer Authentifizierungs-App fragen.",
+    "oldCodesGone": "Die vorherigen funktionieren nicht mehr.",
+    "done": "Fertig",
+    "newCodes": "Neue Backup-Codes",
+    "isOff": "Zwei-Faktor ist aus",
+    "password": "Dein Passwort",
+    "cancel": "Abbrechen",
+    "wrongCode": "Dieser Code stimmt nicht",
+    "isOn": "Zwei-Faktor ist an",
+    "isOnDescription": "Die Anmeldung fragt jetzt nach einem Code aus deiner App.",
+    "back": "Zurück",
+    "qrLabel": "QR-Code für deine Authentifizierungs-App",
+    "scanHint": "Scanne ihn mit einer Authentifizierungs-App wie 1Password, Google Authenticator oder Aegis, oder gib stattdessen den Schlüssel ein.",
+    "copyKey": "Schlüssel kopieren",
+    "keyCopied": "Schlüssel kopiert",
+    "next": "Weiter",
+    "savedThem": "Ich habe sie gespeichert",
+    "codeLabel": "Der Code, den deine App für das Dashboard zeigt",
+    "purpose": {
+      "enable": "Einschalten",
+      "disable": "Ausschalten",
+      "codes": "Neue Codes erstellen"
+    },
+    "failed": {
+      "enable": "Konnte nicht eingeschaltet werden",
+      "disable": "Konnte nicht ausgeschaltet werden",
+      "codes": "Neue Codes konnten nicht erstellt werden"
+    },
+    "steps": {
+      "scan": "Scannen",
+      "codes": "Backup-Codes",
+      "confirm": "Bestätigen"
+    }
   }
 }
