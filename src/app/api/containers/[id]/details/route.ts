@@ -26,6 +26,9 @@ export async function GET(
   if (isSiteKey(id)) {
     const access = await getAccess();
     if (!access) return refusal(new AccessError(401));
+    if (access.needsTwoFactor) {
+      return refusal(new AccessError(403, 'twoFactor'));
+    }
     if (!can(access.role, 'view')) return refusal(new AccessError(403));
     const tile = await db.tile.findUnique({
       where: { key: id },

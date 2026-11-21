@@ -11,6 +11,9 @@ import { NewService } from '@/lib/stacks/new-service';
 export async function GET() {
   const access = await getAccess();
   if (!access) return refusal(new AccessError(401));
+  if (access.needsTwoFactor) {
+    return refusal(new AccessError(403, 'twoFactor'));
+  }
   return Response.json(await getDashboard(access));
 }
 

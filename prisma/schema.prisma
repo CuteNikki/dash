@@ -331,3 +331,13 @@ model BackupSource {
   /// For a folder added here: where it is on the server
   path    String?
 }
+
+/// What's asked of each role's accounts, set by an owner: none until set
+model RolePolicy {
+  /// "owner", "admin", "operator" or "viewer"
+  role             String  @id
+  /// Its accounts need two-factor, an authenticator app, before they can use
+  /// the dashboard: a passkey doesn't do, as the password alone still signs
+  /// in an account with only that
+  requireTwoFactor Boolean @default(false)
+}

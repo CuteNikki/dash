@@ -882,6 +882,9 @@ declare const messages: {
         "create": "<b>{user}</b> invited <b>{target}</b>",
         "revoke": "<b>{user}</b> revoked the invite for <b>{target}</b>",
         "accept": "<b>{user}</b> joined from an invite, as <b>{target}</b>"
+      },
+      "policy": {
+        "twoFactor": "<b>{user}</b> changed whether two-factor is required for <b>{target}</b>"
       }
     },
     "title": "Activity",
@@ -988,7 +991,11 @@ declare const messages: {
     "email": "Email",
     "mailLink": "Mail them the link",
     "sendInvite": "Send the invite",
-    "makeLink": "Make the link"
+    "makeLink": "Make the link",
+    "twoFactorTitle": "Two-factor",
+    "twoFactorDescription": "Roles whose people need an authenticator app's code as well as their password. Those without one are sent to set it up from their next click; a passkey alone doesn't do, as the password still signs them in without it.",
+    "stillNeed": "{count, plural, one {# person still has to set it up} other {# people still have to set it up}}",
+    "twoFactorFailed": "Couldn't change that"
   },
   "twoFactor": {
     "on": "On",
@@ -1102,7 +1109,11 @@ declare const messages: {
     "inviteUsedDescription": "Or it has run out: each works once, for 24 hours. Ask for a new one, or sign in if you already have an account.",
     "join": "Join {server}",
     "joinDashboard": "Join the dashboard",
-    "joinDescription": "Make the account for {email}, as {role, select, owner {an owner} admin {an admin} operator {an operator} other {a viewer}}: {abilities}."
+    "joinDescription": "Make the account for {email}, as {role, select, owner {an owner} admin {an admin} operator {an operator} other {a viewer}}: {abilities}.",
+    "twoFactorTitle": "Set up two-factor",
+    "twoFactorDescription": "Your role needs an authenticator app's code as well as your password before you can use the dashboard.",
+    "continue": "Continue",
+    "signOut": "Sign out"
   },
   "meta": {
     "description": "Services, containers and files on the VPS"
@@ -1481,7 +1492,8 @@ declare const messages: {
     "backupNeedsStorage": "Set the storage's keys, or BACKUP_REPOSITORY, for where backups go",
     "noAnswer": "No answer",
     "notDockerRun": "That isn't a docker run command",
-    "noImage": "It has no image to run"
+    "noImage": "It has no image to run",
+    "twoFactorRequired": "Your role needs two-factor: set it up first"
   },
   "alertWords": {
     "unhealthy": "Unhealthy",

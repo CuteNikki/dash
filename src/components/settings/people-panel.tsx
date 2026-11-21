@@ -20,6 +20,7 @@ import {
   removePerson,
   revokeInvite,
   setPersonDisabled,
+  setTwoFactorRequired,
   signOutPerson,
   type PendingInvite,
   type PeopleResult,
@@ -29,7 +30,7 @@ import {
 import type { Format } from '@/i18n/format';
 import { useFormat } from '@/i18n/use-format';
 
-import { seesAllGroups, type Role } from '@/lib/auth/roles';
+import { ROLES, seesAllGroups, type Role } from '@/lib/auth/roles';
 
 import { TextSkeleton } from '@/components/common/skeletons';
 import { attempt } from '@/components/common/toasts';
@@ -48,6 +49,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 
 type PeopleTranslator = ReturnType<typeof useTranslations<'people'>>;
 
@@ -100,6 +103,12 @@ export function PeoplePanel() {
           <RowsSkeleton rows={peopleRows} lines={3} />
         )}
       </section>
+
+      <TwoFactorRoles
+        people={data?.people}
+        required={data?.twoFactorRoles}
+        onChangedAction={reload}
+      />
 
       <section className='flex flex-col gap-2'>
         <div className='flex items-center gap-2'>
@@ -408,5 +417,73 @@ function InviteRow({
         <XIcon />
       </Button>
     </li>
+  );
+}
+
+/**
+ * Which roles need an authenticator app, a switch each, with how many of
+ * their people still have to set one up: they're sent to, from their next
+ * click. A passkey doesn't do, as the password alone still signs in an
+ * account with only that.
+ */
+function TwoFactorRoles({
+  people,
+  required,
+  onChangedAction,
+}: {
+  people?: Person[];
+  required?: Role[];
+  onChangedAction: () => void;
+}) {
+  const t = useTranslations('people');
+  const tr = useTranslations('roles');
+  const [pending, startTransition] = useTransition();
+
+  function set(role: Role, on: boolean) {
+    startTransition(() =>
+      attempt(t('twoFactorFailed'), async () => {
+        const result = await setTwoFactorRequired(role, on);
+        if (result?.error) {
+          toast.error(t('twoFactorFailed'), { description: result.error });
+          return;
+        }
+        onChangedAction();
+      })
+    );
+  }
+
+  return (
+    <section className='flex flex-col gap-2'>
+      <div className='flex flex-col'>
+        <h3 className='font-medium'>{t('twoFactorTitle')}</h3>
+        <p className='text-muted-foreground'>{t('twoFactorDescription')}</p>
+      </div>
+      <ul className='flex flex-col divide-y divide-border'>
+        {ROLES.map((role) => {
+          const on = !!required?.includes(role);
+          const missing =
+            people?.filter((p) => p.role === role && !p.twoFactor).length ?? 0;
+          return (
+            <li key={role} className='flex items-center gap-3 py-2'>
+              <div className='flex min-w-0 flex-1 flex-col'>
+                <Label htmlFor={`two-factor-${role}`}>
+                  {tr(`${role}.name`)}
+                </Label>
+                {/* Its room kept, so the rows don't move as it comes and goes */}
+                <span className='min-h-lh text-muted-foreground'>
+                  {on && missing > 0 && t('stillNeed', { count: missing })}
+                </span>
+              </div>
+              <Switch
+                id={`two-factor-${role}`}
+                checked={on}
+                disabled={!required || pending}
+                onCheckedChange={(next) => set(role, next)}
+              />
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }

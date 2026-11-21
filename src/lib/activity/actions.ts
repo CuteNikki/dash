@@ -45,6 +45,7 @@ export const ACTIVITY_ACTIONS = [
   'invite.create',
   'invite.revoke',
   'invite.accept',
+  'policy.twoFactor',
 ] as const;
 
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];

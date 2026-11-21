@@ -7,6 +7,7 @@ import { cache } from 'react';
 import { issueText } from '@/i18n/errors';
 
 import { auth } from '@/lib/auth/auth';
+import { requiresTwoFactor } from '@/lib/auth/policy';
 import {
   can,
   roleOf,
@@ -26,6 +27,12 @@ export type Access = {
   role: Role;
   /** The groups they're given; every one for a role that sees all */
   groups: string[];
+  /**
+   * Their role asks for two-factor and they haven't an authenticator app
+   * yet: until they have, they can only set one up. A passkey doesn't do,
+   * as the password alone still signs in an account with only that
+   */
+  needsTwoFactor: boolean;
 };
 
 /**
@@ -37,23 +44,39 @@ export const getAccess = cache(async (): Promise<Access | undefined> => {
   if (!session) return undefined;
   const row = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { role: true, allowedGroups: true },
+    select: {
+      role: true,
+      allowedGroups: true,
+      twoFactorEnabled: true,
+    },
   });
   if (!row) return undefined;
   const { id, name, email, emailVerified } = session.user;
+  const role = roleOf(row.role);
   return {
     user: { id, name, email, emailVerified },
-    role: roleOf(row.role),
+    role,
     groups: row.allowedGroups,
+    needsTwoFactor: !row.twoFactorEnabled && (await requiresTwoFactor(role)),
   };
 });
 
 /** What a page, action or route was refused for. */
 export class AccessError extends Error {
-  constructor(readonly status: 401 | 403 | 404) {
+  constructor(
+    readonly status: 401 | 403 | 404,
+    /** Refused for want of a second factor, which their role asks for */
+    reason?: 'twoFactor'
+  ) {
     super(
       // Keys under "errors", which refusal() says in the asker's language
-      status === 401 ? 'signInFirst' : status === 404 ? 'gone' : 'notAllowed'
+      reason === 'twoFactor'
+        ? 'twoFactorRequired'
+        : status === 401
+          ? 'signInFirst'
+          : status === 404
+            ? 'gone'
+            : 'notAllowed'
     );
   }
 }
@@ -65,6 +88,7 @@ export class AccessError extends Error {
 export async function requireAccess(ability: Ability) {
   const access = await getAccess();
   if (!access) redirect('/login');
+  if (access.needsTwoFactor) redirect('/two-factor');
   if (!can(access.role, ability)) throw new AccessError(403);
   return access;
 }
@@ -76,6 +100,7 @@ export async function requireAccess(ability: Ability) {
 export async function denied(ability: Ability) {
   const access = await getAccess();
   if (!access) return refusal(new AccessError(401));
+  if (access.needsTwoFactor) return refusal(new AccessError(403, 'twoFactor'));
   if (!can(access.role, ability)) return refusal(new AccessError(403));
   return undefined;
 }
@@ -98,6 +123,7 @@ export async function serviceFor(
 ): Promise<{ access: Access; container: Container; group: string }> {
   const access = await getAccess();
   if (!access) throw new AccessError(401);
+  if (access.needsTwoFactor) throw new AccessError(403, 'twoFactor');
   if (!can(access.role, ability)) throw new AccessError(403);
   const container = (await listContainers()).find((c) => c.id === containerId);
   if (!container) throw new AccessError(404);

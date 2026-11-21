@@ -16,6 +16,9 @@ export async function GET(
 ) {
   const access = await getAccess();
   if (!access) return refusal(new AccessError(401));
+  if (access.needsTwoFactor) {
+    return refusal(new AccessError(403, 'twoFactor'));
+  }
   if (!can(access.role, 'view')) return refusal(new AccessError(403));
   const key = decodeURIComponent((await params).key);
   const tile = isSiteKey(key)

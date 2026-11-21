@@ -8,7 +8,8 @@ import { errorText, issueText } from '@/i18n/errors';
 import { record } from '@/lib/activity/record';
 import { requireAccess } from '@/lib/auth/access';
 import { INVITE_MS, newToken, tokenHash } from '@/lib/auth/invites';
-import { ROLE_INFO, roleOf, ROLES, type Role } from '@/lib/auth/roles';
+import { rolesRequiringTwoFactor } from '@/lib/auth/policy';
+import { isRole, ROLE_INFO, roleOf, ROLES, type Role } from '@/lib/auth/roles';
 import { groupNames } from '@/lib/dashboard/groups';
 import { getDashboard } from '@/lib/dashboard/services';
 import { db } from '@/lib/db';
@@ -52,6 +53,8 @@ export type People = {
   groups: string[];
   /** The dashboard can send mail, so an invite can go by it */
   mail: boolean;
+  /** The roles whose accounts need an authenticator app */
+  twoFactorRoles: Role[];
 };
 
 export type PeopleResult = { error: string } | undefined;
@@ -59,7 +62,7 @@ export type PeopleResult = { error: string } | undefined;
 /** Everyone with an account, the invites still open, and the groups to give. */
 export async function listPeople(): Promise<People> {
   const access = await requireAccess('users');
-  const [users, invites, dashboard] = await Promise.all([
+  const [users, invites, dashboard, twoFactorRoles] = await Promise.all([
     db.user.findMany({
       orderBy: { createdAt: 'asc' },
       include: {
@@ -76,6 +79,7 @@ export async function listPeople(): Promise<People> {
       include: { invitedBy: { select: { name: true } } },
     }),
     getDashboard(access),
+    rolesRequiringTwoFactor(),
   ]);
   return {
     people: users.map((u) => ({
@@ -100,7 +104,33 @@ export async function listPeople(): Promise<People> {
     })),
     groups: groupNames(dashboard.services, dashboard.groupOrder),
     mail: mailReady(),
+    twoFactorRoles,
   };
+}
+
+/**
+ * Whether a role's accounts need an authenticator app before they can use
+ * the dashboard, from their next click; those without one are sent to set
+ * it up.
+ */
+export async function setTwoFactorRequired(
+  role: Role,
+  required: boolean
+): Promise<PeopleResult> {
+  const access = await requireAccess('users');
+  if (!isRole(role) || typeof required !== 'boolean') {
+    return { error: await errorText('onOrOff') };
+  }
+  await db.rolePolicy.upsert({
+    where: { role },
+    create: { role, requireTwoFactor: required },
+    update: { requireTwoFactor: required },
+  });
+  await record(access, {
+    action: 'policy.twoFactor',
+    target: ROLE_INFO[role].name,
+    detail: required ? 'required' : 'not required',
+  });
 }
 
 const Access = z.object({

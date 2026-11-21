@@ -879,6 +879,9 @@
         "create": "<b>{user}</b> hat <b>{target}</b> eingeladen",
         "revoke": "<b>{user}</b> hat die Einladung für <b>{target}</b> zurückgezogen",
         "accept": "<b>{user}</b> ist über eine Einladung beigetreten, als <b>{target}</b>"
+      },
+      "policy": {
+        "twoFactor": "<b>{user}</b> hat geändert, ob Zwei-Faktor für <b>{target}</b> nötig ist"
       }
     },
     "title": "Aktivität",
@@ -985,7 +988,11 @@
     "email": "E-Mail",
     "mailLink": "Link per Mail schicken",
     "sendInvite": "Einladung senden",
-    "makeLink": "Link erstellen"
+    "makeLink": "Link erstellen",
+    "twoFactorTitle": "Zwei-Faktor",
+    "twoFactorDescription": "Rollen, deren Personen neben dem Passwort einen Code aus einer Authentifizierungs-App brauchen. Wer keine hat, wird ab dem nächsten Klick zur Einrichtung geschickt; ein Passkey allein reicht nicht, da das Passwort sie auch ohne ihn anmeldet.",
+    "stillNeed": "{count, plural, one {# Person muss es noch einrichten} other {# Personen müssen es noch einrichten}}",
+    "twoFactorFailed": "Das konnte nicht geändert werden"
   },
   "twoFactor": {
     "on": "An",
@@ -1099,7 +1106,11 @@
     "inviteUsedDescription": "Oder sie ist abgelaufen: Jede funktioniert einmal, für 24 Stunden. Bitte um eine neue, oder melde dich an, falls du schon ein Konto hast.",
     "join": "{server} beitreten",
     "joinDashboard": "Dem Dashboard beitreten",
-    "joinDescription": "Erstelle das Konto für {email}, als {role, select, owner {Inhaber} admin {Admin} operator {Operator} other {Betrachter}}: {abilities}."
+    "joinDescription": "Erstelle das Konto für {email}, als {role, select, owner {Inhaber} admin {Admin} operator {Operator} other {Betrachter}}: {abilities}.",
+    "twoFactorTitle": "Zwei-Faktor einrichten",
+    "twoFactorDescription": "Deine Rolle braucht neben deinem Passwort einen Code aus einer Authentifizierungs-App, bevor du das Dashboard nutzen kannst.",
+    "continue": "Weiter",
+    "signOut": "Abmelden"
   },
   "meta": {
     "description": "Dienste, Container und Dateien auf dem VPS"
@@ -1478,7 +1489,8 @@
     "backupNeedsStorage": "Setze die Schlüssel des Speichers oder BACKUP_REPOSITORY, wohin die Sicherungen gehen",
     "noAnswer": "Keine Antwort",
     "notDockerRun": "Das ist kein docker-run-Befehl",
-    "noImage": "Es hat kein Image zum Ausführen"
+    "noImage": "Es hat kein Image zum Ausführen",
+    "twoFactorRequired": "Deine Rolle braucht Zwei-Faktor: Richte es zuerst ein"
   },
   "alertWords": {
     "unhealthy": "Fehlerhaft",
