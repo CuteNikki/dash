@@ -14,6 +14,63 @@ dash is one person's (or a small team's) control room for a single Docker server
 
 Design for this order. The first job should take zero clicks and zero reading; the fifth may take a few.
 
+## Everything dash does
+
+A redesign may move or regroup any of this, but must keep all of it, and every mockup round is checked against this list. From the components and the translation keys.
+
+**Board and header**
+
+- Tiles in groups, or a list view (status, memory, stack, actions); filter all/stopped, remembered.
+- Tile: icon, name, description, every address, status (running, unhealthy, starting, paused, restarting, exited, dead), update badge, the app's own numbers, CPU and memory, a sparkline on taller tiles; hidden tiles faded.
+- Website tiles (also external ones, like Vercel sites): online/offline, uptime, response time, outages.
+- Header: tiles/list toggle, alerts bell with open count, Updates with a count, New service, Edit, theme, account menu (settings, sign out).
+- Edit mode: move and resize tiles and sections, rename groups, reorder list rows and groups; a click opens Edit tile.
+- dash updates itself (self-update).
+
+**Server**
+
+- Facts: system, kernel, processor and cores, uptime, load, swap, Docker version, containers (running, stopped, images).
+- CPU (total or per core), memory, disk, disk I/O (write/read/both), network (down/up/both), each with a graph.
+- Processes: filter, which container, stop or force stop.
+- History: CPU and steal, memory, disk space, load, disk wait, disk I/O, network; ranges; at worst and on average.
+- Disk: folder sizes, measure, unused space, prune images.
+- System updates (apt): count, security, phased and kept back, restart needed, upgrade, restart the server.
+- Backups (restic): nightly, local and off-server, per database and folder, back up now, restore, add a folder, switch a part off.
+
+**Service window**
+
+- Header: status, Start/Stop/Restart, Edit tile, Check for updates, Update (with major-version warning and what's new), Reload config (Caddy), Remove (with data, undo).
+- Usage: CPU and memory over ranges; app details (players, databases, sites, indexers, streams, rooms, and so on, per app).
+- Logs: filter, wrap, follow, copy, folded lines; a console for apps that take commands (Minecraft).
+- Files: file tree, code editor, Markdown preview, save and rebuild or redeploy, revert.
+- Git: branches, changes and diff, commit and push, pull, fetch, history.
+- Browse: storage buckets (Garage): files, folders, download, delete.
+- Addresses and ports (copy); for websites: uptime, response time, outages, check interval.
+
+**Edit tile**
+
+- Name, description, icon (search or upload), addresses (reorder), group, which numbers show, hide, ignore updates, reset or remove with undo.
+
+**Updates**
+
+- Every waiting update: new image, new version, rebuilt from new commits; update one or all; follow the output.
+
+**New service**
+
+- Templates (LinuxServer.io plus curated), docker run import, from a Git repository, a website; address with domain picker and DNS check; compose and .env.
+
+**Alerts**
+
+- Open now and lately, mailed or not; down, unhealthy, restarting, disk full, no answer, certificates running out, failed backups.
+
+**Settings**
+
+- Language; account (profile, email confirmation, password, mail alerts); security (passkeys, two-factor with backup codes, sessions); people (invites with a note and groups, roles owner/admin/operator/viewer, access per group, disable, sign out everywhere); activity log (filter, failed only).
+
+**Sign-in**
+
+- Password or passkey, two-factor or backup code, trust this device, forgot and reset password, first setup, join by invite.
+
 ## Principles
 
 - **Healthy is quiet, problems are loud.** When everything works, the board should be calm. Something down, failing or out of date should be the most visible thing on the screen.
