@@ -420,10 +420,9 @@ function InviteRow({
 }
 
 /**
- * Which roles need an authenticator app, a switch each, with how many of
- * their people still have to set one up: they're sent to, from their next
- * click. A passkey doesn't do, as the password alone still signs in an
- * account with only that.
+ * Which roles require two-factor, a switch each, with how many of their
+ * people have no authenticator app yet: signed in with their password
+ * alone, they're sent to set one up; a passkey's sign-in is let through.
  */
 function TwoFactorRoles({
   people,
