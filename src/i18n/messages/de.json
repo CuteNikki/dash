@@ -278,6 +278,24 @@
     "editDashboard": "Bearbeiten",
     "otherGroup": "Sonstiges"
   },
+  "verdict": {
+    "label": "Wie es allem geht",
+    "rows": "Was einen Blick braucht",
+    "fine": "Alles läuft",
+    "stopped": "{count, number} gestoppt",
+    "offline": "{count, number} offline",
+    "attention": "{count, plural, one {# braucht einen Blick} other {# brauchen einen Blick}}",
+    "updates": "{count, plural, one {# Update wartet} other {# Updates warten}}",
+    "alerts": "{count, plural, one {# offene Meldung} other {# offene Meldungen}}",
+    "running": "{running, number} von {total, number} laufen",
+    "upToDate": "alles aktuell",
+    "systemUpdates": "{count, plural, one {# Systemupdate} other {# Systemupdates}}",
+    "open": "{name} öffnen",
+    "logs": "Logs",
+    "logsOf": "Logs von {name}",
+    "start": "Starten",
+    "restart": "Neu starten"
+  },
   "board": {
     "move": "{name} verschieben: Pfeiltasten verschieben, mit Umschalt ändern sie die Größe",
     "resizeSection": "Ziehen zum Ändern der Größe: breiter oder schmaler, oder nach unten neben die Bereiche daneben",

@@ -57,6 +57,7 @@ import {
 import { EditTileDialog } from '@/components/dashboard/edit-tile-dialog';
 import { ServiceList } from '@/components/dashboard/service-list';
 import { ServiceTile } from '@/components/dashboard/service-tile';
+import { TroubleRows, VerdictLine } from '@/components/dashboard/verdict';
 import { HostTileContent } from '@/components/host/host-stats';
 import { SystemDialog } from '@/components/host/system-dialog';
 import { NewServiceDialog } from '@/components/new-service/new-service-dialog';
@@ -152,7 +153,8 @@ export function Dashboard({
   const [editKey, setEditKey] = useState<string>();
 
   const { services, groupOrder, host, hostComing } = data;
-  const shown = editing ? services : services.filter((s) => !s.hidden);
+  const visible = useMemo(() => services.filter((s) => !s.hidden), [services]);
+  const shown = editing ? services : visible;
   const groups = useMemo(
     () => groupServices(shown, groupOrder),
     [shown, groupOrder]
@@ -322,6 +324,16 @@ export function Dashboard({
           <h1>
             <Brand />
           </h1>
+          {/* How everything's doing: between the name and the buttons where the
+              line has room for all three, else on a line of its own below them */}
+          {!editing && (
+            <VerdictLine
+              services={visible}
+              alerts={may('server') ? data.alerts : undefined}
+              system={data.system}
+              className='max-xl:order-last max-xl:basis-full xl:mr-auto xl:ml-6'
+            />
+          )}
           {/* Closer together on a phone, where the line's room is short */}
           <div className='flex items-center gap-2'>
             <ToggleGroup
@@ -420,6 +432,18 @@ export function Dashboard({
             <EmailNotice me={me} />
           </div>
         </header>
+        {/* Off while arranging, which is about where things go, not how they're doing */}
+        {!editing && (
+          <TroubleRows
+            services={visible}
+            onOpenAction={open}
+            onLogsAction={(service) => {
+              setOpenTab('logs');
+              setOpenKey(service.key);
+            }}
+            onChangedAction={() => mutate()}
+          />
+        )}
         <Board
           sections={sections}
           columns={columns}

@@ -278,6 +278,24 @@
     "editDashboard": "Edit",
     "otherGroup": "Other"
   },
+  "verdict": {
+    "label": "How everything is doing",
+    "rows": "What needs a look",
+    "fine": "Everything is running",
+    "stopped": "{count, number} stopped",
+    "offline": "{count, number} offline",
+    "attention": "{count, plural, one {# needs a look} other {# need a look}}",
+    "updates": "{count, plural, one {# update waiting} other {# updates waiting}}",
+    "alerts": "{count, plural, one {# open alert} other {# open alerts}}",
+    "running": "{running, number} of {total, number} running",
+    "upToDate": "everything up to date",
+    "systemUpdates": "{count, plural, one {# system update} other {# system updates}}",
+    "open": "Open {name}",
+    "logs": "Logs",
+    "logsOf": "Logs of {name}",
+    "start": "Start",
+    "restart": "Restart"
+  },
   "board": {
     "move": "Move {name}: arrow keys move it, with Shift they resize it",
     "resizeSection": "Drag to resize: wider or narrower, or down beside the sections next to it",
