@@ -4,6 +4,8 @@ import { getLocale, getTranslations } from 'next-intl/server';
 import { Geist, JetBrains_Mono } from 'next/font/google';
 import localFont from 'next/font/local';
 
+import { LucideProvider } from 'lucide-react';
+
 import { cn } from '@/lib/utils';
 
 import { ThemeProvider } from '@/components/chrome/theme-provider';
@@ -59,6 +61,10 @@ export const viewport: Viewport = {
 // waits for its sign-in, so none waits longer for it
 export const instant = false;
 
+// Icons a little lighter than lucide's 2, so they sit with the text instead of
+// outweighing it. An icon's own strokeWidth still wins.
+const ICON_STROKE_WIDTH = 1.75;
+
 export default async function RootLayout({ children }: LayoutProps<'/'>) {
   // The person's language, from their setting or their browser's
   const locale = await getLocale();
@@ -84,10 +90,12 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
         >
           <NextIntlClientProvider>
             <ToastWords />
-            <TooltipProvider>
-              {children}
-              <Toaster />
-            </TooltipProvider>
+            <LucideProvider strokeWidth={ICON_STROKE_WIDTH}>
+              <TooltipProvider>
+                {children}
+                <Toaster />
+              </TooltipProvider>
+            </LucideProvider>
           </NextIntlClientProvider>
         </ThemeProvider>
       </body>
