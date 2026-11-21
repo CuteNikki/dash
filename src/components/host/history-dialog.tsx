@@ -50,6 +50,7 @@ export function HistoryDialog({
   host?: HostStats;
   onCloseAction: () => void;
 }) {
+  const t = useTranslations('history');
   const tr = useTranslations('ranges');
   const [range, setRange] = useState<HistoryRange>('24h');
   const { data, error } = useSWR<HostHistory>(
@@ -73,59 +74,59 @@ export function HistoryDialog({
     latest?: boolean;
   }[] = [
     {
-      title: 'CPU',
+      title: t('cpu'),
       measure: MEASURES.serverCpu,
-      lines: (h) => [{ label: 'CPU', values: h.cpu }],
+      lines: (h) => [{ label: t('cpu'), values: h.cpu }],
     },
     {
       // The provider's other machines' share of this one's CPU; a stall
       // here, not in the disk's wait, is the host being busy elsewhere
-      title: 'CPU steal',
+      title: t('steal'),
       measure: MEASURES.steal,
-      lines: (h) => [{ label: 'Taken', values: h.steal }],
+      lines: (h) => [{ label: t('taken'), values: h.steal }],
       peak: true,
     },
     {
-      title: 'Memory',
+      title: t('memory'),
       measure: host
         ? { ...MEASURES.memory, floor: host.memory.total }
         : MEASURES.memory,
-      lines: (h) => [{ label: 'Memory', values: h.memory }],
+      lines: (h) => [{ label: t('memory'), values: h.memory }],
     },
     {
-      title: 'Disk space',
+      title: t('diskSpace'),
       // Against the disk's size, so it climbs toward the top as it fills
       measure: host
         ? { format: MEASURES.memory.format, floor: host.disk.total }
         : MEASURES.memory,
-      lines: (h) => [{ label: 'Used', values: h.diskUsed }],
+      lines: (h) => [{ label: t('used'), values: h.diskUsed }],
       latest: true,
     },
     {
-      title: 'Load',
+      title: t('load'),
       measure: MEASURES.load,
-      lines: (h) => [{ label: 'Load', values: h.load }],
+      lines: (h) => [{ label: t('load'), values: h.load }],
     },
     {
-      title: 'Disk wait',
+      title: t('diskWait'),
       measure: MEASURES.diskWait,
-      lines: (h) => [{ label: 'Per read or write', values: h.diskWait }],
+      lines: (h) => [{ label: t('perReadWrite'), values: h.diskWait }],
       peak: true,
     },
     {
-      title: 'Disk I/O',
+      title: t('diskIo'),
       measure: MEASURES.disk,
       lines: (h) => [
-        { label: 'Write', values: h.diskWritten },
-        { label: 'Read', values: h.diskRead, dashed: true },
+        { label: t('write'), values: h.diskWritten },
+        { label: t('read'), values: h.diskRead, dashed: true },
       ],
     },
     {
-      title: 'Network',
+      title: t('network'),
       measure: MEASURES.network,
       lines: (h) => [
-        { label: 'Download', values: h.received },
-        { label: 'Upload', values: h.sent, dashed: true },
+        { label: t('download'), values: h.received },
+        { label: t('upload'), values: h.sent, dashed: true },
       ],
     },
   ];
@@ -134,10 +135,8 @@ export function HistoryDialog({
     <Dialog open={open} onOpenChange={(o) => !o && onCloseAction()}>
       <DialogContent className='flex max-h-[90dvh] flex-col sm:max-w-4xl'>
         <DialogHeader>
-          <DialogTitle>History</DialogTitle>
-          <DialogDescription>
-            The server over {words}, a reading a minute, kept for a week
-          </DialogDescription>
+          <DialogTitle>{t('title')}</DialogTitle>
+          <DialogDescription>{t('description', { words })}</DialogDescription>
         </DialogHeader>
         <div className='flex justify-end'>
           <RangePicker
@@ -187,18 +186,27 @@ function HistoryPanel({
   lines?: Line[];
   words: string;
 }) {
+  const t = useTranslations('history');
   const tr = useTranslations('ranges');
   const format = useFormat();
   const first = lines?.[0].values.filter((v) => v !== null) ?? [];
   const summary = !lines
     ? undefined
     : !first.length
-      ? 'No readings'
+      ? t('noReadings')
       : latest
-        ? `${measure.format(first.at(-1)!, format)} now, ${changeOf(first, measure, format)}`
+        ? t('now', {
+            value: measure.format(first.at(-1)!, format),
+            change: changeOf(first, measure, format, t),
+          })
         : peak
-          ? `${measure.format(Math.max(...first), format)} at worst`
-          : `${measure.format(first.reduce((a, b) => a + b, 0) / first.length, format)} on average`;
+          ? t('atWorst', { value: measure.format(Math.max(...first), format) })
+          : t('onAverage', {
+              value: measure.format(
+                first.reduce((a, b) => a + b, 0) / first.length,
+                format
+              ),
+            });
   return (
     <Panel title={title}>
       <span className='-mt-1 text-muted-foreground'>
@@ -219,8 +227,14 @@ function HistoryPanel({
 }
 
 /** How much something grew or shrank over the range: "up 2.1 GB", "no change". */
-function changeOf(values: number[], measure: Measure, format: Format) {
+function changeOf(
+  values: number[],
+  measure: Measure,
+  format: Format,
+  t: ReturnType<typeof useTranslations<'history'>>
+) {
   const change = values.at(-1)! - values[0];
-  if (Math.abs(change) < 1024 * 1024) return 'no change';
-  return `${change > 0 ? 'up' : 'down'} ${measure.format(Math.abs(change), format)}`;
+  if (Math.abs(change) < 1024 * 1024) return t('noChange');
+  const value = measure.format(Math.abs(change), format);
+  return change > 0 ? t('up', { value }) : t('down', { value });
 }

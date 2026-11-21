@@ -1,10 +1,12 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 
 import { ArrowDownIcon, ListIcon, SearchIcon } from 'lucide-react';
 
-import { formatBytes, formatCpu } from '@/lib/format';
+import { useFormat } from '@/i18n/use-format';
+
 import type { HostProcess, Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -59,6 +61,8 @@ export function ProcessList({
   services: Service[];
   onOpenAction: (service: Service) => void;
 }) {
+  const format = useFormat();
+  const t = useTranslations('process');
   const [sort, setSort] = useState<SortKey>('cpu');
   const [filter, setFilter] = useState('');
   // Until the first measurement: a process is only listed once it's been
@@ -93,15 +97,15 @@ export function ProcessList({
       <div className='grid grid-cols-[1fr_auto] items-center gap-2 text-muted-foreground @md:h-6 @md:grid-cols-[1fr_auto_1fr] [&_svg:not([class*=size-])]:size-4'>
         <span className='flex items-center gap-2'>
           <ListIcon />
-          Processes
+          {t('processes')}
         </span>
         <InputGroup className='order-last col-span-2 h-6 @md:order-0 @md:col-span-1 @md:w-48'>
           <InputGroupAddon>
             <SearchIcon />
           </InputGroupAddon>
           <InputGroupInput
-            placeholder='Filter'
-            aria-label='Filter processes'
+            placeholder={t('filter')}
+            aria-label={t('filterProcesses')}
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           />
@@ -110,9 +114,9 @@ export function ProcessList({
           {measuring ? (
             <TextSkeleton className='w-16' />
           ) : query ? (
-            `${shown.length} of ${processes.length}`
+            t('shownOf', { shown: shown.length, count: processes.length })
           ) : (
-            `${processes.length} total`
+            t('total', { count: processes.length })
           )}
         </span>
       </div>
@@ -129,10 +133,12 @@ export function ProcessList({
             <table className={TABLE}>
               <thead className='text-left text-muted-foreground'>
                 <tr>
-                  <th className='font-normal'>Process</th>
+                  <th className='font-normal'>{t('process')}</th>
                   <th className={cn('font-normal', COLUMN.pid)}>PID</th>
                   <th className={cn('font-normal', COLUMN.container)}>
-                    <span className='sr-only @lg:not-sr-only'>Container</span>
+                    <span className='sr-only @lg:not-sr-only'>
+                      {t('labels.container')}
+                    </span>
                   </th>
                   <SortHeading
                     by='cpu'
@@ -140,7 +146,7 @@ export function ProcessList({
                     onSort={setSort}
                     className={COLUMN.cpu}
                   >
-                    CPU
+                    {t('labels.cpu')}
                   </SortHeading>
                   <SortHeading
                     by='memory'
@@ -148,7 +154,7 @@ export function ProcessList({
                     onSort={setSort}
                     className={COLUMN.memory}
                   >
-                    Memory
+                    {t('labels.memory')}
                   </SortHeading>
                 </tr>
               </thead>
@@ -222,7 +228,7 @@ export function ProcessList({
                             <button
                               type='button'
                               title={service.name}
-                              aria-label={`Open ${service.name}`}
+                              aria-label={t('open', { name: service.name })}
                               onClick={(e) => {
                                 // Its service, not the process's details
                                 e.stopPropagation();
@@ -244,12 +250,12 @@ export function ProcessList({
                           )}
                         </td>
                         <td className={cn('text-right font-mono', COLUMN.cpu)}>
-                          {formatCpu(p.cpu)}
+                          {format.cpu(p.cpu)}
                         </td>
                         <td
                           className={cn('text-right font-mono', COLUMN.memory)}
                         >
-                          {formatBytes(p.memory)}
+                          {format.bytes(p.memory)}
                         </td>
                       </tr>
                     );
@@ -257,7 +263,7 @@ export function ProcessList({
                 </tbody>
               </table>
               {!measuring && shown.length === 0 && (
-                <p className='text-muted-foreground'>No processes match.</p>
+                <p className='text-muted-foreground'>{t('noMatch')}</p>
               )}
             </ScrollFade>
           </div>

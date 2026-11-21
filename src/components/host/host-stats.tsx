@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 import {
@@ -18,16 +19,10 @@ import {
   ServerIcon,
 } from 'lucide-react';
 
+import type { Format } from '@/i18n/format';
 import { useFormat } from '@/i18n/use-format';
 
-import {
-  formatBytes,
-  formatCpu,
-  formatDuration,
-  formatShare,
-  MEASURES,
-  type Measure,
-} from '@/lib/format';
+import { MEASURES, type Measure } from '@/lib/format';
 import type { HostTileKey } from '@/lib/host/host-tiles';
 import type { Capacity, HostStats, Service, SystemUpdates } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -66,6 +61,8 @@ export function HostTileContent({
   system?: SystemUpdates;
   onSystemAction: () => void;
 }) {
+  const format = useFormat();
+  const t = useTranslations('host');
   return render(tile);
 
   function render(key: HostTileKey) {
@@ -92,9 +89,9 @@ export function HostTileContent({
         return (
           <Stat
             icon={<MemoryStickIcon />}
-            label='Memory'
+            label={t('memory')}
             detail={<Of capacity={host?.memory} />}
-            value={host ? formatBytes(host.memory.used) : <ValueSkeleton />}
+            value={host ? format.bytes(host.memory.used) : <ValueSkeleton />}
           >
             <Usage capacity={host?.memory} />
           </Stat>
@@ -105,21 +102,21 @@ export function HostTileContent({
         return (
           <FlowStat
             icon={<ActivityIcon />}
-            label='Disk I/O'
+            label={t('diskIo')}
             times={host?.history.at}
             measure={MEASURES.disk}
             // Down, then up, as on Network: written to the disk, then read off it
             flows={[
               {
-                short: 'Write',
-                label: 'Write',
+                short: t('write'),
+                label: t('write'),
                 icon: <ArrowDownIcon />,
                 value: host?.diskIo.written,
                 values: host?.history.diskWritten,
               },
               {
-                short: 'Read',
-                label: 'Read',
+                short: t('read'),
+                label: t('read'),
                 icon: <ArrowUpIcon />,
                 value: host?.diskIo.read,
                 values: host?.history.diskRead,
@@ -131,20 +128,20 @@ export function HostTileContent({
         return (
           <FlowStat
             icon={<NetworkIcon />}
-            label='Network'
+            label={t('network')}
             times={host?.history.at}
             measure={MEASURES.network}
             flows={[
               {
-                short: 'Down',
-                label: 'Download',
+                short: t('down'),
+                label: t('download'),
                 icon: <ArrowDownIcon />,
                 value: host?.network.received,
                 values: host?.history.received,
               },
               {
-                short: 'Up',
-                label: 'Upload',
+                short: t('up'),
+                label: t('upload'),
                 icon: <ArrowUpIcon />,
                 value: host?.network.sent,
                 values: host?.history.sent,
@@ -163,27 +160,42 @@ export function HostTileContent({
 const TILE_BUTTON =
   "@max-md:h-7 @max-md:gap-1 @max-md:rounded-md @max-md:text-xs @max-md:[&_svg:not([class*='size-'])]:size-3.5";
 
-/** What the server is, label by label. */
-const SERVER_DETAILS: [string, (host: HostStats) => string][] = [
-  ['System', (h) => h.system.os],
-  ['Kernel', (h) => `${h.system.kernel} (${h.system.architecture})`],
-  ['Processor', (h) => `${h.system.cpuModel}, ${h.cores} cores`],
-  ['Up for', (h) => formatDuration(h.system.uptime)],
-  ['Load', (h) => h.system.load.map((l) => l.toFixed(2)).join('  ')],
-  [
-    'Swap',
-    ({ system: { swap } }) =>
-      swap.total > 0
-        ? `${formatBytes(swap.used)} of ${formatBytes(swap.total)}`
-        : 'None',
-  ],
-  ['Docker', (h) => h.system.docker],
-  [
-    'Containers',
-    ({ system: s }) =>
-      `${s.containers.running} running, ${s.containers.stopped} stopped, ${s.images} images`,
-  ],
-];
+/** What the server is, label by label, in the page's language. */
+function serverDetails(
+  t: ReturnType<typeof useTranslations<'host'>>,
+  format: Format
+): [string, (host: HostStats) => string][] {
+  return [
+    [t('system'), (h) => h.system.os],
+    [t('kernel'), (h) => `${h.system.kernel} (${h.system.architecture})`],
+    [
+      t('processor'),
+      (h) => t('processorCores', { model: h.system.cpuModel, count: h.cores }),
+    ],
+    [t('upFor'), (h) => format.duration(h.system.uptime)],
+    [t('load'), (h) => h.system.load.map((l) => format.fixed(l, 2)).join('  ')],
+    [
+      t('swap'),
+      ({ system: { swap } }) =>
+        swap.total > 0
+          ? t('usedOf', {
+              used: format.bytes(swap.used),
+              size: format.bytes(swap.total),
+            })
+          : t('none'),
+    ],
+    ['Docker', (h) => h.system.docker],
+    [
+      t('containers'),
+      ({ system: s }) =>
+        t('containerCounts', {
+          running: s.containers.running,
+          stopped: s.containers.stopped,
+          images: s.images,
+        }),
+    ],
+  ];
+}
 
 function ServerDetails({
   host,
@@ -194,6 +206,8 @@ function ServerDetails({
   system?: SystemUpdates;
   onSystem: () => void;
 }) {
+  const format = useFormat();
+  const t = useTranslations('host');
   const [history, setHistory] = useState(false);
   const [backups, setBackups] = useState(false);
   return (
@@ -208,22 +222,22 @@ function ServerDetails({
           variant='outline'
           size='xs'
           onClick={() => setHistory(true)}
-          aria-label='History'
+          aria-label={t('history')}
           className={cn(TILE_BUTTON, 'text-muted-foreground')}
         >
           <HistoryIcon />
           {/* Its icon alone on a narrow tile, so the server's name has the room */}
-          <ButtonLabel hideOn='tile'>History</ButtonLabel>
+          <ButtonLabel hideOn='tile'>{t('history')}</ButtonLabel>
         </Button>
         <Button
           variant='outline'
           size='xs'
           onClick={() => setBackups(true)}
-          aria-label='Backups'
+          aria-label={t('backups')}
           className={cn(TILE_BUTTON, 'text-muted-foreground')}
         >
           <ArchiveIcon />
-          <ButtonLabel hideOn='tile'>Backups</ButtonLabel>
+          <ButtonLabel hideOn='tile'>{t('backups')}</ButtonLabel>
         </Button>
         {system && <SystemButton system={system} onClick={onSystem} />}
       </div>
@@ -234,7 +248,7 @@ function ServerDetails({
       />
       <BackupsDialog open={backups} onCloseAction={() => setBackups(false)} />
       <dl className='grid grid-cols-1 gap-x-6 gap-y-3 @md:grid-cols-2 @3xl:grid-cols-4 @7xl:grid-cols-8'>
-        {SERVER_DETAILS.map(([label, value]) => (
+        {serverDetails(t, format).map(([label, value]) => (
           <div key={label} className='flex min-w-0 flex-col'>
             <dt className='text-muted-foreground'>{label}</dt>
             <dd className='truncate' title={host && value(host)}>
@@ -258,25 +272,26 @@ function SystemButton({
   system: SystemUpdates;
   onClick: () => void;
 }) {
+  const t = useTranslations('host');
   // What an upgrade installs, not what apt holds back
   const waiting = system.packages.filter((p) => !p.phased && !p.keptBack);
   const count = waiting.length;
   const security = waiting.filter((p) => p.security).length;
   const words = [
     system.upgrading
-      ? 'Upgrading…'
+      ? t('upgrading')
       : count
-        ? `${count} update${count === 1 ? '' : 's'}`
-        : 'Up to date',
-    security > 0 && `${security} security`,
-    system.reboot && 'restart needed',
+        ? t('updateCount', { count })
+        : t('upToDate'),
+    security > 0 && t('security', { count: security }),
+    system.reboot && t('restartNeeded'),
   ].filter(Boolean);
   return (
     <Button
       variant='outline'
       size='xs'
       onClick={onClick}
-      aria-label={`System updates: ${words.join(', ')}`}
+      aria-label={t('systemUpdates', { words: words.join(', ') })}
       className={cn(
         TILE_BUTTON,
         system.reboot
@@ -309,11 +324,13 @@ function ValueSkeleton() {
 
 /** "of 24 GB": what something's out of, as it's sold. */
 function Of({ capacity }: { capacity?: Capacity }) {
+  const format = useFormat();
+  const t = useTranslations('host');
   return (
     <span className='flex items-center gap-1 font-mono tabular-nums'>
-      of{' '}
+      {t('of')}{' '}
       {capacity ? (
-        formatBytes(capacity.size)
+        format.bytes(capacity.size)
       ) : (
         <TextSkeleton className='w-10' />
       )}
@@ -326,6 +343,8 @@ function Of({ capacity }: { capacity?: Capacity }) {
  * line behind it, faint, to see how they share the work.
  */
 function CpuStat({ host }: { host?: HostStats }) {
+  const format = useFormat();
+  const t = useTranslations('host');
   const [shown, setShown] = useState<'total' | 'cores'>('total');
   const cores = host?.history.coreCpu ?? [];
   // The readings every line has: a core measured for less time has fewer
@@ -334,7 +353,7 @@ function CpuStat({ host }: { host?: HostStats }) {
     ...(shown === 'cores' ? cores.map((c) => c.length) : [])
   );
   const total = {
-    label: 'All cores',
+    label: t('allCores'),
     values: host?.history.cpu.slice(-count) ?? [],
     measure: MEASURES.serverCpu,
   };
@@ -342,7 +361,7 @@ function CpuStat({ host }: { host?: HostStats }) {
   return (
     <Stat
       icon={<CpuIcon />}
-      label='CPU'
+      label={t('cpu')}
       detail={
         <ToggleGroup
           type='single'
@@ -352,37 +371,33 @@ function CpuStat({ host }: { host?: HostStats }) {
           disabled={!host}
           // Picking the shown one again would unpick it; keep one picked
           onValueChange={(v) => v && setShown(v as typeof shown)}
-          aria-label='Show in the graph'
+          aria-label={t('showInGraph')}
         >
-          <ToggleGroupItem value='total'>Total</ToggleGroupItem>
+          <ToggleGroupItem value='total'>{t('total')}</ToggleGroupItem>
           <ToggleGroupItem value='cores'>
-            {host ? `${host.cores} cores` : 'Cores'}
+            {host ? t('cores', { count: host.cores }) : t('coresLabel')}
           </ToggleGroupItem>
         </ToggleGroup>
       }
-      value={host ? formatCpu(host.cpu) : <ValueSkeleton />}
+      value={host ? format.cpu(host.cpu) : <ValueSkeleton />}
       fill
     >
       {host && (
         <HistoryChart
-          label={
-            shown === 'cores'
-              ? 'CPU, each core and all together, over the last ten minutes'
-              : 'CPU over the last ten minutes'
-          }
+          label={shown === 'cores' ? t('cpuEachCore') : t('cpuChart')}
           times={host.history.at.slice(-count)}
           series={
             shown === 'cores'
               ? [
                   total,
                   ...cores.map((values, i) => ({
-                    label: `Core ${i}`,
+                    label: t('core', { number: i }),
                     values: values.slice(-count),
                     measure: MEASURES.serverCpu,
                     faint: true,
                   })),
                 ]
-              : [{ ...total, label: 'CPU' }]
+              : [{ ...total, label: t('cpu') }]
           }
           className='h-full'
         />
@@ -393,6 +408,8 @@ function CpuStat({ host }: { host?: HostStats }) {
 
 /** The disk's use, which opens what takes it up. */
 function DiskStat({ disk }: { disk?: Capacity }) {
+  const format = useFormat();
+  const t = useTranslations('host');
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -400,19 +417,19 @@ function DiskStat({ disk }: { disk?: Capacity }) {
         type='button'
         disabled={!disk}
         onClick={() => setOpen(true)}
-        aria-label='Disk: see what takes up space'
+        aria-label={t('diskOpen')}
         className='group/stat flex rounded-lg text-left outline-none *:flex-1 *:transition-shadow focus-visible:ring-2 focus-visible:ring-ring enabled:*:group-hover/stat:ring-foreground/25'
       >
         <Stat
           icon={<HardDriveIcon />}
-          label='Disk'
+          label={t('disk')}
           detail={
             <span className='flex items-center gap-1'>
               <Of capacity={disk} />
               <ChevronRightIcon className='size-3.5' />
             </span>
           }
-          value={disk ? formatBytes(disk.used) : <ValueSkeleton />}
+          value={disk ? format.bytes(disk.used) : <ValueSkeleton />}
         >
           <Usage capacity={disk} />
         </Stat>
@@ -458,6 +475,7 @@ function FlowStat({
   measure: Measure;
   flows: [Flow, Flow];
 }) {
+  const t = useTranslations('host');
   const format = useFormat();
   const [shown, setShown] = useState<'0' | '1' | 'both'>('both');
   const [first, second] = flows.map((f) => ({
@@ -470,7 +488,7 @@ function FlowStat({
     '1': [second],
     both: [first, { ...second, dashed: true }],
   }[shown];
-  const graphed = series.map((s) => s.label.toLowerCase()).join(' and ');
+  const graphed = series.map((s) => s.label);
   const measured = times !== undefined;
 
   return (
@@ -487,11 +505,11 @@ function FlowStat({
           disabled={!measured}
           // Picking the shown one again would unpick it; keep one picked
           onValueChange={(v) => v && setShown(v as typeof shown)}
-          aria-label='Show in the graph'
+          aria-label={t('showInGraph')}
         >
           <ToggleGroupItem value='0'>{flows[0].short}</ToggleGroupItem>
           <ToggleGroupItem value='1'>{flows[1].short}</ToggleGroupItem>
-          <ToggleGroupItem value='both'>Both</ToggleGroupItem>
+          <ToggleGroupItem value='both'>{t('both')}</ToggleGroupItem>
         </ToggleGroup>
       }
       value={
@@ -521,7 +539,12 @@ function FlowStat({
     >
       {times && (
         <HistoryChart
-          label={`${label} ${graphed} over the last ten minutes`}
+          label={t('flowChart', {
+            label,
+            first: graphed[0],
+            second: graphed[1] ?? '',
+            count: graphed.length,
+          })}
           times={times}
           series={series}
           className='h-full'
@@ -575,14 +598,16 @@ function Stat({
 
 /** How full something is, as a bar with the share beside it; empty until it's known. */
 function Usage({ capacity }: { capacity?: Capacity }) {
+  const format = useFormat();
+  const t = useTranslations('host');
   const share =
     capacity && capacity.total > 0 ? (capacity.used / capacity.total) * 100 : 0;
   return (
     <div className='flex w-full items-center gap-3'>
-      <Progress value={share} aria-label='Used' className='flex-1' />
+      <Progress value={share} aria-label={t('used')} className='flex-1' />
       <span className='font-mono text-muted-foreground tabular-nums'>
         {capacity ? (
-          formatShare(capacity.used, capacity.total)
+          format.share(capacity.used, capacity.total)
         ) : (
           <TextSkeleton className='w-7' />
         )}

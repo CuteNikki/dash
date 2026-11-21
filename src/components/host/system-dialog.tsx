@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import {
   useEffect,
   useEffectEvent,
@@ -13,8 +14,9 @@ import { PowerIcon, RefreshCwIcon } from 'lucide-react';
 
 import { checkSystemUpdates } from '@/actions/system';
 
+import { useFormat } from '@/i18n/use-format';
+
 import { readRunStream } from '@/lib/docker/read-run-stream';
-import { formatAgo } from '@/lib/format';
 import type { SystemUpdates } from '@/lib/types';
 
 import { RunOutput } from '@/components/common/run-output';
@@ -65,6 +67,8 @@ export function SystemDialog({
   onCloseAction: () => void;
   onChangedAction: () => void;
 }) {
+  const format = useFormat();
+  const t = useTranslations('system');
   const [output, setOutput] = useState<string[]>();
   const [running, setRunning] = useState(false);
   const [confirmReboot, setConfirmReboot] = useState(false);
@@ -85,22 +89,18 @@ export function SystemDialog({
         const res = await request().catch(() => undefined);
         const exit = res ? await readRunStream(res, say) : undefined;
         if (exit !== undefined) {
-          if (exit === 0) toast.success("The server's packages are up to date");
+          if (exit === 0) toast.success(t('upToDateToast'));
           else
-            toast.error("The upgrade didn't finish", {
-              description: 'See what apt said in the window',
+            toast.error(t('upgradeFailed'), {
+              description: t('seeApt'),
             });
           return;
         }
         if (Date.now() > giveUp) {
-          say(
-            '— Still no answer from dash. The upgrade carries on on the server; open this again to follow it.'
-          );
+          say(t('noAnswer'));
           return;
         }
-        say(
-          '— Lost the connection, as Docker restarting does. The upgrade carries on; following it again once the dashboard is back…'
-        );
+        say(t('lostConnection'));
         await wait(RETRY_MS);
         // From its start again, so what's shown is the whole of it
         setOutput([]);
@@ -136,7 +136,7 @@ export function SystemDialog({
     startCheck(async () => {
       const result = await checkSystemUpdates();
       if (result.error) {
-        toast.error("Couldn't look at the server's updates", {
+        toast.error(t('lookFailed'), {
           description: result.error,
         });
       }
@@ -147,12 +147,12 @@ export function SystemDialog({
   async function reboot() {
     const res = await fetch('/api/system/reboot', { method: 'POST' });
     if (res.ok) {
-      toast.success('Restarting the server', {
-        description: 'dash is back in a minute or two',
+      toast.success(t('restarting'), {
+        description: t('backSoon'),
       });
       onCloseAction();
     } else {
-      toast.error("Couldn't restart the server", {
+      toast.error(t('restartFailed'), {
         description: (await res.json().catch(() => null))?.error,
       });
     }
@@ -171,14 +171,14 @@ export function SystemDialog({
     <Dialog open={open} onOpenChange={(o) => !o && !running && onCloseAction()}>
       <DialogContent className='flex flex-col sm:max-w-2xl'>
         <DialogHeader>
-          <DialogTitle>System updates</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription>
             {!system
-              ? 'Looking at the server…'
+              ? t('looking')
               : [
                   system.os,
                   system.refreshedAt &&
-                    `package lists fetched ${formatAgo(system.refreshedAt)}`,
+                    t('fetched', { ago: format.ago(system.refreshedAt) }),
                 ]
                   .filter(Boolean)
                   .join(', ')}
@@ -187,30 +187,28 @@ export function SystemDialog({
 
         {system?.reboot && (
           <p className='rounded-lg bg-warning/10 p-3 text-warning'>
-            Ubuntu asks for a restart to finish what's been installed
-            {system.rebootFor.length ? ` (${system.rebootFor.join(', ')})` : ''}
-            .
+            {system.rebootFor.length
+              ? t('rebootFor', { packages: system.rebootFor.join(', ') })
+              : t('reboot')}
           </p>
         )}
         {system && system.failedUnits.length > 0 && (
           <p className='text-warning'>
-            {system.failedUnits.length === 1
-              ? 'A system service has failed: '
-              : 'System services have failed: '}
-            {system.failedUnits
-              .map((u) =>
-                u.description ? `${u.name} (${u.description})` : u.name
-              )
-              .join(', ')}
-            . It runs again by itself as it's due; its log says why it failed.
+            {t('failedUnits', {
+              count: system.failedUnits.length,
+              units: system.failedUnits
+                .map((u) =>
+                  u.description ? `${u.name} (${u.description})` : u.name
+                )
+                .join(', '),
+            })}
           </p>
         )}
         {system?.lastExit !== undefined &&
           system.lastExit !== 0 &&
           !running && (
             <p className='text-destructive'>
-              The last upgrade from the dashboard didn't finish (apt exited with{' '}
-              {system.lastExit}).
+              {t('lastFailed', { code: system.lastExit })}
             </p>
           )}
 
@@ -235,7 +233,7 @@ export function SystemDialog({
                         {p.name}
                         {p.security && (
                           <span className='ml-2 font-sans text-warning'>
-                            security
+                            {t('security')}
                           </span>
                         )}
                       </span>
@@ -251,9 +249,7 @@ export function SystemDialog({
               </ScrollFade>
             </div>
           ) : (
-            <p className='text-muted-foreground'>
-              Every package is up to date.
-            </p>
+            <p className='text-muted-foreground'>{t('allUpToDate')}</p>
           ))}
 
         {phased.length > 0 && (
@@ -261,35 +257,31 @@ export function SystemDialog({
           // so it isn't lost at the end of a long list
           <div className='flex flex-col gap-1 text-muted-foreground'>
             <p>
-              Rolling out to this server later:{' '}
-              {phased.map((p) => p.name).join(', ')}
+              {t('phased', { packages: phased.map((p) => p.name).join(', ') })}
             </p>
-            <p>
-              Ubuntu releases these bit by bit, and apt installs them once they
-              reach it.
-            </p>
+            <p>{t('phasedWhy')}</p>
           </div>
         )}
         {keptBack.length > 0 && (
           <div className='flex flex-col gap-1 text-muted-foreground'>
-            <p>Held back by apt: {keptBack.map((p) => p.name).join(', ')}</p>
             <p>
-              Something they need can't be installed with them yet, as a package
-              that's still rolling out; apt installs them along with it.
+              {t('keptBack', {
+                packages: keptBack.map((p) => p.name).join(', '),
+              })}
             </p>
+            <p>{t('keptBackWhy')}</p>
           </div>
         )}
 
         {docker.length > 0 && !output && (
           <p className='text-muted-foreground'>
-            {docker.map((p) => p.name).join(', ')} among them: Docker restarts,
-            and every container with it, the dashboard too, for a moment. The
-            upgrade carries on, and this window follows it again once the
-            dashboard is back.
+            {t('dockerRestarts', {
+              packages: docker.map((p) => p.name).join(', '),
+            })}
           </p>
         )}
 
-        {output && <RunOutput lines={output} placeholder='Starting apt…' />}
+        {output && <RunOutput lines={output} placeholder={t('startingApt')} />}
 
         <DialogFooter>
           <Button
@@ -299,7 +291,7 @@ export function SystemDialog({
             className='sm:mr-auto'
           >
             <RefreshCwIcon className={checking ? 'animate-spin' : ''} />
-            Check now
+            {t('checkNow')}
           </Button>
           <Button
             // It takes everything on the server down, the dashboard too
@@ -308,7 +300,7 @@ export function SystemDialog({
             onClick={() => setConfirmReboot(true)}
           >
             <PowerIcon />
-            Restart server
+            {t('restartServer')}
           </Button>
           {packages.length > 0 && (
             <Button
@@ -320,8 +312,8 @@ export function SystemDialog({
               }
             >
               {running
-                ? 'Upgrading…'
-                : `Upgrade ${packages.length} package${packages.length === 1 ? '' : 's'}`}
+                ? t('upgrading')
+                : t('upgrade', { count: packages.length })}
             </Button>
           )}
         </DialogFooter>
@@ -330,19 +322,18 @@ export function SystemDialog({
       <AlertDialog open={confirmReboot} onOpenChange={setConfirmReboot}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Restart the server?</AlertDialogTitle>
+            <AlertDialogTitle>{t('restartTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Everything on it goes down for a minute or two, the dashboard too,
-              and comes back by itself as the server starts again.
+              {t('restartDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               variant='destructive'
               onClick={() => void reboot()}
             >
-              Restart
+              {t('restart')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

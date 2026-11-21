@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
@@ -17,9 +18,10 @@ import {
 
 import { measureDisk, pruneDocker } from '@/actions/disk';
 
+import { useFormat } from '@/i18n/use-format';
+
 import type { DockerSpace } from '@/lib/docker/docker';
 import { fetcher } from '@/lib/fetcher';
-import { formatBytes, formatDuration } from '@/lib/format';
 import type {
   Capacity,
   DiskScan,
@@ -78,14 +80,19 @@ export function DiskDialog({
   onCloseAction: () => void;
   disk: Capacity;
 }) {
+  const format = useFormat();
+  const t = useTranslations('disk');
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onCloseAction()}>
       <DialogContent className='flex h-full max-h-none max-w-full flex-col gap-4 rounded-none sm:h-5/6 sm:max-w-5xl sm:rounded-xl'>
         <DialogHeader>
-          <DialogTitle>Disk usage</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription>
-            {formatBytes(disk.used)} of {formatBytes(disk.size)} used,{' '}
-            {formatBytes(Math.max(0, disk.total - disk.used))} free
+            {t('summary', {
+              used: format.bytes(disk.used),
+              size: format.bytes(disk.size),
+              free: format.bytes(Math.max(0, disk.total - disk.used)),
+            })}
           </DialogDescription>
         </DialogHeader>
         {open && <DiskUsage />}
@@ -95,6 +102,8 @@ export function DiskDialog({
 }
 
 function DiskUsage() {
+  const format = useFormat();
+  const t = useTranslations('disk');
   const { data, error, mutate } = useSWR<DiskState>('/api/disk', fetcher, {
     revalidateOnFocus: false,
     refreshInterval: (latest) =>
@@ -119,12 +128,12 @@ function DiskUsage() {
       <DockerSection docker={data?.docker} onFreed={() => void mutate()} />
       <section className='flex min-h-0 flex-1 flex-col gap-2'>
         <div className='flex flex-wrap items-center gap-2'>
-          <h3 className='mr-auto font-medium'>Folders</h3>
+          <h3 className='mr-auto font-medium'>{t('folders')}</h3>
           <span
             // The folder it's just done, for the curious
             title={
               scan?.state === 'scanning' && scan.current
-                ? `Just did ${scan.current}`
+                ? t('justDid', { path: scan.current })
                 : undefined
             }
             className='min-w-0 truncate text-muted-foreground tabular-nums'
@@ -132,13 +141,17 @@ function DiskUsage() {
             {!data || !scan ? (
               <TextSkeleton className='w-28' />
             ) : scan.state === 'scanning' ? (
-              `Measuring… ${scan.folders.toLocaleString()} folders`
+              t('measuring', { count: scan.folders })
             ) : scan.state === 'done' ? (
-              `Measured ${ago(data.seconds)}`
+              (data.seconds ?? 0) < 60 ? (
+                t('measuredJustNow')
+              ) : (
+                t('measured', { duration: format.duration(data.seconds ?? 0) })
+              )
             ) : scan.state === 'failed' ? (
-              `Couldn't measure: ${scan.error}`
+              t('measureFailed', { error: scan.error ?? '' })
             ) : (
-              'Not measured yet'
+              t('notMeasured')
             )}
           </span>
           <Button
@@ -146,7 +159,7 @@ function DiskUsage() {
             disabled={!scan || scan.state === 'scanning' || measuring}
             onClick={() =>
               startMeasuring(() =>
-                attempt("Couldn't measure", async () => {
+                attempt(t('measureFailedShort'), async () => {
                   await measureDisk();
                   await mutate();
                 })
@@ -158,7 +171,7 @@ function DiskUsage() {
                 scan?.state === 'scanning' ? 'animate-spin' : undefined
               }
             />
-            Measure
+            {t('measure')}
           </Button>
         </div>
         {!scan || scan.state === 'none' ? (
@@ -173,35 +186,20 @@ function DiskUsage() {
   );
 }
 
-/** "just now", or how long ago, e.g. "3 min ago". */
-function ago(seconds = 0) {
-  return seconds < 60 ? 'just now' : `${formatDuration(seconds)} ago`;
-}
-
 const DOCKER_KINDS = [
-  { key: 'images', label: 'Images', icon: <BoxIcon /> },
-  { key: 'buildCache', label: 'Build cache', icon: <HammerIcon /> },
-  { key: 'containers', label: 'Containers', icon: <ContainerIcon /> },
-  { key: 'volumes', label: 'Volumes', icon: <DatabaseIcon /> },
+  { key: 'images', icon: <BoxIcon /> },
+  { key: 'buildCache', icon: <HammerIcon /> },
+  { key: 'containers', icon: <ContainerIcon /> },
+  { key: 'volumes', icon: <DatabaseIcon /> },
 ] as const;
 
-/** What freeing each kind does, for asking first. */
-const PRUNES = {
-  buildCache: {
-    action: 'Clear',
-    title: 'Clear the build cache?',
-    description:
-      'What no build is using is deleted. The next build of an image starts from scratch, so it takes longer.',
-  },
-  images: {
-    action: 'Remove',
-    title: 'Remove unused images?',
-    description:
-      'Every image no container is made from, running or stopped, is deleted. A service that needs one again downloads or builds it again.',
-  },
-} as const;
+/** The kinds that can be freed, each with its words for asking first under "disk.prune". */
+const PRUNES = ['buildCache', 'images'] as const;
 
-type Prunable = keyof typeof PRUNES;
+type Prunable = (typeof PRUNES)[number];
+
+const isPrunable = (key: string): key is Prunable =>
+  PRUNES.includes(key as Prunable);
 
 function DockerSection({
   docker,
@@ -211,18 +209,20 @@ function DockerSection({
   docker?: DiskState['docker'];
   onFreed: () => void;
 }) {
+  const format = useFormat();
+  const t = useTranslations('disk');
   const [asking, setAsking] = useState<Prunable>();
   const [pending, startTransition] = useTransition();
 
   function prune(what: Prunable) {
     startTransition(() =>
-      attempt("Couldn't free it", async () => {
+      attempt(t('freeFailed'), async () => {
         const result = await pruneDocker(what);
         if (result.ok) {
-          toast.success(`Freed ${formatBytes(result.freed)}`);
+          toast.success(t('freed', { size: format.bytes(result.freed) }));
           onFreed();
         } else {
-          toast.error("Couldn't free it", { description: result.error });
+          toast.error(t('freeFailed'), { description: result.error });
         }
         setAsking(undefined);
       })
@@ -233,9 +233,9 @@ function DockerSection({
     <section className='flex flex-col gap-2'>
       <h3 className='font-medium'>Docker</h3>
       <div className='grid grid-cols-2 gap-3 lg:grid-cols-4'>
-        {DOCKER_KINDS.map(({ key, label, icon }) => {
+        {DOCKER_KINDS.map(({ key, icon }) => {
           const space = docker?.[key];
-          const prunable = key in PRUNES ? (key as Prunable) : undefined;
+          const prunable = isPrunable(key) ? key : undefined;
           return (
             <div
               key={key}
@@ -243,14 +243,14 @@ function DockerSection({
             >
               <span className='flex items-center gap-2 text-muted-foreground [&_svg]:size-4'>
                 {icon}
-                <span className='mr-auto'>{label}</span>
+                <span className='mr-auto'>{t(`kinds.${key}`)}</span>
                 <span className='font-mono tabular-nums'>
                   {space ? space.count : <TextSkeleton className='w-4' />}
                 </span>
               </span>
               <span className='font-mono text-lg font-medium tabular-nums'>
                 {space ? (
-                  formatBytes(space.size)
+                  format.bytes(space.size)
                 ) : (
                   <TextSkeleton className='w-16' />
                 )}
@@ -260,9 +260,9 @@ function DockerSection({
                   {!space ? (
                     <TextSkeleton className='w-20' />
                   ) : space.reclaimable > 0 ? (
-                    `${formatBytes(space.reclaimable)} unused`
+                    t('unused', { size: format.bytes(space.reclaimable) })
                   ) : (
-                    'All in use'
+                    t('allInUse')
                   )}
                 </span>
                 {prunable && space && space.reclaimable > 0 && (
@@ -272,7 +272,7 @@ function DockerSection({
                     disabled={pending}
                     onClick={() => setAsking(prunable)}
                   >
-                    {PRUNES[prunable].action}
+                    {t(`prune.${prunable}.action`)}
                   </Button>
                 )}
               </span>
@@ -288,15 +288,19 @@ function DockerSection({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {asking && PRUNES[asking].title}
+              {asking && t(`prune.${asking}.title`)}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {asking && PRUNES[asking].description} It frees about{' '}
-              {asking && docker && formatBytes(docker[asking].reclaimable)}.
+              {asking &&
+                t(`prune.${asking}.description`, {
+                  size: docker ? format.bytes(docker[asking].reclaimable) : '',
+                })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={pending}>
+              {t('cancel')}
+            </AlertDialogCancel>
             <AlertDialogAction
               variant='destructive'
               disabled={pending}
@@ -306,7 +310,7 @@ function DockerSection({
                 if (asking) prune(asking);
               }}
             >
-              {pending ? 'Freeing…' : asking && PRUNES[asking].action}
+              {pending ? t('freeing') : asking && t(`prune.${asking}.action`)}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -350,6 +354,7 @@ function bySize(
  * While it's being measured, sizes fill in as each folder's done.
  */
 function Folders({ scanning }: { scanning: boolean }) {
+  const t = useTranslations('disk');
   const [path, setPath] = useState('/');
   const { data, error } = useSWR<FolderUsage>(
     // Asked again once the measurement's done, for its last sizes
@@ -376,7 +381,7 @@ function Folders({ scanning }: { scanning: boolean }) {
 
   return (
     <div className='flex min-h-0 flex-1 flex-col gap-2'>
-      <nav aria-label='Folder' className={BREADCRUMBS}>
+      <nav aria-label={t('folder')} className={BREADCRUMBS}>
         {['', ...parts].map((part, i) => {
           const to = `/${parts.slice(0, i).join('/')}`;
           const here = i === parts.length;
@@ -392,7 +397,7 @@ function Folders({ scanning }: { scanning: boolean }) {
                 onClick={() => setPath(to)}
                 className='rounded-sm px-1 text-muted-foreground hover:text-foreground aria-[current=page]:text-foreground'
               >
-                {part || 'Disk'}
+                {part || t('disk')}
               </button>
             </span>
           );
@@ -415,7 +420,7 @@ function Folders({ scanning }: { scanning: boolean }) {
             fill
           >
             {entries.length === 0 ? (
-              <p className='p-2 text-muted-foreground'>It's empty.</p>
+              <p className='p-2 text-muted-foreground'>{t('empty')}</p>
             ) : (
               <ul>
                 {entries.map((entry) => (
@@ -456,24 +461,23 @@ function Folders({ scanning }: { scanning: boolean }) {
  * or that it's being measured.
  */
 function Size({ size }: { size: MeasuredSize & { elsewhere?: boolean } }) {
+  const format = useFormat();
+  const t = useTranslations('disk');
   // Not on this disk: nothing of it to count
   if (size.elsewhere) return null;
-  if (size.size !== undefined) return formatBytes(size.size);
+  if (size.size !== undefined) return format.bytes(size.size);
   if (size.before !== undefined) {
     return (
-      <span
-        title="What it was last time; it's being measured again"
-        className='opacity-50'
-      >
-        {formatBytes(size.before)}
+      <span title={t('lastTime')} className='opacity-50'>
+        {format.bytes(size.before)}
       </span>
     );
   }
   return (
-    <span title='Being measured' className='animate-pulse opacity-50'>
+    <span title={t('beingMeasured')} className='animate-pulse opacity-50'>
       {/* A phone's size column only fits a size */}
       <span className='sm:hidden'>…</span>
-      <span className='max-sm:hidden'>measuring…</span>
+      <span className='max-sm:hidden'>{t('measuringShort')}</span>
     </span>
   );
 }
@@ -495,11 +499,12 @@ function FoldersSkeleton() {
 
 /** A folder's list with rows like its entries, empty, while it's looked up. */
 function EntriesSkeleton() {
+  const t = useTranslations('disk');
   return (
     <div
       aria-busy
       role='status'
-      aria-label='Loading'
+      aria-label={t('loading')}
       className='min-h-0 flex-1 overflow-hidden rounded-lg bg-muted'
     >
       <div className='h-full overflow-hidden p-1'>
@@ -535,6 +540,7 @@ function Entry({
   /** For a folder, to look into it */
   onOpen?: () => void;
 }) {
+  const t = useTranslations('disk');
   const content = (
     <>
       {entry.folder ? (
@@ -550,7 +556,7 @@ function Entry({
         {share !== undefined && (
           <Progress
             value={share}
-            aria-label={`${Math.round(share)}% of this folder`}
+            aria-label={t('shareOfFolder', { share: Math.round(share) })}
           />
         )}
       </span>
@@ -571,11 +577,7 @@ function Entry({
     // A file, or a folder that isn't on this disk: nothing to open, and
     // quieter than the folders beside it
     <div
-      title={
-        entry.elsewhere
-          ? "Not on this disk: the system's, memory's, or another disk's"
-          : undefined
-      }
+      title={entry.elsewhere ? t('elsewhere') : undefined}
       className={cn(ROW, 'text-muted-foreground')}
     >
       {content}

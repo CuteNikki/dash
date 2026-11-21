@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
@@ -8,8 +9,9 @@ import { LockIcon, SquareIcon, ZapIcon } from 'lucide-react';
 
 import { stopProcess } from '@/actions/processes';
 
+import { useFormat } from '@/i18n/use-format';
+
 import { fetcher } from '@/lib/fetcher';
-import { formatBytes, formatCpu, formatDuration } from '@/lib/format';
 import type { HostProcess, ProcessDetails, Service } from '@/lib/types';
 
 import { TextSkeleton } from '@/components/common/skeletons';
@@ -85,6 +87,8 @@ function Details({
   onOpenService: (service: Service) => void;
   onClose: () => void;
 }) {
+  const format = useFormat();
+  const t = useTranslations('process');
   const { data, error, mutate } = useSWR<ProcessDetails>(
     `/api/processes/${process.pid}`,
     fetcher,
@@ -99,19 +103,19 @@ function Details({
   function stop(force: boolean) {
     if (!data) return;
     startTransition(() =>
-      attempt(`Couldn't stop ${data.name}`, async () => {
+      attempt(t('stopFailed', { name: data.name }), async () => {
         const result = await stopProcess(data.pid, data.start, force);
         if (result.ok) {
           toast.success(
             result.outcome === 'gone'
-              ? `${data.name} had already ended`
-              : `Stopped ${data.name}`
+              ? t('alreadyEnded', { name: data.name })
+              : t('stopped', { name: data.name })
           );
           onClose();
         } else if (result.outcome === 'running') {
           setStubborn(result.error);
         } else {
-          toast.error(`Couldn't stop ${data.name}`, {
+          toast.error(t('stopFailed', { name: data.name }), {
             description: result.error,
           });
           if (result.outcome === 'replaced') onClose();
@@ -132,7 +136,7 @@ function Details({
           </span>
         </DialogTitle>
         <DialogDescription className='sr-only'>
-          What this process is, and stopping it
+          {t('description')}
         </DialogDescription>
       </DialogHeader>
 
@@ -144,18 +148,22 @@ function Details({
         <div className='flex min-w-0 flex-col gap-4'>
           {data.command && <pre className={COMMAND}>{data.command}</pre>}
           <dl className={DETAILS}>
-            <Detail label='User'>{data.user}</Detail>
-            <Detail label='Running for'>
-              <span title={new Date(data.startedAt).toLocaleString()}>
-                {formatDuration(data.runningFor)}
+            <Detail label={t('labels.user')}>{data.user}</Detail>
+            <Detail label={t('labels.runningFor')}>
+              <span
+                title={new Date(data.startedAt).toLocaleString(format.locale)}
+              >
+                {format.duration(data.runningFor)}
               </span>
             </Detail>
-            <Detail label='State'>{data.state}</Detail>
-            <Detail label='CPU'>{formatCpu(process.cpu)}</Detail>
-            <Detail label='Memory'>{formatBytes(data.memory)}</Detail>
-            <Detail label='Threads'>{data.threads}</Detail>
-            <Detail label='Parent'>{data.parentPid}</Detail>
-            <Detail label='Container'>
+            <Detail label={t('labels.state')}>{data.state}</Detail>
+            <Detail label={t('labels.cpu')}>{format.cpu(process.cpu)}</Detail>
+            <Detail label={t('labels.memory')}>
+              {format.bytes(data.memory)}
+            </Detail>
+            <Detail label={t('labels.threads')}>{data.threads}</Detail>
+            <Detail label={t('labels.parent')}>{data.parentPid}</Detail>
+            <Detail label={t('labels.container')}>
               {service ? (
                 <button
                   type='button'
@@ -179,15 +187,12 @@ function Details({
                   {data.containerId.slice(0, 12)}
                 </span>
               ) : (
-                'None, it runs on the server'
+                t('onServer')
               )}
             </Detail>
           </dl>
           {data.containerMain && (
-            <p className='text-muted-foreground'>
-              It's its container's own first process: stopping it stops the
-              container, which may then start again by itself.
-            </p>
+            <p className='text-muted-foreground'>{t('containerMain')}</p>
           )}
           {stubborn && (
             <p role='alert' className='text-warning'>
@@ -212,7 +217,7 @@ function Details({
             onClick={() => stop(true)}
           >
             <ZapIcon />
-            Force stop
+            {t('forceStop')}
           </Button>
         ) : (
           <Button
@@ -221,7 +226,7 @@ function Details({
             onClick={() => setConfirming(true)}
           >
             <SquareIcon />
-            {pending ? 'Stopping…' : 'Stop'}
+            {pending ? t('stopping') : t('stop')}
           </Button>
         )}
       </DialogFooter>
@@ -233,19 +238,24 @@ function Details({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Stop {data?.name} ({data?.pid})?
+              {t('stopTitle', {
+                name: data?.name ?? '',
+                pid: `${data?.pid ?? ''}`,
+              })}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {data?.containerMain && service
-                ? `${service.name} stops with it, and may start again by itself. `
+                ? t('stopsWith', { name: service.name })
                 : service
-                  ? `It runs in ${service.name}, which may not work without it. `
+                  ? t('runsIn', { name: service.name })
                   : ''}
-              It's asked to stop, and has a few seconds to finish up.
+              {t('askedToStop')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={pending}>
+              {t('cancel')}
+            </AlertDialogCancel>
             <AlertDialogAction
               variant='destructive'
               disabled={pending}
@@ -256,7 +266,7 @@ function Details({
               }}
             >
               <SquareIcon />
-              {pending ? 'Stopping…' : 'Stop'}
+              {pending ? t('stopping') : t('stop')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -285,25 +295,26 @@ const COMMAND =
   'max-h-32 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs/relaxed break-all whitespace-pre-wrap select-all';
 /** The grid of what it is, and its placeholder's */
 const DETAILS = 'grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3';
-/** The details' labels, in the order they show */
+/** The details' labels, in the order they show, by their keys under "process.labels" */
 const LABELS = [
-  'User',
-  'Running for',
-  'State',
-  'CPU',
-  'Memory',
-  'Threads',
-  'Parent',
-  'Container',
-];
+  'user',
+  'runningFor',
+  'state',
+  'cpu',
+  'memory',
+  'threads',
+  'parent',
+  'container',
+] as const;
 
 /** The details while they're looked up: the same box and grid, values to come. */
 function DetailsSkeleton() {
+  const t = useTranslations('process');
   return (
     <div
       aria-busy
       role='status'
-      aria-label='Loading'
+      aria-label={t('loading')}
       className='flex min-w-0 flex-col gap-4'
     >
       <pre className={COMMAND}>
@@ -311,7 +322,7 @@ function DetailsSkeleton() {
       </pre>
       <dl className={DETAILS}>
         {LABELS.map((label) => (
-          <Detail key={label} label={label}>
+          <Detail key={label} label={t(`labels.${label}`)}>
             <TextSkeleton className='w-16' />
           </Detail>
         ))}
