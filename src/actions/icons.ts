@@ -2,6 +2,8 @@
 
 import { randomUUID } from 'node:crypto';
 
+import { errorText } from '@/i18n/errors';
+
 import { requireAccess } from '@/lib/auth/access';
 import { putFile } from '@/lib/storage';
 
@@ -21,11 +23,11 @@ export type UploadResult = { url: string } | { error: string };
 export async function uploadIcon(form: FormData): Promise<UploadResult> {
   await requireAccess('manage');
   const file = form.get('file');
-  if (!(file instanceof File)) return { error: 'Choose a file' };
+  if (!(file instanceof File)) return { error: await errorText('chooseFile') };
   const extension = TYPES[file.type];
-  if (!extension) return { error: 'Use a PNG, SVG, WebP or JPEG' };
+  if (!extension) return { error: await errorText('imageKind') };
   if (file.size > MAX_BYTES) {
-    return { error: `Keep it under ${MAX_BYTES / 1024} KB` };
+    return { error: await errorText('tooBig', { size: MAX_BYTES / 1024 }) };
   }
   try {
     const url = await putFile(

@@ -1,3 +1,5 @@
+import { errorText, issueText } from '@/i18n/errors';
+
 import { recordRun } from '@/lib/activity/record';
 import { AccessError, denied, getAccess, refusal } from '@/lib/auth/access';
 import { getDashboard } from '@/lib/dashboard/services';
@@ -19,7 +21,11 @@ export async function POST(request: Request) {
   const input = NewService.safeParse(await request.json().catch(() => null));
   if (!input.success) {
     return Response.json(
-      { error: input.error.issues[0]?.message ?? "That form isn't right" },
+      {
+        error: input.error.issues[0]
+          ? await issueText(input.error.issues[0].message)
+          : await errorText('formWrong'),
+      },
       { status: 400 }
     );
   }

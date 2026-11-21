@@ -2,6 +2,8 @@
 
 import { posix } from 'node:path';
 
+import { errorText } from '@/i18n/errors';
+
 import { record } from '@/lib/activity/record';
 import { requireAccess } from '@/lib/auth/access';
 import { forgetFailure } from '@/lib/backups/backups';
@@ -14,7 +16,7 @@ export async function setBackupSource(
 ): Promise<{ error?: string }> {
   await requireAccess('server');
   if (typeof id !== 'string' || typeof enabled !== 'boolean') {
-    return { error: 'Which part?' };
+    return { error: await errorText('whichPart') };
   }
   await db.backupSource.upsert({
     where: { id },
@@ -35,8 +37,9 @@ export async function addBackupFolder(
 ): Promise<{ error?: string }> {
   const access = await requireAccess('server');
   const clean = posix.normalize(String(path).trim()).replace(/\/$/, '');
-  if (!clean.startsWith('/')) return { error: 'Give its whole path, from /' };
-  if (NOT_THESE.test(clean)) return { error: "That's not a folder to back up" };
+  if (!clean.startsWith('/')) return { error: await errorText('wholePath') };
+  if (NOT_THESE.test(clean))
+    return { error: await errorText('notBackupFolder') };
   const id = `path:${clean}`;
   await db.backupSource.upsert({
     where: { id },
@@ -53,7 +56,7 @@ export async function removeBackupFolder(
 ): Promise<{ error?: string }> {
   await requireAccess('server');
   if (typeof id !== 'string' || !id.startsWith('path:')) {
-    return { error: 'Only a folder added here can be taken out' };
+    return { error: await errorText('onlyAddedFolder') };
   }
   await db.backupSource.deleteMany({ where: { id } });
   await forgetFailure(id);

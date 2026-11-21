@@ -2,6 +2,8 @@
 
 import { z } from 'zod';
 
+import { issueText } from '@/i18n/errors';
+
 import { record } from '@/lib/activity/record';
 import { requireAccess } from '@/lib/auth/access';
 import { MAX_COLUMNS, MAX_ROWS } from '@/lib/dashboard/layout';
@@ -23,14 +25,14 @@ const MAX_RENAMED = 1000;
 const MAX_STAT_KEY = 40;
 const MAX_HIDDEN_STATS = 20;
 
-const Group = z.string().trim().min(1, 'Pick or type a group').max(MAX_GROUP);
+const Group = z.string().trim().min(1, 'pickGroup').max(MAX_GROUP);
 
 /** Its app's numbers left off a tile, by their labels' keys: no more than any app has. */
 const HiddenStats = z.array(z.string().max(MAX_STAT_KEY)).max(MAX_HIDDEN_STATS);
 
 const TileInput = z.object({
   key: z.string().min(1),
-  name: z.string().trim().min(1, 'Give it a name').max(MAX_NAME),
+  name: z.string().trim().min(1, 'giveName').max(MAX_NAME),
   // Empty for none, even where its labels have one
   description: z.string().trim().max(MAX_DESCRIPTION),
   icon: z.string().trim().max(MAX_ICON),
@@ -38,9 +40,7 @@ const TileInput = z.object({
   addresses: z
     .array(z.string().trim().max(MAX_ADDRESS))
     .transform((list) => list.filter(Boolean))
-    .pipe(
-      z.array(z.string()).max(MAX_ADDRESSES, `Up to ${MAX_ADDRESSES} addresses`)
-    ),
+    .pipe(z.array(z.string()).max(MAX_ADDRESSES, 'tooManyAddresses')),
   group: Group,
   hidden: z.boolean(),
   ignoreUpdates: z.boolean(),
@@ -54,7 +54,8 @@ export type TileResult = { error: string } | void;
 export async function saveTile(input: TileInput): Promise<TileResult> {
   const access = await requireAccess('manage');
   const parsed = TileInput.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (!parsed.success)
+    return { error: await issueText(parsed.error.issues[0].message) };
   const { key, ...tile } = parsed.data;
   const data = { ...tile, icon: tile.icon || null };
   await db.tile.upsert({
@@ -69,7 +70,7 @@ export async function saveTile(input: TileInput): Promise<TileResult> {
 const SiteAddress = z
   .string()
   .trim()
-  .min(1, 'Give it an address')
+  .min(1, 'giveAddress')
   .max(MAX_ADDRESS)
   .transform((a, ctx) => {
     try {
@@ -80,12 +81,12 @@ const SiteAddress = z
         return url.href;
       }
     } catch {}
-    ctx.addIssue({ code: 'custom', message: "That isn't a web address" });
+    ctx.addIssue({ code: 'custom', message: 'notWebAddress' });
     return z.NEVER;
   });
 
 const SiteInput = z.object({
-  name: z.string().trim().min(1, 'Give it a name').max(MAX_NAME),
+  name: z.string().trim().min(1, 'giveName').max(MAX_NAME),
   address: SiteAddress,
   description: z.string().trim().max(MAX_DESCRIPTION),
   // Empty for none, which puts it in Other
@@ -101,7 +102,8 @@ export type SiteInput = z.input<typeof SiteInput>;
 export async function addSite(input: SiteInput): Promise<TileResult> {
   const access = await requireAccess('manage');
   const parsed = SiteInput.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (!parsed.success)
+    return { error: await issueText(parsed.error.issues[0].message) };
   const { name, address, description, group } = parsed.data;
   const same = await db.tile.findFirst({
     where: { key: { startsWith: SITE_PREFIX }, addresses: { has: address } },
@@ -137,7 +139,7 @@ const LayoutInput = z.object({
         h: z.number().int().min(1).max(MAX_ROWS),
       })
       .refine((c) => c.x + c.w <= c.columns, {
-        message: 'A tile goes past the last column',
+        message: 'pastLastColumn',
       })
   ),
   /** Services dragged into another group */
@@ -150,7 +152,8 @@ export type LayoutInput = z.input<typeof LayoutInput>;
 export async function saveLayout(input: LayoutInput): Promise<TileResult> {
   await requireAccess('manage');
   const parsed = LayoutInput.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (!parsed.success)
+    return { error: await issueText(parsed.error.issues[0].message) };
   const { cells, moved } = parsed.data;
   await ensureTiles(moved.map((m) => m.key));
   await db.$transaction([
@@ -187,7 +190,8 @@ export type OrderInput = z.input<typeof OrderInput>;
 export async function saveListOrder(input: OrderInput): Promise<TileResult> {
   await requireAccess('manage');
   const parsed = OrderInput.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (!parsed.success)
+    return { error: await issueText(parsed.error.issues[0].message) };
   const { groups, services } = parsed.data;
   await ensureTiles(services.map((s) => s.key));
   await db.$transaction([
@@ -244,7 +248,8 @@ const TileSnapshot = z.object({
 export async function restoreTile(tile: TileSnapshot): Promise<TileResult> {
   const access = await requireAccess('manage');
   const parsed = TileSnapshot.safeParse(tile);
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (!parsed.success)
+    return { error: await issueText(parsed.error.issues[0].message) };
   const { key, ...data } = parsed.data;
   await db.tile.upsert({
     where: { key },
@@ -275,7 +280,8 @@ export async function renameGroup(
       keys: z.array(z.string().min(1)).max(MAX_RENAMED),
     })
     .safeParse({ from, to, keys });
-  if (!input.success) return { error: input.error.issues[0].message };
+  if (!input.success)
+    return { error: await issueText(input.error.issues[0].message) };
   const { from: old, to: name, keys: services } = input.data;
   if (old === name) return;
   await ensureTiles(services);

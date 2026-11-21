@@ -1,5 +1,7 @@
 'use server';
 
+import { errorText } from '@/i18n/errors';
+
 import type { ActivityAction } from '@/lib/activity/actions';
 import { record } from '@/lib/activity/record';
 import { requireAccess } from '@/lib/auth/access';
@@ -26,7 +28,7 @@ async function onStack(
   const access = await requireAccess('manage');
   const stack = await stackOf(containerId);
   if (!stack) {
-    return { ok: false, error: "This container isn't part of a compose stack" };
+    return { ok: false, error: await errorText('notInStack') };
   }
   let result: FileResult;
   try {

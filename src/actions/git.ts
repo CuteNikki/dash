@@ -1,5 +1,7 @@
 'use server';
 
+import { issueText } from '@/i18n/errors';
+
 import type { ActivityAction } from '@/lib/activity/actions';
 import { record } from '@/lib/activity/record';
 import { requireAccess, type Access } from '@/lib/auth/access';
@@ -130,7 +132,10 @@ export async function lookAtRepository(
   await requireAccess('manage');
   const parsed = GitSource.safeParse(source);
   if (!parsed.success) {
-    return { ok: false, output: parsed.error.issues[0]?.message ?? '' };
+    return {
+      ok: false,
+      output: await issueText(parsed.error.issues[0]?.message),
+    };
   }
   return gitLook(parsed.data.url, parsed.data.branch);
 }

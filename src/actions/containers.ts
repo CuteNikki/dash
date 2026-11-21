@@ -1,5 +1,7 @@
 'use server';
 
+import { errorText } from '@/i18n/errors';
+
 import { outcome, record, tried } from '@/lib/activity/record';
 import { requireAccess, serviceForAction } from '@/lib/auth/access';
 import { isRunning } from '@/lib/dashboard/status';
@@ -28,7 +30,8 @@ export async function runContainerAction(
   id: string,
   action: ContainerAction
 ): Promise<ActionResult> {
-  if (!ACTIONS.includes(action)) return { ok: false, error: 'Unknown action' };
+  if (!ACTIONS.includes(action))
+    return { ok: false, error: await errorText('unknownAction') };
   const found = await serviceForAction(id, 'control');
   if ('refused' in found) return { ok: false, error: found.refused };
   const result = await tried(() => containerAction(id, action));
@@ -50,10 +53,10 @@ export async function removeOneContainer(id: string): Promise<ActionResult> {
   if ('refused' in found) return { ok: false, error: found.refused };
   const { container } = found;
   if (!container.stack) {
-    return { ok: false, error: "It isn't part of a compose stack" };
+    return { ok: false, error: await errorText('notInStackShort') };
   }
   if (isRunning(container.state)) {
-    return { ok: false, error: 'Stop it first' };
+    return { ok: false, error: await errorText('stopFirst') };
   }
   const result = await tried(() => removeContainer(id));
   await record(found.access, {
@@ -77,16 +80,16 @@ export async function sendToConsole(
   if ('refused' in found) return { ok: false, error: found.refused };
   const { container } = found;
   if (/[\r\n]/.test(command)) {
-    return { ok: false, error: 'One command at a time, on one line' };
+    return { ok: false, error: await errorText('oneCommand') };
   }
   if (command.length > MAX_COMMAND) {
-    return { ok: false, error: 'That command is too long' };
+    return { ok: false, error: await errorText('commandTooLong') };
   }
   if (!(await takesInput(id))) {
-    return { ok: false, error: 'Its console takes no input' };
+    return { ok: false, error: await errorText('noConsole') };
   }
   if (!isRunning(container.state)) {
-    return { ok: false, error: "It isn't running" };
+    return { ok: false, error: await errorText('notRunning') };
   }
   const result = await tried(() => sendInput(id, `${command}\n`));
   await record(found.access, {
@@ -105,7 +108,7 @@ export async function reloadCaddyConfig(id: string): Promise<ActionResult> {
   if ('refused' in found) return { ok: false, error: found.refused };
   const caddy = found.container;
   if (!isCaddy(caddy.image)) {
-    return { ok: false, error: 'That container is not Caddy' };
+    return { ok: false, error: await errorText('notCaddy') };
   }
   const result = await tried(async () => {
     const { stderr, exitCode } = await execRun(id, RELOAD_CADDY);

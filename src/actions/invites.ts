@@ -2,6 +2,8 @@
 
 import { z } from 'zod';
 
+import { errorText, issueText } from '@/i18n/errors';
+
 import { record } from '@/lib/activity/record';
 import { auth } from '@/lib/auth/auth';
 import { tokenHash } from '@/lib/auth/invites';
@@ -12,7 +14,7 @@ import { db } from '@/lib/db';
 
 const AcceptInput = z.object({
   token: z.string().regex(/^[\w-]{20,100}$/, "That invite link isn't whole"),
-  name: z.string().trim().min(1, 'Enter your name').max(100),
+  name: z.string().trim().min(1, 'enterName').max(100),
   password: z
     .string()
     .min(MIN_PASSWORD, `Use at least ${MIN_PASSWORD} characters`)
@@ -33,7 +35,8 @@ export async function acceptInvite(input: {
   password: string;
 }): Promise<AcceptResult> {
   const parsed = AcceptInput.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (!parsed.success)
+    return { error: await issueText(parsed.error.issues[0].message) };
   const { token, name, password } = parsed.data;
   const hash = tokenHash(token);
   const now = new Date();
@@ -42,7 +45,7 @@ export async function acceptInvite(input: {
     data: { usedAt: now },
   });
   if (claimed.count !== 1) {
-    return { error: 'This invite has been used, or has run out' };
+    return { error: await errorText('inviteUsed') };
   }
   const invite = await db.invite.findUniqueOrThrow({
     where: { tokenHash: hash },

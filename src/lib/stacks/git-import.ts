@@ -28,19 +28,13 @@ const URL_PATTERN =
 export const GIT_PROTOCOLS = 'https:http:ssh:git';
 
 export const GitSource = z.object({
-  url: z
-    .string()
-    .trim()
-    .regex(
-      URL_PATTERN,
-      'A repository to clone over HTTPS or SSH, such as https://github.com/owner/repo'
-    ),
+  url: z.string().trim().regex(URL_PATTERN, 'repositoryUrl'),
   // Checked by git itself before it's used; this keeps out what isn't a
   // word, or would be read as an option
   branch: z
     .string()
     .trim()
-    .regex(/^(?:[^\s-][^\s]*)?$/, "That's not a name a branch can have"),
+    .regex(/^(?:[^\s-][^\s]*)?$/, 'branchName'),
 });
 export type GitSourceInput = z.input<typeof GitSource>;
 

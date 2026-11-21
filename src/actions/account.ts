@@ -2,6 +2,7 @@
 
 import { cookies } from 'next/headers';
 
+import { errorText } from '@/i18n/errors';
 import { isLocale, LOCALE_COOKIE, type Locale } from '@/i18n/locales';
 
 import { requireAccess } from '@/lib/auth/access';
@@ -10,7 +11,7 @@ import { db } from '@/lib/db';
 /** Whether the monitor's alerts are mailed to whoever's signed in, for those who see the server. */
 export async function setAlertMail(on: boolean): Promise<{ error?: string }> {
   const access = await requireAccess('server');
-  if (typeof on !== 'boolean') return { error: 'On or off' };
+  if (typeof on !== 'boolean') return { error: await errorText('onOrOff') };
   await db.user.update({
     where: { id: access.user.id },
     data: { alertMail: on },
@@ -32,8 +33,7 @@ async function keepLocale(locale: Locale) {
 /** Their language, kept on them for their mails and other devices, and in this browser's cookie. */
 export async function setLocale(locale: Locale): Promise<{ error?: string }> {
   const access = await requireAccess('view');
-  if (!isLocale(locale))
-    return { error: 'Not a language the dashboard speaks' };
+  if (!isLocale(locale)) return { error: await errorText('notALanguage') };
   await db.user.update({ where: { id: access.user.id }, data: { locale } });
   await keepLocale(locale);
   return {};

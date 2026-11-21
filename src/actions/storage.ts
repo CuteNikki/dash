@@ -2,6 +2,8 @@
 
 import type { ActionResult } from '@/actions/containers';
 
+import { errorText } from '@/i18n/errors';
+
 import { outcome, record, tried } from '@/lib/activity/record';
 import { withAccess } from '@/lib/apps/garage';
 import { serviceForAction } from '@/lib/auth/access';
@@ -30,7 +32,7 @@ export async function deleteStoredFiles(
   if ('refused' in found) return { ok: false, error: found.refused };
   const { container } = found;
   if (!canBrowse(container)) {
-    return { ok: false, error: 'There is nothing to browse here' };
+    return { ok: false, error: await errorText('nothingToBrowse') };
   }
   const result = await tried(() =>
     withAccess(container, bucket, async () => {

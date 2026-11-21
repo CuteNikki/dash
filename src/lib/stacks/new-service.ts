@@ -25,13 +25,10 @@ export const NewService = z
     name: z
       .string()
       .trim()
-      .min(2, 'Give it a name of at least two characters')
-      .max(MAX_NAME, `Up to ${MAX_NAME} characters`)
-      .regex(
-        NAME_PATTERN,
-        'Lowercase letters, digits, - and _, starting with a letter or digit'
-      ),
-    compose: z.string().trim().min(1, 'It needs a compose file'),
+      .min(2, 'nameTwoChars')
+      .max(MAX_NAME, 'nameTooLong')
+      .regex(NAME_PATTERN, 'namePattern'),
+    compose: z.string().trim().min(1, 'needsCompose'),
     composeFile: z.enum(COMPOSE_NAMES).default('docker-compose.yml'),
     git: GitSource.optional(),
     // For one cloned from git, whose compose file has no label to say it
@@ -51,7 +48,7 @@ export const NewService = z
       ctx.addIssue({
         code: 'custom',
         path: ['service'],
-        message: 'Which service answers the domain',
+        message: 'whichService',
       });
     }
     // Digits only, as it's written into the Caddyfile as it is: Number()
@@ -61,7 +58,7 @@ export const NewService = z
       ctx.addIssue({
         code: 'custom',
         path: ['port'],
-        message: 'A port from 1 to 65535',
+        message: 'portRange',
       });
     }
   });

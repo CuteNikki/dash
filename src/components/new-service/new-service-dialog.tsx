@@ -5,6 +5,8 @@ import dynamic from 'next/dynamic';
 import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 
+import { useIssueText } from '@/i18n/use-issue-text';
+
 import { readRunStream } from '@/lib/docker/read-run-stream';
 import {
   exposedPort,
@@ -188,6 +190,7 @@ function NewServiceForm({
   setRunning: (running: boolean) => void;
   onCreated: () => void;
 }) {
+  const issueText = useIssueText();
   const t = useTranslations('newService');
   const [template, setTemplate] = useState(blankTemplate);
   const [name, setName] = useState('');
@@ -278,7 +281,7 @@ function NewServiceForm({
     }
     const parsed = NewService.safeParse(input);
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message);
+      setError(issueText(parsed.error.issues[0]?.message));
       return;
     }
     setError(undefined);

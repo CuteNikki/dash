@@ -1,5 +1,7 @@
 'use server';
 
+import { errorText } from '@/i18n/errors';
+
 import { record } from '@/lib/activity/record';
 import { requireAccess } from '@/lib/auth/access';
 import { stopProcess as stop } from '@/lib/host/processes';
@@ -18,7 +20,11 @@ export async function stopProcess(
   const access = await requireAccess('server');
   // A server action takes whatever it's sent, so only a process id gets through
   if (!Number.isInteger(pid) || pid <= 0) {
-    return { ok: false, outcome: 'failed', error: 'Not a process id' };
+    return {
+      ok: false,
+      outcome: 'failed',
+      error: await errorText('notAProcess'),
+    };
   }
   let result: StopResult;
   try {

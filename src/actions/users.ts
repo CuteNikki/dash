@@ -2,6 +2,8 @@
 
 import { z } from 'zod';
 
+import { errorText, issueText } from '@/i18n/errors';
+
 import { record } from '@/lib/activity/record';
 import { requireAccess } from '@/lib/auth/access';
 import { INVITE_MS, newToken, tokenHash } from '@/lib/auth/invites';
@@ -136,7 +138,8 @@ export async function setPersonAccess(
 ): Promise<PeopleResult> {
   const access = await requireAccess('users');
   const parsed = Access.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (!parsed.success)
+    return { error: await issueText(parsed.error.issues[0].message) };
   const { role, groups } = parsed.data;
   if (role !== 'owner') {
     const kept = await keepsAnOwner(userId);
@@ -163,10 +166,12 @@ export async function setPersonDisabled(
   disabled: boolean
 ): Promise<PeopleResult> {
   const access = await requireAccess('users');
-  if (typeof disabled !== 'boolean') return { error: 'On or off' };
+  if (typeof disabled !== 'boolean') {
+    return { error: await errorText('onOrOff') };
+  }
   if (disabled) {
     if (userId === access.user.id) {
-      return { error: "You can't disable your own account" };
+      return { error: await errorText('notOwnDisable') };
     }
     const kept = await keepsAnOwner(userId);
     if (kept) return { error: kept };
@@ -190,7 +195,7 @@ export async function setPersonDisabled(
 /** Signs someone out on every device; they can sign in again. */
 export async function signOutPerson(userId: string): Promise<PeopleResult> {
   const access = await requireAccess('users');
-  if (typeof userId !== 'string') return { error: 'Who?' };
+  if (typeof userId !== 'string') return { error: await errorText('who') };
   await db.session.deleteMany({ where: { userId } });
   await record(access, {
     action: 'person.signout',
@@ -202,7 +207,7 @@ export async function signOutPerson(userId: string): Promise<PeopleResult> {
 export async function removePerson(userId: string): Promise<PeopleResult> {
   const access = await requireAccess('users');
   if (userId === access.user.id) {
-    return { error: "You can't remove your own account" };
+    return { error: await errorText('notOwnRemove') };
   }
   const kept = await keepsAnOwner(userId);
   if (kept) return { error: kept };
@@ -211,7 +216,7 @@ export async function removePerson(userId: string): Promise<PeopleResult> {
 }
 
 const NewInvite = Access.extend({
-  email: z.email('Enter an email address').transform((e) => e.toLowerCase()),
+  email: z.email('enterEmail').transform((e) => e.toLowerCase()),
 });
 
 export type InviteResult =
@@ -237,10 +242,11 @@ export async function createInvite(input: {
 }): Promise<InviteResult> {
   const access = await requireAccess('users');
   const parsed = NewInvite.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (!parsed.success)
+    return { error: await issueText(parsed.error.issues[0].message) };
   const { email, role, groups } = parsed.data;
   if (await db.user.findUnique({ where: { email } })) {
-    return { error: 'Someone already has an account with that email' };
+    return { error: await errorText('emailTaken') };
   }
   const token = newToken();
   const expiresAt = new Date(Date.now() + INVITE_MS);
@@ -292,7 +298,7 @@ export async function createInvite(input: {
 /** Takes an invite back, so its link no longer works. */
 export async function revokeInvite(id: string): Promise<PeopleResult> {
   const access = await requireAccess('users');
-  if (typeof id !== 'string') return { error: 'Which invite?' };
+  if (typeof id !== 'string') return { error: await errorText('whichInvite') };
   const invite = await db.invite.findFirst({ where: { id, usedAt: null } });
   if (!invite) return;
   await db.invite.delete({ where: { id } });
