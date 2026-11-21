@@ -241,9 +241,9 @@ function DockerSection({
               key={key}
               className='flex flex-col gap-1 rounded-lg bg-muted p-3'
             >
-              <span className='flex items-center gap-2 text-muted-foreground [&_svg]:size-4'>
+              <span className='flex items-center gap-1.5 text-muted-foreground [&_svg]:size-4'>
                 {icon}
-                <span className='mr-auto'>{t(`kinds.${key}`)}</span>
+                <span className='mr-auto truncate'>{t(`kinds.${key}`)}</span>
                 <span className='font-mono tabular-nums'>
                   {space ? space.count : <TextSkeleton className='w-4' />}
                 </span>
@@ -255,8 +255,9 @@ function DockerSection({
                   <TextSkeleton className='w-16' />
                 )}
               </span>
-              <span className='flex min-h-6 items-center gap-2 text-muted-foreground'>
-                <span className='mr-auto'>
+              {/* Its button below the amount where there's no room beside it */}
+              <span className='flex min-h-6 flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground'>
+                <span className='mr-auto whitespace-nowrap'>
                   {!space ? (
                     <TextSkeleton className='w-20' />
                   ) : space.reclaimable > 0 ? (
