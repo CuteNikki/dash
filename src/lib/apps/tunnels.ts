@@ -18,6 +18,9 @@ export const DEV_TUNNELS = [
   // it, at its own port here too: it turns away a request whose address has
   // another
   { app: 'qbittorrent', container: 'gluetun', port: 8080, local: 8080 },
+  // The dashboard's own database, which DATABASE_URL in .env.local points at,
+  // as 127.0.0.1:5432 with sslmode=disable: the tunnel is already encrypted
+  { app: 'postgres', container: 'postgres', port: 5432, local: 5432 },
 ];
 
 /** Where an app is in development, through its tunnel, if it has one. */
