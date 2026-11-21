@@ -57,13 +57,16 @@ function backupOk(results: unknown) {
   );
 }
 
-/** Its own numbers, the window counting rather than naming its users. */
+/**
+ * Its own numbers, the window counting rather than naming its users. Its
+ * websites, the tiles of sites hosted elsewhere, only there, as a group named
+ * Websites holds containers that aren't among them.
+ */
 export const dashboard: App = {
   read: async () => {
     const o = await read();
     return [
       { label: 'Services', value: `${o.services}` },
-      { label: 'Websites', value: `${o.sites}` },
       { label: 'Users', value: `${o.users}` },
       { label: 'Alerts', value: `${o.alerts}` },
     ];
@@ -79,7 +82,7 @@ export const dashboard: App = {
             label: 'Services',
             value: `${o.running} of ${o.services} running`,
           },
-          { label: 'Websites', value: `${o.sites}` },
+          { label: 'Websites elsewhere', value: `${o.sites}` },
           {
             label: 'Hidden',
             value: `${o.hiddenServices} services, ${o.hiddenSites} websites`,
