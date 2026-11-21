@@ -27,6 +27,7 @@ import { resetTile, restoreTile } from '@/actions/tiles';
 import { useFormat } from '@/i18n/use-format';
 import { useIssueText } from '@/i18n/use-issue-text';
 
+import { DEFAULT_GROUP } from '@/lib/dashboard/groups';
 import { isRunning, labelOf } from '@/lib/dashboard/status';
 import type { ContainerAction } from '@/lib/docker/docker';
 import { fetcher } from '@/lib/fetcher';
@@ -50,6 +51,7 @@ import { ScrollFade } from '@/components/common/scroll-fade';
 import { TextSkeleton } from '@/components/common/skeletons';
 import { attempt } from '@/components/common/toasts';
 import { useKept, useKeptShape } from '@/components/common/use-kept';
+import { Trail } from '@/components/dashboard/trail';
 import { AddressList } from '@/components/service/address-list';
 import { AppDetails, Facts, Panel } from '@/components/service/app-details';
 import { LogViewer } from '@/components/service/log-viewer';
@@ -60,17 +62,11 @@ import { StatePill } from '@/components/service/status-dot';
 import { StopDialog } from '@/components/service/stop-dialog';
 import { BucketBrowser } from '@/components/storage/bucket-browser';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UpdateDialog } from '@/components/updates/update-dialog';
 
-// Fetched once a service's window opens, rather than with the page: the
+// Fetched once a service's page opens, rather than with the page: the
 // editor, its languages, diffs and Markdown are most of the dashboard's script
 const FilesPanel = dynamic(() =>
   import('@/components/editor/files-panel').then((m) => m.FilesPanel)
@@ -80,64 +76,80 @@ const GitPanel = dynamic(() =>
 );
 
 /** A service's logs, usage and controls, over the dashboard. */
-export function ServiceDialog({
+/**
+ * A service's page in the dashboard: its usage, logs, files and controls, in
+ * the room below the dashboard's header, with the way back above it.
+ */
+export function ServicePage({
   service,
   onCloseAction,
   onChangedAction,
   onEditAction,
+  onGroupAction,
   tab,
 }: {
   service?: Service;
+  /** Back to the dashboard */
   onCloseAction: () => void;
+  /** Back to the dashboard, showing only this group's services */
+  onGroupAction: (group: string) => void;
   /** Called after an action, so the dashboard refreshes right away */
   onChangedAction: () => void;
   onEditAction: (service: Service) => void;
   /** A tab it opens on, rather than the one it was left on */
   tab?: 'logs';
 }) {
+  const t = useTranslations('service');
+  const td = useTranslations('dashboard');
   // Its removal's window, here rather than in the body, so the service it's
   // removing can be held on to
   const [removing, setRemoving] = useState(false);
   const [last, setLast] = useState(service);
   if (service && service !== last) setLast(service);
   // Removing takes its containers down, and with them the service from the
-  // dashboard's next look; the window stays on the last one seen until its
+  // dashboard's next look; the page stays on the last one seen until its
   // removal's closed, so what that printed and how it went aren't lost
   const shown = service ?? (removing ? last : undefined);
+  if (!shown) return null;
 
   function close() {
     setRemoving(false);
     onCloseAction();
   }
+  const groupName =
+    shown.group === DEFAULT_GROUP ? td('otherGroup') : shown.group;
 
   return (
-    <Dialog open={!!shown} onOpenChange={(open) => !open && close()}>
-      {/* Full screen on a phone, a large window in the middle on a computer */}
-      <DialogContent
-        className='flex h-full max-h-none max-w-full flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-5/6 sm:max-w-7xl sm:rounded-xl'
-        // Focus the window itself, not its first button, whose tooltip
-        // would open with it; Tab still reaches every button
-        onOpenAutoFocus={(e) => {
-          e.preventDefault();
-          (e.currentTarget as HTMLElement).focus();
-        }}
-      >
-        {shown && (
-          <ServiceBody
-            service={shown}
-            confirmRemove={removing}
-            setConfirmRemove={setRemoving}
-            onChanged={onChangedAction}
-            onRemoved={() => {
-              onChangedAction();
-              close();
-            }}
-            onEdit={onEditAction}
-            tab={tab}
-          />
-        )}
-      </DialogContent>
-    </Dialog>
+    <div className='flex min-h-0 flex-1 flex-col gap-3'>
+      <Trail
+        onDashboardAction={close}
+        steps={[
+          {
+            label: groupName,
+            title: t('groupOnly', { group: groupName }),
+            onClick: () => {
+              setRemoving(false);
+              onGroupAction(shown.group);
+            },
+          },
+          { label: shown.name },
+        ]}
+      />
+      <Card className='min-h-0 flex-1 gap-0 py-0'>
+        <ServiceBody
+          service={shown}
+          confirmRemove={removing}
+          setConfirmRemove={setRemoving}
+          onChanged={onChangedAction}
+          onRemoved={() => {
+            onChangedAction();
+            close();
+          }}
+          onEdit={onEditAction}
+          tab={tab}
+        />
+      </Card>
+    </div>
   );
 }
 
@@ -280,8 +292,8 @@ function ServiceBody({
 
   return (
     <>
-      <DialogHeader className='gap-4 border-b p-4'>
-        <div className='flex items-center gap-3 pr-8'>
+      <header className='flex flex-col gap-4 border-b p-4'>
+        <div className='flex items-center gap-3'>
           <ServiceIcon
             icon={service.icon}
             variants={service.iconVariants}
@@ -290,14 +302,12 @@ function ServiceBody({
             className='size-10'
           />
           <div className='min-w-0'>
-            <DialogTitle className='truncate text-base'>
-              {service.name}
-            </DialogTitle>
+            <h2 className='truncate text-base font-medium'>{service.name}</h2>
             {/* Its container, or a website's host, alone, its state being
                 with what changes it */}
-            <DialogDescription className='truncate font-mono'>
+            <p className='truncate font-mono text-muted-foreground'>
               {service.containerName}
-            </DialogDescription>
+            </p>
           </div>
         </div>
         {service.addresses.length > 0 && (
@@ -405,14 +415,14 @@ function ServiceBody({
             </Button>
           )}
         </div>
-      </DialogHeader>
+      </header>
 
       {site ? (
         <div className='min-h-0 flex-1 p-4'>
           <ScrollFade
             fill
             className='h-full overflow-x-hidden overflow-y-auto'
-            fadeFrom='from-popover'
+            fadeFrom='from-card'
           >
             <SitePanel service={service} />
           </ScrollFade>
@@ -524,7 +534,7 @@ function ServiceBody({
             <ScrollFade
               fill
               className='h-full overflow-x-hidden overflow-y-auto'
-              fadeFrom='from-popover'
+              fadeFrom='from-card'
             >
               <UsagePanel service={service} range={range} />
             </ScrollFade>

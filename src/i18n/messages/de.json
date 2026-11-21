@@ -276,7 +276,9 @@
     "cancelTitle": "Verschobenes, Vergrößertes und Umbenanntes zurücksetzen",
     "done": "Fertig",
     "editDashboard": "Bearbeiten",
-    "otherGroup": "Sonstiges"
+    "otherGroup": "Sonstiges",
+    "title": "Dashboard",
+    "whereItIs": "Wo es liegt"
   },
   "verdict": {
     "label": "Wie es allem geht",
@@ -510,7 +512,8 @@
     "wholeStack": "Der ganze Stack",
     "alsoDelete": "Auch {folder} und seine Volumes löschen, mit allem, was darin liegt",
     "removing": "Wird entfernt…",
-    "removeAndDelete": "Entfernen und löschen"
+    "removeAndDelete": "Entfernen und löschen",
+    "groupOnly": "Nur die Dienste in {group} zeigen"
   },
   "host": {
     "memory": "Speicher",

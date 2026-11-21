@@ -1,7 +1,8 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 
@@ -57,11 +58,12 @@ import {
 import { EditTileDialog } from '@/components/dashboard/edit-tile-dialog';
 import { ServiceList } from '@/components/dashboard/service-list';
 import { ServiceTile } from '@/components/dashboard/service-tile';
+import { Trail } from '@/components/dashboard/trail';
 import { TroubleRows, VerdictLine } from '@/components/dashboard/verdict';
 import { HostTileContent } from '@/components/host/host-stats';
 import { SystemDialog } from '@/components/host/system-dialog';
 import { NewServiceDialog } from '@/components/new-service/new-service-dialog';
-import { ServiceDialog } from '@/components/service/service-dialog';
+import { ServicePage } from '@/components/service/service-page';
 import { EmailNotice } from '@/components/settings/email-notice';
 import { Button, ButtonLabel } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -76,6 +78,9 @@ type Edit = {
   save: () => Promise<TileResult>;
   failed: string;
 };
+
+/** How long a return to the board waits for it to be tall enough to scroll back to where it was. */
+const RESTORE_MS = 1000;
 
 export function Dashboard({
   initial,
@@ -146,18 +151,33 @@ export function Dashboard({
   const [showUpdates, setShowUpdates] = useState(false);
   const [showSystem, setShowSystem] = useState(false);
   const [showAlerts, setShowAlerts] = useState(false);
-  // By key, so these follow the live data and survive a recreated container
-  const [openKey, setOpenKey] = useState<string>();
+  // The service whose page is open, by key, in the address, so Back returns
+  // to the board and a page's link opens it; by key, so it follows the live
+  // data and survives a recreated container
+  const params = useSearchParams();
+  const openKey = params.get('service') ?? undefined;
   // Logs, when opened from a row's Logs; otherwise the tab it was left on
-  const [openTab, setOpenTab] = useState<'logs'>();
+  const openTab = params.get('tab') === 'logs' ? 'logs' : undefined;
+  // Whether this page put it in the history, so going back is Back; and
+  // where the board was scrolled to, to return to
+  const pushed = useRef(false);
+  // Going back by the trail's Dashboard, which is the whole board, even from
+  // one group's: Back alone returns to where the page was opened from
+  const toWholeBoard = useRef(false);
+  const boardScroll = useRef(0);
   const [editKey, setEditKey] = useState<string>();
 
   const { services, groupOrder, host, hostComing } = data;
   const visible = useMemo(() => services.filter((s) => !s.hidden), [services]);
   const shown = editing ? services : visible;
+  // One group's alone, when its name in a service page's trail was clicked
+  const onlyGroup = params.get('group') ?? undefined;
   const groups = useMemo(
-    () => groupServices(shown, groupOrder),
-    [shown, groupOrder]
+    () =>
+      groupServices(shown, groupOrder).filter(
+        (g) => !onlyGroup || g.name === onlyGroup
+      ),
+    [shown, groupOrder, onlyGroup]
   );
   const allGroups = useMemo(
     () => groupNames(services, groupOrder),
@@ -257,7 +277,7 @@ export function Dashboard({
   }
 
   const sections: BoardSection[] = [
-    ...(host || hostComing
+    ...((host || hostComing) && !onlyGroup
       ? [
           {
             id: 'host',
@@ -304,20 +324,80 @@ export function Dashboard({
     })),
   ];
 
+  /** Opens a service's page, at its logs or the tab it was left on. */
+  function show(service: Service, tab?: 'logs') {
+    boardScroll.current = window.scrollY;
+    const query = new URLSearchParams({ service: service.key });
+    if (tab) query.set('tab', tab);
+    window.history.pushState(null, '', `?${query}`);
+    pushed.current = true;
+    window.scrollTo(0, 0);
+  }
+
+  /** Back to the whole board, as Back would be when the page was opened here. */
+  function hide() {
+    if (pushed.current) {
+      toWholeBoard.current = true;
+      window.history.back();
+    } else window.history.replaceState(null, '', window.location.pathname);
+  }
+
+  // Back on the board, however it got there: where it was scrolled to, once
+  // the board's tall enough again, as its tiles take a few frames to lay out
+  useEffect(() => {
+    if (openKey) return;
+    pushed.current = false;
+    if (toWholeBoard.current) {
+      toWholeBoard.current = false;
+      if (window.location.search) {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    }
+    const y = boardScroll.current;
+    if (!y) return;
+    const until = performance.now() + RESTORE_MS;
+    let frame = requestAnimationFrame(function restore() {
+      const room = document.documentElement.scrollHeight - window.innerHeight;
+      window.scrollTo(0, Math.min(y, room));
+      if (room < y && performance.now() < until) {
+        frame = requestAnimationFrame(restore);
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [openKey]);
+
+  /** Back to the board as a list of just one group's services. */
+  function showGroup(group: string) {
+    // In place of the service's page in the history, so Back is the whole board
+    window.history.replaceState(null, '', `?${new URLSearchParams({ group })}`);
+    pushed.current = false;
+    boardScroll.current = 0;
+    window.scrollTo(0, 0);
+  }
+
+  /** The whole board again, after one group's alone. */
+  function showAll() {
+    window.history.replaceState(null, '', window.location.pathname);
+  }
+
   function open(service: Service) {
     if (editing) setEditKey(service.key);
-    else {
-      setOpenTab(undefined);
-      setOpenKey(service.key);
-    }
+    else show(service);
   }
+  const page = openKey ? find(openKey) : undefined;
 
   return (
     <RoleProvider role={me.role}>
       <LocaleSync chosen={me.locale} />
       {/* Wider screens get more columns of tiles, up to a width past which
           the page would only spread out: then it's centered */}
-      <main className='mx-auto flex w-full max-w-[2200px] flex-col gap-8 px-4 py-6 sm:px-6'>
+      {/* A service's page fills the screen's height, its tabs' panels scrolling within it */}
+      <main
+        className={cn(
+          'mx-auto flex w-full max-w-[2200px] flex-col gap-8 px-4 py-6 sm:px-6',
+          page && 'h-dvh'
+        )}
+      >
         {/* The heading and the buttons on one line where they fit; on a
           narrow screen, the buttons on a line of their own below */}
         <header className='flex flex-wrap items-center justify-between gap-3'>
@@ -433,56 +513,62 @@ export function Dashboard({
           </div>
         </header>
         {/* Off while arranging, which is about where things go, not how they're doing */}
-        {!editing && (
+        {!editing && !page && (
           <TroubleRows
             services={visible}
             onOpenAction={open}
-            onLogsAction={(service) => {
-              setOpenTab('logs');
-              setOpenKey(service.key);
-            }}
+            onLogsAction={(service) => show(service, 'logs')}
             onChangedAction={() => mutate()}
           />
         )}
-        <Board
-          sections={sections}
-          columns={columns}
-          editing={editing}
-          saved={data.layouts}
-          onLayoutAction={saveCells}
-          onRenameAction={(section, name) =>
-            rename(
-              section.label,
-              section.tiles.map((t) => t.key),
-              name
-            )
-          }
-        />
-        {view === 'list' && (
+        {/* One group's alone: the same trail as a service's page, a step shorter */}
+        {onlyGroup && !page && (
+          <Trail
+            onDashboardAction={showAll}
+            steps={[
+              {
+                label:
+                  onlyGroup === DEFAULT_GROUP ? t('otherGroup') : onlyGroup,
+              },
+            ]}
+          />
+        )}
+        {!page && (
+          <Board
+            sections={sections}
+            columns={columns}
+            editing={editing}
+            saved={data.layouts}
+            onLayoutAction={saveCells}
+            onRenameAction={(section, name) =>
+              rename(
+                section.label,
+                section.tiles.map((t) => t.key),
+                name
+              )
+            }
+          />
+        )}
+        {view === 'list' && !page && (
           <ServiceList
             groups={groups}
             filter={filter}
             onFilterAction={pickFilter}
             editing={editing}
             onOpenAction={open}
-            onLogsAction={(service) => {
-              setOpenTab('logs');
-              setOpenKey(service.key);
-            }}
+            onLogsAction={(service) => show(service, 'logs')}
             onChangedAction={() => mutate()}
             onReorderAction={saveOrder}
             onRenameAction={rename}
           />
         )}
-        <ServiceDialog
-          service={find(openKey)}
+        <ServicePage
+          service={page}
           tab={openTab}
-          onCloseAction={() => setOpenKey(undefined)}
+          onCloseAction={hide}
           onChangedAction={() => void mutate()}
-          onEditAction={(service) => {
-            setOpenKey(undefined);
-            setEditKey(service.key);
-          }}
+          onEditAction={(service) => setEditKey(service.key)}
+          onGroupAction={showGroup}
         />
         <EditTileDialog
           service={find(editKey)}

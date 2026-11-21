@@ -279,7 +279,9 @@ declare const messages: {
     "cancelTitle": "Put back what's been moved, resized and renamed",
     "done": "Done",
     "editDashboard": "Edit",
-    "otherGroup": "Other"
+    "otherGroup": "Other",
+    "title": "Dashboard",
+    "whereItIs": "Where it is"
   },
   "verdict": {
     "label": "How everything is doing",
@@ -513,7 +515,8 @@ declare const messages: {
     "wholeStack": "The whole stack",
     "alsoDelete": "Also delete {folder} and its volumes, with everything it keeps",
     "removing": "Removing…",
-    "removeAndDelete": "Remove and delete"
+    "removeAndDelete": "Remove and delete",
+    "groupOnly": "Show only {group}'s services"
   },
   "host": {
     "memory": "Memory",
