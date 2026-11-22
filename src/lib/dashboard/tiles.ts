@@ -34,8 +34,12 @@ export const TILE_ITEMS = [
 
 export type TileItem = (typeof TILE_ITEMS)[number];
 
-/** Which of a tile's readings it shows as numbers, and which as graphs. */
-export type TileFoot = { numbers: TileItem[]; graphs: TileItem[] };
+/** Which of a tile's readings it shows as numbers, which as graphs, and which with their icons. */
+export type TileFoot = {
+  numbers: TileItem[];
+  graphs: TileItem[];
+  icons: TileItem[];
+};
 
 /** What a container's and a website's tiles have, in the order they show them */
 export const FOOT_ITEMS = {
@@ -46,10 +50,18 @@ export const FOOT_ITEMS = {
 /** Those that have no graph, being words, not amounts */
 export const NUMBER_ONLY: readonly TileItem[] = ['status'];
 
+/** Those with an icon to tell them apart: a website's two need none */
+export const WITH_ICON: readonly TileItem[] = FOOT_ITEMS.container;
+
 /** What a tile shows until it's picked otherwise: what it always did */
 export const DEFAULT_FOOT: Record<keyof typeof FOOT_ITEMS, TileFoot> = {
-  container: { numbers: ['cpu', 'memory'], graphs: ['cpu', 'memory'] },
-  site: { numbers: ['response', 'status'], graphs: ['response'] },
+  container: {
+    numbers: ['cpu', 'memory'],
+    graphs: ['cpu', 'memory'],
+    // Quieter without; one's there to tell a reading apart, once picked
+    icons: [],
+  },
+  site: { numbers: ['response', 'status'], graphs: ['response'], icons: [] },
 };
 
 /**
@@ -64,5 +76,9 @@ export function footOf(saved: unknown, site: boolean): TileFoot {
   const value = saved as Partial<Record<keyof TileFoot, unknown>> | null;
   const numbers = pick(value?.numbers);
   const graphs = pick(value?.graphs)?.filter((g) => !NUMBER_ONLY.includes(g));
-  return numbers && graphs ? { numbers, graphs } : DEFAULT_FOOT[kind];
+  // Saved before icons could be picked: none, as by default
+  const icons = (pick(value?.icons) ?? DEFAULT_FOOT[kind].icons).filter((i) =>
+    WITH_ICON.includes(i)
+  );
+  return numbers && graphs ? { numbers, graphs, icons } : DEFAULT_FOOT[kind];
 }

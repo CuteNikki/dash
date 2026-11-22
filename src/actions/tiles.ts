@@ -46,7 +46,11 @@ const FootItems = z
   .transform((list) => [...new Set(list)]);
 
 /** What a tile shows at its foot: which readings as numbers, which as graphs */
-const Foot = z.object({ numbers: FootItems, graphs: FootItems });
+const Foot = z.object({
+  numbers: FootItems,
+  graphs: FootItems,
+  icons: FootItems,
+});
 
 const TileInput = z.object({
   key: z.string().min(1),

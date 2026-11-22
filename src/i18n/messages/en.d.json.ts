@@ -262,7 +262,8 @@ declare const messages: {
     "resetDescription": "Its name, description, icon, addresses, group and what it shows are back to defaults.",
     "undo": "Undo",
     "restored": "Restored {name}",
-    "restoreFailed": "Couldn't restore {name}"
+    "restoreFailed": "Couldn't restore {name}",
+    "itemIcon": "{item} with its icon"
   },
   "chrome": {
     "account": "Account: {name}",

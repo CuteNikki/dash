@@ -13,10 +13,12 @@ import {
   isSiteKey,
   MAX_DESCRIPTION,
   NUMBER_ONLY,
+  WITH_ICON,
   type TileFoot,
   type TileItem,
 } from '@/lib/dashboard/tiles';
 import type { Service, StatKey } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 import { allWidgetStats } from '@/components/charts/widget-stats';
 import { attempt } from '@/components/common/toasts';
@@ -101,7 +103,9 @@ function EditTileForm({
       service.usage?.received !== undefined ||
       !service.usage
   );
-  /** Shows a reading as a number or a graph, or stops showing it so */
+  // A website's readings have no icons, so no column for them
+  const withIcons = footItems.some((item) => WITH_ICON.includes(item));
+  /** Shows a reading's number, graph or icon, or stops showing it */
   function toggle(as: keyof TileFoot, item: TileItem, on: boolean) {
     setFoot((f) => ({
       ...f,
@@ -263,13 +267,31 @@ function EditTileForm({
         <fieldset className='flex flex-col gap-2'>
           <legend className='mb-2'>{t('foot')}</legend>
           {/* Each reading in a row, ticked as a number, a graph, or both */}
-          <div className='grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-6 gap-y-2'>
+          <div
+            className={cn(
+              'grid items-center gap-x-6 gap-y-2',
+              withIcons
+                ? 'grid-cols-[minmax(0,1fr)_auto_auto_auto]'
+                : 'grid-cols-[minmax(0,1fr)_auto_auto]'
+            )}
+          >
             <span />
+            {withIcons && (
+              <span className='text-muted-foreground'>{t('icon')}</span>
+            )}
             <span className='text-muted-foreground'>{t('number')}</span>
             <span className='text-muted-foreground'>{t('graph')}</span>
             {footItems.map((item) => (
               <Fragment key={item}>
                 <span>{t(`item.${item}`)}</span>
+                {withIcons && (
+                  <Checkbox
+                    aria-label={t('itemIcon', { item: t(`item.${item}`) })}
+                    checked={foot.icons.includes(item)}
+                    onCheckedChange={(on) => toggle('icons', item, on === true)}
+                    className='justify-self-center'
+                  />
+                )}
                 <Checkbox
                   aria-label={t('itemNumber', { item: t(`item.${item}`) })}
                   checked={foot.numbers.includes(item)}

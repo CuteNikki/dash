@@ -1,7 +1,12 @@
 import { useTranslations } from 'next-intl';
 import { Fragment } from 'react';
 
-import { ActivityIcon, NetworkIcon } from 'lucide-react';
+import {
+  ActivityIcon,
+  CpuIcon,
+  MemoryStickIcon,
+  NetworkIcon,
+} from 'lucide-react';
 
 import type { Format } from '@/i18n/format';
 import { useFormat } from '@/i18n/use-format';
@@ -46,6 +51,7 @@ export function ServiceTile({
   const graph = service.height > 1;
   const numbers = new Set(service.foot.numbers);
   const graphed = new Set(service.foot.graphs);
+  const icons = new Set(service.foot.icons);
   // What it's set to show, of what it has
   const shown = (readings ?? []).filter(
     (r) => numbers.has(r.id) || (graphed.has(r.id) && r.values)
@@ -157,10 +163,11 @@ export function ServiceTile({
                   title={item.title}
                   className='flex min-w-0 items-center gap-2'
                 >
-                  {numbers.has(item.id) && (
+                  {/* Its icon first, before its number, or its graph alone */}
+                  {(icons.has(item.id) || numbers.has(item.id)) && (
                     <span className='flex items-center gap-1 whitespace-nowrap'>
-                      {item.icon}
-                      {item.number}
+                      {icons.has(item.id) && item.icon}
+                      {numbers.has(item.id) && item.number}
                     </span>
                   )}
                   {!graph && graphed.has(item.id) && item.values && (
@@ -195,7 +202,7 @@ export function ServiceTile({
 type Reading = {
   id: TileItem;
   number: string;
-  /** Beside its number, where a number alone could be taken for another's */
+  /** Beside its number, to tell what it is: a website's need none */
   icon?: React.ReactNode;
   /** In full, on hover, as both ways a network's flowing */
   title?: string;
@@ -262,6 +269,7 @@ function readingsOf(
   return [
     {
       id: 'cpu',
+      icon: <CpuIcon className='size-3.5' />,
       number: format.cpu(usage.cpu),
       values: history.cpu,
       times,
@@ -269,6 +277,7 @@ function readingsOf(
     },
     {
       id: 'memory',
+      icon: <MemoryStickIcon className='size-3.5' />,
       number: format.bytes(usage.memory),
       values: history.memory,
       times,
