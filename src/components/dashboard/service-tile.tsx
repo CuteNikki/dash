@@ -1,5 +1,5 @@
 import { useTranslations } from 'next-intl';
-import { Fragment } from 'react';
+import { Fragment, useLayoutEffect, useRef, useState } from 'react';
 
 import {
   ActivityIcon,
@@ -24,6 +24,9 @@ import { ServiceIcon } from '@/components/service/service-icon';
 import { StatusDot } from '@/components/service/status-dot';
 import { Card } from '@/components/ui/card';
 import { UpdateBadge } from '@/components/updates/update-badge';
+
+/** Room to spare, in the numbers' own size, before four go back in a row: two digits' worth */
+const SPARE_EM = 1.2;
 
 export function ServiceTile({
   service,
@@ -62,6 +65,34 @@ export function ServiceTile({
   // alone all in a row, but four only where they fit, else two by two
   const withGraphs = shown.some(inline);
   const fourAcross = !withGraphs && shown.length === 4;
+  const footRef = useRef<HTMLDivElement>(null);
+  const [across, setAcross] = useState(true);
+  // Whether four numbers fit side by side, as they are now: each as wide as
+  // its text, and the gaps between. Before it's drawn, and again as the
+  // numbers or the tile's width change, so it never shows three and one
+  useLayoutEffect(() => {
+    const foot = footRef.current;
+    if (!fourAcross || !foot) return;
+    const check = () => {
+      const cells = [...foot.children];
+      const gap = parseFloat(getComputedStyle(foot).columnGap) || 0;
+      const needed = cells.reduce(
+        (sum, cell) =>
+          sum + (cell.firstElementChild?.getBoundingClientRect().width ?? 0),
+        gap * (cells.length - 1)
+      );
+      // Back to four only with a little to spare, so a number gaining a
+      // digit at the edge doesn't flip it every few seconds
+      const spare = parseFloat(getComputedStyle(foot).fontSize) * SPARE_EM;
+      setAcross((was) =>
+        was ? needed <= foot.clientWidth : needed + spare <= foot.clientWidth
+      );
+    };
+    check();
+    const observer = new ResizeObserver(check);
+    observer.observe(foot);
+    return () => observer.disconnect();
+  });
   const columns = Math.min(
     shown.length,
     withGraphs ? (service.width > 1 ? 4 : 2) : shown.length
@@ -160,17 +191,16 @@ export function ServiceTile({
             // Each reading its number with its graph right after, in even
             // columns: two to a row with graphs, four on a wider tile; four
             // numbers alone in a row where they fit, else two by two
-            <div className='@container mt-auto'>
+            <div className='mt-auto'>
               <div
+                ref={footRef}
                 className={cn(
                   'grid gap-x-3 gap-y-1 font-mono text-muted-foreground tabular-nums',
+                  // Each only as wide as it is, the room left between them
                   fourAcross &&
-                    (icons.size
-                      ? // Room for the four at their widest side by side,
-                        // "100.0%", "1023 MB" and "1023 KB/s" twice, each
-                        // only as wide as it is, with their icons; or alone
-                        'grid-cols-2 @min-[21rem]:grid-cols-[repeat(4,auto)] @min-[21rem]:justify-between'
-                      : 'grid-cols-2 @min-[17rem]:grid-cols-[repeat(4,auto)] @min-[17rem]:justify-between')
+                    (across
+                      ? 'grid-cols-[repeat(4,auto)] justify-between'
+                      : 'grid-cols-2')
                 )}
                 style={
                   fourAcross
