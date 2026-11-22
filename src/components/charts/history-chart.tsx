@@ -8,6 +8,7 @@ import { useFormat } from '@/i18n/use-format';
 import type { Measure } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
+import { fitRange } from '@/components/charts/fit';
 import {
   Tooltip,
   TooltipContent,
@@ -16,8 +17,6 @@ import {
 
 /** Room above the highest reading, so a steady line doesn't run along the top edge. */
 const HEADROOM = 1.25;
-/** A fitted scale spans at least this share of its highest reading */
-const FIT_LEAST_SPAN = 0.1;
 
 /** Readings over longer than this say which day they're from, not just the time. */
 const DAYS_MS = 20 * 60 * 60_000;
@@ -159,13 +158,9 @@ export function HistoryChart({
     ...(band?.high ?? []),
   ];
   const highest = Math.max(...readings, ...series.map((s) => s.measure.floor));
-  // Fitted, the scale spans at least a share of the value, so a wobble of a
-  // few bytes stays a wobble, and has room above and below the line
-  const least = Math.max(...readings) * FIT_LEAST_SPAN;
-  const fitted = Math.max(Math.max(...readings) - Math.min(...readings), least);
-  const middle = (Math.max(...readings) + Math.min(...readings)) / 2;
-  const bottom = fit ? Math.max(0, middle - (fitted * HEADROOM) / 2) : 0;
-  const top = fit ? bottom + fitted * HEADROOM : highest * HEADROOM;
+  const { bottom, top } = fit
+    ? fitRange(readings, HEADROOM)
+    : { bottom: 0, top: highest * HEADROOM };
   // Positions in percent of the chart, so the line and markers stretch with it
   // Along by when each was taken, so a pause takes the room it lasted
   const span = times[count - 1] - times[0] || 1;

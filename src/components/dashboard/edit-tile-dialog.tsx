@@ -8,7 +8,11 @@ import { resetTile, restoreTile, saveTile } from '@/actions/tiles';
 
 import { useWords } from '@/i18n/use-words';
 
-import { isSiteKey, MAX_DESCRIPTION } from '@/lib/dashboard/tiles';
+import {
+  isSiteKey,
+  MAX_DESCRIPTION,
+  type TileGraph,
+} from '@/lib/dashboard/tiles';
 import type { Service, StatKey } from '@/lib/types';
 
 import { allWidgetStats } from '@/components/charts/widget-stats';
@@ -83,6 +87,11 @@ function EditTileForm({
   const [hidden, setHidden] = useState(service.hidden);
   const [ignoreUpdates, setIgnoreUpdates] = useState(service.ignoreUpdates);
   const [hiddenStats, setHiddenStats] = useState(service.hiddenStats);
+  const [hiddenGraphs, setHiddenGraphs] = useState(service.hiddenGraphs);
+  // A website's response time, or a container's CPU and memory
+  const graphKeys: TileGraph[] = isSiteKey(service.key)
+    ? ['response']
+    : ['cpu', 'memory'];
   // Its app's numbers as last read, and any left off it that it hasn't
   // said this time, as a stream's fallback only while it's on
   const read = allWidgetStats(service)?.map((s) => s.label) ?? [];
@@ -106,6 +115,7 @@ function EditTileForm({
           hidden,
           ignoreUpdates,
           hiddenStats,
+          hiddenGraphs,
         });
         if (result?.error) {
           setError(result.error);
@@ -234,6 +244,28 @@ function EditTileForm({
             </div>
           </fieldset>
         )}
+        <fieldset className='flex flex-col gap-2'>
+          <legend className='mb-2'>{t('graphs')}</legend>
+          {/* As the numbers above: each ticked while it's on the tile */}
+          <div className='flex flex-wrap gap-1.5'>
+            {graphKeys.map((key) => (
+              <Label
+                key={key}
+                className='flex items-center gap-1.5 rounded-md bg-muted px-1.5 py-1 font-normal'
+              >
+                <Checkbox
+                  checked={!hiddenGraphs.includes(key)}
+                  onCheckedChange={(on) =>
+                    setHiddenGraphs((list) =>
+                      on ? list.filter((k) => k !== key) : [...list, key]
+                    )
+                  }
+                />
+                {t(`graph.${key}`)}
+              </Label>
+            ))}
+          </div>
+        </fieldset>
         <div className='flex items-center gap-2'>
           <Switch
             id='tile-hidden'

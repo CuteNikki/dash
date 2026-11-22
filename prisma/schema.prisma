@@ -31,6 +31,8 @@ model Tile {
   ignoreUpdates Boolean  @default(false)
   /// Its app's numbers left off it, by their labels' keys: "websites"
   hiddenStats   String[] @default([])
+  /// Its graphs left off it: "cpu", "memory", or a website's "response"
+  hiddenGraphs  String[] @default([])
   updatedAt     DateTime @updatedAt
 }
 

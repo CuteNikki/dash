@@ -8,7 +8,12 @@ import { record } from '@/lib/activity/record';
 import { requireAccess } from '@/lib/auth/access';
 import { MAX_COLUMNS, MAX_ROWS } from '@/lib/dashboard/layout';
 import { ensureTiles } from '@/lib/dashboard/services';
-import { isSiteKey, MAX_DESCRIPTION, SITE_PREFIX } from '@/lib/dashboard/tiles';
+import {
+  isSiteKey,
+  MAX_DESCRIPTION,
+  SITE_PREFIX,
+  TILE_GRAPHS,
+} from '@/lib/dashboard/tiles';
 import { db } from '@/lib/db';
 import { HOST_TILE_VIEWS, isHostTileKey } from '@/lib/host/host-tiles';
 
@@ -33,6 +38,12 @@ const Group = z.string().trim().min(1, 'pickGroup').max(MAX_GROUP);
 /** Its app's numbers left off a tile, by their labels' keys: no more than any app has. */
 const HiddenStats = z.array(z.string().max(MAX_STAT_KEY)).max(MAX_HIDDEN_STATS);
 
+/** Its graphs left off a tile, each once */
+const HiddenGraphs = z
+  .array(z.enum(TILE_GRAPHS))
+  .max(TILE_GRAPHS.length)
+  .transform((list) => [...new Set(list)]);
+
 const TileInput = z.object({
   key: z.string().min(1),
   name: z.string().trim().min(1, 'giveName').max(MAX_NAME),
@@ -48,6 +59,7 @@ const TileInput = z.object({
   hidden: z.boolean(),
   ignoreUpdates: z.boolean(),
   hiddenStats: HiddenStats,
+  hiddenGraphs: HiddenGraphs,
 });
 
 export type TileInput = z.input<typeof TileInput>;
@@ -306,6 +318,8 @@ const TileSnapshot = z.object({
   hidden: z.boolean(),
   ignoreUpdates: z.boolean(),
   hiddenStats: HiddenStats,
+  // A snapshot taken before graphs could be hidden has none
+  hiddenGraphs: HiddenGraphs.default([]),
 });
 
 /** Puts back a tile's edits as a reset found them. */

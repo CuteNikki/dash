@@ -17,3 +17,11 @@ export function isSiteKey(key: string) {
 export function serviceKey(c: Container) {
   return c.stack ? `${c.stack.project}/${c.stack.service}` : c.name;
 }
+
+/**
+ * The graphs a tile can draw: a container's CPU and memory over time, and a
+ * website's response time.
+ */
+export const TILE_GRAPHS = ['cpu', 'memory', 'response'] as const;
+
+export type TileGraph = (typeof TILE_GRAPHS)[number];

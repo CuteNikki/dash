@@ -56,6 +56,7 @@ function previewOf(
     hidden: false,
     ignoreUpdates: false,
     hiddenStats: [],
+    hiddenGraphs: [],
     edited: false,
     image: '',
     state: 'running',
