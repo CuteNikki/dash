@@ -918,28 +918,24 @@ function UsagePanel({
         fit
         measuring={measuring}
       />
-      {/* Its ports beside its facts where there's room, in a column of
-          their own, as a list of them needs no more */}
-      <div className='grid grid-cols-1 gap-3 sm:col-span-2 lg:grid-cols-[minmax(0,1fr)_20rem]'>
-        <Panel
-          title={t('container')}
-          className={cn(!service.ports?.length && 'lg:col-span-2')}
-        >
+      {/* Its facts, and beside them where there's room, its ports and what
+          it keeps on the disk, each a list that needs no more */}
+      <div className='grid grid-cols-1 items-start gap-3 sm:col-span-2 lg:grid-cols-2'>
+        <Panel title={t('container')}>
           <Facts facts={facts} />
         </Panel>
-        {service.ports && service.ports.length > 0 && (
-          <Panel title={t('ports')}>
-            <PortList service={service} />
-          </Panel>
-        )}
+        <div className='flex min-w-0 flex-col gap-3'>
+          {service.ports && service.ports.length > 0 && (
+            <Panel title={t('ports')}>
+              <PortList service={service} />
+            </Panel>
+          )}
+          {/* Not a website's, which keeps nothing on this server */}
+          {service.containerId && !isSiteKey(service.key) && (
+            <StoragePanel containerId={service.containerId} />
+          )}
+        </div>
       </div>
-      {/* Not a website's, which keeps nothing on this server */}
-      {service.containerId && !isSiteKey(service.key) && (
-        <StoragePanel
-          containerId={service.containerId}
-          className='sm:col-span-2'
-        />
-      )}
       {app && (
         <div className='flex min-w-0 flex-col gap-3 sm:col-span-2'>
           <AppDetails containerId={service.containerId} />
