@@ -1,8 +1,6 @@
 import { useTranslations } from 'next-intl';
 import { Fragment } from 'react';
 
-import { EyeOffIcon } from 'lucide-react';
-
 import type { Format } from '@/i18n/format';
 import { useFormat } from '@/i18n/use-format';
 
@@ -88,13 +86,8 @@ export function ServiceTile({
               ))}
             </div>
           </div>
-          {editing ? (
-            <span className='mt-0.5 flex items-center gap-2 self-start text-muted-foreground'>
-              {service.hidden && (
-                <EyeOffIcon aria-label={t('hidden')} className='size-4' />
-              )}
-            </span>
-          ) : (
+          {/* While arranging, whether it's hidden is the eye on its corner */}
+          {!editing && (
             // An update waiting, beside how it's doing
             // As tall as the name's line, so both sit level with it
             <span className='flex h-5 items-center gap-1.5 self-start'>
