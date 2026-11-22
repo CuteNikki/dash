@@ -524,7 +524,7 @@ declare const messages: {
     "groupOnly": "Show only {group}'s services",
     "more": "More",
     "storage": "Storage",
-    "storageAt": "At {path} inside it",
+    "storageAt": "Mounted at {path}",
     "storageMeasured": "Measured {ago}",
     "storageNone": "It keeps nothing on the server's disk outside its image.",
     "storageFailed": "Couldn't measure it: {error}"
