@@ -26,7 +26,8 @@ export function ServiceTile({
   service: Service;
   /** While editing the dashboard, a tile opens its editor */
   editing: boolean;
-  onOpen: (service: Service) => void;
+  /** With Shift held, to edit it */
+  onOpen: (service: Service, edit?: boolean) => void;
 }) {
   const ts = useTranslations('status');
   const format = useFormat();
@@ -48,7 +49,7 @@ export function ServiceTile({
   return (
     <button
       type='button'
-      onClick={() => onOpen(service)}
+      onClick={(e) => onOpen(service, e.shiftKey)}
       aria-label={editing ? t('edit', { name: service.name }) : undefined}
       className='group/tile size-full rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring'
     >

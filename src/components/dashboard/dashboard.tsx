@@ -330,15 +330,18 @@ export function Dashboard({
               onHide: (hidden: boolean) => hideHostTile(t.key, hidden),
               onEdit: () => setEditHostKey(t.key),
               render: () => (
-                <HostTileContent
-                  tile={t.key}
-                  view={t.view}
-                  host={host}
-                  services={services}
-                  onOpenAction={open}
-                  system={data.system}
-                  onSystemAction={() => setShowSystem(true)}
-                />
+                // Not a box of its own, so the tile lays out as it would
+                <div className='contents' {...shiftToEdit(t.key)}>
+                  <HostTileContent
+                    tile={t.key}
+                    view={t.view}
+                    host={host}
+                    services={services}
+                    onOpenAction={open}
+                    system={data.system}
+                    onSystemAction={() => setShowSystem(true)}
+                  />
+                </div>
               ),
             })),
           },
@@ -423,9 +426,27 @@ export function Dashboard({
     window.history.replaceState(null, '', window.location.pathname);
   }
 
-  function open(service: Service) {
-    if (editing) setEditKey(service.key);
+  /** Opens a service's page, or, while editing or with Shift held, its tile's editor. */
+  function open(service: Service, edit = false) {
+    if (editing || (edit && may('manage'))) setEditKey(service.key);
     else show(service);
+  }
+
+  /**
+   * A Shift-click anywhere on one of the server's tiles edits it, rather
+   * than doing what was clicked, and doesn't select text up to it.
+   */
+  function shiftToEdit(key: HostTileKey) {
+    if (!may('server')) return {};
+    return {
+      onMouseDown: (e: React.MouseEvent) => e.shiftKey && e.preventDefault(),
+      onClickCapture: (e: React.MouseEvent) => {
+        if (!e.shiftKey) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setEditHostKey(key);
+      },
+    };
   }
   const page = openKey ? find(openKey) : undefined;
 

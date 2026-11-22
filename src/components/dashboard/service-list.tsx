@@ -124,7 +124,8 @@ export function ServiceList({
   filter: ListFilter;
   onFilterAction: (filter: ListFilter) => void;
   editing: boolean;
-  onOpenAction: (service: Service) => void;
+  /** With Shift held, to edit its tile */
+  onOpenAction: (service: Service, edit?: boolean) => void;
   onLogsAction: (service: Service) => void;
   /** After an action, so the dashboard refreshes right away; the row waits on it */
   onChangedAction: () => Promise<unknown>;
@@ -712,7 +713,8 @@ function Row({
   reordering: boolean;
   /** What's being done to it, which its buttons wait on */
   busy?: ContainerAction;
-  onOpen: (service: Service) => void;
+  /** With Shift held, to edit its tile */
+  onOpen: (service: Service, edit?: boolean) => void;
   onLogs: (service: Service) => void;
   onRun: (action: ContainerAction) => void;
 }) {
@@ -746,12 +748,12 @@ function Row({
       tabIndex={0}
       aria-label={editing ? t('edit', { name: service.name }) : service.name}
       data-hidden={service.hidden}
-      onClick={() => onOpen(service)}
+      onClick={(e) => onOpen(service, e.shiftKey)}
       onKeyDown={(e) => {
         if (e.target !== e.currentTarget) return;
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          onOpen(service);
+          onOpen(service, e.shiftKey);
         }
       }}
       className='cursor-pointer border-b outline-none last:border-0 hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset data-[dragging=true]:bg-primary/10 data-[dragging=true]:*:opacity-30 data-[hidden=true]:*:opacity-60'
