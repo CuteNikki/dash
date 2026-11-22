@@ -36,12 +36,11 @@ export function ServiceTile({
   // A taller tile has room for its graphs as one of their own
   const graph = service.height > 1;
   const on = (readings?.graphs ?? []).filter(
-    (g) => !service.hiddenGraphs.includes(g.key)
+    (g) => !service.hiddenGraphs.includes(g.id)
   );
-  // A wider one has room for two, each with its number; a narrow one for
-  // the first that's on
-  const paired = service.width > 1 && on.length > 1;
-  const graphs = paired ? on : on.slice(0, 1);
+  // Each with its number, short enough for two on the narrowest tile
+  const paired = on.length > 1;
+  const graphs = on;
   const stats = widgetStats(service);
   const addresses = service.addresses.length
     ? service.addresses
@@ -115,7 +114,7 @@ export function ServiceTile({
             )}
           >
             {graphs.map((g) => (
-              <div key={g.key} className='relative'>
+              <div key={g.id} className='relative'>
                 <Sparkline {...g} className='absolute inset-0 size-full' />
               </div>
             ))}
@@ -125,12 +124,17 @@ export function ServiceTile({
           // Each number with its graph beside it, or below it on a taller tile
           <div className='mt-auto grid grid-cols-2 gap-3 font-mono text-muted-foreground tabular-nums'>
             {graphs.map((g) => (
-              <div key={g.key} className='flex min-w-0 items-center gap-3'>
-                <span>{g.number}</span>
+              <div key={g.id} className='flex min-w-0 items-center gap-2'>
+                <span className='whitespace-nowrap'>{g.number}</span>
                 {!graph && (
                   <Sparkline
                     {...g}
-                    className='w-auto max-w-64 flex-1 group-data-[dimmed=true]/card:opacity-60'
+                    // Right after its number, not by the other's, a little
+                    // longer on a wider tile, and shorter where there's no room
+                    className={cn(
+                      'min-w-0 shrink group-data-[dimmed=true]/card:opacity-60',
+                      service.width > 1 && 'w-24'
+                    )}
                   />
                 )}
               </div>
@@ -180,7 +184,7 @@ function readingsOf(
       numbers: string[];
       /** Each with the number it's of */
       graphs: {
-        key: TileGraph;
+        id: TileGraph;
         number: string;
         values: number[];
         times: number[];
@@ -196,7 +200,7 @@ function readingsOf(
       numbers: [ms, check.status ? `${check.status}` : noAnswer],
       graphs: [
         {
-          key: 'response',
+          id: 'response',
           number: ms,
           values: check.history.ms,
           times: check.history.at,
@@ -213,14 +217,14 @@ function readingsOf(
     numbers: [cpu, memory],
     graphs: [
       {
-        key: 'cpu',
+        id: 'cpu',
         number: cpu,
         values: usage.history.cpu,
         times: usage.history.at,
         measure: MEASURES.cpu,
       },
       {
-        key: 'memory',
+        id: 'memory',
         number: memory,
         values: usage.history.memory,
         times: usage.history.at,
