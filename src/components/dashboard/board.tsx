@@ -996,7 +996,8 @@ function EditTile({
         <button
           type='button'
           aria-label={t('edit', { name })}
-          className='absolute inset-0 cursor-grab rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring'
+          // Its edge lit on hover over the card's own, as a service's tile is
+          className='absolute inset-0 rounded-xl ring-1 ring-transparent transition-shadow outline-none ring-inset hover:ring-foreground/25 focus-visible:ring-2 focus-visible:ring-ring'
           onClick={onEdit}
         />
       )}
