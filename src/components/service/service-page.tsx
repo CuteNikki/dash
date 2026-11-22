@@ -142,7 +142,10 @@ export function ServicePage({
           { label: shown.name },
         ]}
       />
-      <Card className='min-h-0 flex-1 gap-0 py-0'>
+      {/* The room below the dashboard's header on a computer; on a phone,
+          where that would leave its tabs a few lines, a whole screen,
+          scrolled to past the header */}
+      <Card className='min-h-0 flex-1 gap-0 py-0 max-sm:h-dvh max-sm:flex-none'>
         <ServiceBody
           service={shown}
           confirmRemove={removing}

@@ -395,7 +395,8 @@ export function Dashboard({
       <main
         className={cn(
           'mx-auto flex w-full max-w-[2200px] flex-col gap-8 px-4 py-6 sm:px-6',
-          page && 'h-dvh'
+          // On a phone, the page scrolls instead, its card a screen tall
+          page && 'sm:h-dvh'
         )}
       >
         {/* The heading and the buttons on one line where they fit; on a
