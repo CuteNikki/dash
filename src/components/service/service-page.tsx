@@ -685,9 +685,13 @@ function FlowChart({
   const [first, second] = flows;
   return (
     <Panel title={label}>
-      <span className='flex items-center gap-4 font-mono text-lg tabular-nums'>
+      {/* Each value kept whole, the second below the first where there's no room */}
+      <span className='flex flex-wrap items-center gap-x-4 font-mono text-lg tabular-nums'>
         {flows.map((f) => (
-          <span key={f.label} className='flex items-center gap-1.5'>
+          <span
+            key={f.label}
+            className='flex items-center gap-1.5 whitespace-nowrap'
+          >
             <span className='text-muted-foreground [&_svg]:size-4'>
               {f.icon}
             </span>
