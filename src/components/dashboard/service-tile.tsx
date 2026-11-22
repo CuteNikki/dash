@@ -166,10 +166,11 @@ export function ServiceTile({
                   'grid gap-x-3 gap-y-1 font-mono text-muted-foreground tabular-nums',
                   fourAcross &&
                     (icons.size
-                      ? // Room for four of the widest, "1.2 KB/s" and its
-                        // icon, side by side; and of the widest number alone
-                        'grid-cols-2 @min-[22rem]:grid-cols-4'
-                      : 'grid-cols-2 @2xs:grid-cols-4')
+                      ? // Room for the four at their widest side by side,
+                        // "100.0%", "1023 MB" and "1023 KB/s" twice, each
+                        // only as wide as it is, with their icons; or alone
+                        'grid-cols-2 @min-[21rem]:grid-cols-[repeat(4,auto)] @min-[21rem]:justify-between'
+                      : 'grid-cols-2 @min-[17rem]:grid-cols-[repeat(4,auto)] @min-[17rem]:justify-between')
                 )}
                 style={
                   fourAcross
