@@ -5,12 +5,7 @@ import { can, seesGroup, type Role } from '@/lib/auth/roles';
 import { BUILD_ID } from '@/lib/build';
 import { DEFAULT_GROUP } from '@/lib/dashboard/groups';
 import { currentSites } from '@/lib/dashboard/sites';
-import {
-  isSiteKey,
-  serviceKey,
-  TILE_GRAPHS,
-  type TileGraph,
-} from '@/lib/dashboard/tiles';
+import { footOf, isSiteKey, serviceKey } from '@/lib/dashboard/tiles';
 import {
   appIcon,
   canBrowse,
@@ -103,7 +98,7 @@ function siteService(
     hidden: tile.hidden,
     ignoreUpdates: false,
     hiddenStats: tile.hiddenStats,
-    hiddenGraphs: graphsOf(tile.hiddenGraphs),
+    foot: footOf(tile.foot, true),
     edited: true,
     image: '',
     state: !url
@@ -178,13 +173,6 @@ export async function ensureTiles(keys: string[]) {
       .map((c) => ({ key: serviceKey(c), addresses: labelAddresses(c) })),
     skipDuplicates: true,
   });
-}
-
-/** The graphs a tile was set to leave off, of those there are. */
-function graphsOf(saved: string[] | undefined): TileGraph[] {
-  return (saved ?? []).filter((g): g is TileGraph =>
-    (TILE_GRAPHS as readonly string[]).includes(g)
-  );
 }
 
 /**
@@ -263,7 +251,7 @@ export async function getDashboard(who: {
       hidden: tile?.hidden ?? false,
       ignoreUpdates: tile?.ignoreUpdates ?? false,
       hiddenStats: tile?.hiddenStats ?? [],
-      hiddenGraphs: graphsOf(tile?.hiddenGraphs),
+      foot: footOf(tile?.foot, false),
       edited: !!tile,
       image: c.image,
       state: c.state,

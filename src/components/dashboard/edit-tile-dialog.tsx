@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useState, useTransition } from 'react';
+import { Fragment, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
 import { resetTile, restoreTile, saveTile } from '@/actions/tiles';
@@ -9,9 +9,12 @@ import { resetTile, restoreTile, saveTile } from '@/actions/tiles';
 import { useWords } from '@/i18n/use-words';
 
 import {
+  FOOT_ITEMS,
   isSiteKey,
   MAX_DESCRIPTION,
-  type TileGraph,
+  NUMBER_ONLY,
+  type TileFoot,
+  type TileItem,
 } from '@/lib/dashboard/tiles';
 import type { Service, StatKey } from '@/lib/types';
 
@@ -87,11 +90,24 @@ function EditTileForm({
   const [hidden, setHidden] = useState(service.hidden);
   const [ignoreUpdates, setIgnoreUpdates] = useState(service.ignoreUpdates);
   const [hiddenStats, setHiddenStats] = useState(service.hiddenStats);
-  const [hiddenGraphs, setHiddenGraphs] = useState(service.hiddenGraphs);
-  // A website's response time, or a container's CPU and memory
-  const graphKeys: TileGraph[] = isSiteKey(service.key)
-    ? ['response']
-    : ['cpu', 'memory'];
+  const [foot, setFoot] = useState(service.foot);
+  // A website's, or a container's: its network unless it uses another's,
+  // as one behind a VPN does, which is known once it's been measured
+  const footItems = FOOT_ITEMS[
+    isSiteKey(service.key) ? 'site' : 'container'
+  ].filter(
+    (item) =>
+      item !== 'network' ||
+      service.usage?.received !== undefined ||
+      !service.usage
+  );
+  /** Shows a reading as a number or a graph, or stops showing it so */
+  function toggle(as: keyof TileFoot, item: TileItem, on: boolean) {
+    setFoot((f) => ({
+      ...f,
+      [as]: on ? [...f[as], item] : f[as].filter((i) => i !== item),
+    }));
+  }
   // Its app's numbers as last read, and any left off it that it hasn't
   // said this time, as a stream's fallback only while it's on
   const read = allWidgetStats(service)?.map((s) => s.label) ?? [];
@@ -115,7 +131,7 @@ function EditTileForm({
           hidden,
           ignoreUpdates,
           hiddenStats,
-          hiddenGraphs,
+          foot,
         });
         if (result?.error) {
           setError(result.error);
@@ -245,24 +261,34 @@ function EditTileForm({
           </fieldset>
         )}
         <fieldset className='flex flex-col gap-2'>
-          <legend className='mb-2'>{t('graphs')}</legend>
-          {/* As the numbers above: each ticked while it's on the tile */}
-          <div className='flex flex-wrap gap-1.5'>
-            {graphKeys.map((key) => (
-              <Label
-                key={key}
-                className='flex items-center gap-1.5 rounded-md bg-muted px-1.5 py-1 font-normal'
-              >
+          <legend className='mb-2'>{t('foot')}</legend>
+          {/* Each reading in a row, ticked as a number, a graph, or both */}
+          <div className='grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-6 gap-y-2'>
+            <span />
+            <span className='text-muted-foreground'>{t('number')}</span>
+            <span className='text-muted-foreground'>{t('graph')}</span>
+            {footItems.map((item) => (
+              <Fragment key={item}>
+                <span>{t(`item.${item}`)}</span>
                 <Checkbox
-                  checked={!hiddenGraphs.includes(key)}
-                  onCheckedChange={(on) =>
-                    setHiddenGraphs((list) =>
-                      on ? list.filter((k) => k !== key) : [...list, key]
-                    )
-                  }
+                  aria-label={t('itemNumber', { item: t(`item.${item}`) })}
+                  checked={foot.numbers.includes(item)}
+                  onCheckedChange={(on) => toggle('numbers', item, on === true)}
+                  className='justify-self-center'
                 />
-                {t(`graph.${key}`)}
-              </Label>
+                {NUMBER_ONLY.includes(item) ? (
+                  <span />
+                ) : (
+                  <Checkbox
+                    aria-label={t('itemGraph', { item: t(`item.${item}`) })}
+                    checked={foot.graphs.includes(item)}
+                    onCheckedChange={(on) =>
+                      toggle('graphs', item, on === true)
+                    }
+                    className='justify-self-center'
+                  />
+                )}
+              </Fragment>
             ))}
           </div>
         </fieldset>

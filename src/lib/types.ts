@@ -4,7 +4,7 @@ import type { Locale } from '@/i18n/locales';
 
 import type { Role } from '@/lib/auth/roles';
 import type { SavedCell } from '@/lib/dashboard/layout';
-import type { TileGraph } from '@/lib/dashboard/tiles';
+import type { TileFoot } from '@/lib/dashboard/tiles';
 import type { ContainerState, DockerInfo } from '@/lib/docker/docker';
 import type { HostTile } from '@/lib/host/host-tiles';
 import type { IconVariants } from '@/lib/icons/icon-sets';
@@ -38,8 +38,8 @@ export type Service = {
   ignoreUpdates: boolean;
   /** Its app's numbers left off its tile, by their labels' keys */
   hiddenStats: string[];
-  /** Its graphs left off its tile */
-  hiddenGraphs: TileGraph[];
+  /** Which readings its tile shows as numbers, and which as graphs */
+  foot: TileFoot;
   /** Whether its tile has been edited here, rather than from labels */
   edited: boolean;
   image: string;

@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { addSite } from '@/actions/tiles';
 
 import { DEFAULT_GROUP } from '@/lib/dashboard/groups';
-import { MAX_DESCRIPTION } from '@/lib/dashboard/tiles';
+import { DEFAULT_FOOT, MAX_DESCRIPTION } from '@/lib/dashboard/tiles';
 import type { Service } from '@/lib/types';
 
 import { attempt } from '@/components/common/toasts';
@@ -56,7 +56,7 @@ function previewOf(
     hidden: false,
     ignoreUpdates: false,
     hiddenStats: [],
-    hiddenGraphs: [],
+    foot: DEFAULT_FOOT.site,
     edited: false,
     image: '',
     state: 'running',

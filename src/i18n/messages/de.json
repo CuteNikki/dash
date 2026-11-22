@@ -230,12 +230,19 @@
     "addresses": "Adressen",
     "group": "Gruppe",
     "numbers": "Zahlen auf der Kachel",
-    "graphs": "Graphen auf der Kachel",
-    "graph": {
+    "foot": "Auf der Kachel",
+    "number": "Zahl",
+    "graph": "Graph",
+    "item": {
       "cpu": "CPU",
       "memory": "Speicher",
-      "response": "Antwortzeit"
+      "network": "Netzwerk",
+      "disk": "Datenträger-E/A",
+      "response": "Antwortzeit",
+      "status": "Status"
     },
+    "itemNumber": "{item} als Zahl",
+    "itemGraph": "{item} als Graph",
     "showsAtFirst": "Der Graph zeigt zuerst",
     "hide": "Auf dem Dashboard ausblenden",
     "ignoreUpdates": "Updates ignorieren",
@@ -249,7 +256,7 @@
     "removeFailed": "{name} konnte nicht entfernt werden",
     "resetFailed": "{name} konnte nicht zurückgesetzt werden",
     "removedDescription": "Die Kachel ist nicht mehr auf dem Dashboard.",
-    "resetDescription": "Name, Beschreibung, Symbol, Adressen, Gruppe, Zahlen und Graphen sind wieder wie vorher.",
+    "resetDescription": "Name, Beschreibung, Symbol, Adressen, Gruppe und was sie zeigt sind wieder wie vorher.",
     "undo": "Rückgängig",
     "restored": "{name} wiederhergestellt",
     "restoreFailed": "{name} konnte nicht wiederhergestellt werden"

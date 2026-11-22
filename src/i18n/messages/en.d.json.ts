@@ -233,12 +233,19 @@ declare const messages: {
     "addresses": "Addresses",
     "group": "Group",
     "numbers": "Numbers on its tile",
-    "graphs": "Graphs on its tile",
-    "graph": {
+    "foot": "On its tile",
+    "number": "Number",
+    "graph": "Graph",
+    "item": {
       "cpu": "CPU",
       "memory": "Memory",
-      "response": "Response time"
+      "network": "Network",
+      "disk": "Disk I/O",
+      "response": "Response time",
+      "status": "Status"
     },
+    "itemNumber": "{item} as a number",
+    "itemGraph": "{item} as a graph",
     "showsAtFirst": "Its graph shows at first",
     "hide": "Hide from the dashboard",
     "ignoreUpdates": "Ignore its updates",
@@ -252,7 +259,7 @@ declare const messages: {
     "removeFailed": "Couldn't remove {name}",
     "resetFailed": "Couldn't reset {name}",
     "removedDescription": "Its tile is gone from the dashboard.",
-    "resetDescription": "Its name, description, icon, addresses, group, numbers and graphs are back to defaults.",
+    "resetDescription": "Its name, description, icon, addresses, group and what it shows are back to defaults.",
     "undo": "Undo",
     "restored": "Restored {name}",
     "restoreFailed": "Couldn't restore {name}"

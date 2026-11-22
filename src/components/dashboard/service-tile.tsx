@@ -1,11 +1,13 @@
 import { useTranslations } from 'next-intl';
 import { Fragment } from 'react';
 
+import { ActivityIcon, NetworkIcon } from 'lucide-react';
+
 import type { Format } from '@/i18n/format';
 import { useFormat } from '@/i18n/use-format';
 
 import { isRunning, labelOf } from '@/lib/dashboard/status';
-import type { TileGraph } from '@/lib/dashboard/tiles';
+import type { TileItem } from '@/lib/dashboard/tiles';
 import { MEASURES, type Measure } from '@/lib/format';
 import type { Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -33,15 +35,27 @@ export function ServiceTile({
   const format = useFormat();
   const t = useTranslations('dashboard');
   const running = isRunning(service.state);
-  const readings = readingsOf(service, format, t('noAnswer'));
+  const tHost = useTranslations('host');
+  const readings = readingsOf(service, format, t('noAnswer'), {
+    down: tHost('down'),
+    up: tHost('up'),
+    read: tHost('read'),
+    write: tHost('write'),
+  });
   // A taller tile has room for its graphs as one of their own
   const graph = service.height > 1;
-  const on = (readings?.graphs ?? []).filter(
-    (g) => !service.hiddenGraphs.includes(g.id)
+  const numbers = new Set(service.foot.numbers);
+  const graphed = new Set(service.foot.graphs);
+  // What it's set to show, of what it has
+  const shown = (readings ?? []).filter(
+    (r) => numbers.has(r.id) || (graphed.has(r.id) && r.values)
   );
-  // Each with its number, short enough for two on the narrowest tile
-  const paired = on.length > 1;
-  const graphs = on;
+  const graphs = shown.filter(
+    (r): r is Reading & { values: number[] } =>
+      graphed.has(r.id) && r.values !== undefined
+  );
+  // Two to a row on the narrowest tile, four on a wider one
+  const perRow = service.width > 1 ? 4 : 2;
   const stats = widgetStats(service);
   const addresses = service.addresses.length
     ? service.addresses
@@ -107,61 +121,69 @@ export function ServiceTile({
         {stats && <WidgetStats stats={stats} />}
         {graph && graphs.length > 0 && (
           // Fills the room the tile has, without asking for any of its own,
-          // each graph above its number when there are two
+          // its graphs side by side above their numbers
           <div
-            className={cn(
-              'grid min-h-8 flex-1 gap-3 group-data-[dimmed=true]/card:opacity-60',
-              paired && 'grid-cols-2'
-            )}
+            className='grid min-h-8 flex-1 gap-3 group-data-[dimmed=true]/card:opacity-60'
+            style={{
+              gridTemplateColumns: `repeat(${graphs.length}, minmax(0, 1fr))`,
+            }}
           >
             {graphs.map((g) => (
               <div key={g.id} className='relative'>
-                <Sparkline {...g} className='absolute inset-0 size-full' />
+                <Sparkline
+                  values={g.values}
+                  times={g.times}
+                  measure={g.measure}
+                  fit={g.fit}
+                  className='absolute inset-0 size-full'
+                />
               </div>
             ))}
           </div>
         )}
-        {readings && paired ? (
-          // Each number with its graph beside it, or below it on a taller tile
-          <div className='mt-auto grid grid-cols-2 gap-3 font-mono text-muted-foreground tabular-nums'>
-            {graphs.map((g) => (
-              <div key={g.id} className='flex min-w-0 items-center gap-2'>
-                <span className='whitespace-nowrap'>{g.number}</span>
-                {!graph && (
-                  <Sparkline
-                    {...g}
-                    // Right after its number, not by the other's, a little
-                    // longer on a wider tile, and shorter where there's no room
-                    className={cn(
-                      'min-w-0 shrink group-data-[dimmed=true]/card:opacity-60',
-                      service.width > 1 && 'w-24'
-                    )}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
+        {readings ? (
+          shown.length > 0 && (
+            // Each reading its number with its graph right after, as many
+            // to a row as the tile has room for
+            <div
+              className='mt-auto grid gap-x-3 gap-y-1 font-mono text-muted-foreground tabular-nums'
+              style={{
+                gridTemplateColumns: `repeat(${Math.min(shown.length, perRow)}, minmax(0, 1fr))`,
+              }}
+            >
+              {shown.map((item) => (
+                <div
+                  key={item.id}
+                  title={item.title}
+                  className='flex min-w-0 items-center gap-2'
+                >
+                  {numbers.has(item.id) && (
+                    <span className='flex items-center gap-1 whitespace-nowrap'>
+                      {item.icon}
+                      {item.number}
+                    </span>
+                  )}
+                  {!graph && graphed.has(item.id) && item.values && (
+                    <Sparkline
+                      values={item.values}
+                      times={item.times}
+                      measure={item.measure}
+                      fit={item.fit}
+                      // A little longer on a wider tile, and shorter where
+                      // there's no room
+                      className={cn(
+                        'min-w-0 shrink group-data-[dimmed=true]/card:opacity-60',
+                        service.width > 1 && 'w-24'
+                      )}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          )
         ) : (
-          <div className='mt-auto flex items-center gap-3 font-mono text-muted-foreground tabular-nums'>
-            {readings ? (
-              <>
-                {readings.numbers.map((n, i) => (
-                  <span key={i}>{n}</span>
-                ))}
-                {!graph && graphs[0] && (
-                  <Sparkline
-                    {...graphs[0]}
-                    // A wider tile draws it wider
-                    className={cn(
-                      'ml-auto group-data-[dimmed=true]/card:opacity-60',
-                      service.width > 1 && 'w-auto max-w-64 flex-1'
-                    )}
-                  />
-                )}
-              </>
-            ) : (
-              <span>{ts(labelOf(service))}</span>
-            )}
+          <div className='mt-auto font-mono text-muted-foreground'>
+            {ts(labelOf(service))}
           </div>
         )}
       </Card>
@@ -169,70 +191,116 @@ export function ServiceTile({
   );
 }
 
+/** One of a tile's readings: its number, and what its graph draws, if it has one. */
+type Reading = {
+  id: TileItem;
+  number: string;
+  /** Beside its number, where a number alone could be taken for another's */
+  icon?: React.ReactNode;
+  /** In full, on hover, as both ways a network's flowing */
+  title?: string;
+  values?: number[];
+  times: number[];
+  measure: Measure;
+  fit?: boolean;
+};
+
 /**
- * What a tile shows at its foot, and graphs: a container's CPU and memory,
- * and both over time; a website's response time and what it answered, and
- * its response time over time. None for a stopped container or an
- * unchecked site.
+ * What a tile can show at its foot, each a number and most a graph: a
+ * container's CPU, memory, network and disk; a website's response time and
+ * what it answered. None for a stopped container or an unchecked site.
  */
 function readingsOf(
   service: Service,
   format: Format,
   /** What a site that didn't answer says in place of its status */
-  noAnswer: string
-):
-  | {
-      numbers: string[];
-      /** Each with the number it's of */
-      graphs: {
-        id: TileGraph;
-        number: string;
-        values: number[];
-        times: number[];
-        measure: Measure;
-        fit?: boolean;
-      }[];
-    }
-  | undefined {
+  noAnswer: string,
+  words: { down: string; up: string; read: string; write: string }
+): Reading[] | undefined {
   const check = service.site?.check;
   if (check) {
-    const ms = format.ms(check.ms);
-    return {
-      numbers: [ms, check.status ? `${check.status}` : noAnswer],
-      graphs: [
-        {
-          id: 'response',
-          number: ms,
-          values: check.history.ms,
-          times: check.history.at,
-          measure: MEASURES.response,
-        },
-      ],
-    };
+    const times = check.history.at;
+    return [
+      {
+        id: 'response',
+        number: format.ms(check.ms),
+        values: check.history.ms,
+        times,
+        measure: MEASURES.response,
+      },
+      {
+        id: 'status',
+        number: check.status ? `${check.status}` : noAnswer,
+        times,
+        measure: MEASURES.response,
+      },
+    ];
   }
   const usage = isRunning(service.state) ? service.usage : undefined;
   if (!usage) return undefined;
-  const cpu = format.cpu(usage.cpu);
-  const memory = format.bytes(usage.memory);
-  return {
-    numbers: [cpu, memory],
-    graphs: [
+  const { history } = usage;
+  const times = history.at;
+  /** Both ways added up, reading by reading */
+  const both = (a: number[], b: number[]) => a.map((v, i) => v + (b[i] ?? 0));
+  const flow = (
+    id: TileItem,
+    icon: React.ReactNode,
+    measure: Measure,
+    [first, second]: [
+      { word: string; value?: number; values: number[] },
+      { word: string; value?: number; values: number[] },
+    ]
+  ): Reading => ({
+    id,
+    icon,
+    number: format.rate((first.value ?? 0) + (second.value ?? 0)),
+    title: `${first.word} ${format.rate(first.value ?? 0)} · ${second.word} ${format.rate(second.value ?? 0)}`,
+    values: both(first.values, second.values),
+    times,
+    measure,
+  });
+  return [
+    {
+      id: 'cpu',
+      number: format.cpu(usage.cpu),
+      values: history.cpu,
+      times,
+      measure: MEASURES.cpu,
+    },
+    {
+      id: 'memory',
+      number: format.bytes(usage.memory),
+      values: history.memory,
+      times,
+      measure: MEASURES.memory,
+      // As it barely moves, to show its shape
+      fit: true,
+    },
+    // None for one using another's network, as one behind a VPN does
+    ...(usage.received !== undefined
+      ? [
+          flow(
+            'network',
+            <NetworkIcon className='size-3.5' />,
+            MEASURES.network,
+            [
+              {
+                word: words.down,
+                value: usage.received,
+                values: history.received,
+              },
+              { word: words.up, value: usage.sent, values: history.sent },
+            ]
+          ),
+        ]
+      : []),
+    flow('disk', <ActivityIcon className='size-3.5' />, MEASURES.disk, [
       {
-        id: 'cpu',
-        number: cpu,
-        values: usage.history.cpu,
-        times: usage.history.at,
-        measure: MEASURES.cpu,
+        word: words.write,
+        value: usage.diskWritten,
+        values: history.diskWritten,
       },
-      {
-        id: 'memory',
-        number: memory,
-        values: usage.history.memory,
-        times: usage.history.at,
-        measure: MEASURES.memory,
-        // As it barely moves, to show its shape
-        fit: true,
-      },
-    ],
-  };
+      { word: words.read, value: usage.diskRead, values: history.diskRead },
+    ]),
+  ];
 }

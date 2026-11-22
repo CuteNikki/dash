@@ -12,9 +12,10 @@ import {
   isSiteKey,
   MAX_DESCRIPTION,
   SITE_PREFIX,
-  TILE_GRAPHS,
+  TILE_ITEMS,
 } from '@/lib/dashboard/tiles';
 import { db } from '@/lib/db';
+import { Prisma } from '@/lib/generated/prisma/client';
 import { HOST_TILE_VIEWS, isHostTileKey } from '@/lib/host/host-tiles';
 
 /** Before the key of one of the server's tiles, where it's kept with services' */
@@ -38,11 +39,14 @@ const Group = z.string().trim().min(1, 'pickGroup').max(MAX_GROUP);
 /** Its app's numbers left off a tile, by their labels' keys: no more than any app has. */
 const HiddenStats = z.array(z.string().max(MAX_STAT_KEY)).max(MAX_HIDDEN_STATS);
 
-/** Its graphs left off a tile, each once */
-const HiddenGraphs = z
-  .array(z.enum(TILE_GRAPHS))
-  .max(TILE_GRAPHS.length)
+/** Readings a tile shows, each once */
+const FootItems = z
+  .array(z.enum(TILE_ITEMS))
+  .max(TILE_ITEMS.length)
   .transform((list) => [...new Set(list)]);
+
+/** What a tile shows at its foot: which readings as numbers, which as graphs */
+const Foot = z.object({ numbers: FootItems, graphs: FootItems });
 
 const TileInput = z.object({
   key: z.string().min(1),
@@ -59,7 +63,7 @@ const TileInput = z.object({
   hidden: z.boolean(),
   ignoreUpdates: z.boolean(),
   hiddenStats: HiddenStats,
-  hiddenGraphs: HiddenGraphs,
+  foot: Foot,
 });
 
 export type TileInput = z.input<typeof TileInput>;
@@ -318,8 +322,8 @@ const TileSnapshot = z.object({
   hidden: z.boolean(),
   ignoreUpdates: z.boolean(),
   hiddenStats: HiddenStats,
-  // A snapshot taken before graphs could be hidden has none
-  hiddenGraphs: HiddenGraphs.default([]),
+  // None for its kind's default
+  foot: Foot.nullable().default(null),
 });
 
 /** Puts back a tile's edits as a reset found them. */
@@ -328,7 +332,9 @@ export async function restoreTile(tile: TileSnapshot): Promise<TileResult> {
   const parsed = TileSnapshot.safeParse(tile);
   if (!parsed.success)
     return { error: await issueText(parsed.error.issues[0].message) };
-  const { key, ...data } = parsed.data;
+  const { key, foot, ...rest } = parsed.data;
+  // Its kind's default is no value at all
+  const data = { ...rest, foot: foot ?? Prisma.DbNull };
   await db.tile.upsert({
     where: { key },
     create: { key, ...data },
