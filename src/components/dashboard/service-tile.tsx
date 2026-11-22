@@ -4,8 +4,10 @@ import { Fragment, useLayoutEffect, useRef, useState } from 'react';
 import {
   ActivityIcon,
   CpuIcon,
+  GlobeIcon,
   MemoryStickIcon,
   NetworkIcon,
+  TimerIcon,
 } from 'lucide-react';
 
 import type { Format } from '@/i18n/format';
@@ -256,7 +258,7 @@ export function ServiceTile({
 type Reading = {
   id: TileItem;
   number: string;
-  /** Beside its number, to tell what it is: a website's need none */
+  /** Beside its number, to tell what it is */
   icon?: React.ReactNode;
   /** In full, on hover, as both ways a network's flowing */
   title?: string;
@@ -284,6 +286,7 @@ function readingsOf(
     return [
       {
         id: 'response',
+        icon: <TimerIcon className='size-3.5' />,
         number: format.ms(check.ms),
         values: check.history.ms,
         times,
@@ -291,6 +294,7 @@ function readingsOf(
       },
       {
         id: 'status',
+        icon: <GlobeIcon className='size-3.5' />,
         number: check.status ? `${check.status}` : noAnswer,
         times,
         measure: MEASURES.response,

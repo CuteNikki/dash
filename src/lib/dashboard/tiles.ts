@@ -50,9 +50,6 @@ export const FOOT_ITEMS = {
 /** Those that have no graph, being words, not amounts */
 export const NUMBER_ONLY: readonly TileItem[] = ['status'];
 
-/** Those with an icon to tell them apart: a website's two need none */
-export const WITH_ICON: readonly TileItem[] = FOOT_ITEMS.container;
-
 /** What a tile shows until it's picked otherwise: what it always did */
 export const DEFAULT_FOOT: Record<keyof typeof FOOT_ITEMS, TileFoot> = {
   container: {
@@ -77,8 +74,6 @@ export function footOf(saved: unknown, site: boolean): TileFoot {
   const numbers = pick(value?.numbers);
   const graphs = pick(value?.graphs)?.filter((g) => !NUMBER_ONLY.includes(g));
   // Saved before icons could be picked: none, as by default
-  const icons = (pick(value?.icons) ?? DEFAULT_FOOT[kind].icons).filter((i) =>
-    WITH_ICON.includes(i)
-  );
+  const icons = pick(value?.icons) ?? DEFAULT_FOOT[kind].icons;
   return numbers && graphs ? { numbers, graphs, icons } : DEFAULT_FOOT[kind];
 }
