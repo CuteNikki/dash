@@ -233,6 +233,7 @@ declare const messages: {
     "addresses": "Addresses",
     "group": "Group",
     "numbers": "Numbers on its tile",
+    "showsAtFirst": "Its graph shows at first",
     "hide": "Hide from the dashboard",
     "ignoreUpdates": "Ignore its updates",
     "save": "Save",
@@ -304,7 +305,9 @@ declare const messages: {
   "board": {
     "move": "Move {name}: arrow keys move it, with Shift they resize it",
     "resizeSection": "Drag to resize: wider or narrower, or down beside the sections next to it",
-    "resize": "Drag to resize"
+    "resize": "Drag to resize",
+    "edit": "Edit {name}",
+    "hidden": "Hidden"
   },
   "list": {
     "show": "Show",
@@ -1522,7 +1525,8 @@ declare const messages: {
     "notDockerRun": "That isn't a docker run command",
     "noImage": "It has no image to run",
     "twoFactorRequired": "Your role needs two-factor: set it up first",
-    "messageTooLong": "Keep the note to 500 characters"
+    "messageTooLong": "Keep the note to 500 characters",
+    "unknownView": "That tile can't show that"
   },
   "alertWords": {
     "unhealthy": "Unhealthy",

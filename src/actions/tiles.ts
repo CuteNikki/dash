@@ -10,6 +10,7 @@ import { MAX_COLUMNS, MAX_ROWS } from '@/lib/dashboard/layout';
 import { ensureTiles } from '@/lib/dashboard/services';
 import { isSiteKey, MAX_DESCRIPTION, SITE_PREFIX } from '@/lib/dashboard/tiles';
 import { db } from '@/lib/db';
+import { HOST_TILE_VIEWS, isHostTileKey } from '@/lib/host/host-tiles';
 
 const MAX_NAME = 80;
 const MAX_GROUP = 60;
@@ -64,6 +65,39 @@ export async function saveTile(input: TileInput): Promise<TileResult> {
     update: data,
   });
   await record(access, { action: 'tile.edit', target: tile.name });
+}
+
+const HostTileInput = z
+  .object({
+    key: z.string().refine(isHostTileKey),
+    hidden: z.boolean(),
+    /** Only for a tile with views, and one of its own */
+    view: z.string().optional(),
+  })
+  .refine(
+    ({ key, view }) =>
+      view === undefined ||
+      (HOST_TILE_VIEWS as Record<string, readonly string[]>)[key]?.includes(
+        view
+      ),
+    { message: 'unknownView' }
+  );
+
+export type HostTileInput = z.input<typeof HostTileInput>;
+
+/** Saves whether one of the server's tiles is hidden, and what it shows at first. */
+export async function saveHostTile(input: HostTileInput): Promise<TileResult> {
+  const access = await requireAccess('server');
+  const parsed = HostTileInput.safeParse(input);
+  if (!parsed.success)
+    return { error: await issueText(parsed.error.issues[0].message) };
+  const { key, hidden, view = null } = parsed.data;
+  await db.hostTile.upsert({
+    where: { key },
+    create: { key, hidden, view },
+    update: { hidden, view },
+  });
+  await record(access, { action: 'tile.edit', target: key });
 }
 
 /** A web address as typed, "https://" assumed when it has none. */

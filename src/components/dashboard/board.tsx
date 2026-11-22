@@ -11,7 +11,7 @@ import {
   type TouchEvent as ReactTouchEvent,
 } from 'react';
 
-import { GripHorizontalIcon, GripVerticalIcon } from 'lucide-react';
+import { EyeOffIcon, GripHorizontalIcon, GripVerticalIcon } from 'lucide-react';
 
 import {
   COLUMN_BREAKPOINTS,
@@ -41,6 +41,10 @@ type BoardTile = {
   h: number;
   /** Its content can't be used while arranging, so a press anywhere drags it */
   inert?: boolean;
+  /** Faded while arranging, as it's off the board otherwise */
+  hidden?: boolean;
+  /** For an inert tile, what a click on it does while arranging: its settings */
+  onEdit?: () => void;
   render: (cell: Cell) => ReactNode;
 };
 
@@ -644,6 +648,8 @@ export function Board({
                   name={tile.name}
                   cell={cell}
                   inert={tile.inert}
+                  hidden={tile.hidden}
+                  onEdit={tile.onEdit}
                   resizing={d?.key === key && d.mode === 'resize'}
                   onPress={(e, mode, node, at) =>
                     tiles.press(e, key, mode, node, at)
@@ -940,6 +946,8 @@ function EditTile({
   name,
   cell,
   inert,
+  hidden,
+  onEdit,
   resizing,
   onPress,
   onHold,
@@ -949,6 +957,8 @@ function EditTile({
   name: string;
   cell: Cell;
   inert?: boolean;
+  hidden?: boolean;
+  onEdit?: () => void;
   resizing: boolean;
   onPress: (
     e: ReactPointerEvent,
@@ -974,9 +984,33 @@ function EditTile({
       // A long press picks it up rather than opening a menu
       onContextMenu={(e) => e.preventDefault()}
     >
-      <div inert={inert} className='grid grid-cols-1'>
+      <div
+        inert={inert}
+        className={cn('grid grid-cols-1', hidden && 'opacity-60')}
+      >
         {children}
       </div>
+      {onEdit && (
+        // Over all of it, as its content can't be clicked; a press still
+        // drags it, and the click that ends a drag is swallowed
+        <button
+          type='button'
+          aria-label={t('edit', { name })}
+          className='absolute inset-0 cursor-grab rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring'
+          onClick={onEdit}
+        />
+      )}
+      {hidden && (
+        // A knob on its other top corner, as the resize one's below, clear
+        // of whatever the tile shows
+        <span
+          role='img'
+          aria-label={t('hidden')}
+          className='pointer-events-none absolute -top-2 -right-2 flex size-5 items-center justify-center rounded-full bg-card text-muted-foreground ring-1 ring-foreground/10'
+        >
+          <EyeOffIcon className='size-3' />
+        </span>
+      )}
       <button
         type='button'
         aria-label={t('move', { name })}

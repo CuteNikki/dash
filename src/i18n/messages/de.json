@@ -230,6 +230,7 @@
     "addresses": "Adressen",
     "group": "Gruppe",
     "numbers": "Zahlen auf der Kachel",
+    "showsAtFirst": "Der Graph zeigt zuerst",
     "hide": "Auf dem Dashboard ausblenden",
     "ignoreUpdates": "Updates ignorieren",
     "save": "Speichern",
@@ -301,7 +302,9 @@
   "board": {
     "move": "{name} verschieben: Pfeiltasten verschieben, mit Umschalt ändern sie die Größe",
     "resizeSection": "Ziehen zum Ändern der Größe: breiter oder schmaler, oder nach unten neben die Bereiche daneben",
-    "resize": "Ziehen zum Ändern der Größe"
+    "resize": "Ziehen zum Ändern der Größe",
+    "edit": "{name} bearbeiten",
+    "hidden": "Ausgeblendet"
   },
   "list": {
     "show": "Anzeigen",
@@ -1519,7 +1522,8 @@
     "notDockerRun": "Das ist kein docker-run-Befehl",
     "noImage": "Es hat kein Image zum Ausführen",
     "twoFactorRequired": "Deine Rolle braucht Zwei-Faktor: Richte es zuerst ein",
-    "messageTooLong": "Halte die Nachricht unter 500 Zeichen"
+    "messageTooLong": "Halte die Nachricht unter 500 Zeichen",
+    "unknownView": "Diese Kachel kann das nicht zeigen"
   },
   "alertWords": {
     "unhealthy": "Fehlerhaft",

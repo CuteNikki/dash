@@ -23,7 +23,11 @@ import type { Format } from '@/i18n/format';
 import { useFormat } from '@/i18n/use-format';
 
 import { MEASURES, processorName, type Measure } from '@/lib/format';
-import type { HostTileKey } from '@/lib/host/host-tiles';
+import {
+  viewOf,
+  type HostTileKey,
+  type HostTileView,
+} from '@/lib/host/host-tiles';
 import type { Capacity, HostStats, Service, SystemUpdates } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -45,6 +49,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
  */
 export function HostTileContent({
   tile,
+  view,
   host,
   services,
   onOpenAction,
@@ -52,6 +57,8 @@ export function HostTileContent({
   onSystemAction,
 }: {
   tile: HostTileKey;
+  /** What its graph shows at first, as it was set to */
+  view?: string;
   /** None while it's first measured */
   host?: HostStats;
   /** For each process's container */
@@ -76,7 +83,8 @@ export function HostTileContent({
           />
         );
       case 'cpu':
-        return <CpuStat host={host} />;
+        // Anew when it's set to show another
+        return <CpuStat key={view} host={host} first={viewOf('cpu', view)} />;
       case 'processes':
         return (
           <ProcessList
@@ -101,6 +109,8 @@ export function HostTileContent({
       case 'disk-io':
         return (
           <FlowStat
+            key={view}
+            shownFirst={viewOf('disk-io', view)}
             icon={<ActivityIcon />}
             label={t('diskIo')}
             times={host?.history.at}
@@ -127,6 +137,8 @@ export function HostTileContent({
       case 'network':
         return (
           <FlowStat
+            key={view}
+            shownFirst={viewOf('network', view)}
             icon={<NetworkIcon />}
             label={t('network')}
             times={host?.history.at}
@@ -360,10 +372,17 @@ function spread(
   );
 }
 
-function CpuStat({ host }: { host?: HostStats }) {
+function CpuStat({
+  host,
+  first,
+}: {
+  host?: HostStats;
+  /** What it shows until another's picked */
+  first: HostTileView<'cpu'>;
+}) {
   const format = useFormat();
   const t = useTranslations('host');
-  const [shown, setShown] = useState<'total' | 'cores'>('total');
+  const [shown, setShown] = useState(first);
   const cores = host?.history.coreCpu ?? [];
   // The readings every line has: a core measured for less time has fewer
   const count = Math.min(
@@ -485,12 +504,15 @@ type Flow = {
  * graph of either or both, the second dashed when they share it.
  */
 function FlowStat({
+  shownFirst,
   icon,
   label,
   times,
   measure,
   flows,
 }: {
+  /** What it shows until another's picked */
+  shownFirst: HostTileView<'network'>;
   icon: React.ReactNode;
   label: string;
   times?: number[];
@@ -499,7 +521,7 @@ function FlowStat({
 }) {
   const t = useTranslations('host');
   const format = useFormat();
-  const [shown, setShown] = useState<'0' | '1' | 'both'>('both');
+  const [shown, setShown] = useState(shownFirst);
   const [first, second] = flows.map((f) => ({
     label: f.label,
     values: f.values ?? [],

@@ -34,14 +34,19 @@ model Tile {
   updatedAt     DateTime @updatedAt
 }
 
-/// Where one of the server's tiles goes, and its size, once it's been moved
-/// or resized; until then it has its place and size in lib/host/host-tiles.ts.
+/// One of the server's tiles as changed here: where it goes and its size,
+/// once it's been moved or resized (until then, its place and size in
+/// lib/host/host-tiles.ts), whether it's been hidden, and what it shows.
 model HostTile {
   /// "server", "cpu", "processes", …
-  key      String @id
-  position Int
-  width    Int
-  height   Int
+  key      String  @id
+  position Int?
+  width    Int?
+  height   Int?
+  /// Left off the board, other than while arranging it
+  hidden   Boolean @default(false)
+  /// What its graph shows at first, of those it can (HOST_TILE_VIEWS)
+  view     String?
 }
 
 /// Where a tile sits once it's been arranged at a number of columns: its

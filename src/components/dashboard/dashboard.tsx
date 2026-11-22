@@ -61,6 +61,7 @@ import { ServiceTile } from '@/components/dashboard/service-tile';
 import { Trail } from '@/components/dashboard/trail';
 import { TroubleRows, VerdictLine } from '@/components/dashboard/verdict';
 import { HostTileContent } from '@/components/host/host-stats';
+import { HostTileDialog } from '@/components/host/host-tile-dialog';
 import { SystemDialog } from '@/components/host/system-dialog';
 import { NewServiceDialog } from '@/components/new-service/new-service-dialog';
 import { ServicePage } from '@/components/service/service-page';
@@ -166,6 +167,7 @@ export function Dashboard({
   const toWholeBoard = useRef(false);
   const boardScroll = useRef(0);
   const [editKey, setEditKey] = useState<string>();
+  const [editHostKey, setEditHostKey] = useState<string>();
 
   const { services, groupOrder, host, hostComing } = data;
   const visible = useMemo(() => services.filter((s) => !s.hidden), [services]);
@@ -276,22 +278,30 @@ export function Dashboard({
     );
   }
 
+  // Hidden ones only while arranging, and none at all, nor their section,
+  // once every one's hidden
+  const hostTiles = editing
+    ? data.hostTiles
+    : data.hostTiles.filter((t) => !t.hidden);
   const sections: BoardSection[] = [
-    ...((host || hostComing) && !onlyGroup
+    ...((host || hostComing) && !onlyGroup && hostTiles.length
       ? [
           {
             id: 'host',
             kind: 'host' as const,
             label: t('server'),
-            tiles: data.hostTiles.map((t) => ({
+            tiles: hostTiles.map((t) => ({
               key: `host:${t.key}`,
               name: tHost(`tiles.${t.key}`),
               w: t.width,
               h: t.height,
               inert: true,
+              hidden: t.hidden,
+              onEdit: () => setEditHostKey(t.key),
               render: () => (
                 <HostTileContent
                   tile={t.key}
+                  view={t.view}
                   host={host}
                   services={services}
                   onOpenAction={open}
@@ -575,6 +585,11 @@ export function Dashboard({
           service={find(editKey)}
           groups={allGroups}
           onCloseAction={() => setEditKey(undefined)}
+          onSavedAction={() => void mutate()}
+        />
+        <HostTileDialog
+          tile={data.hostTiles.find((t) => t.key === editHostKey)}
+          onCloseAction={() => setEditHostKey(undefined)}
           onSavedAction={() => void mutate()}
         />
         <AlertsDialog
