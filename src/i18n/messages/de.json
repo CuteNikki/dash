@@ -519,7 +519,12 @@
     "removing": "Wird entfernt…",
     "removeAndDelete": "Entfernen und löschen",
     "groupOnly": "Nur die Dienste in {group} zeigen",
-    "more": "Mehr"
+    "more": "Mehr",
+    "storage": "Speicherplatz",
+    "storageAt": "Darin unter {path}",
+    "storageMeasured": "Gemessen {ago}",
+    "storageNone": "Außerhalb des Images legt er nichts auf der Festplatte des Servers ab.",
+    "storageFailed": "Konnte nicht gemessen werden: {error}"
   },
   "host": {
     "memory": "Speicher",

@@ -120,6 +120,11 @@ export type Container = {
   /** The server's folders it mounts, by where they are on the server */
   binds: string[];
   /**
+   * Where it keeps what's on the server's disk: the folders it mounts, and
+   * Docker's volumes, by where they are on the server and where inside it
+   */
+  mounts: { source: string; destination: string }[];
+  /**
    * The container whose network it uses, by id, as one behind a VPN uses the
    * VPN's (network_mode: service:… or container:…)
    */
@@ -157,6 +162,9 @@ function toContainer(raw: RawContainer): Container {
     binds: (raw.Mounts ?? [])
       .filter((m) => m.Type === 'bind')
       .map((m) => m.Source),
+    mounts: (raw.Mounts ?? [])
+      .filter((m) => m.Type === 'bind' || m.Type === 'volume')
+      .map((m) => ({ source: m.Source, destination: m.Destination })),
     networkOf: raw.HostConfig?.NetworkMode?.match(/^container:(.+)$/)?.[1],
     stack: project
       ? {

@@ -104,7 +104,7 @@ export function Panel({
  * Text that may wrap after each slash, so a path breaks between its folders
  * rather than in the middle of one's name.
  */
-function Breakable({ text }: { text: string }) {
+export function Breakable({ text }: { text: string }) {
   const parts = text.split('/');
   return parts.map((part, i) => (
     <Fragment key={i}>

@@ -378,6 +378,16 @@ export type DiskScan =
 export type MeasuredSize = { size?: number; before?: number };
 
 /** A folder on the server: its size, and what's in it, biggest first. */
+/** What a container keeps on the server's disk, biggest first. */
+export type ServiceStorage = {
+  /** Bytes */
+  total: number;
+  /** When its oldest size was measured, in milliseconds since 1970; none with nothing kept */
+  measuredAt?: number;
+  /** Each folder it mounts or volume it uses, by where it is on the server and inside it */
+  folders: { source: string; destination: string; size: number }[];
+};
+
 export type FolderUsage = MeasuredSize & {
   path: string;
   /** Elsewhere: another disk's, or the kernel's or memory's, so not measured here */

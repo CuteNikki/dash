@@ -221,3 +221,71 @@ export async function folderUsage(path: string): Promise<FolderUsage> {
     files: [...files].sort(bySize),
   };
 }
+
+/** How long a folder's size, measured for a service, is kept */
+const MOUNT_SIZE_MS = 10 * 60_000;
+
+/** Folders' sizes measured for services, and those being measured */
+const mountSizes = ((
+  globalThis as typeof globalThis & {
+    mountSizes?: Map<string, Promise<{ size?: number; at: number }>>;
+  }
+).mountSizes ??= new Map());
+
+/**
+ * The sizes of folders a container keeps things in, by path, as of when:
+ * the disk's last measurement's, or measured now and kept a while. Files
+ * and what's not on this disk, as a socket, have none.
+ */
+export async function folderSizes(paths: string[]) {
+  const now = Date.now();
+  const sizes = new Map<string, { size?: number; at: number }>();
+  const missing: string[] = [];
+  for (const path of paths) {
+    const measured =
+      scan.status.state === 'done' ? scan.sizes.get(path) : undefined;
+    const kept = mountSizes.get(path);
+    if (measured !== undefined && scan.status.state === 'done') {
+      sizes.set(path, { size: measured, at: scan.status.finishedAt });
+    } else if (kept && now - (await kept).at < MOUNT_SIZE_MS) {
+      sizes.set(path, await kept);
+    } else {
+      missing.push(path);
+    }
+  }
+  if (missing.length) {
+    // All at once, each folder kept as it's measured
+    const all = measureFolders(missing);
+    for (const path of missing) {
+      const one = all.then((m) => ({ size: m.get(path), at: now }));
+      mountSizes.set(path, one);
+      // A measurement that failed isn't kept
+      one.catch(() => mountSizes.delete(path));
+    }
+    const measured = await all;
+    for (const path of missing) {
+      sizes.set(path, { size: measured.get(path), at: now });
+    }
+  }
+  return sizes;
+}
+
+/** Measures folders on this disk, leaving out files and anything else. */
+async function measureFolders(paths: string[]) {
+  const { lines } = await runToEnd(
+    run([
+      'sh',
+      '-c',
+      `for p; do [ -d "$p" ] && du -sxk "$p"; done 2>/dev/null; true`,
+      'sh',
+      ...paths.map((p) => `${HOST}${checkPath(p)}`),
+    ])
+  );
+  const sizes = new Map<string, number>();
+  for (const line of lines) {
+    if (line.stream !== 'stdout') continue;
+    const entry = parseDu(line.line);
+    if (entry) sizes.set(entry.path, entry.size);
+  }
+  return sizes;
+}

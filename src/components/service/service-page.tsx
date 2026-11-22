@@ -29,6 +29,7 @@ import { useIssueText } from '@/i18n/use-issue-text';
 
 import { DEFAULT_GROUP } from '@/lib/dashboard/groups';
 import { isRunning, labelOf } from '@/lib/dashboard/status';
+import { isSiteKey } from '@/lib/dashboard/tiles';
 import type { ContainerAction } from '@/lib/docker/docker';
 import { fetcher } from '@/lib/fetcher';
 import { formatAddress, MEASURES, type Measure } from '@/lib/format';
@@ -60,6 +61,7 @@ import { RemoveServiceDialog } from '@/components/service/remove-service-dialog'
 import { ServiceIcon } from '@/components/service/service-icon';
 import { StatePill } from '@/components/service/status-dot';
 import { StopDialog } from '@/components/service/stop-dialog';
+import { StoragePanel } from '@/components/service/storage-panel';
 import { BucketBrowser } from '@/components/storage/bucket-browser';
 import { Button, ButtonLabel } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -931,6 +933,13 @@ function UsagePanel({
           </Panel>
         )}
       </div>
+      {/* Not a website's, which keeps nothing on this server */}
+      {service.containerId && !isSiteKey(service.key) && (
+        <StoragePanel
+          containerId={service.containerId}
+          className='sm:col-span-2'
+        />
+      )}
       {app && (
         <div className='flex min-w-0 flex-col gap-3 sm:col-span-2'>
           <AppDetails containerId={service.containerId} />
