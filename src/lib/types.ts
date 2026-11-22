@@ -65,6 +65,12 @@ export type Service = {
     cpu: number;
     /** Bytes */
     memory: number;
+    /** Bytes a second over its network: none for one using another's, as behind a VPN */
+    received?: number;
+    sent?: number;
+    /** Bytes a second to and from the disk */
+    diskRead: number;
+    diskWritten: number;
     history: UsageHistory;
   };
   /** Live numbers from the app itself, for those the dashboard knows: Sonarr's queue and so on */
@@ -158,6 +164,11 @@ export type UsageHistory = {
   cpu: number[];
   /** Bytes */
   memory: number[];
+  /** Bytes a second; empty for one using another's network */
+  received: number[];
+  sent: number[];
+  diskRead: number[];
+  diskWritten: number[];
 };
 
 /** Whoever's signed in, as the page knows them: what they may do follows from their role. */
@@ -488,8 +499,10 @@ export type HostHistory = History<
   | 'steal'
 >;
 
-/** A service's container over a while: percent of one core, and bytes. */
-export type ServiceHistory = History<'cpu' | 'memory'>;
+/** A service's container over a while: percent of one core, bytes, and bytes a second. */
+export type ServiceHistory = History<
+  'cpu' | 'memory' | 'received' | 'sent' | 'diskRead' | 'diskWritten'
+>;
 
 /** How a website's answered over the month it's been checked for, a check a minute. */
 export type SiteUptime = {

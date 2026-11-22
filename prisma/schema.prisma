@@ -247,9 +247,16 @@ model ContainerSample {
   key    String
   at     DateTime
   /// Percent of one core
-  cpu    Float
+  cpu         Float
   /// Bytes
-  memory Float
+  memory      Float
+  /// Bytes a second over its network: null for one using another's, as
+  /// behind a VPN, and in readings from before it was kept
+  received    Float?
+  sent        Float?
+  /// Bytes a second to and from the disk; null in readings from before
+  diskRead    Float?
+  diskWritten Float?
 
   @@id([key, at])
   // For clearing out the old ones, every service's at once

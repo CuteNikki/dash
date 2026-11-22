@@ -286,7 +286,15 @@ export async function getDashboard(who: {
       ports: publishedPorts(c),
       console: consoles.has(c.id),
       usage: u
-        ? { cpu: u.cpu, memory: u.memory, history: u.history }
+        ? {
+            cpu: u.cpu,
+            memory: u.memory,
+            received: u.received,
+            sent: u.sent,
+            diskRead: u.diskRead,
+            diskWritten: u.diskWritten,
+            history: u.history,
+          }
         : undefined,
       widget: widgets.get(c.id),
       details: hasDetails(c),

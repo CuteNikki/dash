@@ -285,6 +285,63 @@ type RawStats = {
     limit?: number;
     stats?: { inactive_file?: number };
   };
+  /** None for one that uses another's network, as one behind a VPN does */
+  networks?: Record<string, { rx_bytes: number; tx_bytes: number }>;
+  blkio_stats?: {
+    io_service_bytes_recursive?: { op: string; value: number }[] | null;
+  };
+};
+
+/**
+ * Bytes a container's moved since it started: over its network, none for
+ * one that uses another's, and to and from the disk.
+ */
+export type IoCounters = {
+  received?: number;
+  sent?: number;
+  read: number;
+  written: number;
+};
+
+function ioOf(s: RawStats): IoCounters {
+  const networks = s.networks && Object.values(s.networks);
+  // "read" and "write", or "Read" and "Write" on older kernels' cgroups
+  const disk = (op: string) =>
+    (s.blkio_stats?.io_service_bytes_recursive ?? [])
+      .filter((e) => e.op.toLowerCase() === op)
+      .reduce((sum, e) => sum + e.value, 0);
+  return {
+    received: networks?.reduce((sum, n) => sum + n.rx_bytes, 0),
+    sent: networks?.reduce((sum, n) => sum + n.tx_bytes, 0),
+    read: disk('read'),
+    written: disk('write'),
+  };
+}
+
+/** Bytes a second each way between two readings of IoCounters, none where either has none. */
+export function ioRates(
+  from: IoCounters,
+  to: IoCounters,
+  seconds: number
+): IoRates {
+  const rate = (a?: number, b?: number) =>
+    a === undefined || b === undefined || seconds <= 0
+      ? undefined
+      : Math.max(0, b - a) / seconds;
+  return {
+    received: rate(from.received, to.received),
+    sent: rate(from.sent, to.sent),
+    diskRead: rate(from.read, to.read) ?? 0,
+    diskWritten: rate(from.written, to.written) ?? 0,
+  };
+}
+
+/** Bytes a second over a container's network, none for one using another's, and its disk. */
+export type IoRates = {
+  received?: number;
+  sent?: number;
+  diskRead: number;
+  diskWritten: number;
 };
 
 export type Usage = {
@@ -295,7 +352,9 @@ export type Usage = {
 };
 
 /** One reading, comparing against Docker's previous one (takes about a second). */
-export async function containerUsage(id: string): Promise<Usage> {
+export async function containerUsage(
+  id: string
+): Promise<Usage & { io: IoCounters }> {
   const s = await dockerJson<RawStats>(
     'GET',
     `/containers/${encodeURIComponent(id)}/stats?stream=false`
@@ -313,6 +372,7 @@ export async function containerUsage(id: string): Promise<Usage> {
         : 0,
     memory:
       (s.memory_stats.usage ?? 0) - (s.memory_stats.stats?.inactive_file ?? 0),
+    io: ioOf(s),
   };
 }
 
@@ -325,6 +385,9 @@ export type UsageCounters = {
   cores: number;
   /** Bytes in use, without the page cache, as in Usage */
   memory: number;
+  io: IoCounters;
+  /** When they were read, in milliseconds since 1970 */
+  at: number;
 };
 
 /** One reading of its counters, at once, without Docker's second to compare. */
@@ -339,6 +402,8 @@ export async function containerCounters(id: string): Promise<UsageCounters> {
     cores: s.cpu_stats.online_cpus ?? 1,
     memory:
       (s.memory_stats.usage ?? 0) - (s.memory_stats.stats?.inactive_file ?? 0),
+    io: ioOf(s),
+    at: Date.now(),
   };
 }
 

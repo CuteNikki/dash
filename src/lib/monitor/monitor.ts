@@ -18,8 +18,10 @@ import { serviceKey, SITE_PREFIX } from '@/lib/dashboard/tiles';
 import { db } from '@/lib/db';
 import {
   containerCounters,
+  ioRates,
   listContainers,
   type Container,
+  type IoRates,
   type UsageCounters,
 } from '@/lib/docker/docker';
 import { RUN_LABEL } from '@/lib/docker/runner';
@@ -171,7 +173,12 @@ async function recordContainers(at: Date, containers: Container[]) {
     (c) => isRunning(c.state) && !c.labels[RUN_LABEL]
   );
   const seen = new Map<string, UsageCounters>();
-  const rows: { key: string; at: Date; cpu: number; memory: number }[] = [];
+  const rows: ({
+    key: string;
+    at: Date;
+    cpu: number;
+    memory: number;
+  } & IoRates)[] = [];
   await Promise.all(
     running.map(async (c) => {
       try {
@@ -186,6 +193,7 @@ async function recordContainers(at: Date, containers: Container[]) {
           at,
           cpu: system > 0 ? (used / system) * now.cores * 100 : 0,
           memory: now.memory,
+          ...ioRates(last.io, now.io, (now.at - last.at) / 1000),
         });
       } catch {
         // Stopped between listing and reading: it drops out next time

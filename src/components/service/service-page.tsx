@@ -7,7 +7,9 @@ import { toast } from 'sonner';
 import useSWR from 'swr';
 
 import {
+  ArrowDownIcon,
   ArrowUpCircleIcon,
+  ArrowUpIcon,
   EllipsisIcon,
   PencilIcon,
   PlayIcon,
@@ -656,6 +658,83 @@ function UsageChart({
   );
 }
 
+/**
+ * Two flows as a card, as the server's network and disk tiles have them:
+ * each one's rate now, and a chart of both, each on its own scale and the
+ * second dashed, so a trickle one way isn't flattened by a flood the other.
+ */
+function FlowChart({
+  label,
+  flows,
+  times,
+  measure,
+  measuring,
+  range = 'live',
+}: {
+  label: string;
+  flows: [Flow, Flow];
+  times?: number[];
+  measure: Measure;
+  /** Running, but not measured yet: its values are to come */
+  measuring: boolean;
+  range?: UsageRange;
+}) {
+  const tr = useTranslations('ranges');
+  const words = tr(`words.${range}`);
+  const format = useFormat();
+  const [first, second] = flows;
+  return (
+    <Panel title={label}>
+      <span className='flex items-center gap-4 font-mono text-lg tabular-nums'>
+        {flows.map((f) => (
+          <span key={f.label} className='flex items-center gap-1.5'>
+            <span className='text-muted-foreground [&_svg]:size-4'>
+              {f.icon}
+            </span>
+            <span className='sr-only'>{f.label}</span>
+            {f.value !== undefined ? (
+              measure.format(f.value, format)
+            ) : measuring ? (
+              <TextSkeleton className='w-16' />
+            ) : (
+              '–'
+            )}
+          </span>
+        ))}
+      </span>
+      {/* The chart's room, kept until there are readings to draw */}
+      <div className='h-16'>
+        {first.values && second.values && times && (
+          <HistoryChart
+            label={tr('over', { label, words })}
+            times={times}
+            series={[
+              { label: first.label, values: first.values, measure },
+              {
+                label: second.label,
+                values: second.values,
+                measure,
+                dashed: true,
+              },
+            ]}
+            apart
+            className='h-full text-foreground'
+          />
+        )}
+      </div>
+    </Panel>
+  );
+}
+
+/** One way something flows, for FlowChart */
+type Flow = {
+  label: string;
+  icon: React.ReactNode;
+  /** Bytes a second now */
+  value?: number;
+  values?: (number | null)[];
+};
+
 const SITE_RANGES = ['live', '24h', '7d', '30d'] as const;
 
 /**
@@ -874,6 +953,14 @@ function UsagePanel({
   const measuring =
     !usage && ['running', 'unhealthy', 'starting'].includes(service.state);
   const app = service.details && isRunning(service.state);
+  const tHost = useTranslations('host');
+  const live = range === 'live';
+  const times = live ? usage?.history.at : recorded?.at;
+  // Whether it has a network of its own: live, whether it was read; from
+  // the record, whether any minute had one
+  const network = usage
+    ? usage.received !== undefined
+    : !!recorded?.received.some((v) => v !== null);
   const facts = [
     { label: t('status'), value: service.status },
     { label: t('image'), value: service.image },
@@ -918,9 +1005,58 @@ function UsagePanel({
         fit
         measuring={measuring}
       />
+      {/* Its own network's, unless it uses another's, as one behind a VPN
+          does; its disk's, beside, or alone across both columns */}
+      {network && (
+        <FlowChart
+          label={tHost('network')}
+          times={times}
+          measure={MEASURES.network}
+          measuring={measuring}
+          range={range}
+          flows={[
+            {
+              label: tHost('download'),
+              icon: <ArrowDownIcon />,
+              value: usage?.received,
+              values: live ? usage?.history.received : recorded?.received,
+            },
+            {
+              label: tHost('upload'),
+              icon: <ArrowUpIcon />,
+              value: usage?.sent,
+              values: live ? usage?.history.sent : recorded?.sent,
+            },
+          ]}
+        />
+      )}
+      <div className={cn('grid', !network && 'sm:col-span-2')}>
+        <FlowChart
+          label={tHost('diskIo')}
+          times={times}
+          measure={MEASURES.disk}
+          measuring={measuring}
+          range={range}
+          // Written, then read, as on the server's own tile
+          flows={[
+            {
+              label: tHost('write'),
+              icon: <ArrowDownIcon />,
+              value: usage?.diskWritten,
+              values: live ? usage?.history.diskWritten : recorded?.diskWritten,
+            },
+            {
+              label: tHost('read'),
+              icon: <ArrowUpIcon />,
+              value: usage?.diskRead,
+              values: live ? usage?.history.diskRead : recorded?.diskRead,
+            },
+          ]}
+        />
+      </div>
       {/* Its facts, and beside them where there's room, its ports and what
           it keeps on the disk, each a list that needs no more */}
-      <div className='grid grid-cols-1 items-start gap-3 sm:col-span-2 lg:grid-cols-2'>
+      <div className='grid grid-cols-1 gap-3 sm:col-span-2 lg:grid-cols-2'>
         <Panel title={t('container')}>
           <Facts facts={facts} />
         </Panel>
@@ -932,7 +1068,11 @@ function UsagePanel({
           )}
           {/* Not a website's, which keeps nothing on this server */}
           {service.containerId && !isSiteKey(service.key) && (
-            <StoragePanel containerId={service.containerId} />
+            // As tall as what's left beside its facts
+            <StoragePanel
+              containerId={service.containerId}
+              className='flex-1'
+            />
           )}
         </div>
       </div>

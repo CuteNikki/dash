@@ -41,6 +41,7 @@ export async function recordedHost(): Promise<HostStats['history']> {
 /** Each of these services', by its tile key; one with none recorded isn't there. */
 export async function recordedServices(keys: string[]) {
   const found = new Map<string, UsageHistory>();
+  const networked = new Set<string>();
   if (!keys.length) return found;
   const rows = await db.containerSample.findMany({
     where: { key: { in: keys }, at: { gte: since() } },
@@ -48,10 +49,32 @@ export async function recordedServices(keys: string[]) {
   });
   for (const r of rows) {
     let history = found.get(r.key);
-    if (!history) found.set(r.key, (history = { at: [], cpu: [], memory: [] }));
+    if (!history) {
+      history = {
+        at: [],
+        cpu: [],
+        memory: [],
+        received: [],
+        sent: [],
+        diskRead: [],
+        diskWritten: [],
+      };
+      found.set(r.key, history);
+    }
     history.at.push(r.at.getTime());
     history.cpu.push(r.cpu);
     history.memory.push(r.memory);
+    // Readings from before these were kept have none: nothing moved, as far
+    // as the record knows
+    history.received.push(r.received ?? 0);
+    history.sent.push(r.sent ?? 0);
+    history.diskRead.push(r.diskRead ?? 0);
+    history.diskWritten.push(r.diskWritten ?? 0);
+    if (r.received !== null) networked.add(r.key);
+  }
+  // One using another's network never has any, so none rather than nothing
+  for (const [key, history] of found) {
+    if (!networked.has(key)) history.received = history.sent = [];
   }
   return found;
 }

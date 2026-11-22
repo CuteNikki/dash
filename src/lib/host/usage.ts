@@ -4,7 +4,10 @@ import { serviceKey } from '@/lib/dashboard/tiles';
 import {
   containerUsage,
   dockerInfo,
+  ioRates,
   listContainers,
+  type IoCounters,
+  type IoRates,
   type Usage,
 } from '@/lib/docker/docker';
 import { readHost, type CpuTime, type HostReading } from '@/lib/host/host';
@@ -22,7 +25,16 @@ const INTERVAL_MS = 5_000;
 const IDLE_MS = 5 * 60_000;
 
 type Sampler = {
-  usage: Map<string, Usage & { history: UsageHistory }>;
+  usage: Map<
+    string,
+    Usage &
+      IoRates & {
+        history: UsageHistory;
+        /** Its counters as last read, and when, to measure the next against */
+        io: IoCounters;
+        ioAt: number;
+      }
+  >;
   host?: HostStats;
   /** Set once the server's counters couldn't be read, so there won't be stats */
   hostUnreadable?: boolean;
@@ -53,6 +65,15 @@ const recent = (history: number[] | undefined, value: number) => [
   value,
 ];
 
+/**
+ * Readings as many as their times, nothing for those before there were
+ * any, as a network's once a container's had none of its own.
+ */
+const alongside = (list: number[] | undefined, at: number[] | undefined) =>
+  list && list.length === at?.length
+    ? list
+    : Array<number>(at?.length ?? 0).fill(0);
+
 async function sampleContainers() {
   const running = (await listContainers()).filter((c) =>
     ['running', 'unhealthy', 'starting'].includes(c.state)
@@ -71,16 +92,35 @@ async function sampleContainers() {
   await Promise.all(
     running.map(async (c) => {
       try {
-        const reading = await containerUsage(c.id);
+        const { io, ...reading } = await containerUsage(c.id);
+        const now = Date.now();
+        const before = sampler.usage.get(c.id);
         const last = stale.includes(c)
           ? recorded.get(serviceKey(c))
-          : sampler.usage.get(c.id)?.history;
+          : before?.history;
+        // Rates over the time since the last reading; the first only starts them
+        const rates = before
+          ? ioRates(before.io, io, (now - before.ioAt) / 1000)
+          : ioRates(io, io, 0);
+        // One using another's network has none, so its readings stay empty
+        const network = io.received !== undefined;
         sampler.usage.set(c.id, {
           ...reading,
+          ...rates,
+          io,
+          ioAt: now,
           history: lastMinutes({
-            at: recent(last?.at, Date.now()),
+            at: recent(last?.at, now),
             cpu: recent(last?.cpu, reading.cpu),
             memory: recent(last?.memory, reading.memory),
+            received: network
+              ? recent(alongside(last?.received, last?.at), rates.received ?? 0)
+              : [],
+            sent: network
+              ? recent(alongside(last?.sent, last?.at), rates.sent ?? 0)
+              : [],
+            diskRead: recent(last?.diskRead, rates.diskRead),
+            diskWritten: recent(last?.diskWritten, rates.diskWritten),
           }),
         });
       } catch {

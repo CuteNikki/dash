@@ -77,7 +77,14 @@ export function serviceHistory(
 ): Promise<ServiceHistory> {
   return bucketed(
     'ContainerSample',
-    { cpu: 'avg(cpu)', memory: 'avg(memory)' },
+    {
+      cpu: 'avg(cpu)',
+      memory: 'avg(memory)',
+      received: 'avg(received)',
+      sent: 'avg(sent)',
+      diskRead: 'avg("diskRead")',
+      diskWritten: 'avg("diskWritten")',
+    },
     range,
     key
   );
