@@ -386,6 +386,8 @@ export type ServiceStorage = {
   measuredAt?: number;
   /** Each folder it mounts or volume it uses, by where it is on the server and inside it */
   folders: { source: string; destination: string; size: number }[];
+  /** What it kept each day it was measured, oldest first */
+  history: { at: number[]; bytes: number[] };
 };
 
 export type FolderUsage = MeasuredSize & {

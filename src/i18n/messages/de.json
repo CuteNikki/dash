@@ -524,7 +524,11 @@
     "storageAt": "Eingebunden unter {path}",
     "storageMeasured": "Gemessen {ago}",
     "storageNone": "Außerhalb des Images legt er nichts auf der Festplatte des Servers ab.",
-    "storageFailed": "Konnte nicht gemessen werden: {error}"
+    "storageFailed": "Konnte nicht gemessen werden: {error}",
+    "storageOver": "Speicherplatz über {days, plural, one {# Tag} other {# Tage}}",
+    "storageGrew": "{change} mehr in {days, plural, one {# Tag} other {# Tagen}}",
+    "storageShrank": "{change} weniger in {days, plural, one {# Tag} other {# Tagen}}",
+    "storageSame": "Unverändert seit {days, plural, one {# Tag} other {# Tagen}}"
   },
   "host": {
     "memory": "Speicher",

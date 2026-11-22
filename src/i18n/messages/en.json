@@ -524,7 +524,11 @@
     "storageAt": "Mounted at {path}",
     "storageMeasured": "Measured {ago}",
     "storageNone": "It keeps nothing on the server's disk outside its image.",
-    "storageFailed": "Couldn't measure it: {error}"
+    "storageFailed": "Couldn't measure it: {error}",
+    "storageOver": "Storage over {days, plural, one {# day} other {# days}}",
+    "storageGrew": "Up {change} in {days, plural, one {# day} other {# days}}",
+    "storageShrank": "Down {change} in {days, plural, one {# day} other {# days}}",
+    "storageSame": "Unchanged in {days, plural, one {# day} other {# days}}"
   },
   "host": {
     "memory": "Memory",

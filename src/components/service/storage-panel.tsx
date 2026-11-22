@@ -6,14 +6,18 @@ import useSWR from 'swr';
 import { useFormat } from '@/i18n/use-format';
 
 import { fetcher } from '@/lib/fetcher';
+import { MEASURES } from '@/lib/format';
 import type { ServiceStorage } from '@/lib/types';
 
+import { HistoryChart } from '@/components/charts/history-chart';
 import { TextSkeleton } from '@/components/common/skeletons';
 import { useKeptShape } from '@/components/common/use-kept';
 import { Breakable, Panel } from '@/components/service/app-details';
 
 /** As long as the server keeps a folder's size measured for a service */
 const REFRESH_MS = 10 * 60_000;
+
+const DAY_MS = 24 * 60 * 60_000;
 
 /**
  * What a container keeps on the server's disk: in all, and each folder it
@@ -36,6 +40,15 @@ export function StoragePanel({
   // While it's measured, as many rows as it had last time
   const rows = useKeptShape(`storage:${containerId}`, data?.folders.length, 1);
 
+  // Each day the monitor's measured it, and how that's changed since the first
+  const history = data?.history;
+  const days = history?.at.length
+    ? Math.round((history.at[history.at.length - 1] - history.at[0]) / DAY_MS)
+    : 0;
+  const change = history?.bytes.length
+    ? history.bytes[history.bytes.length - 1] - history.bytes[0]
+    : 0;
+
   if (error && !data) {
     return (
       <Panel title={t('storage')} className={className}>
@@ -57,6 +70,33 @@ export function StoragePanel({
           </span>
         )}
       </span>
+      {history && history.at.length > 1 && (
+        <>
+          <div className='h-16'>
+            <HistoryChart
+              label={t('storageOver', { days })}
+              times={history.at}
+              series={[
+                {
+                  label: t('storage'),
+                  values: history.bytes,
+                  measure: MEASURES.storage,
+                },
+              ]}
+              fit
+              className='h-full text-foreground'
+            />
+          </div>
+          <span className='text-muted-foreground'>
+            {change === 0
+              ? t('storageSame', { days })
+              : t(change > 0 ? 'storageGrew' : 'storageShrank', {
+                  change: format.bytes(Math.abs(change)),
+                  days,
+                })}
+          </span>
+        </>
+      )}
       {data && !data.folders.length ? (
         <span className='text-muted-foreground'>{t('storageNone')}</span>
       ) : (

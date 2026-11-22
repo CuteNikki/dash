@@ -177,6 +177,8 @@ export const MEASURES = {
   /** A few percent is already worth seeing, where the CPU's own scale would flatten it */
   steal: { format: cpu, floor: 5 },
   memory: { format: bytes, floor: 64 * MB },
+  /** What a service keeps on the disk, drawn fitted, so a slow climb shows */
+  storage: { format: bytes, floor: MB },
   /** A page that takes a second is slow; one that takes a tenth isn't worth a line */
   response: { format: ms, floor: 1000 },
   /** Low, so a server's few KB a second still has its shape, a trickle below it staying low */

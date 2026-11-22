@@ -256,6 +256,21 @@ model ContainerSample {
   @@index([at])
 }
 
+/// What one service kept on the server's disk, once a day: its folders and
+/// volumes together, as on its page.
+model StorageSample {
+  /// The service's tile key
+  key   String
+  /// The day, at midnight UTC
+  day   DateTime
+  /// Bytes
+  bytes Float
+
+  @@id([key, day])
+  // For clearing out the old ones, every service's at once
+  @@index([day])
+}
+
 /// One look at a website tile's page: whether it answered, and how fast.
 model SiteCheckLog {
   /// The site's tile key, "site:…"

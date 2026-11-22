@@ -24,6 +24,7 @@ import {
 } from '@/lib/docker/docker';
 import { RUN_LABEL } from '@/lib/docker/runner';
 import { readHost, type HostReading } from '@/lib/host/host';
+import { maybeRecordStorage, pruneStorage } from '@/lib/monitor/storage';
 import { noteSelfUpdate } from '@/lib/updates/self-update';
 
 /** A reading a minute, of the server, its services and the websites. */
@@ -111,6 +112,13 @@ async function tick() {
     await notify();
     // Tonight's backups, once it's time; they run on in the background
     await maybeRunNightly().catch((error) => console.error('Backups:', error));
+    // Each service's storage, once a day; it reads the disk, so it runs on
+    // in the background rather than holding up the next minute
+    if (containers) {
+      void maybeRecordStorage(containers).catch((error) =>
+        console.error('Storage:', error)
+      );
+    }
     // The dashboard's own rebuild, once it's ended, in the activity log
     await noteSelfUpdate().catch((error) => console.error('Rebuild:', error));
     if (Date.now() - monitor.lastPrune > PRUNE_MS) {
@@ -233,6 +241,7 @@ async function prune() {
     db.hostSample.deleteMany({ where: { at: { lt: usage } } }),
     db.containerSample.deleteMany({ where: { at: { lt: usage } } }),
     db.siteCheckLog.deleteMany({ where: { at: { lt: checks } } }),
+    pruneStorage(),
     db.activity.deleteMany({ where: { at: { lt: activity } } }),
     db.alert.deleteMany({
       where: {
