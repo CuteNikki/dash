@@ -11,7 +11,12 @@ import {
   type TouchEvent as ReactTouchEvent,
 } from 'react';
 
-import { EyeOffIcon, GripHorizontalIcon, GripVerticalIcon } from 'lucide-react';
+import {
+  EyeIcon,
+  EyeOffIcon,
+  GripHorizontalIcon,
+  GripVerticalIcon,
+} from 'lucide-react';
 
 import {
   COLUMN_BREAKPOINTS,
@@ -41,8 +46,10 @@ type BoardTile = {
   h: number;
   /** Its content can't be used while arranging, so a press anywhere drags it */
   inert?: boolean;
-  /** Faded while arranging, as it's off the board otherwise */
+  /** Off the board other than while arranging */
   hidden?: boolean;
+  /** Hides it, or shows it again, from its corner while arranging */
+  onHide?: (hidden: boolean) => void;
   /** For an inert tile, what a click on it does while arranging: its settings */
   onEdit?: () => void;
   render: (cell: Cell) => ReactNode;
@@ -649,6 +656,7 @@ export function Board({
                   cell={cell}
                   inert={tile.inert}
                   hidden={tile.hidden}
+                  onHide={tile.onHide}
                   onEdit={tile.onEdit}
                   resizing={d?.key === key && d.mode === 'resize'}
                   onPress={(e, mode, node, at) =>
@@ -947,6 +955,7 @@ function EditTile({
   cell,
   inert,
   hidden,
+  onHide,
   onEdit,
   resizing,
   onPress,
@@ -958,6 +967,7 @@ function EditTile({
   cell: Cell;
   inert?: boolean;
   hidden?: boolean;
+  onHide?: (hidden: boolean) => void;
   onEdit?: () => void;
   resizing: boolean;
   onPress: (
@@ -986,7 +996,9 @@ function EditTile({
     >
       <div
         inert={inert}
-        className={cn('grid grid-cols-1', hidden && 'opacity-60')}
+        // A service's tile fades itself; content that can't be used, as
+        // the server's, is faded whole
+        className={cn('grid grid-cols-1', inert && hidden && 'opacity-60')}
       >
         {children}
       </div>
@@ -1001,16 +1013,27 @@ function EditTile({
           onClick={onEdit}
         />
       )}
-      {hidden && (
-        // A knob on its other top corner, as the resize one's below, clear
-        // of whatever the tile shows
-        <span
-          role='img'
-          aria-label={t('hidden')}
-          className='pointer-events-none absolute -top-2 -right-2 flex size-5 items-center justify-center rounded-full bg-card text-muted-foreground ring-1 ring-foreground/10'
+      {onHide && (
+        // Whether it's shown: an eye, crossed out while it's hidden
+        <button
+          type='button'
+          aria-label={t('shown', { name })}
+          aria-pressed={!hidden}
+          title={t(hidden ? 'show' : 'hide', { name })}
+          // A knob on its top left corner, clear of whatever the tile
+          // shows, and of the resize one on the corner of the tile above
+          className='absolute -top-2 -left-2 flex size-5 items-center justify-center rounded-full bg-card text-muted-foreground ring-1 ring-foreground/10 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring'
+          // Not a press to drag it by
+          onPointerDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          onClick={() => onHide(!hidden)}
         >
-          <EyeOffIcon className='size-3' />
-        </span>
+          {hidden ? (
+            <EyeOffIcon className='size-3' />
+          ) : (
+            <EyeIcon className='size-3' />
+          )}
+        </button>
       )}
       <button
         type='button'

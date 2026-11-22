@@ -12,6 +12,8 @@ import { isSiteKey, MAX_DESCRIPTION, SITE_PREFIX } from '@/lib/dashboard/tiles';
 import { db } from '@/lib/db';
 import { HOST_TILE_VIEWS, isHostTileKey } from '@/lib/host/host-tiles';
 
+/** Before the key of one of the server's tiles, where it's kept with services' */
+const HOST_KEY = 'host:';
 const MAX_NAME = 80;
 const MAX_GROUP = 60;
 const MAX_ICON = 500;
@@ -98,6 +100,34 @@ export async function saveHostTile(input: HostTileInput): Promise<TileResult> {
     update: { hidden, view },
   });
   await record(access, { action: 'tile.edit', target: key });
+}
+
+const HiddenInput = z.object({
+  /** A service's tile key, or "host:cpu" and so on for the server's */
+  key: z.string().min(1),
+  hidden: z.boolean(),
+});
+
+/** Hides a tile, a service's or the server's, or shows it again, and nothing else. */
+export async function setHidden(
+  input: z.input<typeof HiddenInput>
+): Promise<TileResult> {
+  const { key, hidden } = HiddenInput.parse(input);
+  if (key.startsWith(HOST_KEY)) {
+    await requireAccess('server');
+    const tile = key.slice(HOST_KEY.length);
+    if (!isHostTileKey(tile)) return { error: await issueText('unknownTile') };
+    await db.hostTile.upsert({
+      where: { key: tile },
+      create: { key: tile, hidden },
+      update: { hidden },
+    });
+    return;
+  }
+  await requireAccess('manage');
+  // A tile never edited has no row yet, but its labels' addresses
+  await ensureTiles([key]);
+  await db.tile.updateMany({ where: { key }, data: { hidden } });
 }
 
 /** A web address as typed, "https://" assumed when it has none. */

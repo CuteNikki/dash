@@ -279,7 +279,9 @@
     "editDashboard": "Bearbeiten",
     "otherGroup": "Sonstiges",
     "title": "Dashboard",
-    "whereItIs": "Wo es liegt"
+    "whereItIs": "Wo es liegt",
+    "hideFailed": "{name} konnte nicht ausgeblendet werden",
+    "showFailed": "{name} konnte nicht eingeblendet werden"
   },
   "verdict": {
     "label": "Wie es allem geht",
@@ -304,7 +306,9 @@
     "resizeSection": "Ziehen zum Ändern der Größe: breiter oder schmaler, oder nach unten neben die Bereiche daneben",
     "resize": "Ziehen zum Ändern der Größe",
     "edit": "{name} bearbeiten",
-    "hidden": "Ausgeblendet"
+    "hide": "{name} ausblenden",
+    "show": "{name} einblenden",
+    "shown": "{name} angezeigt"
   },
   "list": {
     "show": "Anzeigen",
@@ -1523,7 +1527,8 @@
     "noImage": "Es hat kein Image zum Ausführen",
     "twoFactorRequired": "Deine Rolle braucht Zwei-Faktor: Richte es zuerst ein",
     "messageTooLong": "Halte die Nachricht unter 500 Zeichen",
-    "unknownView": "Diese Kachel kann das nicht zeigen"
+    "unknownView": "Diese Kachel kann das nicht zeigen",
+    "unknownTile": "Diese Kachel gibt es nicht"
   },
   "alertWords": {
     "unhealthy": "Fehlerhaft",

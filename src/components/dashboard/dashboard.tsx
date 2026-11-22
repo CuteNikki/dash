@@ -21,6 +21,7 @@ import {
   renameGroup,
   saveLayout,
   saveListOrder,
+  setHidden,
   type OrderInput,
   type TileResult,
 } from '@/actions/tiles';
@@ -39,6 +40,7 @@ import {
   type View,
 } from '@/lib/dashboard/view';
 import { fetcher } from '@/lib/fetcher';
+import type { HostTileKey } from '@/lib/host/host-tiles';
 import type { Dashboard as DashboardData, Me, Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -283,6 +285,34 @@ export function Dashboard({
   const hostTiles = editing
     ? data.hostTiles
     : data.hostTiles.filter((t) => !t.hidden);
+  /** Hides a service's tile, or shows it again, once Done's pressed. */
+  function hideService(service: Service, hidden: boolean) {
+    change(
+      (d) => ({
+        ...d,
+        services: d.services.map((s) =>
+          s.key === service.key ? { ...s, hidden } : s
+        ),
+      }),
+      () => setHidden({ key: service.key, hidden }),
+      t(hidden ? 'hideFailed' : 'showFailed', { name: service.name })
+    );
+  }
+
+  /** Hides one of the server's tiles, or shows it again, once Done's pressed. */
+  function hideHostTile(key: HostTileKey, hidden: boolean) {
+    change(
+      (d) => ({
+        ...d,
+        hostTiles: d.hostTiles.map((t) =>
+          t.key === key ? { ...t, hidden } : t
+        ),
+      }),
+      () => setHidden({ key: `host:${key}`, hidden }),
+      t(hidden ? 'hideFailed' : 'showFailed', { name: tHost(`tiles.${key}`) })
+    );
+  }
+
   const sections: BoardSection[] = [
     ...((host || hostComing) && !onlyGroup && hostTiles.length
       ? [
@@ -297,6 +327,7 @@ export function Dashboard({
               h: t.height,
               inert: true,
               hidden: t.hidden,
+              onHide: (hidden: boolean) => hideHostTile(t.key, hidden),
               onEdit: () => setEditHostKey(t.key),
               render: () => (
                 <HostTileContent
@@ -323,6 +354,8 @@ export function Dashboard({
         name: service.name,
         w: service.width,
         h: service.height,
+        hidden: service.hidden,
+        onHide: (hidden: boolean) => hideService(service, hidden),
         render: (cell: { w: number; h: number }) => (
           <ServiceTile
             service={{ ...service, width: cell.w, height: cell.h }}

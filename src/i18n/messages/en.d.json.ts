@@ -282,7 +282,9 @@ declare const messages: {
     "editDashboard": "Edit",
     "otherGroup": "Other",
     "title": "Dashboard",
-    "whereItIs": "Where it is"
+    "whereItIs": "Where it is",
+    "hideFailed": "Couldn't hide {name}",
+    "showFailed": "Couldn't show {name}"
   },
   "verdict": {
     "label": "How everything is doing",
@@ -307,7 +309,9 @@ declare const messages: {
     "resizeSection": "Drag to resize: wider or narrower, or down beside the sections next to it",
     "resize": "Drag to resize",
     "edit": "Edit {name}",
-    "hidden": "Hidden"
+    "hide": "Hide {name}",
+    "show": "Show {name}",
+    "shown": "{name} shown"
   },
   "list": {
     "show": "Show",
@@ -1526,7 +1530,8 @@ declare const messages: {
     "noImage": "It has no image to run",
     "twoFactorRequired": "Your role needs two-factor: set it up first",
     "messageTooLong": "Keep the note to 500 characters",
-    "unknownView": "That tile can't show that"
+    "unknownView": "That tile can't show that",
+    "unknownTile": "There's no such tile"
   },
   "alertWords": {
     "unhealthy": "Unhealthy",
