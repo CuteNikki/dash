@@ -56,12 +56,20 @@ export function ServiceTile({
   const shown = (readings ?? []).filter(
     (r) => numbers.has(r.id) || (graphed.has(r.id) && r.values)
   );
+  /** Whether its graph's beside its number, as on a tile one row tall */
+  const inline = (r: Reading) => !graph && graphed.has(r.id) && !!r.values;
+  // With graphs beside them, two to a row, or four on a wider tile; numbers
+  // alone all in a row, but four only where they fit, else two by two
+  const withGraphs = shown.some(inline);
+  const fourAcross = !withGraphs && shown.length === 4;
+  const columns = Math.min(
+    shown.length,
+    withGraphs ? (service.width > 1 ? 4 : 2) : shown.length
+  );
   const graphs = shown.filter(
     (r): r is Reading & { values: number[] } =>
       graphed.has(r.id) && r.values !== undefined
   );
-  // Two to a row on the narrowest tile, four on a wider one
-  const perRow = service.width > 1 ? 4 : 2;
   const stats = widgetStats(service);
   const addresses = service.addresses.length
     ? service.addresses
@@ -149,43 +157,58 @@ export function ServiceTile({
         )}
         {readings ? (
           shown.length > 0 && (
-            // Each reading its number with its graph right after, as many
-            // to a row as the tile has room for
-            <div
-              className='mt-auto grid gap-x-3 gap-y-1 font-mono text-muted-foreground tabular-nums'
-              style={{
-                gridTemplateColumns: `repeat(${Math.min(shown.length, perRow)}, minmax(0, 1fr))`,
-              }}
-            >
-              {shown.map((item) => (
-                <div
-                  key={item.id}
-                  title={item.title}
-                  className='flex min-w-0 items-center gap-2'
-                >
-                  {/* Its icon first, before its number, or its graph alone */}
-                  {(icons.has(item.id) || numbers.has(item.id)) && (
-                    <span className='flex items-center gap-1 whitespace-nowrap'>
-                      {icons.has(item.id) && item.icon}
-                      {numbers.has(item.id) && item.number}
-                    </span>
-                  )}
-                  {!graph && graphed.has(item.id) && item.values && (
-                    <Sparkline
-                      values={item.values}
-                      times={item.times}
-                      measure={item.measure}
-                      fit={item.fit}
-                      // A little longer on a wider tile, and shorter where
-                      // there's no room
-                      className={cn(
-                        'min-w-0 shrink group-data-[dimmed=true]/card:opacity-60',
-                        service.width > 1 && 'w-24'
-                      )}
-                    />
-                  )}
-                </div>
-              ))}
+            // Each reading its number with its graph right after, in even
+            // columns: two to a row with graphs, four on a wider tile; four
+            // numbers alone in a row where they fit, else two by two
+            <div className='@container mt-auto'>
+              <div
+                className={cn(
+                  'grid gap-x-3 gap-y-1 font-mono text-muted-foreground tabular-nums',
+                  fourAcross &&
+                    (icons.size
+                      ? // Room for four of the widest, "1.2 KB/s" and its
+                        // icon, side by side; and of the widest number alone
+                        'grid-cols-2 @min-[22rem]:grid-cols-4'
+                      : 'grid-cols-2 @2xs:grid-cols-4')
+                )}
+                style={
+                  fourAcross
+                    ? undefined
+                    : {
+                        gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+                      }
+                }
+              >
+                {shown.map((item) => (
+                  <div
+                    key={item.id}
+                    title={item.title}
+                    className='flex min-w-0 items-center gap-2'
+                  >
+                    {/* Its icon first, before its number, or its graph alone */}
+                    {(icons.has(item.id) || numbers.has(item.id)) && (
+                      <span className='flex items-center gap-1 whitespace-nowrap'>
+                        {icons.has(item.id) && item.icon}
+                        {numbers.has(item.id) && item.number}
+                      </span>
+                    )}
+                    {inline(item) && item.values && (
+                      <Sparkline
+                        values={item.values}
+                        times={item.times}
+                        measure={item.measure}
+                        fit={item.fit}
+                        // A little longer on a wider tile, and shorter where
+                        // there's no room
+                        className={cn(
+                          'min-w-0 shrink group-data-[dimmed=true]/card:opacity-60',
+                          service.width > 1 && 'w-24'
+                        )}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )
         ) : (
