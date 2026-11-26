@@ -1381,6 +1381,8 @@
     "pointsHere": "{domain} zeigt auf diesen Server",
     "noRecord": "{domain} hat noch keinen DNS-Eintrag: Lege einen A-Eintrag auf {server} an",
     "pointsElsewhere": "{domain} zeigt auf {addresses}, nicht auf diesen Server ({server})",
+    "noRecordAnyAddress": "{domain} hat noch keinen DNS-Eintrag: Lege einen A-Eintrag auf die Adresse dieses Servers an",
+    "pointsElsewhereAnyAddress": "{domain} zeigt auf {addresses}, nicht auf diesen Server",
     "runCommand": "docker-run-Befehl",
     "makeCompose": "In eine Compose-Datei umwandeln",
     "notCarried": "Nicht übernommen, bei Bedarf von Hand ergänzen:",

@@ -21,8 +21,20 @@ async function addresses(host: string) {
   return [...v4, ...v6];
 }
 
-/** The server's own name, or the dashboard's, which leads to the same server. */
-const SERVER_HOST = SERVER_NAME ?? SITE_URL.hostname;
+/**
+ * The names that lead to this server: its own, and the dashboard's. The server's
+ * name is also its heading, which can be a short name like "home" that has no
+ * DNS record, so the dashboard's own address counts too.
+ */
+const SERVER_HOSTS = [
+  ...new Set([SERVER_NAME, SITE_URL.hostname].filter((h): h is string => !!h)),
+];
+
+/** This server's addresses, from every name that leads to it. */
+async function serverAddresses() {
+  const found = await Promise.all(SERVER_HOSTS.map(addresses));
+  return [...new Set(found.flat())];
+}
 
 /**
  * Whether a domain points at this server, as its own name does: any address
@@ -31,7 +43,7 @@ const SERVER_HOST = SERVER_NAME ?? SITE_URL.hostname;
 export async function checkDomain(domain: string): Promise<DomainCheck> {
   const [found, server] = await Promise.all([
     addresses(domain),
-    addresses(SERVER_HOST),
+    serverAddresses(),
   ]);
   if (!found.length) return { points: 'nowhere', server };
   if (found.some((a) => server.includes(a))) return { points: 'here' };
@@ -46,7 +58,10 @@ const zoneOf = (host: string) => host.split('.').slice(-2).join('.');
  * service's address can end in. Read from Caddy's site files' addresses.
  */
 export async function siteDomains() {
-  const zones = new Set([zoneOf(SERVER_HOST)]);
+  // Only real domains: a short server name like "home" has no zone
+  const zones = new Set(
+    SERVER_HOSTS.filter((h) => h.includes('.')).map(zoneOf)
+  );
   const caddy = await findCaddy().catch(() => undefined);
   if (!caddy) return [...zones];
   const files = (await listHostDir(caddy.sites)).filter((e) =>

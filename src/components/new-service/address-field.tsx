@@ -135,16 +135,23 @@ function DnsStatus({ domain }: { domain: string }) {
           ? ([
               'bad',
               CircleAlertIcon,
-              t('noRecord', { domain, server: data.server.join(' / ') }),
+              data.server.length
+                ? t('noRecord', { domain, server: data.server.join(' / ') })
+                : t('noRecordAnyAddress', { domain }),
             ] as const)
           : ([
               'bad',
               CircleAlertIcon,
-              t('pointsElsewhere', {
-                domain,
-                addresses: data.addresses.join(', '),
-                server: data.server.join(' / '),
-              }),
+              data.server.length
+                ? t('pointsElsewhere', {
+                    domain,
+                    addresses: data.addresses.join(', '),
+                    server: data.server.join(' / '),
+                  })
+                : t('pointsElsewhereAnyAddress', {
+                    domain,
+                    addresses: data.addresses.join(', '),
+                  }),
             ] as const);
   return (
     <p

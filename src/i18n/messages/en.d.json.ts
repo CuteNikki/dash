@@ -1384,6 +1384,8 @@ declare const messages: {
     "pointsHere": "{domain} points at this server",
     "noRecord": "{domain} has no DNS record yet: point an A record at {server}",
     "pointsElsewhere": "{domain} points at {addresses}, not this server ({server})",
+    "noRecordAnyAddress": "{domain} has no DNS record yet: point an A record at this server's address",
+    "pointsElsewhereAnyAddress": "{domain} points at {addresses}, not this server",
     "runCommand": "docker run command",
     "makeCompose": "Make it a compose file",
     "notCarried": "Not carried over, to add by hand if it needs them:",

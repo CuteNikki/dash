@@ -127,11 +127,14 @@ export async function* createService(
       // that doesn't lead here
       const dns = await checkDomain(input.domain);
       if (dns.points !== 'here') {
-        const server = dns.server.join(' or ');
+        // Without an address of its own on record, the server's is only described
+        const server = dns.server.length
+          ? dns.server.join(' or ')
+          : "this server's address";
         throw new Error(
           dns.points === 'nowhere'
             ? `${input.domain} has no DNS record yet: add an A record pointing it at ${server}, then try again`
-            : `${input.domain} points at ${dns.addresses.join(', ')}, not this server (${server}): point it here, then try again`
+            : `${input.domain} points at ${dns.addresses.join(', ')}, not ${dns.server.length ? `this server (${server})` : 'this server'}: point it here, then try again`
         );
       }
       caddy = await findCaddy();
